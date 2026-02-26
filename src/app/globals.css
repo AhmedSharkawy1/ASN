@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Stronger cold blue background (slate-100/blue-50 mix) instead of pure white/airy blue */
+    --background: 210 40% 92%;
+    /* Deep Navy Blue for text, replacing dark gray/black */
+    --foreground: 222 75% 15%;
+
+    /* Slightly bluish white for cards and popovers */
+    --card: 210 80% 98%;
+    --card-foreground: 222 75% 15%;
+    --popover: 210 80% 98%;
+    --popover-foreground: 222 75% 15%;
+
+    /* Vibrant Brand Blue */
+    --primary: 209 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Soft matching blue for secondary elements */
+    --secondary: 210 60% 90%;
+    --secondary-foreground: 222 75% 15%;
+    --muted: 210 60% 90%;
+    --muted-foreground: 215 50% 40%;
+    --accent: 210 60% 90%;
+    --accent-foreground: 222 75% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Bluish borders instead of gray */
+    --border: 210 40% 85%;
+    --input: 210 40% 85%;
+    --ring: 209 100% 50%;
+    --radius: 0.75rem;
+
+    --glass-light: 255 255 255 / 0.5;
+    --glass-bg: 210 80% 98% / 0.7;
+    --glass-border: 210 40% 85% / 0.5;
+
+    /* Deep blue text instead of silver in Light Mode */
+    --silver-text: 215 60% 35%;
+    --glow-color: 209 100% 50%;
+  }
+
+  .dark {
+    /* Exact original: #020617 (Navy/Black) */
+    --background: 222 80% 5%;
+    /* Foreground: White (#f8fafc) */
+    --foreground: 210 20% 98%;
+    --card: 222 80% 5%;
+    --card-foreground: 210 20% 98%;
+    --popover: 222 80% 5%;
+    --popover-foreground: 210 20% 98%;
+    /* Button: White */
+    --primary: 0 0% 100%;
+    --primary-foreground: 222 80% 5%;
+    /* Secondary/Muted: Shades of Blue/Black */
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 210 20% 98%;
+    --muted: 222 47% 11%;
+    --muted-foreground: 209 60% 80%;
+    --accent: 222 47% 11%;
+    --accent-foreground: 210 20% 98%;
+    /* Keeping destructive as is for utility, but avoiding in design */
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 20% 98%;
+    --border: 217 60% 15%;
+    --input: 217 60% 15%;
+    --ring: 209 100% 64%;
+
+    --glass-light: 255 255 255 / 0.03;
+    --glass-bg: 0 0% 0% / 0.4;
+    --glass-border: 209 100% 64% / 0.1;
+    /* Removed Silver -> Light Blue: #94cfff */
+    --silver-text: 209 100% 85%;
+    /* Electric Blue: #2ea3ff */
+    --glow-color: 209 100% 64%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    @apply bg-background text-foreground transition-colors duration-300;
+    overflow-x: hidden;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass-card {
+    background: hsla(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    border: 1px solid hsla(var(--glass-border));
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .glass-card {
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70;
+  }
+
+  .dark .text-gradient {
+    @apply from-foreground via-silver to-white/60;
+  }
+
+  .text-glow {
+    text-shadow: 0 0 20px hsla(var(--glow-color) / 0.8), 0 0 40px hsla(var(--glow-color) / 0.4);
+  }
+}
