@@ -5,7 +5,8 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
-import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet } from "lucide-react";
+import { exportMenuToExcel, importMenuFromExcel } from "@/lib/excel";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Item = {
@@ -42,6 +43,8 @@ export default function MenuBuilderPage() {
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [addingItemToCat, setAddingItemToCat] = useState<string | null>(null);
     const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
+    const [isExporting, setIsExporting] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
 
     useEffect(() => {
         const fetchMenuData = async () => {
@@ -134,15 +137,42 @@ export default function MenuBuilderPage() {
                     <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
                         {language === "ar" ? "صانع المنيو الذكي" : "Smart Menu Builder"}
                     </h1>
-                    <p className="text-silver">
+                    <p className="text-silver mb-4 md:mb-0">
                         {language === "ar" ? "أضف وعدّل الأقسام والأصناف والأسعار والصور بحرية كاملة." : "Add and edit categories, items, prices, and images with full control."}
                     </p>
                 </div>
-                <button onClick={() => { setShowAddCategory(true); setEditingCat(null); setEditingItem(null); setAddingItemToCat(null); }}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95">
-                    <Plus className="w-5 h-5" />
-                    {language === "ar" ? "إضافة قسم جديد" : "Add New Category"}
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={async () => {
+                            if (!restaurantId) return;
+                            setIsExporting(true);
+                            await exportMenuToExcel(restaurantId, language);
+                            setIsExporting(false);
+                        }}
+                        disabled={isExporting}
+                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95 text-sm">
+                        {isExporting ? <span className="animate-spin text-lg">⏳</span> : <Download className="w-5 h-5 text-blue" />}
+                        {language === "ar" ? "تصدير" : "Export Excel"}
+                    </button>
+                    <label className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer active:scale-95 text-sm">
+                        {isImporting ? <span className="animate-spin text-lg">⏳</span> : <FileSpreadsheet className="w-5 h-5 text-emerald-500" />}
+                        {language === "ar" ? "استيراد" : "Import Excel"}
+                        <input type="file" accept=".xlsx,.xls" className="hidden" disabled={isImporting} onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !restaurantId) return;
+                            setIsImporting(true);
+                            const res = await importMenuFromExcel(restaurantId, file);
+                            alert(res.message);
+                            if (res.success) window.location.reload();
+                            setIsImporting(false);
+                        }} />
+                    </label>
+                    <button onClick={() => { setShowAddCategory(true); setEditingCat(null); setEditingItem(null); setAddingItemToCat(null); }}
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95 text-sm sm:text-base">
+                        <Plus className="w-5 h-5" />
+                        {language === "ar" ? "إضافة قسم جديد" : "Add Category"}
+                    </button>
+                </div>
             </div>
 
             {/* ========= ADD CATEGORY PANEL ========= */}
