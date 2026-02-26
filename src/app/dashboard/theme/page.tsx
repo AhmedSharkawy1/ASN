@@ -3,7 +3,7 @@
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Palette, CheckCircle2, Save, RotateCcw } from "lucide-react";
+import { Palette, CheckCircle2, Save, RotateCcw, MonitorSmartphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const themeOptions = [
@@ -47,7 +47,7 @@ export default function ThemePage() {
     const [customColors, setCustomColors] = useState<ThemeColors>(defaultColors.dark);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [showColors, setShowColors] = useState(false);
+    const [showColors, setShowColors] = useState(true);
 
     useEffect(() => {
         const fetchRestData = async () => {
@@ -73,6 +73,14 @@ export default function ThemePage() {
         };
         fetchRestData();
     }, []);
+
+    // Send Live Preview updates to the iframe
+    useEffect(() => {
+        const iframe = document.getElementById('preview-iframe') as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage({ type: 'UPDATE_THEME_COLORS', colors: customColors }, '*');
+        }
+    }, [customColors]);
 
     const handleThemeSave = async (themeId: string) => {
         if (!restaurantId) return;
@@ -106,119 +114,145 @@ export default function ThemePage() {
 
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري تحميل الإعدادات..." : "Loading Settings..."}</div>;
 
+    const isArabic = language === "ar";
+
     return (
-        <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-20">
-            <div className="flex flex-col border-b border-glass-border pb-6">
-                <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2 flex items-center gap-3">
-                    <Palette className="w-8 h-8 text-blue" />
-                    {language === "ar" ? "تخصيص المظهر" : "Theme & Customization"}
-                </h1>
-                <p className="text-silver">
-                    {language === "ar" ? "اختر التصميم والألوان المناسبة لهوية مطعمك." : "Choose the design and colors that match your restaurant's brand."}
-                </p>
-            </div>
+        <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] overflow-hidden gap-6 p-2 lg:p-6" dir={isArabic ? "rtl" : "ltr"}>
 
-            {/* Theme Selection */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
-                {themeOptions.map((theme) => {
-                    const isActive = activeTheme === theme.id;
-                    return (
-                        <div
-                            key={theme.id}
-                            onClick={() => handleThemeSave(theme.id)}
-                            className={`relative cursor-pointer group rounded-2xl overflow-hidden border-2 transition-all duration-300 ${isActive ? 'border-blue shadow-[0_0_20px_rgba(46,163,255,0.3)]' : 'border-glass-border hover:border-blue/50'}`}
-                        >
-                            <div className={`h-40 w-full p-4 flex flex-col gap-3 ${theme.bgClass} relative`}>
-                                <div className="w-24 h-4 rounded-full bg-white/20 dark:bg-black/20 mx-auto mb-2"></div>
-                                <div className="w-full flex justify-between items-center bg-white/10 dark:bg-black/10 p-2 rounded-lg">
-                                    <div className="h-10 w-10 bg-white/20 dark:bg-black/20 rounded-md"></div>
-                                    <div className="w-10 h-3 bg-white/20 dark:bg-black/20 rounded-full"></div>
-                                </div>
-                                <div className="w-full flex justify-between items-center bg-white/10 dark:bg-black/10 p-2 rounded-lg">
-                                    <div className="h-10 w-10 bg-white/20 dark:bg-black/20 rounded-md"></div>
-                                    <div className="w-10 h-3 bg-white/20 dark:bg-black/20 rounded-full"></div>
-                                </div>
-                                {isActive && (
-                                    <div className="absolute inset-0 bg-blue/10 backdrop-blur-[1px] flex items-center justify-center">
-                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-blue text-white p-3 rounded-full shadow-lg">
-                                            <CheckCircle2 className="w-8 h-8" />
-                                        </motion.div>
+            {/* LEFT PANE: CONTROLS */}
+            <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto pr-2 pb-20 custom-scrollbar space-y-8">
+                <div className="flex flex-col border-b border-glass-border pb-4 shrink-0">
+                    <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2 flex items-center gap-3">
+                        <Palette className="w-8 h-8 text-blue" />
+                        {isArabic ? "مُعدّل المظهر المباشر" : "Live Theme Customizer"}
+                    </h1>
+                    <p className="text-silver">
+                        {isArabic ? "عدّل الألوان وشاهد النتيجة فوراً على المنيو بتاعك قبل نشرها." : "Edit colors and see the results instantly on your menu before publishing."}
+                    </p>
+                </div>
+
+                {/* Theme Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {themeOptions.map((theme) => {
+                        const isActive = activeTheme === theme.id;
+                        return (
+                            <div
+                                key={theme.id}
+                                onClick={() => handleThemeSave(theme.id)}
+                                className={`relative cursor-pointer group rounded-2xl overflow-hidden border-2 transition-all duration-300 ${isActive ? 'border-blue shadow-[0_0_20px_rgba(46,163,255,0.3)]' : 'border-glass-border hover:border-blue/50'}`}
+                            >
+                                <div className={`h-24 w-full p-3 flex flex-col gap-2 ${theme.bgClass} relative`}>
+                                    <div className="w-16 h-2 rounded-full bg-white/20 dark:bg-black/20 mx-auto"></div>
+                                    <div className="w-full flex justify-between items-center bg-white/10 dark:bg-black/10 p-1.5 rounded-lg">
+                                        <div className="h-6 w-6 bg-white/20 dark:bg-black/20 rounded-md"></div>
+                                        <div className="w-8 h-2 bg-white/20 dark:bg-black/20 rounded-full"></div>
                                     </div>
-                                )}
+                                    {isActive && (
+                                        <div className="absolute inset-0 bg-blue/10 backdrop-blur-[1px] flex items-center justify-center">
+                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-blue text-white p-2 rounded-full shadow-lg">
+                                                <CheckCircle2 className="w-6 h-6" />
+                                            </motion.div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="bg-white dark:bg-glass-dark p-3 flex justify-between items-center text-sm">
+                                    <h3 className="font-bold text-foreground">{isArabic ? theme.nameAr : theme.nameEn}</h3>
+                                    {isActive && <span className="text-[10px] font-bold text-blue px-2 py-1 bg-blue/10 rounded-md">{isArabic ? "مفعل" : "Active"}</span>}
+                                </div>
                             </div>
-                            <div className="bg-white dark:bg-glass-dark p-4 border-t border-glass-border flex justify-between items-center">
-                                <h3 className="font-bold text-foreground">{language === "ar" ? theme.nameAr : theme.nameEn}</h3>
-                                {isActive && <span className="text-xs font-bold text-blue px-2 py-1 bg-blue/10 rounded-md">{language === "ar" ? "مفعل" : "Active"}</span>}
-                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Color Customization */}
+                <div className="flex-1">
+                    <button onClick={() => setShowColors(!showColors)}
+                        className="w-full flex items-center justify-between bg-white dark:bg-glass-dark border border-glass-border rounded-t-2xl px-6 py-4 transition-all">
+                        <div>
+                            <h3 className="font-bold text-foreground flex items-center gap-2">
+                                🎨 {isArabic ? "تخصيص الألوان" : "Customize Colors"}
+                            </h3>
                         </div>
-                    );
-                })}
+                        <span className={`text-silver transition-transform duration-300 ${showColors ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+
+                    <AnimatePresence>
+                        {showColors && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="bg-white dark:bg-glass-dark border border-t-0 border-glass-border rounded-b-2xl px-6 py-6 space-y-6">
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {Object.entries(customColors).map(([key, color]) => (
+                                            <div key={key} className="space-y-1.5 p-3 rounded-xl border border-glass-border bg-slate-50 dark:bg-black/20">
+                                                <label className="text-[10px] font-bold text-silver uppercase block">
+                                                    {colorLabels[key]?.[isArabic ? 'ar' : 'en'] || key}
+                                                </label>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="relative w-8 h-8 rounded-full overflow-hidden border border-glass-border cursor-pointer shadow-sm shrink-0">
+                                                        <input type="color" value={color} onChange={e => handleColorChange(key, e.target.value)}
+                                                            className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer" />
+                                                    </div>
+                                                    <input type="text" value={color} onChange={e => handleColorChange(key, e.target.value)}
+                                                        className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-black/40 border border-glass-border text-xs font-mono font-bold uppercase focus:border-blue outline-none" dir="ltr" />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-glass-border">
+                                        <button onClick={handleSaveColors} disabled={saving}
+                                            className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue to-cyan-500 text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 active:scale-95">
+                                            <Save className="w-5 h-5" />
+                                            {saving ? (isArabic ? "جاري النشر..." : "Publishing...") : (isArabic ? "نشر التعديلات" : "Publish Changes")}
+                                        </button>
+                                        <button onClick={handleResetColors}
+                                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 border border-glass-border rounded-xl text-silver font-bold text-sm hover:text-foreground hover:bg-white/5 transition">
+                                            <RotateCcw className="w-4 h-4" />
+                                            {isArabic ? "تراجع" : "Undo"}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
-            {/* Color Customization */}
-            <div className="mt-8">
-                <button onClick={() => setShowColors(!showColors)}
-                    className="w-full flex items-center justify-between bg-white dark:bg-[#080d20] border border-glass-border rounded-2xl px-6 py-4 hover:border-blue/50 transition-all group">
-                    <div>
-                        <h3 className="font-bold text-foreground text-lg flex items-center gap-2">
-                            🎨 {language === "ar" ? "تخصيص الألوان" : "Customize Colors"}
-                        </h3>
-                        <p className="text-silver text-sm">{language === "ar" ? "عدّل ألوان المنيو حسب هوية مطعمك" : "Adjust menu colors to match your brand"}</p>
-                    </div>
-                    <span className={`text-silver transition-transform ${showColors ? 'rotate-180' : ''}`}>▼</span>
-                </button>
+            {/* RIGHT PANE: LIVE PREVIEW IFRAME */}
+            <div className="w-full lg:w-1/2 h-[75vh] lg:h-full bg-slate-100 dark:bg-black/40 rounded-3xl p-2 lg:p-4 flex flex-col border border-glass-border relative">
+                <div className="flex items-center justify-between mb-3 px-2">
+                    <span className="text-sm font-bold opacity-60 flex items-center gap-2">
+                        <MonitorSmartphone className="w-4 h-4" />
+                        {isArabic ? "معاينة حية (موبايل)" : "Live Preview (Mobile)"}
+                    </span>
+                    <span className="flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                </div>
 
-                <AnimatePresence>
-                    {showColors && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }}
-                            className="overflow-hidden">
-                            <div className="bg-white dark:bg-[#080d20] border border-t-0 border-glass-border rounded-b-2xl px-6 py-6 space-y-6">
-                                {/* Color Preview Bar */}
-                                <div className="flex items-center gap-1 h-8 rounded-xl overflow-hidden shadow-inner border border-glass-border">
-                                    {Object.entries(customColors).map(([key, color]) => (
-                                        <div key={key} className="flex-1 h-full relative group cursor-pointer" style={{ backgroundColor: color }}
-                                            title={colorLabels[key]?.[language === 'ar' ? 'ar' : 'en'] || key}>
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/40">
-                                                <span className="text-[8px] text-white font-bold uppercase">{key.replace('_', ' ')}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Color Pickers */}
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                    {Object.entries(customColors).map(([key, color]) => (
-                                        <div key={key} className="space-y-2 bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
-                                            <label className="text-[10px] font-bold text-silver uppercase block">
-                                                {colorLabels[key]?.[language === 'ar' ? 'ar' : 'en'] || key}
-                                            </label>
-                                            <div className="flex items-center gap-2">
-                                                <input type="color" value={color} onChange={e => handleColorChange(key, e.target.value)}
-                                                    className="w-10 h-10 rounded-lg border-2 border-glass-border cursor-pointer" style={{ padding: 0 }} />
-                                                <input type="text" value={color} onChange={e => handleColorChange(key, e.target.value)}
-                                                    className="flex-1 px-2 py-1.5 rounded-lg bg-white dark:bg-black/30 border border-glass-border text-xs font-mono font-bold tracking-wider uppercase focus:border-blue outline-none" dir="ltr" />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="flex items-center gap-3 pt-4 border-t border-glass-border">
-                                    <button onClick={handleSaveColors} disabled={saving}
-                                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
-                                        <Save className="w-4 h-4" />
-                                        {saving ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ الألوان" : "Save Colors")}
-                                    </button>
-                                    <button onClick={handleResetColors}
-                                        className="flex items-center gap-2 px-4 py-3 text-silver font-bold text-sm hover:text-foreground transition">
-                                        <RotateCcw className="w-4 h-4" />
-                                        {language === "ar" ? "استعادة الافتراضي" : "Reset to Default"}
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
+                <div className="flex-1 w-full max-w-[400px] mx-auto bg-black rounded-[2.5rem] border-[8px] border-slate-800 shadow-2xl overflow-hidden relative">
+                    {restaurantId ? (
+                        <iframe
+                            id="preview-iframe"
+                            src={`/menu/${restaurantId}`}
+                            className="w-full h-full bg-background"
+                            frameBorder="0"
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-silver animate-pulse">
+                            {isArabic ? "جاري التحميل..." : "Loading Preview..."}
+                        </div>
                     )}
-                </AnimatePresence>
+                </div>
             </div>
+
+            <style jsx global>{`
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+                .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); }
+            `}</style>
         </div>
     );
 }

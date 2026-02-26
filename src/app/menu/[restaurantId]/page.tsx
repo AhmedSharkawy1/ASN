@@ -44,6 +44,7 @@ type RestaurantConfig = {
     map_link?: string;
     logo_url?: string;
     cover_url?: string;
+    theme_colors?: Record<string, string>;
     phone_numbers?: { label: string; number: string }[];
 };
 
@@ -62,6 +63,7 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     const [categories, setCategories] = useState<Category[]>([]);
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [liveColors, setLiveColors] = useState<Record<string, string> | null>(null);
 
     // Cart & Modal State
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -78,7 +80,7 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                 // Fetch Restaurant Config
                 const { data: restData } = await supabase
                     .from('restaurants')
-                    .select('name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, phone_numbers')
+                    .select('name, theme, theme_colors, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, phone_numbers')
                     .eq('id', params.restaurantId)
                     .single();
 
@@ -124,6 +126,15 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
         };
 
         fetchPublicMenu();
+
+        // Listen for Theme Customizer live preview events
+        const handleMessage = (event: MessageEvent) => {
+            if (event.data?.type === 'UPDATE_THEME_COLORS') {
+                setLiveColors(event.data.colors);
+            }
+        };
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
     }, [params.restaurantId]);
 
     if (loading) {
@@ -160,15 +171,31 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     }
 
     // Theme Mapping
-    const getThemeStyles = () => {
-        switch (config.theme) {
-            case 'light': return { bg: 'bg-slate-50', text: 'text-slate-900', secondaryBg: 'bg-white', primary: 'text-blue-600', border: 'border-slate-200', accent: 'bg-blue-600 text-white' };
-            case 'wood': return { bg: 'bg-[#faf0e6]', text: 'text-[#5c4033]', secondaryBg: 'bg-[#fffaf0]', primary: 'text-[#8b4513]', border: 'border-[#deb887]', accent: 'bg-[#8b4513] text-[#fffaf0]' };
-            case 'blue': return { bg: 'bg-slate-900', text: 'text-blue-50', secondaryBg: 'bg-slate-800', primary: 'text-cyan-400', border: 'border-slate-700', accent: 'bg-cyan-500 text-slate-900' };
-            default: return { bg: 'bg-[#0a0a0a]', text: 'text-gray-100', secondaryBg: 'bg-[#171717]', primary: 'text-blue-500', border: 'border-white/10', accent: 'bg-blue-600 text-white' }; // Dark
-        }
+    const defaultColors: Record<string, Record<string, string>> = {
+        dark: { primary: '#3b82f6', background: '#0a0a0a', card_bg: '#171717', text_color: '#f3f4f6', border: 'rgba(255,255,255,0.1)', accent: '#2563eb' },
+        light: { primary: '#2563eb', background: '#f8fafc', card_bg: '#ffffff', text_color: '#0f172a', border: '#e2e8f0', accent: '#2563eb' },
+        wood: { primary: '#8b4513', background: '#faf0e6', card_bg: '#fffaf0', text_color: '#5c4033', border: '#deb887', accent: '#8b4513' },
+        blue: { primary: '#22d3ee', background: '#0f172a', card_bg: '#1e293b', text_color: '#eff6ff', border: '#334155', accent: '#06b6d4' }
     };
-    const tStyles = getThemeStyles();
+    const activeColors = liveColors || config.theme_colors || defaultColors[config.theme] || defaultColors.dark;
+
+    const tStyles = {
+        bg: 'bg-[var(--theme-bg)]',
+        text: 'text-[var(--theme-text)]',
+        secondaryBg: 'bg-[var(--theme-card)]',
+        primary: 'text-[var(--theme-primary)]',
+        border: 'border-[var(--theme-border)]',
+        accent: 'bg-[var(--theme-accent)] text-white'
+    };
+
+    const cssVars = {
+        '--theme-bg': activeColors.background,
+        '--theme-card': activeColors.card_bg,
+        '--theme-text': activeColors.text_color,
+        '--theme-primary': activeColors.primary,
+        '--theme-accent': activeColors.accent,
+        '--theme-border': activeColors.background === '#0a0a0a' ? 'rgba(255,255,255,0.1)' : activeColors.card_bg !== activeColors.background ? activeColors.card_bg : 'rgba(0,0,0,0.1)',
+    } as React.CSSProperties;
 
     // ----------------- CART LOGIC -----------------
     const openItemSelect = (item: Item, cName: string) => {
@@ -262,7 +289,7 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     }
 
     return (
-        <main className={`min-h-screen ${tStyles.bg} ${tStyles.text} font-sans pb-32 transition-colors duration-500 relative`}>
+        <main style={cssVars} className={`min-h-screen ${tStyles.bg} ${tStyles.text} font-sans pb-32 transition-colors duration-500 relative`}>
 
             {/* Floating Cart Button */}
             <AnimatePresence>
