@@ -146,7 +146,7 @@ export default function MenuBuilderPage() {
                         onClick={async () => {
                             if (!restaurantId) return;
                             setIsExporting(true);
-                            await exportMenuToExcel(restaurantId, language);
+                            await exportMenuToExcel(restaurantId);
                             setIsExporting(false);
                         }}
                         disabled={isExporting}

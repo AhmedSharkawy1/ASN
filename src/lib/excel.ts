@@ -1,7 +1,7 @@
 import * as xlsx from 'xlsx';
 import { supabase } from './supabase/client';
 
-export const exportMenuToExcel = async (restaurantId: string, language: string) => {
+export const exportMenuToExcel = async (restaurantId: string) => {
     try {
         // Fetch categories with items
         const { data: cats } = await supabase
@@ -18,7 +18,7 @@ export const exportMenuToExcel = async (restaurantId: string, language: string) 
             .in('category_id', catIds);
 
         // Map to rows
-        const rows: any[] = [];
+        const rows: Record<string, string | number>[] = [];
         cats.forEach(cat => {
             const catItems = items?.filter(i => i.category_id === cat.id) || [];
             if (catItems.length === 0) {
@@ -79,7 +79,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                 const worksheet = workbook.Sheets[firstSheetName];
 
                 // Convert sheet to JSON
-                const rows = xlsx.utils.sheet_to_json<any>(worksheet);
+                const rows = xlsx.utils.sheet_to_json<Record<string, string | number>>(worksheet);
 
                 if (rows.length === 0) {
                     return resolve({ success: false, message: "File is empty." });
@@ -161,9 +161,10 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                 }
 
                 resolve({ success: true, message: `Successfully imported ${itemsToInsert.length} items.` });
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Import exception:", err);
-                resolve({ success: false, message: err.message || "Unknown error parsing Excel file." });
+                const msg = err instanceof Error ? err.message : "Unknown error parsing Excel file.";
+                resolve({ success: false, message: msg });
             }
         };
         reader.readAsArrayBuffer(file);
