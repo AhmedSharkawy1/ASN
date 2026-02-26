@@ -50,7 +50,7 @@ export default function Hero() {
 
                 {/* Glowing Orbs */}
                 <motion.div
-                    className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen opacity-50 dark:opacity-100"
+                    className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-2xl md:blur-[120px] mix-blend-normal md:mix-blend-multiply dark:mix-blend-normal md:dark:mix-blend-screen opacity-50 dark:opacity-100"
                     animate={{
                         x: [0, 50, 0, -50, 0],
                         y: [0, -50, 50, 0, 0],
@@ -59,7 +59,7 @@ export default function Hero() {
                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 />
                 <motion.div
-                    className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-blue-dark/20 rounded-full blur-[150px] mix-blend-multiply dark:mix-blend-screen opacity-30 dark:opacity-100"
+                    className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-blue-dark/20 rounded-full blur-3xl md:blur-[150px] mix-blend-normal md:mix-blend-multiply dark:mix-blend-normal md:dark:mix-blend-screen opacity-30 dark:opacity-100"
                     animate={{
                         x: [0, -80, 0, 80, 0],
                         y: [0, 80, -80, 0, 0],

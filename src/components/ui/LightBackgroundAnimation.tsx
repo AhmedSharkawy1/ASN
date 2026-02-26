@@ -14,7 +14,8 @@ export default function LightBackgroundAnimation() {
 
     // Generate floating particles and geometric glass shapes
     const { particles, glassShapes } = useMemo(() => {
-        const particlesArr = Array.from({ length: 40 }).map((_, i) => ({
+        // Reduce particle count significantly for mobile performance (was 40, now 15)
+        const particlesArr = Array.from({ length: 15 }).map((_, i) => ({
             id: `particle-${i}`,
             x: Math.random() * 100,
             y: Math.random() * 100,
@@ -23,7 +24,8 @@ export default function LightBackgroundAnimation() {
             delay: Math.random() * 10,
         }));
 
-        const shapesArr = Array.from({ length: 6 }).map((_, i) => {
+        // Reduce heavy glass shapes (was 6, now 3)
+        const shapesArr = Array.from({ length: 3 }).map((_, i) => {
             const size = Math.random() * 150 + 100;
             return {
                 id: `glass-${i}`,
@@ -52,7 +54,7 @@ export default function LightBackgroundAnimation() {
 
             {/* Glowing Tech Orbs (Vibrant colors heavily blurred, deeper contrast) */}
             <motion.div
-                className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-blue-400/30 blur-[130px] mix-blend-multiply"
+                className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-blue-400/30 blur-2xl md:blur-[130px] mix-blend-normal md:mix-blend-multiply"
                 animate={{
                     x: [0, 200, -100, 0],
                     y: [0, 100, 200, 0],
@@ -61,7 +63,7 @@ export default function LightBackgroundAnimation() {
                 transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
             />
             <motion.div
-                className="absolute top-[40%] right-[-10%] w-[50vw] h-[50vw] rounded-[40%] bg-cyan-400/30 blur-[140px] mix-blend-multiply"
+                className="absolute top-[40%] right-[-10%] w-[50vw] h-[50vw] rounded-[40%] bg-cyan-400/30 blur-3xl md:blur-[140px] mix-blend-normal md:mix-blend-multiply"
                 animate={{
                     x: [0, -200, 100, 0],
                     y: [0, -150, 50, 0],
@@ -71,7 +73,7 @@ export default function LightBackgroundAnimation() {
                 transition={{ duration: 22, repeat: Infinity, ease: "easeInOut", delay: 2 }}
             />
             <motion.div
-                className="absolute bottom-[-10%] left-[30%] w-[70vw] h-[70vw] rounded-[45%] bg-indigo-500/20 blur-[160px] mix-blend-multiply"
+                className="absolute bottom-[-10%] left-[30%] w-[70vw] h-[70vw] rounded-[45%] bg-indigo-500/20 blur-3xl md:blur-[160px] mix-blend-normal md:mix-blend-multiply"
                 animate={{
                     x: [0, 150, -200, 0],
                     y: [0, -200, 150, 0],
