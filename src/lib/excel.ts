@@ -138,7 +138,6 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     }
 
                     itemsToInsert.push({
-                        restaurant_id: restaurantId,
                         category_id: catId,
                         title_ar: itemAr,
                         title_en: String(row['Item EN'] || '').trim() || null,

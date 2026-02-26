@@ -267,7 +267,7 @@ export default function MenuBuilderPage() {
                                                 {/* ADD ITEM PANEL */}
                                                 <AnimatePresence>
                                                     {addingItemToCat === cat.id && (
-                                                        <AddItemPanel catId={cat.id} restaurantId={restaurantId!} language={language}
+                                                        <AddItemPanel catId={cat.id} language={language}
                                                             onCreated={(newItem) => {
                                                                 setCategories(categories.map(c => c.id === cat.id ? { ...c, items: [...c.items, newItem] } : c));
                                                                 setAddingItemToCat(null);
@@ -383,8 +383,8 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
 }
 
 // ===================== ADD ITEM PANEL =====================
-function AddItemPanel({ catId, restaurantId, language, onCreated, onCancel }: {
-    catId: string; restaurantId: string; language: string;
+function AddItemPanel({ catId, language, onCreated, onCancel }: {
+    catId: string; language: string;
     onCreated: (item: Item) => void;
     onCancel: () => void;
 }) {
@@ -414,7 +414,6 @@ function AddItemPanel({ catId, restaurantId, language, onCreated, onCancel }: {
                 .from('items')
                 .insert({
                     category_id: catId,
-                    restaurant_id: restaurantId,
                     title_ar: titleAr, title_en: titleEn || undefined,
                     desc_ar: descAr || undefined, desc_en: descEn || undefined,
                     prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0),
