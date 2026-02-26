@@ -416,6 +416,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
                     category_id: catId,
                     title_ar: titleAr, title_en: titleEn || undefined,
                     desc_ar: descAr || undefined, desc_en: descEn || undefined,
+                    price: prices[0] || 0,
                     prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0),
                     is_popular: isPopular, is_spicy: isSpicy, is_available: true
                 }).select().single();

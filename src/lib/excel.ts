@@ -143,6 +143,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                         title_en: String(row['Item EN'] || '').trim() || null,
                         desc_ar: String(row['Description AR'] || '').trim() || null,
                         desc_en: String(row['Description EN'] || '').trim() || null,
+                        price: prices[0] || 0,
                         prices: prices,
                         size_labels: size_labels.slice(0, prices.length),
                         is_popular: String(row['Popular'] || '').toLowerCase() === 'yes' || String(row['Popular'] || '').toLowerCase() === 'نعم',
