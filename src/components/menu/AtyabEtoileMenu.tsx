@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { Phone, X, MapPin, ShoppingCart } from "lucide-react";
+import { X, MapPin, ShoppingCart } from "lucide-react";
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 

@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { X, MapPin, Phone } from "lucide-react";
+// lucide-react icons used elsewhere
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 

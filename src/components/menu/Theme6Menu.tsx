@@ -1,20 +1,18 @@
-﻿// @ts-nocheck
-"use client";
+﻿"use client";
 /* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Globe, Star, MapPin, Instagram, Phone, Link as LinkIcon,
-    Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, Share2, LogIn
+    Star, MapPin, Phone, Link as LinkIcon,
+    Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, Share2
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebook } from 'react-icons/fa';
 
 /* ───────────────────── THEME 6 CONSTANTS ───────────────────── */
 const T6 = '#40a798';        // brand-primary teal
-const T6_LIGHT = '#e6f2fa';  // brand-light active bg
-const T6_GREEN = '#059669';  // open status
 
 /* ───────────────────── COMPONENT ───────────────────── */
 export default function Theme6Menu({ config, categories }: { config: any; categories: any[] }) {

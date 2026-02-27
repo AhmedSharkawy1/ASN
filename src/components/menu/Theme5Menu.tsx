@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Share2, Menu, Bike, X, Moon, Sun, ShoppingBag, Plus as PlusIcon, Minus, LayoutGrid } from 'lucide-react';
+import { Search, Share2, Bike, X, Moon, Sun, ShoppingBag, Plus as PlusIcon, Minus, LayoutGrid } from 'lucide-react';
 import { FaWhatsapp, FaFacebook } from 'react-icons/fa';
 
 type Item = {

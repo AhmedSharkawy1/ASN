@@ -87,6 +87,7 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
 
     // State
     const [activeCategory, setActiveCategory] = useState<string>(categories[0]?.id || "");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [searchQuery, setSearchQuery] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
     const [showCart, setShowCart] = useState(false);
@@ -217,13 +218,8 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
 
     // ─── Filter Logic ───
     const activeCatData = categories.find((c) => c.id === activeCategory);
-    let filteredItems = activeCatData?.items || [];
-    if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        filteredItems = categories.flatMap((c) => c.items).filter((item) =>
-            item.title_ar.toLowerCase().includes(q) || item.title_en?.toLowerCase().includes(q)
-        );
-    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const filteredItems = activeCatData?.items || [];
 
     const currency = isAr ? "ج" : "EGP";
 
