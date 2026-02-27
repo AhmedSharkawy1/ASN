@@ -54,6 +54,14 @@ const THEMES = [
         description_ar: "تصميم عصري باللون التيل، مع لوجو متوسط وأيقونات تواصل سريعة وشريط سلة عائم.",
         description_en: "Modern teal design with centered logo, quick contact icons, and a floating cart bar.",
         preview_color: "#40a798", // Teal
+    },
+    {
+        id: "theme7",
+        name_ar: "حليم (ثيم داكن ذهبي)",
+        name_en: "Haleem (Dark Gold Theme)",
+        description_ar: "تصميم داكن فاخر بلمسات ذهبية، تنقل مزدوج بتابات نصية ودوائر صور، بطاقات أصناف بتصميم عصري.",
+        description_en: "Premium dark theme with gold accents, dual navigation (text tabs + circular images), and modern item cards.",
+        preview_color: "#c9a84c", // Gold
     }
 ];
 

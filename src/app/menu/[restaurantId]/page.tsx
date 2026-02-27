@@ -14,6 +14,7 @@ import BabAlHaraMenu from "@/components/menu/BabAlHaraMenu";
 import AtyabEtoileMenu from "@/components/menu/AtyabEtoileMenu";
 import Theme5Menu from "@/components/menu/Theme5Menu";
 import Theme6Menu from "@/components/menu/Theme6Menu";
+import Theme7Menu from "@/components/menu/Theme7Menu";
 import { PaymentMethodEntry } from "@/app/dashboard/settings/page";
 
 type Item = {
@@ -185,6 +186,11 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     // If Veranda Theme 6
     if (config?.theme === 'theme6') {
         return <Theme6Menu config={config} categories={categories} />;
+    }
+
+    // If Haleem Dark Theme 7
+    if (config?.theme === 'theme7') {
+        return <Theme7Menu config={config} categories={categories} />;
     }
 
     // ----------------- CART LOGIC -----------------
