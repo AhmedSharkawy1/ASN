@@ -6,9 +6,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Search, MapPin, Phone,
-    Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, Share2,
-    ChevronUp, Home, UtensilsCrossed, Settings, CalendarDays
+    Search, MapPin, Phone, Bell, List, ChevronDown, Rocket, LogIn,
+    Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X,
+    ChevronUp, Home, UtensilsCrossed, Settings
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebook, FaTiktok, FaInstagram } from 'react-icons/fa';
 
@@ -38,6 +38,7 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
     const [qty, setQty] = useState(1);
     const [sizeIdx, setSizeIdx] = useState(0);
     const [notes, setNotes] = useState('');
+    const [selectedExtras, setSelectedExtras] = useState<any[]>([]);
 
     // checkout
     const [cust, setCust] = useState({ name: '', phone: '', address: '' });
@@ -67,6 +68,11 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
         return categories.filter(c => c.id === activeCategory);
     }, [categories, activeCategory]);
 
+    const mostOrderedItems = React.useMemo(() => {
+        const all = categories.flatMap(c => c.items || []).filter(i => i.is_available !== false);
+        return all.slice(0, 3);
+    }, [categories]);
+
     const searchFilteredCategories = React.useMemo(() => {
         if (!searchQuery.trim()) return filteredCategories;
         const q = searchQuery.toLowerCase();
@@ -82,13 +88,21 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
 
     const addToCart = () => {
         if (!selectedItem) return;
-        const price = selectedItem.item.prices[sizeIdx] || 0;
+        const basePrice = selectedItem.item.prices[sizeIdx] || 0;
+        const extrasTotal = selectedExtras.reduce((sum, ext) => sum + ext.price, 0);
+        const finalPrice = basePrice + extrasTotal;
         const label = selectedItem.item.size_labels?.[sizeIdx] || '';
+
+        let finalNotes = notes;
+        if (selectedExtras.length > 0) {
+            finalNotes += (finalNotes ? '\n' : '') + 'إضافات: ' + selectedExtras.map(e => e.name).join('، ');
+        }
+
         const ci = {
-            id: `${selectedItem.item.id}-${sizeIdx}`,
+            id: `${selectedItem.item.id}-${sizeIdx}-${selectedExtras.map(e => e.id).join('-')}`,
             item: selectedItem.item,
             catName: selectedItem.catName,
-            price, sizeLabel: label, quantity: qty, notes,
+            price: finalPrice, sizeLabel: label, quantity: qty, notes: finalNotes,
         };
         setCart(prev => {
             const ex = prev.find(i => i.id === ci.id && i.notes === ci.notes);
@@ -102,7 +116,7 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
         const price = item.prices[0] || 0;
         const label = item.size_labels?.[0] || '';
         const ci = {
-            id: `${item.id}-0`,
+            id: `${item.id}-0-`,
             item,
             catName,
             price, sizeLabel: label, quantity: 1, notes: '',
@@ -114,7 +128,7 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
         });
     };
 
-    const closeModal = () => { setSelectedItem(null); setQty(1); setSizeIdx(0); setNotes(''); };
+    const closeModal = () => { setSelectedItem(null); setQty(1); setSizeIdx(0); setNotes(''); setSelectedExtras([]); };
     const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
     const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
     const updateQty = (id: string, n: string, d: number) => {
@@ -222,10 +236,71 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                 </div>
             </div>
 
+            {/* ─── PROMO BANNERS ─── */}
+            <div className="px-4 mb-6 flex overflow-x-auto gap-3 pb-2" style={{ scrollbarWidth: 'none' }}>
+                <div className="min-w-[280px] h-36 rounded-2xl overflow-hidden relative shrink-0 shadow-sm" style={{ background: isDark ? '#1e293b' : '#f8fafc' }}>
+                    <img src="https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=600" alt="Promo 1" className="w-full h-full object-cover opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                    <div className="absolute bottom-3 right-4 text-right">
+                        <h3 className="text-white font-bold text-lg mb-1">{isAr ? 'لمتنا تحلى' : 'Family Gathering'}</h3>
+                        <p className="text-white/80 text-xs">{isAr ? 'اللمة العائلية' : 'Enjoy together'}</p>
+                    </div>
+                </div>
+                <div className="min-w-[280px] h-36 rounded-2xl overflow-hidden relative shrink-0 shadow-sm" style={{ background: isDark ? '#1e293b' : '#f8fafc' }}>
+                    <img src="https://images.unsplash.com/photo-1561758033-d89a9ad46330?q=80&w=600" alt="Promo 2" className="w-full h-full object-cover opacity-80" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                    <div className="absolute bottom-3 right-4 text-right">
+                        <h3 className="text-white font-bold text-lg mb-1">{isAr ? 'ساندوتشات' : 'Fresh Sandwiches'}</h3>
+                        <p className="text-white/80 text-xs">{isAr ? 'الطازجة في إنتظارك' : 'Waiting for you'}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* ─── MOST ORDERED (الأكثر طلباً) ─── */}
+            {mostOrderedItems.length > 0 && !searchQuery.trim() && (
+                <div className="px-4 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                        <button className="text-sm font-bold flex items-center gap-1" style={{ color: T8_ORANGE }}>
+                            {isAr ? 'مشاهدة المزيد' : 'View More'} »
+                        </button>
+                        <h2 className="text-lg font-bold text-right">{isAr ? 'الأكثر طلباً' : 'Most Ordered'}</h2>
+                    </div>
+                    <div className="flex gap-4 overflow-x-auto pb-4" style={{ scrollbarWidth: 'none' }}>
+                        {mostOrderedItems.map((item: any) => (
+                            <div key={`mo-${item.id}`}
+                                className="min-w-[140px] rounded-2xl overflow-hidden shadow-sm transition-all hover:shadow-md cursor-pointer shrink-0 flex flex-col"
+                                style={{ background: cardBg, border: `1px solid ${borderColor}` }}>
+                                <div className="relative w-full aspect-square overflow-hidden"
+                                    onClick={() => setSelectedItem({ item, catName: isAr ? 'الأكثر طلباً' : 'Most Ordered' })}>
+                                    <img src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt={item.title_ar}
+                                        className="w-full h-full object-cover transition-transform hover:scale-105" loading="lazy" />
+                                </div>
+                                <div className="p-3 text-center flex-1 flex flex-col justify-between items-center">
+                                    <h3 className="font-bold text-sm mb-1 line-clamp-1"
+                                        onClick={() => setSelectedItem({ item, catName: isAr ? 'الأكثر طلباً' : 'Most Ordered' })}>
+                                        {itemName(item)}
+                                    </h3>
+                                    <span className="font-bold text-sm mb-3" style={{ color: T8_ORANGE }}>
+                                        {item.prices[0]?.toFixed?.(0) || item.prices[0]} {cur}
+                                    </span>
+                                    <div className="w-full mt-auto">
+                                        <button onClick={(e) => { e.stopPropagation(); addToCartDirect(item, isAr ? 'الأكثر طلباً' : 'Most Ordered'); }}
+                                            className="w-full py-2 rounded-lg flex items-center justify-center active:scale-95 transition-transform"
+                                            style={{ color: T8_ORANGE, backgroundColor: isDark ? 'rgba(249, 115, 22, 0.15)' : '#fff7ed' }}>
+                                            <ShoppingCart className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* ─── CATEGORIES SECTION ─── */}
             <div className="px-4 mb-6">
-                <h2 className="text-lg font-bold mb-2 text-right">{isAr ? 'الأقسام الرئيسية' : 'Main Categories'}</h2>
-                <p className="text-xs mb-4 text-right" style={{ color: textSecondary }}>
+                <h2 className="text-lg font-bold mb-2 text-center">{isAr ? 'الأقسام الرئيسية' : 'Main Categories'}</h2>
+                <p className="text-xs mb-4 text-center" style={{ color: textSecondary }}>
                     {isAr ? 'اكتشف تشكيلتنا المتنوعة من الأطباق المختارة.' : 'Discover our diverse selection of dishes.'}
                 </p>
                 <div ref={catScrollRef}
@@ -239,7 +314,7 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                             color: activeCategory === 'all' ? '#fff' : textPrimary,
                             border: `1px solid ${activeCategory === 'all' ? T8_ORANGE : borderColor}`,
                         }}>
-                        <UtensilsCrossed className="w-4 h-4" />
+                        <List className="w-4 h-4" />
                         {isAr ? 'الكل' : 'All'}
                     </button>
                     {categories.map((cat: any) => {
@@ -297,7 +372,7 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                                     </div>
 
                                     {/* Item info */}
-                                    <div className="p-3 text-right">
+                                    <div className="p-3 text-center flex flex-col items-center">
                                         <h3 className="font-bold text-sm mb-1 line-clamp-1"
                                             onClick={() => setSelectedItem({ item, catName: isAr ? section.name_ar : (section.name_en || section.name_ar) })}>
                                             {itemName(item)}
@@ -307,17 +382,15 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                                                 {isAr ? item.desc_ar : (item.desc_en || '')}
                                             </p>
                                         )}
-                                        <div className="flex items-center justify-between">
-                                            {/* Add to cart */}
+                                        <span className="font-bold text-sm mb-3" style={{ color: T8_ORANGE }}>
+                                            {item.prices[0]?.toFixed?.(0) || item.prices[0]} {cur}
+                                        </span>
+                                        <div className="w-full">
                                             <button onClick={(e) => { e.stopPropagation(); addToCartDirect(item, isAr ? section.name_ar : (section.name_en || section.name_ar)); }}
-                                                className="w-8 h-8 rounded-lg flex items-center justify-center text-white active:scale-90 transition-transform"
-                                                style={{ background: T8_ORANGE }}>
+                                                className="w-full py-2 rounded-lg flex items-center justify-center active:scale-95 transition-transform"
+                                                style={{ color: T8_ORANGE, backgroundColor: isDark ? 'rgba(249, 115, 22, 0.15)' : '#fff7ed' }}>
                                                 <ShoppingCart className="w-4 h-4" />
                                             </button>
-                                            {/* Price */}
-                                            <span className="font-bold text-sm" style={{ color: T8_ORANGE }}>
-                                                {item.prices[0]?.toFixed?.(0) || item.prices[0]} {cur}
-                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -390,11 +463,11 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                     <Settings className="w-6 h-6" />
                 </button>
 
-                {/* Reservation */}
-                <button onClick={() => setActiveBottomNav('reserve')}
+                {/* Reservation -> Call Waiter */}
+                <button onClick={() => setActiveBottomNav('waiter')}
                     className="flex flex-col items-center gap-0.5 p-1 min-w-[50px]"
-                    style={{ color: activeBottomNav === 'reserve' ? T8_ORANGE : textSecondary }}>
-                    <CalendarDays className="w-5 h-5" />
+                    style={{ color: activeBottomNav === 'waiter' ? T8_ORANGE : textSecondary }}>
+                    <Bell className="w-5 h-5" />
                 </button>
 
                 {/* Cart */}
@@ -422,33 +495,39 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                             style={{ background: cardBg }}
                             onClick={e => e.stopPropagation()}>
                             <div className="p-4 flex items-center justify-between border-b" style={{ borderColor }}>
-                                <button onClick={() => setDrawerOpen(false)}><X className="w-5 h-5" /></button>
+                                <div className="flex gap-2 items-center">
+                                    <button onClick={() => setDrawerOpen(false)}><X className="w-5 h-5" /></button>
+                                    <button onClick={toggleDark} className="p-1 rounded-md" style={{ background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', color: textPrimary }}>
+                                        {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                                    </button>
+                                </div>
                                 <img src={config.logo_url} alt="" className="w-8 h-8 rounded-full" />
                             </div>
-                            <nav className="flex-1 p-4 space-y-4 text-right">
+                            <nav className="flex-1 p-4 space-y-1 text-right">
                                 {[
                                     { label: isAr ? 'الصفحة الرئيسية' : 'Home', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
-                                    { label: isAr ? 'المنيو' : 'Menu', action: () => document.querySelector('main')?.scrollIntoView({ behavior: 'smooth' }) },
-                                    { label: isAr ? 'وجبات مميزة' : 'Featured', action: () => { } },
-                                    { label: isAr ? 'عروض مميزة' : 'Offers', action: () => { } },
+                                    { label: isAr ? 'المنيو' : 'Menu', action: () => document.querySelector('main')?.scrollIntoView({ behavior: 'smooth' }), active: true },
+                                    { label: isAr ? 'وجبات مميزة' : 'Featured Meals', action: () => { } },
+                                    { label: isAr ? 'عروض مميزة' : 'Special Offers', action: () => { } },
+                                    { label: isAr ? 'الحجوزات' : 'Reservations', action: () => { } },
+                                    { label: isAr ? 'المزيد' : 'More', action: () => { }, hasIcon: true },
                                 ].map(item => (
                                     <button key={item.label} onClick={() => { item.action(); setDrawerOpen(false); }}
-                                        className="block w-full text-right font-bold text-sm py-2 transition-colors hover:opacity-70">
-                                        {item.label}
+                                        className="w-full flex justify-between items-center text-right font-bold text-sm py-3 transition-colors hover:opacity-70"
+                                        style={{ color: item.active ? T8_ORANGE : textPrimary }}>
+                                        {item.hasIcon ? <ChevronDown className="w-4 h-4 opacity-50" /> : <div className="w-4" />}
+                                        <span>{item.label}</span>
                                     </button>
                                 ))}
                             </nav>
                             <div className="p-4 border-t flex items-center justify-between text-sm" style={{ borderColor }}>
-                                {/* Dark mode toggle */}
-                                <button onClick={toggleDark} className="flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-xs"
-                                    style={{ background: isDark ? 'rgba(255,255,255,0.1)' : '#f1f5f9', color: textPrimary }}>
-                                    {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                                    {isDark ? (isAr ? 'فاتح' : 'Light') : (isAr ? 'داكن' : 'Dark')}
+                                <button className="flex items-center gap-2 text-xs font-bold" style={{ color: textSecondary }}>
+                                    <Rocket className="w-4 h-4" />
+                                    {isAr ? 'مناداة الوتر' : 'Call Waiter'}
                                 </button>
-                                <button onClick={() => { if (navigator.share) navigator.share({ title: config.name, url: location.href }); else navigator.clipboard.writeText(location.href); }}
-                                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
-                                    style={{ color: textSecondary }}>
-                                    <Share2 className="w-4 h-4" />
+                                <button className="flex items-center gap-2 text-xs font-bold" style={{ color: textSecondary }}>
+                                    <LogIn className="w-4 h-4" />
+                                    {isAr ? 'تسجيل الدخول' : 'Login'}
                                 </button>
                             </div>
                         </motion.div>
@@ -499,14 +578,22 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                                                 <button key={idx} onClick={() => setSizeIdx(idx)}
                                                     className="px-4 py-2 rounded-lg text-sm font-bold transition-all"
                                                     style={{
-                                                        background: sel ? T8_ORANGE : (isDark ? 'rgba(255,255,255,0.08)' : '#f1f5f9'),
-                                                        color: sel ? '#fff' : textPrimary,
-                                                        border: `1px solid ${sel ? T8_ORANGE : borderColor}`,
+                                                        background: sel ? (isDark ? '#fff' : '#000') : (isDark ? 'rgba(255,255,255,0.08)' : '#f8fafc'),
+                                                        color: sel ? (isDark ? '#000' : '#fff') : textPrimary,
+                                                        border: `1px solid ${sel ? (isDark ? '#fff' : '#000') : borderColor}`,
                                                     }}>
                                                     {label}
                                                 </button>
                                             );
                                         })}
+                                    </div>
+                                )}
+
+                                {/* Calories */}
+                                {selectedItem.item.calories && (
+                                    <div className="flex items-center gap-2 justify-end text-sm" style={{ color: textSecondary }}>
+                                        <span>{isAr ? 'السعرات الحرارية:' : 'Calories:'} {selectedItem.item.calories} {isAr ? 'كالوري' : 'Cal'}</span>
+                                        <span>⚖️</span>
                                     </div>
                                 )}
 
@@ -517,10 +604,44 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                                     </p>
                                 )}
 
+                                {/* Extras */}
+                                {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
+                                    <div className="mt-2 text-right">
+                                        <div className="flex items-center justify-end gap-2 mb-3">
+                                            <span className="text-xs" style={{ color: textSecondary }}>({isAr ? 'اختياري' : 'Optional'})</span>
+                                            <h3 className="font-bold">{isAr ? 'إضافات' : 'Extras'}</h3>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {selectedItem.item.extras.map((ext: any, idx: number) => {
+                                                const isSel = selectedExtras.some(e => e.id === (ext.id || idx));
+                                                return (
+                                                    <label key={idx} className="flex items-center justify-between cursor-pointer">
+                                                        <span className="text-sm font-bold" style={{ color: textSecondary }}>
+                                                            {ext.price > 0 ? `+${ext.price} ${cur}` : (isAr ? 'مجاناً' : 'Free')}
+                                                        </span>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm">{isAr ? ext.name_ar : (ext.name_en || ext.name_ar)}</span>
+                                                            <div className="w-5 h-5 rounded border flex items-center justify-center"
+                                                                style={{ borderColor: isSel ? T8_ORANGE : borderColor, background: isSel ? T8_ORANGE : 'transparent' }}>
+                                                                {isSel && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                                            </div>
+                                                        </div>
+                                                        <input type="checkbox" className="hidden" checked={isSel}
+                                                            onChange={() => {
+                                                                if (isSel) setSelectedExtras(p => p.filter(e => e.id !== (ext.id || idx)));
+                                                                else setSelectedExtras(p => [...p, { id: ext.id || idx, name: isAr ? ext.name_ar : (ext.name_en || ext.name_ar), price: ext.price }]);
+                                                            }} />
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Notes */}
                                 <textarea value={notes} onChange={e => setNotes(e.target.value)}
                                     placeholder={isAr ? 'ملاحظات خاصة (اختياري)' : 'Special notes (optional)'}
-                                    className="w-full rounded-xl p-3 text-sm text-right outline-none resize-none h-20"
+                                    className="w-full rounded-xl p-3 text-sm text-right outline-none resize-none h-20 mt-2"
                                     style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc', border: `1px solid ${borderColor}`, color: textPrimary }} />
                             </div>
 
@@ -541,7 +662,7 @@ export default function Theme8Menu({ config, categories }: { config: any; catego
                                 {/* Add button */}
                                 <button onClick={addToCart} className="flex-1 text-white rounded-xl py-3 px-4 font-bold text-sm active:scale-95 transition-transform"
                                     style={{ background: T8_ORANGE }}>
-                                    {isAr ? 'أضف للسلة' : 'Add to Cart'} {((selectedItem.item.prices[sizeIdx] || 0) * qty).toFixed?.(0)} {cur}
+                                    {isAr ? 'أضف للسلة' : 'Add to Cart'} {(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed?.(0)} {cur}
                                 </button>
                             </div>
                         </motion.div>
