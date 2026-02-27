@@ -1,0 +1,24 @@
+
+> temp@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/app/menu/[restaurantId]/page.tsx:207:36
+Type error: Property 'searchPlaceholder' does not exist on type 'string | Record<string, string>'.
+  Property 'searchPlaceholder' does not exist on type 'string'.
+
+[0m [90m 205 |[39m     [36mconst[39m cLabels [33m=[39m liveLabels [33m||[39m dbColors[33m.[39mcustom_labels [33m||[39m {}[33m;[39m[0m
+[0m [90m 206 |[39m     [36mconst[39m labels [33m=[39m {[0m
+[0m[31m[1m>[22m[39m[90m 207 |[39m         searchPlaceholder[33m:[39m cLabels[33m.[39msearchPlaceholder [33m||[39m (language [33m===[39m [32m"ar"[39m [33m?[39m [32m"ابحث عن الأطباق..."[39m [33m:[39m [32m"Search for dishes..."[39m)[33m,[39m[0m
+[0m [90m     |[39m                                    [31m[1m^[22m[39m[0m
+[0m [90m 208 |[39m         checkoutButton[33m:[39m cLabels[33m.[39mcheckoutButton [33m||[39m (language [33m===[39m [32m"ar"[39m [33m?[39m [32m"إتمام الطلب"[39m [33m:[39m [32m"Checkout"[39m)[33m,[39m[0m
+[0m [90m 209 |[39m         orderReview[33m:[39m cLabels[33m.[39morderReview [33m||[39m (language [33m===[39m [32m"ar"[39m [33m?[39m [32m"🛒 مراجعة الطلب"[39m [33m:[39m [32m"🛒 Order Review"[39m)[33m,[39m[0m
+[0m [90m 210 |[39m         deliveryDetails[33m:[39m cLabels[33m.[39mdeliveryDetails [33m||[39m (language [33m===[39m [32m"ar"[39m [33m?[39m [32m"بيانات التوصيل"[39m [33m:[39m [32m"Delivery Details"[39m)[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null

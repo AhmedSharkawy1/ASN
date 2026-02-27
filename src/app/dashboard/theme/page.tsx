@@ -1,258 +1,247 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
+import { Palette, Check, Save, Loader2, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Palette, CheckCircle2, Save, RotateCcw, MonitorSmartphone } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
-const themeOptions = [
-    { id: 'dark', nameAr: 'ليلي أنيق', nameEn: 'Elegant Dark', bgClass: 'bg-black', textClass: 'text-white' },
-    { id: 'light', nameAr: 'نهاري ساطع', nameEn: 'Bright Light', bgClass: 'bg-white', textClass: 'text-slate-900' },
-    { id: 'wood', nameAr: 'خشبي دافئ', nameEn: 'Warm Wood', bgClass: 'bg-amber-900', textClass: 'text-amber-50' },
-    { id: 'blue', nameAr: 'أزرق هادئ', nameEn: 'Calm Blue', bgClass: 'bg-slate-900', textClass: 'text-blue-50' },
-    { id: 'pizzapasta', nameAr: 'بيتزا باستا (ديناميكي)', nameEn: 'PizzaPasta (Dynamic)', bgClass: 'bg-[#111111]', textClass: 'text-brandYellow' },
+const THEMES = [
+    {
+        id: "pizzapasta",
+        name_ar: "بيتزا باستا (ديناميكية)",
+        name_en: "Pizza Pasta (Dynamic)",
+        description_ar: "تصميم عصري بخلفية داكنة، يدعم تغيير الألوان والخطوط.",
+        description_en: "Modern dark design, supports custom colors and fonts.",
+        preview_color: "#3b82f6", // Blue
+    },
+    {
+        id: "atyab-oriental",
+        name_ar: "أطياب مودرن (أورينتال)",
+        name_en: "Atyab Modern (Oriental)",
+        description_ar: "تصميم احترافي عالي التباين، بلمسات ذهبية وتأثيرات زجاجية وأنيميشن.",
+        description_en: "High-contrast professional design with gold accents and glassmorphism.",
+        preview_color: "#eab308", // Gold/Yellow
+    },
+    {
+        id: "bab-alhara",
+        name_ar: "باب الحارة (سوري كلاسيك)",
+        name_en: "Bab Al-Hara (Syrian Classic)",
+        description_ar: "تصميم كلاسيكي بطابع سوري، بانر خلفية كبير، بطاقات صور بشبكة، وتنقل دائري.",
+        description_en: "Classic Syrian-style design with hero banner, grid cards with images, and circular nav.",
+        preview_color: "#e31e24", // Red
+    },
+    {
+        id: "atyab-etoile",
+        name_ar: "أطياب إتوال (إيكومرس)",
+        name_en: "Atyab Etoile (E-commerce)",
+        description_ar: "تصميم أنيق بلمسات ذهبية، شريط أخبار متحرك، بانر سلايدر، بطاقات صور متجر، وشريط تنقل زجاجي.",
+        description_en: "Elegant gold-accented design with marquee bar, banner slider, e-commerce grid cards, and glass bottom nav.",
+        preview_color: "#B89038", // Gold
+    },
+    {
+        id: "theme5",
+        name_ar: "ثيم 5 المتميز",
+        name_en: "Premium Theme 5",
+        description_ar: "تصميم مميز جديد بخاصية تقسيم العناصر وسلة تسوق متطورة.",
+        description_en: "New premium design with item categories and advanced shopping cart.",
+        preview_color: "#ea580c", // Orange
+    },
+    {
+        id: "theme6",
+        name_ar: "فراندة (لون تيل)",
+        name_en: "Veranda (Teal Theme)",
+        description_ar: "تصميم عصري باللون التيل، مع لوجو متوسط وأيقونات تواصل سريعة وشريط سلة عائم.",
+        description_en: "Modern teal design with centered logo, quick contact icons, and a floating cart bar.",
+        preview_color: "#40a798", // Teal
+    }
 ];
-
-type ThemeColors = {
-    primary: string;
-    secondary: string;
-    background: string;
-    card_bg: string;
-    text_color: string;
-    accent: string;
-};
-
-const defaultColors: Record<string, ThemeColors> = {
-    dark: { primary: '#2ea3ff', secondary: '#06b6d4', background: '#050505', card_bg: '#111827', text_color: '#ffffff', accent: '#f59e0b' },
-    light: { primary: '#2563eb', secondary: '#0891b2', background: '#f8fafc', card_bg: '#ffffff', text_color: '#0f172a', accent: '#f59e0b' },
-    wood: { primary: '#d97706', secondary: '#92400e', background: '#451a03', card_bg: '#78350f', text_color: '#fffbeb', accent: '#fbbf24' },
-    blue: { primary: '#3b82f6', secondary: '#06b6d4', background: '#0f172a', card_bg: '#1e293b', text_color: '#f1f5f9', accent: '#f59e0b' },
-    pizzapasta: { primary: '#e11d48', secondary: '#be123c', background: '#050505', card_bg: '#18181b', text_color: '#fafafa', accent: '#facc15' },
-};
-
-const colorLabels: Record<string, { ar: string; en: string }> = {
-    primary: { ar: 'اللون الأساسي', en: 'Primary Color' },
-    secondary: { ar: 'اللون الثانوي', en: 'Secondary Color' },
-    background: { ar: 'لون الخلفية', en: 'Background' },
-    card_bg: { ar: 'خلفية الكروت', en: 'Card Background' },
-    text_color: { ar: 'لون النص', en: 'Text Color' },
-    accent: { ar: 'لون التمييز', en: 'Accent Color' },
-};
 
 export default function ThemePage() {
     const { language } = useLanguage();
-    const [restaurantId, setRestaurantId] = useState<string | null>(null);
-    const [activeTheme, setActiveTheme] = useState<string>('dark');
-    const [customColors, setCustomColors] = useState<ThemeColors>(defaultColors.dark);
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [showColors, setShowColors] = useState(true);
-
-    useEffect(() => {
-        const fetchRestData = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const { data } = await supabase
-                .from('restaurants')
-                .select('id, theme, theme_colors')
-                .eq('email', user.email)
-                .single();
-
-            if (data) {
-                setRestaurantId(data.id);
-                if (data.theme) setActiveTheme(data.theme);
-                if (data.theme_colors) {
-                    setCustomColors(data.theme_colors);
-                } else {
-                    setCustomColors(defaultColors[data.theme || 'dark'] || defaultColors.dark);
-                }
-            }
-            setLoading(false);
-        };
-        fetchRestData();
-    }, []);
-
-    // Send Live Preview updates to the iframe
-    useEffect(() => {
-        const iframe = document.getElementById('preview-iframe') as HTMLIFrameElement;
-        if (iframe && iframe.contentWindow) {
-            iframe.contentWindow.postMessage({ type: 'UPDATE_THEME_COLORS', colors: customColors }, '*');
-        }
-    }, [customColors]);
-
-    const handleThemeSave = async (themeId: string) => {
-        if (!restaurantId) return;
-        setActiveTheme(themeId);
-        const colors = defaultColors[themeId] || defaultColors.dark;
-        setCustomColors(colors);
-        try {
-            await supabase
-                .from('restaurants')
-                .update({ theme: themeId, theme_colors: colors })
-                .eq('id', restaurantId);
-        } catch (e) { console.error(e); }
-    };
-
-    const handleColorChange = (key: string, value: string) => {
-        setCustomColors(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleSaveColors = async () => {
-        if (!restaurantId) return;
-        setSaving(true);
-        try {
-            await supabase.from('restaurants').update({ theme_colors: customColors }).eq('id', restaurantId);
-        } catch (e) { console.error(e); }
-        finally { setSaving(false); }
-    };
-
-    const handleResetColors = () => {
-        setCustomColors(defaultColors[activeTheme] || defaultColors.dark);
-    };
-
-    if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري تحميل الإعدادات..." : "Loading Settings..."}</div>;
-
     const isArabic = language === "ar";
 
-    return (
-        <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] overflow-hidden gap-6 p-2 lg:p-6" dir={isArabic ? "rtl" : "ltr"}>
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [selectedTheme, setSelectedTheme] = useState("");
+    const [restaurantId, setRestaurantId] = useState<string | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-            {/* LEFT PANE: CONTROLS */}
-            <div className="w-full lg:w-1/2 flex flex-col overflow-y-auto pr-2 pb-20 custom-scrollbar space-y-8">
-                <div className="flex flex-col border-b border-glass-border pb-4 shrink-0">
-                    <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2 flex items-center gap-3">
-                        <Palette className="w-8 h-8 text-blue" />
-                        {isArabic ? "مُعدّل المظهر المباشر" : "Live Theme Customizer"}
-                    </h1>
-                    <p className="text-silver">
-                        {isArabic ? "عدّل الألوان وشاهد النتيجة فوراً على المنيو بتاعك قبل نشرها." : "Edit colors and see the results instantly on your menu before publishing."}
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                const { data: restaurant, error } = await supabase
+                    .from('restaurants')
+                    .select('id, theme')
+                    .eq('email', user.email)
+                    .single();
+
+                if (error) throw error;
+
+                if (restaurant) {
+                    setRestaurantId(restaurant.id);
+                    setSelectedTheme(restaurant.theme || "pizzapasta");
+                }
+            } catch (err) {
+                console.error("Error fetching theme:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const handleSave = async () => {
+        if (!restaurantId) return;
+
+        setSaving(true);
+        setMessage(null);
+
+        try {
+            const { error } = await supabase
+                .from('restaurants')
+                .update({ theme: selectedTheme })
+                .eq('id', restaurantId);
+
+            if (error) throw error;
+
+            setMessage({
+                type: 'success',
+                text: isArabic ? "تم حفظ التغييرات بنجاح!" : "Changes saved successfully!"
+            });
+
+            // Clear message after 3 seconds
+            setTimeout(() => setMessage(null), 3000);
+        } catch (err) {
+            console.error("Error saving theme:", err);
+            setMessage({
+                type: 'error',
+                text: isArabic ? "حدث خطأ أثناء الحفظ." : "Error occurred while saving."
+            });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <Loader2 className="w-8 h-8 text-blue animate-spin" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-6 max-w-4xl mx-auto space-y-8" dir={isArabic ? "rtl" : "ltr"}>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-blue/10 rounded-2xl flex items-center justify-center">
+                        <Palette className="w-6 h-6 text-blue" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold text-foreground">
+                            {isArabic ? "اختر مظهر المنيو" : "Choose Menu Theme"}
+                        </h1>
+                        <p className="text-silver text-sm">
+                            {isArabic ? "اختر التصميم الذي يظهر لعملائك عند فتح المنيو." : "Select the design your customers see when they open the menu."}
+                        </p>
+                    </div>
+                </div>
+
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-2 bg-blue hover:bg-blue-hover disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue/20"
+                >
+                    {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    {isArabic ? "حفظ التغييرات" : "Save Changes"}
+                </button>
+            </div>
+
+            {message && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 rounded-xl text-center font-bold ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}
+                >
+                    {message.text}
+                </motion.div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {THEMES.map((theme) => (
+                    <div
+                        key={theme.id}
+                        onClick={() => setSelectedTheme(theme.id)}
+                        className={`relative cursor-pointer group rounded-3xl border-2 transition-all p-5 overflow-hidden
+                            ${selectedTheme === theme.id
+                                ? 'border-blue bg-blue/5'
+                                : 'border-card bg-card hover:border-silver/30'}`}
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="space-y-1">
+                                <h3 className="text-xl font-bold text-foreground">
+                                    {isArabic ? theme.name_ar : theme.name_en}
+                                </h3>
+                                <p className="text-silver text-xs leading-relaxed max-w-[200px]">
+                                    {isArabic ? theme.description_ar : theme.description_en}
+                                </p>
+                            </div>
+                            <div
+                                className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+                                style={{ backgroundColor: theme.preview_color + '20' }}
+                            >
+                                {selectedTheme === theme.id ? (
+                                    <Check className="w-6 h-6 text-blue" />
+                                ) : (
+                                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.preview_color }} />
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Visual Preview Placeholder */}
+                        <div className="w-full aspect-[16/9] rounded-2xl bg-background/50 border border-white/5 p-4 flex flex-col gap-2">
+                            <div className="w-1/3 h-2 rounded-full opacity-20" style={{ backgroundColor: theme.preview_color }} />
+                            <div className="w-full h-8 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                            <div className="grid grid-cols-2 gap-2 mt-auto">
+                                <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                            </div>
+                        </div>
+
+                        {selectedTheme === theme.id && (
+                            <div className="absolute top-0 right-0 p-3">
+                                <span className="bg-blue text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                    {isArabic ? "مفعل" : "Active"}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-blue/5 border border-blue/10 p-6 rounded-[2rem] flex items-center justify-between">
+                <div className="space-y-1">
+                    <h4 className="font-bold text-foreground">
+                        {isArabic ? "معاينة المنيو" : "Preview Menu"}
+                    </h4>
+                    <p className="text-silver text-xs">
+                        {isArabic ? "افتح المنيو في نافذة جديدة لرؤية التغييرات فوراً." : "Open the menu in a new window to see changes immediately."}
                     </p>
                 </div>
-
-                {/* Theme Selection */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {themeOptions.map((theme) => {
-                        const isActive = activeTheme === theme.id;
-                        return (
-                            <div
-                                key={theme.id}
-                                onClick={() => handleThemeSave(theme.id)}
-                                className={`relative cursor-pointer group rounded-2xl overflow-hidden border-2 transition-all duration-300 ${isActive ? 'border-blue shadow-[0_0_20px_rgba(46,163,255,0.3)]' : 'border-glass-border hover:border-blue/50'}`}
-                            >
-                                <div className={`h-24 w-full p-3 flex flex-col gap-2 ${theme.bgClass} relative`}>
-                                    <div className="w-16 h-2 rounded-full bg-white/20 dark:bg-black/20 mx-auto"></div>
-                                    <div className="w-full flex justify-between items-center bg-white/10 dark:bg-black/10 p-1.5 rounded-lg">
-                                        <div className="h-6 w-6 bg-white/20 dark:bg-black/20 rounded-md"></div>
-                                        <div className="w-8 h-2 bg-white/20 dark:bg-black/20 rounded-full"></div>
-                                    </div>
-                                    {isActive && (
-                                        <div className="absolute inset-0 bg-blue/10 backdrop-blur-[1px] flex items-center justify-center">
-                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-blue text-white p-2 rounded-full shadow-lg">
-                                                <CheckCircle2 className="w-6 h-6" />
-                                            </motion.div>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="bg-white dark:bg-glass-dark p-3 flex justify-between items-center text-sm">
-                                    <h3 className="font-bold text-foreground">{isArabic ? theme.nameAr : theme.nameEn}</h3>
-                                    {isActive && <span className="text-[10px] font-bold text-blue px-2 py-1 bg-blue/10 rounded-md">{isArabic ? "مفعل" : "Active"}</span>}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Color Customization */}
-                <div className="flex-1">
-                    <button onClick={() => setShowColors(!showColors)}
-                        className="w-full flex items-center justify-between bg-white dark:bg-glass-dark border border-glass-border rounded-t-2xl px-6 py-4 transition-all">
-                        <div>
-                            <h3 className="font-bold text-foreground flex items-center gap-2">
-                                🎨 {isArabic ? "تخصيص الألوان" : "Customize Colors"}
-                            </h3>
-                        </div>
-                        <span className={`text-silver transition-transform duration-300 ${showColors ? 'rotate-180' : ''}`}>▼</span>
-                    </button>
-
-                    <AnimatePresence>
-                        {showColors && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                <div className="bg-white dark:bg-glass-dark border border-t-0 border-glass-border rounded-b-2xl px-6 py-6 space-y-6">
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {Object.entries(customColors).map(([key, color]) => (
-                                            <div key={key} className="space-y-1.5 p-3 rounded-xl border border-glass-border bg-slate-50 dark:bg-black/20">
-                                                <label className="text-[10px] font-bold text-silver uppercase block">
-                                                    {colorLabels[key]?.[isArabic ? 'ar' : 'en'] || key}
-                                                </label>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="relative w-8 h-8 rounded-full overflow-hidden border border-glass-border cursor-pointer shadow-sm shrink-0">
-                                                        <input type="color" value={color} onChange={e => handleColorChange(key, e.target.value)}
-                                                            className="absolute -top-4 -left-4 w-16 h-16 cursor-pointer" />
-                                                    </div>
-                                                    <input type="text" value={color} onChange={e => handleColorChange(key, e.target.value)}
-                                                        className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-black/40 border border-glass-border text-xs font-mono font-bold uppercase focus:border-blue outline-none" dir="ltr" />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    <div className="flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-glass-border">
-                                        <button onClick={handleSaveColors} disabled={saving}
-                                            className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-blue to-cyan-500 text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50 active:scale-95">
-                                            <Save className="w-5 h-5" />
-                                            {saving ? (isArabic ? "جاري النشر..." : "Publishing...") : (isArabic ? "نشر التعديلات" : "Publish Changes")}
-                                        </button>
-                                        <button onClick={handleResetColors}
-                                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 border border-glass-border rounded-xl text-silver font-bold text-sm hover:text-foreground hover:bg-white/5 transition">
-                                            <RotateCcw className="w-4 h-4" />
-                                            {isArabic ? "تراجع" : "Undo"}
-                                        </button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                <a
+                    href={restaurantId ? `/menu/${restaurantId}` : "#"}
+                    target="_blank"
+                    className="flex items-center gap-2 text-blue font-bold hover:underline"
+                >
+                    {isArabic ? "معاينة مباشرة" : "Live Preview"}
+                    <ExternalLink className="w-4 h-4" />
+                </a>
             </div>
-
-            {/* RIGHT PANE: LIVE PREVIEW IFRAME */}
-            <div className="w-full lg:w-1/2 h-[75vh] lg:h-full bg-slate-100 dark:bg-black/40 rounded-3xl p-2 lg:p-4 flex flex-col border border-glass-border relative">
-                <div className="flex items-center justify-between mb-3 px-2">
-                    <span className="text-sm font-bold opacity-60 flex items-center gap-2">
-                        <MonitorSmartphone className="w-4 h-4" />
-                        {isArabic ? "معاينة حية (موبايل)" : "Live Preview (Mobile)"}
-                    </span>
-                    <span className="flex h-3 w-3">
-                        <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                    </span>
-                </div>
-
-                <div className="flex-1 w-full max-w-[400px] mx-auto bg-black rounded-[2.5rem] border-[8px] border-slate-800 shadow-2xl overflow-hidden relative">
-                    {restaurantId ? (
-                        <iframe
-                            id="preview-iframe"
-                            src={`/menu/${restaurantId}`}
-                            className="w-full h-full bg-background"
-                            frameBorder="0"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center text-silver animate-pulse">
-                            {isArabic ? "جاري التحميل..." : "Loading Preview..."}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <style jsx global>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-                .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); }
-            `}</style>
         </div>
     );
 }

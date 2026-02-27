@@ -1,0 +1,49 @@
+
+> temp@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/21) ...
+   Generating static pages (5/21) 
+   Generating static pages (10/21) 
+   Generating static pages (15/21) 
+ ✓ Generating static pages (21/21)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                              Size     First Load JS
+┌ ○ /                                    8.16 kB         165 kB
+├ ○ /_not-found                          876 B          88.2 kB
+├ ○ /about                               4.94 kB         157 kB
+├ ○ /admin                               1.09 kB        88.4 kB
+├ ○ /dashboard                           5.13 kB         199 kB
+├ ○ /dashboard/customers                 6.84 kB         186 kB
+├ ○ /dashboard/delivery                  4.16 kB         186 kB
+├ ○ /dashboard/kitchen                   4.96 kB         143 kB
+├ ○ /dashboard/menu                      150 kB          329 kB
+├ ○ /dashboard/notifications             6.83 kB         186 kB
+├ ○ /dashboard/orders                    7.81 kB         187 kB
+├ ○ /dashboard/pos                       6.42 kB         144 kB
+├ ○ /dashboard/qr                        3.53 kB         148 kB
+├ ○ /dashboard/settings                  6.71 kB         147 kB
+├ ○ /dashboard/tables                    5.81 kB         185 kB
+├ ○ /dashboard/team                      3.9 kB          185 kB
+├ ○ /dashboard/theme                     6.83 kB         190 kB
+├ ○ /login                               5.32 kB         201 kB
+├ ƒ /menu/[restaurantId]                 16 kB           202 kB
+└ ƒ /services/[slug]                     3.07 kB         160 kB
++ First Load JS shared by all            87.3 kB
+  ├ chunks/2117-c09d9fd5f62f1fa6.js      31.7 kB
+  ├ chunks/fd9d1056-c9e6f969021aa03b.js  53.6 kB
+  └ other shared chunks (total)          1.96 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

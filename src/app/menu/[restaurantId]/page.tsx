@@ -9,6 +9,12 @@ import { Search, MapPin, Phone, Utensils, ShoppingCart, X, Instagram, Facebook }
 import { FaTiktok } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import PizzaPastaMenu from "@/components/menu/PizzaPastaMenu";
+import AtyabOrientalMenu from "@/components/menu/AtyabOrientalMenu";
+import BabAlHaraMenu from "@/components/menu/BabAlHaraMenu";
+import AtyabEtoileMenu from "@/components/menu/AtyabEtoileMenu";
+import Theme5Menu from "@/components/menu/Theme5Menu";
+import Theme6Menu from "@/components/menu/Theme6Menu";
+import { PaymentMethodEntry } from "@/app/dashboard/settings/page";
 
 type Item = {
     id: string;
@@ -44,8 +50,10 @@ type RestaurantConfig = {
     map_link?: string;
     logo_url?: string;
     cover_url?: string;
-    theme_colors?: Record<string, string>;
+    cover_images?: string[];
+    working_hours?: string;
     phone_numbers?: { label: string; number: string }[];
+    payment_methods?: PaymentMethodEntry[];
 };
 
 type CartItem = {
@@ -63,7 +71,6 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     const [categories, setCategories] = useState<Category[]>([]);
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
-    const [liveColors, setLiveColors] = useState<Record<string, string> | null>(null);
 
     // Cart & Modal State
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -77,10 +84,9 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     useEffect(() => {
         const fetchPublicMenu = async () => {
             try {
-                // Fetch Restaurant Config
                 const { data: restData } = await supabase
                     .from('restaurants')
-                    .select('name, theme, theme_colors, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, phone_numbers')
+                    .select('name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods')
                     .eq('id', params.restaurantId)
                     .single();
 
@@ -90,7 +96,6 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                 }
                 setConfig(restData);
 
-                // Fetch Categories
                 const { data: catsData } = await supabase
                     .from('categories')
                     .select('*')
@@ -98,7 +103,6 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                     .order('sort_order', { ascending: true });
 
                 if (catsData && catsData.length > 0) {
-                    // Fetch Items
                     const catIds = catsData.map(c => c.id);
                     const { data: itemsData } = await supabase
                         .from('items')
@@ -124,23 +128,13 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                 setLoading(false);
             }
         };
-
         fetchPublicMenu();
-
-        // Listen for Theme Customizer live preview events
-        const handleMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'UPDATE_THEME_COLORS') {
-                setLiveColors(event.data.colors);
-            }
-        };
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
     }, [params.restaurantId]);
 
     if (loading) {
         return (
-            <div className={`min-h-screen bg-background flex flex-col items-center justify-center gap-4 transition-colors duration-500`}>
-                <div className={`w-16 h-16 border-4 ${config?.theme === 'pizzapasta' ? 'border-brandYellow' : 'border-blue'} border-t-transparent rounded-full animate-spin`}></div>
+            <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 border-4 border-blue border-t-transparent rounded-full animate-spin"></div>
                 <p className="text-silver font-medium animate-pulse">
                     {language === "ar" ? "جاري تحضير المنيو المذهل..." : "Preparing Amazing Menu..."}
                 </p>
@@ -163,39 +157,35 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
         );
     }
 
-    const isPP = config?.theme === 'pizzapasta';
-
     // If PizzaPasta theme, render the dedicated full-layout component
-    if (isPP) {
+    if (config?.theme === 'pizzapasta') {
         return <PizzaPastaMenu config={config} categories={categories} language={language} />;
     }
 
-    // Theme Mapping
-    const defaultColors: Record<string, Record<string, string>> = {
-        dark: { primary: '#3b82f6', background: '#0a0a0a', card_bg: '#171717', text_color: '#f3f4f6', border: 'rgba(255,255,255,0.1)', accent: '#2563eb' },
-        light: { primary: '#2563eb', background: '#f8fafc', card_bg: '#ffffff', text_color: '#0f172a', border: '#e2e8f0', accent: '#2563eb' },
-        wood: { primary: '#8b4513', background: '#faf0e6', card_bg: '#fffaf0', text_color: '#5c4033', border: '#deb887', accent: '#8b4513' },
-        blue: { primary: '#22d3ee', background: '#0f172a', card_bg: '#1e293b', text_color: '#eff6ff', border: '#334155', accent: '#06b6d4' }
-    };
-    const activeColors = liveColors || config.theme_colors || defaultColors[config.theme] || defaultColors.dark;
+    // If Atyab Oriental theme
+    if (config?.theme === 'atyab-oriental') {
+        return <AtyabOrientalMenu config={config} categories={categories} language={language} />;
+    }
 
-    const tStyles = {
-        bg: 'bg-[var(--theme-bg)]',
-        text: 'text-[var(--theme-text)]',
-        secondaryBg: 'bg-[var(--theme-card)]',
-        primary: 'text-[var(--theme-primary)]',
-        border: 'border-[var(--theme-border)]',
-        accent: 'bg-[var(--theme-accent)] text-white'
-    };
+    // If Bab Al-Hara theme
+    if (config?.theme === 'bab-alhara') {
+        return <BabAlHaraMenu config={config} categories={categories} language={language} />;
+    }
 
-    const cssVars = {
-        '--theme-bg': activeColors.background,
-        '--theme-card': activeColors.card_bg,
-        '--theme-text': activeColors.text_color,
-        '--theme-primary': activeColors.primary,
-        '--theme-accent': activeColors.accent,
-        '--theme-border': activeColors.background === '#0a0a0a' ? 'rgba(255,255,255,0.1)' : activeColors.card_bg !== activeColors.background ? activeColors.card_bg : 'rgba(0,0,0,0.1)',
-    } as React.CSSProperties;
+    // If Atyab Etoile theme
+    if (config?.theme === 'atyab-etoile') {
+        return <AtyabEtoileMenu config={config} categories={categories} language={language} />;
+    }
+
+    // If Premium Theme 5
+    if (config?.theme === 'theme5') {
+        return <Theme5Menu config={config} categories={categories} language={language} />;
+    }
+
+    // If Veranda Theme 6
+    if (config?.theme === 'theme6') {
+        return <Theme6Menu config={config} categories={categories} />;
+    }
 
     // ----------------- CART LOGIC -----------------
     const openItemSelect = (item: Item, cName: string) => {
@@ -209,7 +199,6 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
         const { item } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels ? item.size_labels[tempSizeIdx] : 'عادي';
-
         const cartId = `${item.id}-${sizeLabel}`;
 
         setCart(prev => {
@@ -276,7 +265,6 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     };
     // ---------------------------------------------
 
-
     // Filter Logic
     const activeCatData = categories.find(c => c.id === activeCategory);
     let filteredItems = activeCatData ? activeCatData.items : [];
@@ -289,7 +277,7 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     }
 
     return (
-        <main style={cssVars} className={`min-h-screen ${tStyles.bg} ${tStyles.text} font-sans pb-32 transition-colors duration-500 relative`}>
+        <main className="min-h-screen bg-[#0a0a0a] text-gray-100 font-sans pb-32 transition-colors duration-500 relative">
 
             {/* Floating Cart Button */}
             <AnimatePresence>
@@ -299,11 +287,11 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: 100, opacity: 0 }}
                         onClick={() => { setShowCart(true); if (navigator.vibrate) navigator.vibrate(20); }}
-                        className={`fixed bottom-20 right-6 z-[60] ${tStyles.accent} shadow-2xl p-4 rounded-full flex items-center justify-center gap-3 transition-transform hover:scale-105 active:scale-95`}
+                        className="fixed bottom-20 right-6 z-[60] bg-blue-600 text-white shadow-2xl p-4 rounded-full flex items-center justify-center gap-3 transition-transform hover:scale-105 active:scale-95"
                     >
                         <div className="relative">
                             <ShoppingCart className="w-6 h-6" />
-                            <span className={`absolute -top-2 -right-2 ${isPP ? 'bg-red-600' : 'bg-red-500'} text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 ${isPP ? 'border-black' : 'border-white'} shadow-sm`}>
+                            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white shadow-sm">
                                 {cart.length}
                             </span>
                         </div>
@@ -313,22 +301,19 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
             </AnimatePresence>
 
             {/* Header Area */}
-            <div className={`pt-8 pb-6 px-4 md:px-6 ${tStyles.secondaryBg} shadow-sm relative z-10 rounded-b-[2.5rem] overflow-hidden`}>
+            <div className="pt-8 pb-6 px-4 md:px-6 bg-[#171717] shadow-sm relative z-10 rounded-b-[2.5rem] overflow-hidden">
                 {config.cover_url && (
                     <div className="absolute inset-0 opacity-10 pointer-events-none">
                         <img src={config.cover_url} alt="Cover" className="w-full h-full object-cover" />
-                        <div className={`absolute inset-0 bg-gradient-to-b from-transparent to-${tStyles.secondaryBg}`}></div>
                     </div>
                 )}
                 <div className="max-w-3xl mx-auto relative z-20 flex flex-col items-center text-center">
                     {config.logo_url && (
-                        <div className={`w-24 h-24 rounded-full border-4 ${tStyles.border} bg-white shadow-xl overflow-hidden mb-4 p-1`}>
+                        <div className="w-24 h-24 rounded-full border-4 border-white/10 bg-white shadow-xl overflow-hidden mb-4 p-1">
                             <img src={config.logo_url} alt="Logo" className="w-full h-full object-contain" />
                         </div>
                     )}
-                    <h1 className="text-3xl font-black mb-2 tracking-tight">
-                        {config.name}
-                    </h1>
+                    <h1 className="text-3xl font-black mb-2 tracking-tight">{config.name}</h1>
 
                     {/* Social Links Row */}
                     <div className="flex flex-wrap items-center justify-center gap-4 text-sm opacity-80 mb-6 mt-1">
@@ -365,7 +350,7 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder={language === "ar" ? "ابحث عن الأطباق..." : "Search for dishes..."}
-                            className={`w-full pl-12 pr-4 py-3.5 rounded-2xl ${tStyles.bg} border ${tStyles.border} focus:outline-none focus:ring-2 focus:ring-${isPP ? 'brandYellow' : 'blue'}/50 transition-all font-medium placeholder:opacity-50`}
+                            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-[#0a0a0a] border border-white/10 focus:outline-none focus:ring-2 focus:ring-blue/50 transition-all font-medium placeholder:opacity-50"
                             dir={language === "ar" ? "rtl" : "ltr"}
                         />
                     </div>
@@ -382,11 +367,11 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                                 key={cat.id}
                                 onClick={() => setActiveCategory(cat.id)}
                                 className={`snap-start whitespace-nowrap px-6 py-2.5 rounded-full font-bold transition-all flex items-center gap-2 ${activeCategory === cat.id
-                                    ? isPP ? `bg-brandYellow text-black shadow-[0_0_20px_rgba(234,179,8,0.3)] scale-105` : `bg-blue text-white shadow-md shadow-blue/30 scale-105`
-                                    : `${tStyles.secondaryBg} border ${tStyles.border} opacity-80 hover:opacity-100 hover:border-${isPP ? 'brandYellow' : 'blue'}/50`
+                                    ? 'bg-blue text-white shadow-md shadow-blue/30 scale-105'
+                                    : 'bg-[#171717] border border-white/10 opacity-80 hover:opacity-100 hover:border-blue/50'
                                     }`}
                             >
-                                {cat.emoji && <span className={`text-lg ${activeCategory === cat.id && isPP ? 'animate-emoji' : ''}`}>{cat.emoji}</span>}
+                                {cat.emoji && <span className="text-lg">{cat.emoji}</span>}
                                 {language === "ar" ? cat.name_ar : (cat.name_en || cat.name_ar)}
                             </button>
                         ))}
@@ -423,7 +408,7 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.3, ease: "easeOut" }}
                                         key={item.id}
-                                        className={`${tStyles.secondaryBg} border ${tStyles.border} rounded-[2rem] p-4 flex gap-4 overflow-hidden shadow-sm cursor-pointer hover:border-${isPP ? 'brandYellow' : 'blue/50'} transition-all duration-300 group relative ${isPP ? 'hover:shadow-[0_0_15px_rgba(234,179,8,0.15)] hover:-translate-y-1' : ''}`}
+                                        className="bg-[#171717] border border-white/10 rounded-[2rem] p-4 flex gap-4 overflow-hidden shadow-sm cursor-pointer hover:border-blue/50 transition-all duration-300 group relative"
                                     >
                                         <div className="relative shrink-0">
                                             {item.image_url ? (
@@ -431,14 +416,13 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                                                     <img src={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" />
                                                 </div>
                                             ) : (
-                                                <div className="w-[100px] h-[100px] rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-black/5 dark:border-white/5 opacity-80">
+                                                <div className="w-[100px] h-[100px] rounded-2xl bg-gray-800 flex items-center justify-center border border-white/5 opacity-80">
                                                     <Utensils className="w-8 h-8 opacity-20" />
                                                 </div>
                                             )}
-                                            {/* Badges Over Image */}
                                             <div className="absolute -top-2 -right-2 flex flex-col gap-1 items-end z-10">
-                                                {item.is_popular && <span className={`bg-brandYellow text-black text-[10px] font-black px-2 py-1 rounded shadow-sm shadow-brandYellow/50 ${isPP ? 'animate-popular' : ''}`}>⭐ مميز</span>}
-                                                {item.is_spicy && <span className={`text-2xl drop-shadow-md filter ${isPP ? 'animate-spicy' : ''}`}>🌶️</span>}
+                                                {item.is_popular && <span className="bg-yellow-500 text-black text-[10px] font-black px-2 py-1 rounded shadow-sm">⭐ مميز</span>}
+                                                {item.is_spicy && <span className="text-2xl drop-shadow-md">🌶️</span>}
                                             </div>
                                         </div>
 
@@ -457,18 +441,18 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                                             <div className="mt-3 flex flex-wrap gap-2">
                                                 {item.prices && item.prices.length > 0 ? (
                                                     item.prices.map((p, idx) => (
-                                                        <div key={idx} className={`px-2 py-1 rounded-lg border ${tStyles.border} bg-white/5 flex flex-col sm:flex-row items-center sm:gap-2 text-center`}>
+                                                        <div key={idx} className="px-2 py-1 rounded-lg border border-white/10 bg-white/5 flex flex-col sm:flex-row items-center sm:gap-2 text-center">
                                                             {item.size_labels && item.size_labels[idx] && (
                                                                 <span className="text-[9px] opacity-70 font-black uppercase">{item.size_labels[idx]}</span>
                                                             )}
-                                                            <span className={`font-black tracking-tight text-sm ${tStyles.primary}`}>
+                                                            <span className="font-black tracking-tight text-sm text-blue-400">
                                                                 {p} {language === "ar" ? "ج" : "EGP"}
                                                             </span>
                                                         </div>
                                                     ))
                                                 ) : (
-                                                    <div className={`px-2 py-1 rounded-lg border ${tStyles.border} bg-white/5`}>
-                                                        <span className={`font-black tracking-tight text-sm ${tStyles.primary}`}>
+                                                    <div className="px-2 py-1 rounded-lg border border-white/10 bg-white/5">
+                                                        <span className="font-black tracking-tight text-sm text-blue-400">
                                                             -- {language === "ar" ? "ج" : "EGP"}
                                                         </span>
                                                     </div>
@@ -493,14 +477,14 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                     >
                         <motion.div
                             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className={`${tStyles.secondaryBg} ${tStyles.text} w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]`}
+                            className="bg-[#171717] text-gray-100 w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className={`p-6 border-b ${tStyles.border} flex items-center justify-between`}>
-                                <button onClick={() => setSelectedItem(null)} className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
+                            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                                <button onClick={() => setSelectedItem(null)} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
                                 <div className="text-right">
-                                    <h3 className={`text-xl font-black ${isPP ? 'text-brandYellow' : ''}`}>{language === "ar" ? selectedItem.item.title_ar : (selectedItem.item.title_en || selectedItem.item.title_ar)}</h3>
-                                    <p className={`text-[10px] ${isPP ? 'text-brandOrange' : 'text-blue'} font-black uppercase tracking-widest`}>{selectedItem.cName}</p>
+                                    <h3 className="text-xl font-black">{language === "ar" ? selectedItem.item.title_ar : (selectedItem.item.title_en || selectedItem.item.title_ar)}</h3>
+                                    <p className="text-[10px] text-blue font-black uppercase tracking-widest">{selectedItem.cName}</p>
                                 </div>
                             </div>
 
@@ -517,9 +501,9 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                                         <button
                                             key={idx}
                                             onClick={() => { setTempSizeIdx(idx); if (navigator.vibrate) navigator.vibrate(5); }}
-                                            className={`p-4 rounded-3xl border-2 transition-all flex flex-col items-center gap-1 ${tempSizeIdx === idx ? `border-${isPP ? 'brandYellow' : 'blue'} bg-${isPP ? 'brandYellow' : 'blue'}/10` : `border-transparent bg-black/5 dark:bg-white/5`}`}
+                                            className={`p-4 rounded-3xl border-2 transition-all flex flex-col items-center gap-1 ${tempSizeIdx === idx ? 'border-blue bg-blue/10' : 'border-transparent bg-white/5'}`}
                                         >
-                                            <span className={`text-[10px] font-black uppercase ${tempSizeIdx === idx ? (isPP ? 'text-brandYellow' : 'text-blue') : 'opacity-60'}`}>
+                                            <span className={`text-[10px] font-black uppercase ${tempSizeIdx === idx ? 'text-blue' : 'opacity-60'}`}>
                                                 {selectedItem.item.size_labels?.[idx] || 'عادي'}
                                             </span>
                                             <span className="text-xl font-black tabular-nums">{p} {language === "ar" ? "ج.م" : "EGP"}</span>
@@ -528,10 +512,10 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                                 </div>
                             </div>
 
-                            <div className={`p-6 bg-black/5 dark:bg-white/5 border-t ${tStyles.border}`}>
+                            <div className="p-6 bg-white/5 border-t border-white/10">
                                 <button
                                     onClick={addToCart}
-                                    className={`w-full ${tStyles.accent} font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-lg`}
+                                    className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-lg"
                                 >
                                     <ShoppingCart className="w-5 h-5" />
                                     {language === "ar" ? "إضافة للطلب - " : "Add to Order - "}
@@ -554,11 +538,11 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                     >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className={`${tStyles.secondaryBg} ${tStyles.text} w-full max-w-xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border ${tStyles.border}`}
+                            className="bg-[#171717] text-gray-100 w-full max-w-xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border border-white/10"
                             onClick={e => e.stopPropagation()}
                         >
-                            <div className={`p-6 border-b ${tStyles.border} flex items-center justify-between`}>
-                                <button onClick={() => setShowCart(false)} className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
+                            <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                                <button onClick={() => setShowCart(false)} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
                                 <div className="text-right">
                                     <h3 className="text-xl font-black">{language === "ar" ? "🛒 مراجعة الطلب" : "🛒 Order Review"}</h3>
                                     <p className="text-[10px] opacity-60 font-black uppercase tracking-widest mt-1">
@@ -576,59 +560,51 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
                                     <div className="space-y-3">
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black uppercase opacity-60 ml-2 block text-right">{language === "ar" ? "الاسم" : "Name"}</label>
-                                            <input
-                                                type="text"
-                                                value={customerInfo.name} onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-                                                className={`w-full bg-black/5 dark:bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-${isPP ? 'brandYellow' : 'blue'} transition-all font-bold text-sm`}
-                                                dir={language === "ar" ? "rtl" : "ltr"}
-                                            />
+                                            <input type="text" value={customerInfo.name} onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                                                className="w-full bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-blue transition-all font-bold text-sm"
+                                                dir={language === "ar" ? "rtl" : "ltr"} />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black uppercase opacity-60 ml-2 block text-right">{language === "ar" ? "الموبايل" : "Phone"}</label>
-                                            <input
-                                                type="tel"
-                                                value={customerInfo.phone} onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                                                className={`w-full bg-black/5 dark:bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-${isPP ? 'brandYellow' : 'blue'} transition-all font-bold text-sm tabular-nums`}
-                                                dir="ltr"
-                                            />
+                                            <input type="tel" value={customerInfo.phone} onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
+                                                className="w-full bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-blue transition-all font-bold text-sm tabular-nums"
+                                                dir="ltr" />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-black uppercase opacity-60 ml-2 block text-right">{language === "ar" ? "العنوان" : "Address"}</label>
-                                            <textarea
-                                                value={customerInfo.address} onChange={e => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-                                                className={`w-full bg-black/5 dark:bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-${isPP ? 'brandYellow' : 'blue'} transition-all font-bold text-sm min-h-[80px]`}
-                                                dir={language === "ar" ? "rtl" : "ltr"}
-                                            />
+                                            <textarea value={customerInfo.address} onChange={e => setCustomerInfo({ ...customerInfo, address: e.target.value })}
+                                                className="w-full bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-blue transition-all font-bold text-sm min-h-[80px]"
+                                                dir={language === "ar" ? "rtl" : "ltr"} />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Items List */}
                                 <div className="space-y-3">
-                                    <h4 className="text-xs font-black text-right opacity-60 uppercase tracking-widest border-b border-black/5 dark:border-white/5 pb-2">
+                                    <h4 className="text-xs font-black text-right opacity-60 uppercase tracking-widest border-b border-white/5 pb-2">
                                         {language === "ar" ? "محتويات السلة" : "Cart Items"}
                                     </h4>
                                     {cart.map((c) => (
-                                        <div key={c.id} className={`bg-black/5 dark:bg-white/5 p-4 rounded-2xl flex items-center justify-between`}>
+                                        <div key={c.id} className="bg-white/5 p-4 rounded-2xl flex items-center justify-between">
                                             <div className="flex-1 text-right">
                                                 <h4 className="font-bold text-sm">{language === "ar" ? c.item.title_ar : (c.item.title_en || c.item.title_ar)}</h4>
                                                 <p className="text-[10px] opacity-70 font-bold mt-0.5">{c.size_label !== 'عادي' ? c.size_label : ''}</p>
-                                                <p className={`text-xs font-black mt-1 ${isPP ? 'text-brandYellow' : 'text-blue'}`}>{c.price * c.quantity} ج.م</p>
+                                                <p className="text-xs font-black mt-1 text-blue">{c.price * c.quantity} ج.م</p>
                                             </div>
-                                            <div className={`flex items-center gap-2.5 ${isPP ? 'bg-black' : 'bg-white dark:bg-black/40'} p-1 rounded-xl shadow-sm border border-black/5 dark:border-white/5`}>
-                                                <button onClick={() => updateCartQty(c.id, 1)} className={`w-7 h-7 flex items-center justify-center ${isPP ? 'bg-brandYellow text-black' : 'bg-blue text-white'} rounded-lg font-black text-sm`}>+</button>
+                                            <div className="flex items-center gap-2.5 bg-black/40 p-1 rounded-xl shadow-sm border border-white/5">
+                                                <button onClick={() => updateCartQty(c.id, 1)} className="w-7 h-7 flex items-center justify-center bg-blue text-white rounded-lg font-black text-sm">+</button>
                                                 <span className="font-black text-sm tabular-nums w-4 text-center">{c.quantity}</span>
-                                                <button onClick={() => updateCartQty(c.id, -1)} className="w-7 h-7 flex items-center justify-center bg-black/5 dark:bg-white/10 rounded-lg font-black text-sm">-</button>
+                                                <button onClick={() => updateCartQty(c.id, -1)} className="w-7 h-7 flex items-center justify-center bg-white/10 rounded-lg font-black text-sm">-</button>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className={`p-6 border-t ${tStyles.border} bg-black/5 dark:bg-white/5`}>
+                            <div className="p-6 border-t border-white/10 bg-white/5">
                                 <div className="flex items-center justify-between mb-4 px-2">
                                     <div className="flex flex-col items-start">
-                                        <span className={`text-2xl font-black tabular-nums ${isPP ? 'text-brandYellow' : 'text-blue'}`}>{cartTotal} {language === "ar" ? "ج.م" : "EGP"}</span>
+                                        <span className="text-2xl font-black tabular-nums text-blue">{cartTotal} {language === "ar" ? "ج.م" : "EGP"}</span>
                                         <span className="text-[9px] font-black opacity-60 uppercase tracking-widest">{language === "ar" ? "إجمالي الحساب" : "Total Amount"}</span>
                                     </div>
                                 </div>

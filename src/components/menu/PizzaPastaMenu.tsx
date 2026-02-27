@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef } from "react";
+import { useTheme } from "next-themes";
 import { ShoppingCart, MapPin } from "lucide-react";
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +42,15 @@ type RestaurantConfig = {
     logo_url?: string;
     cover_url?: string;
     phone_numbers?: { label: string; number: string }[];
+    payment_methods?: {
+        id: string;
+        name_ar: string;
+        name_en: string;
+        desc_ar: string;
+        desc_en: string;
+        number?: string;
+        link?: string;
+    }[];
 };
 
 type CartItem = {
@@ -58,6 +68,10 @@ interface Props {
 }
 
 export default function PizzaPastaMenu({ config, categories, language }: Props) {
+    const { theme, setTheme } = useTheme();
+    const isDark = theme === 'dark';
+    const toggleDarkMode = () => setTheme(isDark ? 'light' : 'dark');
+
     const [activeSection, setActiveSection] = useState<string>(categories[0]?.id || "");
     const [cart, setCart] = useState<CartItem[]>([]);
     const [showCart, setShowCart] = useState(false);
@@ -66,6 +80,7 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
     const [showCallMenu, setShowCallMenu] = useState(false);
     const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+    const [showPaymentOptions, setShowPaymentOptions] = useState(false);
     const navScrollRef = useRef<HTMLDivElement>(null);
 
     const triggerHaptic = (ms: number = 10) => {
@@ -133,11 +148,25 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
             alert("⚠️ يرجى إدخال جميع البيانات (الاسم، الموبايل، العنوان) لإتمام الطلب");
             return;
         }
+
+        if (config.payment_methods && config.payment_methods.length > 0) {
+            setShowPaymentOptions(true); // show the payment selection modal
+        } else {
+            finalizeOrder();
+        }
+    };
+
+    const finalizeOrder = (selectedPaymentName?: string) => {
         let message = `*🧾 فاتورة طلب جديدة - ${config.name}*\n`;
         message += `------------------------------\n`;
         message += `👤 *الاسم:* ${customerInfo.name}\n`;
         message += `📞 *الموبايل:* ${customerInfo.phone}\n`;
         message += `📍 *العنوان:* ${customerInfo.address}\n`;
+
+        if (selectedPaymentName) {
+            message += `💳 *طريقة الدفع:* ${selectedPaymentName}\n`;
+        }
+
         message += `------------------------------\n`;
         message += `*📋 الأصناف المطلوبة:*\n\n`;
         cart.forEach((c, idx) => {
@@ -151,9 +180,12 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
         message += `*💵 الإجمالي المطلوب: ${cartTotal} ج*\n`;
         message += `------------------------------\n`;
         message += `🚚 *تنبيه:* السعر غير شامل خدمة التوصيل.\n`;
-        window.open(`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}?text=${encodeURIComponent(message)}`, "_blank");
+
+        window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(message)}`, "_blank");
+
         setCart([]);
         setShowCart(false);
+        setShowPaymentOptions(false);
     };
 
     const isAr = language === "ar";
@@ -181,6 +213,9 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
                                 </span>
                             </div>
                         </div>
+                        <button onClick={toggleDarkMode} className="w-11 h-11 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xl transition-all active:scale-90 border border-zinc-200 dark:border-white/10 shadow-sm" suppressHydrationWarning>
+                            {isDark ? '☀️' : '🌙'}
+                        </button>
                     </div>
 
                     <div className="flex w-full gap-3">
@@ -608,6 +643,66 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
                     </button>
                 </div>
             </nav>
+
+            {/* ===== PAYMENT OPTIONS MODAL ===== */}
+            <AnimatePresence>
+                {showPaymentOptions && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                        onClick={() => setShowPaymentOptions(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 50 }}
+                            className="bg-white dark:bg-zinc-90 w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+                            onClick={(e) => e.stopPropagation()}>
+                            <div className="p-6 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
+                                <button onClick={() => setShowPaymentOptions(false)} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95 text-zinc-500">✕</button>
+                                <div className="text-right">
+                                    <h3 className="text-xl font-black text-zinc-900 dark:text-white flex items-center justify-end gap-2">
+                                        {isAr ? "وسيلة الدفع" : "Payment Method"} <span className="text-2xl">💳</span>
+                                    </h3>
+                                    <p className="text-[10px] opacity-60 font-black uppercase tracking-widest mt-1">{isAr ? "كيف تود الدفع؟" : "How would you like to pay?"}</p>
+                                </div>
+                            </div>
+
+                            <div className="p-4 overflow-y-auto flex flex-col gap-3">
+                                {config.payment_methods?.map((pm) => (
+                                    <div key={pm.id} className="bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-[1.5rem] p-4 text-right flex flex-col transition-all hover:border-rose-600/50">
+                                        <h4 className="font-black text-lg text-zinc-900 dark:text-white mb-1">{isAr ? pm.name_ar : pm.name_en || pm.name_ar}</h4>
+                                        {(pm.desc_ar || pm.desc_en) && (
+                                            <p className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mb-3">{isAr ? pm.desc_ar : pm.desc_en || pm.desc_ar}</p>
+                                        )}
+                                        {pm.number && (
+                                            <div className="flex items-center justify-between bg-white dark:bg-black/20 px-4 py-3 rounded-xl mb-3 border border-zinc-100 dark:border-white/5 group">
+                                                <button
+                                                    onClick={() => {
+                                                        navigator.clipboard.writeText(pm.number!);
+                                                        alert(isAr ? "تم نسخ الرقم!" : "Number copied!");
+                                                    }}
+                                                    className="text-rose-600 text-xs font-black uppercase bg-rose-600/10 px-3 py-1.5 rounded-lg active:scale-95"
+                                                >
+                                                    {isAr ? "نسخ" : "Copy"}
+                                                </button>
+                                                <span className="font-black tabular-nums text-sm tracking-widest" dir="ltr">{pm.number}</span>
+                                            </div>
+                                        )}
+                                        {pm.link && (
+                                            <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full bg-[#1877F2]/10 text-[#1877F2] font-black text-xs py-3 rounded-xl mb-3 active:scale-95 transition-transform">
+                                                {isAr ? "رابط الدفع / انستا باي" : "Payment Link / InstaPay"}
+                                            </a>
+                                        )}
+                                        <button
+                                            onClick={() => finalizeOrder(isAr ? pm.name_ar : pm.name_en || pm.name_ar)}
+                                            className="w-full bg-rose-600 text-white font-black py-3 rounded-xl active:scale-95 transition-transform shadow-md flex items-center justify-center gap-2"
+                                        >
+                                            <FaWhatsapp className="w-5 h-5" />
+                                            {isAr ? "تأكيد واستمرار" : "Confirm & Continue"}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <style jsx global>{`
                 .font-cairo { font-family: var(--font-cairo), 'Cairo', sans-serif; }

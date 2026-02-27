@@ -45,6 +45,8 @@ export default function MenuBuilderPage() {
     const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
     const [isExporting, setIsExporting] = useState(false);
     const [isImporting, setIsImporting] = useState(false);
+    const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
+    const [deletingItemObj, setDeletingItemObj] = useState<{ catId: string, itemId: string } | null>(null);
 
     useEffect(() => {
         const fetchMenuData = async () => {
@@ -93,21 +95,26 @@ export default function MenuBuilderPage() {
         });
     };
 
-    const handleDeleteCategory = async (catId: string) => {
-        if (!confirm(language === "ar" ? "حذف هذا القسم وكل أصنافه؟" : "Delete this category and all its items?")) return;
-        await supabase.from('categories').delete().eq('id', catId);
-        setCategories(categories.filter(c => c.id !== catId));
+    const confirmDeleteCategory = async () => {
+        if (!deletingCatId) return;
+        await supabase.from('categories').delete().eq('id', deletingCatId);
+        setCategories(categories.filter(c => c.id !== deletingCatId));
+        setDeletingCatId(null);
     };
+
+    const confirmDeleteItem = async () => {
+        if (!deletingItemObj) return;
+        await supabase.from('items').delete().eq('id', deletingItemObj.itemId);
+        setCategories(categories.map(c => c.id === deletingItemObj.catId ? { ...c, items: c.items.filter(i => i.id !== deletingItemObj.itemId) } : c));
+        setDeletingItemObj(null);
+    };
+
+    const handleDeleteCategory = (catId: string) => setDeletingCatId(catId);
+    const handleDeleteItem = (catId: string, itemId: string) => setDeletingItemObj({ catId, itemId });
 
     const updateCategory = async (catId: string, updates: Partial<Category>) => {
         await supabase.from('categories').update(updates).eq('id', catId);
         setCategories(categories.map(c => c.id === catId ? { ...c, ...updates } : c));
-    };
-
-    const handleDeleteItem = async (catId: string, itemId: string) => {
-        if (!confirm(language === "ar" ? "حذف هذا الصنف؟" : "Delete this item?")) return;
-        await supabase.from('items').delete().eq('id', itemId);
-        setCategories(categories.map(c => c.id === catId ? { ...c, items: c.items.filter(i => i.id !== itemId) } : c));
     };
 
     const updateItem = async (catId: string, itemId: string, updates: Partial<Item>) => {
@@ -288,6 +295,40 @@ export default function MenuBuilderPage() {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* DELETE CONFIRMATION MODALS */}
+            {deletingCatId && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl p-6 max-w-sm w-full text-center">
+                        <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold mb-6 text-foreground">{language === "ar" ? "هل أنت متأكد من حذف هذا القسم وكل أصنافه؟" : "Are you sure you want to delete this category and all its items?"}</h3>
+                        <div className="flex gap-4 justify-center">
+                            <button onClick={confirmDeleteCategory} className="px-6 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
+                                {language === "ar" ? "تأكيد الحذف" : "Confirm Delete"}
+                            </button>
+                            <button onClick={() => setDeletingCatId(null)} className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 font-bold hover:opacity-80 transition-opacity">
+                                {language === "ar" ? "إلغاء" : "Cancel"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {deletingItemObj && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl p-6 max-w-sm w-full text-center">
+                        <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold mb-6 text-foreground">{language === "ar" ? "هل أنت متأكد من حذف هذا الصنف؟" : "Are you sure you want to delete this item?"}</h3>
+                        <div className="flex gap-4 justify-center">
+                            <button onClick={confirmDeleteItem} className="px-6 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
+                                {language === "ar" ? "تأكيد الحذف" : "Confirm Delete"}
+                            </button>
+                            <button onClick={() => setDeletingItemObj(null)} className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 font-bold hover:opacity-80 transition-opacity">
+                                {language === "ar" ? "إلغاء" : "Cancel"}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
