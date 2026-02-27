@@ -15,6 +15,7 @@ import AtyabEtoileMenu from "@/components/menu/AtyabEtoileMenu";
 import Theme5Menu from "@/components/menu/Theme5Menu";
 import Theme6Menu from "@/components/menu/Theme6Menu";
 import Theme7Menu from "@/components/menu/Theme7Menu";
+import Theme8Menu from "@/components/menu/Theme8Menu";
 import { PaymentMethodEntry } from "@/app/dashboard/settings/page";
 
 type Item = {
@@ -191,6 +192,11 @@ export default function SmartMenuPage({ params }: { params: { restaurantId: stri
     // If Haleem Dark Theme 7
     if (config?.theme === 'theme7') {
         return <Theme7Menu config={config} categories={categories} />;
+    }
+
+    // If XtraMenu Genoise Theme 8
+    if (config?.theme === 'theme8') {
+        return <Theme8Menu config={config} categories={categories} />;
     }
 
     // ----------------- CART LOGIC -----------------

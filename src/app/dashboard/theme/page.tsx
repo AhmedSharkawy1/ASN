@@ -62,6 +62,14 @@ const THEMES = [
         description_ar: "تصميم داكن فاخر بلمسات ذهبية، تنقل مزدوج بتابات نصية ودوائر صور، بطاقات أصناف بتصميم عصري.",
         description_en: "Premium dark theme with gold accents, dual navigation (text tabs + circular images), and modern item cards.",
         preview_color: "#c9a84c", // Gold
+    },
+    {
+        id: "theme8",
+        name_ar: "إكسترا مينيو (برتقالي عصري)",
+        name_en: "XtraMenu (Modern Orange)",
+        description_ar: "تصميم عصري بلون برتقالي مع بار تنقل سفلي، شبكة عرض بطاقات، بحث متقدم، وسايد بار اجتماعي.",
+        description_en: "Modern orange theme with bottom nav bar, grid card display, advanced search, and social sidebar.",
+        preview_color: "#f97316", // Orange
     }
 ];
 
