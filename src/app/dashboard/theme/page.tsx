@@ -65,11 +65,19 @@ const THEMES = [
     },
     {
         id: "theme8",
-        name_ar: "إكسترا مينيو (برتقالي عصري)",
-        name_en: "XtraMenu (Modern Orange)",
-        description_ar: "تصميم عصري بلون برتقالي مع بار تنقل سفلي، شبكة عرض بطاقات، بحث متقدم، وسايد بار اجتماعي.",
-        description_en: "Modern orange theme with bottom nav bar, grid card display, advanced search, and social sidebar.",
-        preview_color: "#f97316", // Orange
+        name_ar: "نوفا (بصري راقي)",
+        name_en: "Nova (Visual Premium)",
+        description_ar: "تصميم راقي يعتمد على إبراز صور المنتجات كخلفيات للبطاقات بشكل جذاب مع تأثيرات زجاجية وحواف ناعمة.",
+        description_en: "Premium design highlighting product images as card backgrounds with glassmorphism and soft edges.",
+        preview_color: "#1fb6ff", // Light Blue
+    },
+    {
+        id: "theme9",
+        name_ar: "ديابلو (أحمر عصري)",
+        name_en: "Diablo (Red Modern)",
+        description_ar: "تصميم عصري باللون الأحمر وتأثيرات حيوية مع سلة منزلقة وقائمة متقدمة.",
+        description_en: "Modern red design with vibrant effects, slide-in cart, and advanced menu drawer.",
+        preview_color: "#e74c3c", // Diablo Red
     }
 ];
 

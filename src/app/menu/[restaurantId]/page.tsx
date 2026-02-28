@@ -16,6 +16,7 @@ import Theme5Menu from "@/components/menu/Theme5Menu";
 import Theme6Menu from "@/components/menu/Theme6Menu";
 import Theme7Menu from "@/components/menu/Theme7Menu";
 import Theme8Menu from "@/components/menu/Theme8Menu";
+import Theme9Menu from '@/components/menu/Theme9Menu';
 import { PaymentMethodEntry } from "@/app/dashboard/settings/page";
 
 type Item = {
