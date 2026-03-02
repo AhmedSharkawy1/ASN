@@ -35,6 +35,10 @@ type RestaurantProfile = {
     working_hours?: string;
     phone_numbers?: PhoneEntry[];
     payment_methods?: PaymentMethodEntry[];
+    marquee_enabled?: boolean;
+    marquee_text_ar?: string;
+    marquee_text_en?: string;
+    orders_enabled?: boolean;
 };
 
 export default function SettingsPage() {
@@ -58,7 +62,7 @@ export default function SettingsPage() {
 
             const { data } = await supabase
                 .from('restaurants')
-                .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods')
+                .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled')
                 .eq('email', user.email)
                 .single();
 
@@ -95,6 +99,10 @@ export default function SettingsPage() {
                     cover_images: coverImages,
                     phone_numbers: phoneNumbers.filter(p => p.number.trim()),
                     payment_methods: paymentMethods.filter(p => p.name_ar.trim() || p.name_en.trim()),
+                    marquee_enabled: profile.marquee_enabled || false,
+                    marquee_text_ar: profile.marquee_text_ar || '',
+                    marquee_text_en: profile.marquee_text_en || '',
+                    orders_enabled: profile.orders_enabled ?? true,
                 })
                 .eq('id', profile.id);
 
@@ -233,7 +241,19 @@ export default function SettingsPage() {
 
                 {/* Basic Info */}
                 <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
-                    <h2 className="text-xl font-bold mb-6">{language === "ar" ? "المعلومات الأساسية" : "Basic Information"}</h2>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold">{language === "ar" ? "المعلومات الأساسية" : "Basic Information"}</h2>
+                        <label className="relative inline-flex items-center cursor-pointer group">
+                            <span className="mr-3 ml-3 text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                                {(profile.orders_enabled ?? true)
+                                    ? (language === "ar" ? "استقبال الطلبات: مفعل" : "Orders: Enabled")
+                                    : (language === "ar" ? "استقبال الطلبات: متوقف" : "Orders: Disabled")
+                                }
+                            </span>
+                            <input type="checkbox" className="sr-only peer" checked={profile.orders_enabled ?? true} onChange={e => setProfile({ ...profile, orders_enabled: e.target.checked })} />
+                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] rtl:after:left-auto rtl:after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-green-500 shadow-inner"></div>
+                        </label>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-silver px-1 block">{language === "ar" ? "اسم المطعم" : "Restaurant Name"}</label>
@@ -254,6 +274,31 @@ export default function SettingsPage() {
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all" placeholder={language === "ar" ? "مثال: من 10 صباحاً إلى 2 صباحاً" : "e.g., 10 AM to 2 AM"} />
                         </div>
                     </div>
+                </div>
+
+                {/* Marquee Banner Info */}
+                <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
+                    <h2 className="text-xl font-bold mb-6 flex items-center justify-between">
+                        <span>{language === "ar" ? "الشريط الإخباري (Marquee)" : "Announcement Banner (Marquee)"}</span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={profile.marquee_enabled || false} onChange={e => setProfile({ ...profile, marquee_enabled: e.target.checked })} />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
+                        </label>
+                    </h2>
+                    {profile.marquee_enabled && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-silver px-1 block">{language === "ar" ? "نص الشريط (عربي)" : "Banner Text (Arabic)"}</label>
+                                <input type="text" value={profile.marquee_text_ar || ''} onChange={e => setProfile({ ...profile, marquee_text_ar: e.target.value })}
+                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold" placeholder={language === "ar" ? "مثال: عرض خاص لفترة محدودة!" : "e.g., Special offer for a limited time!"} />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-silver px-1 block">{language === "ar" ? "نص الشريط (إنجليزي)" : "Banner Text (English)"}</label>
+                                <input type="text" value={profile.marquee_text_en || ''} onChange={e => setProfile({ ...profile, marquee_text_en: e.target.value })} dir="ltr"
+                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold" placeholder="e.g., Special offer for a limited time!" />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Multi-Phone Numbers */}

@@ -63,14 +63,7 @@ const THEMES = [
         description_en: "Premium dark theme with gold accents, dual navigation (text tabs + circular images), and modern item cards.",
         preview_color: "#c9a84c", // Gold
     },
-    {
-        id: "theme8",
-        name_ar: "نوفا (بصري راقي)",
-        name_en: "Nova (Visual Premium)",
-        description_ar: "تصميم راقي يعتمد على إبراز صور المنتجات كخلفيات للبطاقات بشكل جذاب مع تأثيرات زجاجية وحواف ناعمة.",
-        description_en: "Premium design highlighting product images as card backgrounds with glassmorphism and soft edges.",
-        preview_color: "#1fb6ff", // Light Blue
-    },
+
     {
         id: "theme9",
         name_ar: "ديابلو (أحمر عصري)",
@@ -78,6 +71,62 @@ const THEMES = [
         description_ar: "تصميم عصري باللون الأحمر وتأثيرات حيوية مع سلة منزلقة وقائمة متقدمة.",
         description_en: "Modern red design with vibrant effects, slide-in cart, and advanced menu drawer.",
         preview_color: "#e74c3c", // Diablo Red
+    },
+    {
+        id: "theme10",
+        name_ar: "الوهج البرتقالي (ثيم 10)",
+        name_en: "Orange Glow (Theme 10)",
+        description_ar: "تصميم مشرق باللون البرتقالي مع تمرير أفقي للأقسام وسلة جانبية سلسة.",
+        description_en: "Bright orange design with scrollable categories and a smooth side-sliding cart.",
+        preview_color: "#ea580c", // Orange Glow
+    },
+    {
+        id: "theme11",
+        name_ar: "عصري أفقي (لوكس 11)",
+        name_en: "Horizontal Modern (Luxe 11)",
+        description_ar: "تصميم حديث (Luxe) يعتمد على عرض الأصناف والأحجام المختلفة بشكل أفقي أنيق ومريح للعين.",
+        description_en: "Modern Luxe design displaying multiple sizes and horizontal item layouts for high readability.",
+        preview_color: "#e54750", // Luxe Red
+    },
+    {
+        id: "theme12",
+        name_ar: "العام الجديد (ثيم 12)",
+        name_en: "New Year (Theme 12)",
+        description_ar: "تصميم عصري بأنيميشن RGB، سلايدر مميز، وأقسام دائرية قابلة للتمرير مع قائمة سلة فريدة.",
+        description_en: "Modern design with RGB animations, a unique slider, scrollable circular categories, and a distinct cart menu.",
+        preview_color: "#6c63ff", // Purple
+    },
+    {
+        id: "theme13",
+        name_ar: "لوكس الذهبي (ثيم 13)",
+        name_en: "Luxe Gold (Theme 13)",
+        description_ar: "تصميم فاخر بلمسات ذهبية، صور متحركة، وطريقة عرض جذابة للمنتجات.",
+        description_en: "Luxurious design with gold touches, animated images, and attractive product display.",
+        preview_color: "#d4af37", // Gold
+    },
+    {
+        id: "theme14",
+        name_ar: "تفاعلي عصري (ثيم 14)",
+        name_en: "Interactive Modern (Theme 14)",
+        description_ar: "تصميم تفاعلي مع فلتر تصنيفات علوي وتمرير أفقي سلس لعرض سريع للمنتجات.",
+        description_en: "Interactive design with top category filter and smooth horizontal scrolling.",
+        preview_color: "#e67e22", // Orange
+    },
+    {
+        id: "theme15",
+        name_ar: "الشبكة السريعة (ثيم 15)",
+        name_en: "Fast Grid (Theme 15)",
+        description_ar: "تصميم شبكي مدمج بألوان هادئة وسلة تسوق سريعة مثالي للقوائم الكبيرة.",
+        description_en: "Compact grid design with calm colors and quick cart, ideal for large menus.",
+        preview_color: "#3da19b", // Teal
+    },
+    {
+        id: "theme16",
+        name_ar: "كلاسيك أحمر (ثيم 16)",
+        name_en: "Classic Red (Theme 16)",
+        description_ar: "تصميم أنيق بلون أحمر جذاب، واجهة نظيفة مع دعم ممتاز لعرض الإضافات والسلال.",
+        description_en: "Elegant red design, clean interface with excellent support for extras and cart.",
+        preview_color: "#af0a13", // Crimson
     }
 ];
 

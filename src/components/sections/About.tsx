@@ -45,7 +45,7 @@ export default function About() {
                         </div>
 
                         {/* Floating particles */}
-                        {[...Array(8)].map((_, i) => (
+                        {[...Array(3)].map((_, i) => (
                             <motion.div
                                 key={i}
                                 className="absolute w-2 h-2 bg-blue-light rounded-full shadow-[0_0_10px_rgba(122,204,255,0.8)]"

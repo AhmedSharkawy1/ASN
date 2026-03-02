@@ -6,6 +6,12 @@ import { useTheme } from "next-themes";
 import { X, MapPin, ShoppingCart } from "lucide-react";
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import SharedMarquee from './SharedMarquee';
+import CheckoutModal from './CheckoutModal';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/effect-fade';
 
 // ─── Types (same as other themes) ───
 type Item = {
@@ -54,6 +60,10 @@ type RestaurantConfig = {
         number?: string;
         link?: string;
     }[];
+    marquee_enabled?: boolean;
+    marquee_text_ar?: string;
+    marquee_text_en?: string;
+    orders_enabled?: boolean;
 };
 
 type CartItem = {
@@ -62,12 +72,14 @@ type CartItem = {
     price: number;
     size_label: string;
     quantity: number;
+    category_name: string;
 };
 
 type Props = {
     config: RestaurantConfig;
     categories: Category[];
     language: string;
+    restaurantId: string;
 };
 
 /**
@@ -81,7 +93,7 @@ type Props = {
  * Features: Scrolling marquee, hero banner slider, grid item cards with images,
  *           pill-shaped category nav, glassmorphism bottom bar.
  */
-export default function AtyabEtoileMenu({ config, categories, language }: Props) {
+export default function AtyabEtoileMenu({ config, categories, language, restaurantId }: Props) {
     const isAr = language === "ar";
 
     // Dark mode via next-themes
@@ -93,8 +105,8 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
     const [activeSection, setActiveSection] = useState<string>(categories[0]?.id || "");
     const [showCallMenu, setShowCallMenu] = useState(false);
     const [showCategoriesMenu, setShowCategoriesMenu] = useState(false);
-    const [currentBannerIdx, setCurrentBannerIdx] = useState(0);
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+    const [showCheckout, setShowCheckout] = useState(false);
 
     // Interactive State
     const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +115,7 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: Item; cName: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "", notes: "" });
 
     const toggleFavorite = (e: React.MouseEvent, id: string) => {
@@ -111,22 +124,24 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
         setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
     };
 
+    // ─── Cart Logic ───
     const openItemSelect = (item: Item, cName: string) => {
+        if (config.orders_enabled === false) return;
         setSelectedItem({ item, cName });
         setTempSizeIdx(0);
         haptic(10);
     };
 
     const addToCart = () => {
-        if (!selectedItem) return;
-        const { item } = selectedItem;
+        if (!selectedItem || config.orders_enabled === false) return;
+        const { item, cName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || (isAr ? "عادي" : "Regular");
         const cartId = `${item.id}-${sizeLabel}`;
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
-            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1 }];
+            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName }];
         });
         setSelectedItem(null);
         haptic(20);
@@ -142,6 +157,7 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
     const cartTotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
     const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const checkOutWhatsApp = () => {
         if (!config.whatsapp_number) { alert(isAr ? "عذراً، لم يتم توفير رقم واتساب." : "No WhatsApp number available."); return; }
         if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
@@ -203,15 +219,6 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
             "https://images.unsplash.com/photo-1504674900247-0877df9cc836?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80",
             "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80",
         ];
-
-    // Auto-slide banner
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setCurrentBannerIdx((prev) => (prev + 1) % BANNER_IMAGES.length);
-        }, 4000);
-        return () => clearInterval(interval);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     // Intersection Observer for active section
     useEffect(() => {
@@ -277,20 +284,12 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
         <div className="min-h-screen bg-white dark:bg-[#121212] text-[#333] dark:text-[#F5F5F5] antialiased" style={{ fontFamily: "'Tajawal', 'Cairo', sans-serif" }}>
 
             {/* ═══════ MARQUEE TOP BAR ═══════ */}
-            <div className="text-white text-[10px] md:text-xs py-2 overflow-hidden flex items-center font-medium" style={{ backgroundColor: PRIMARY }} dir="rtl">
-                <div className="etoile-marquee flex gap-12 whitespace-nowrap w-max">
-                    <div className="flex gap-12">
-                        <span>{isAr ? "اتصل بنا:" : "Call us:"} {config.phone || config.phone_numbers?.[0]?.number || ""}</span>
-                        <span>{isAr ? "وقت التوصيل من 45 إلى 60 دقيقة" : "Delivery: 45-60 min"}</span>
-                        <span>{isAr ? "طرق دفع سهلة" : "Easy payment methods"}</span>
-                    </div>
-                    <div className="flex gap-12">
-                        <span>{isAr ? "اتصل بنا:" : "Call us:"} {config.phone || config.phone_numbers?.[0]?.number || ""}</span>
-                        <span>{isAr ? "وقت التوصيل من 45 إلى 60 دقيقة" : "Delivery: 45-60 min"}</span>
-                        <span>{isAr ? "طرق دفع سهلة" : "Easy payment methods"}</span>
-                    </div>
-                </div>
-            </div>
+            {config.marquee_enabled && (config.marquee_text_ar || config.marquee_text_en) && (
+                <SharedMarquee
+                    text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
+                    bgColor={PRIMARY}
+                />
+            )}
 
             {/* ═══════ HEADER ═══════ */}
             <header className="relative z-50 bg-[#FDFBF7] dark:bg-[#1E1E1E] shadow-sm pt-[env(safe-area-inset-top,0px)]">
@@ -340,33 +339,31 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
             {/* ═══════ HERO BANNER SLIDER ═══════ */}
             <section className="relative w-full max-w-4xl mx-auto mt-4 px-4 overflow-hidden">
                 <div className="relative rounded-2xl overflow-hidden shadow-sm h-[200px] md:h-[300px]">
-                    {BANNER_IMAGES.map((img, idx) => (
-                        <img
-                            key={idx}
-                            src={img}
-                            alt={`Banner ${idx + 1}`}
-                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${idx === currentBannerIdx ? 'opacity-100' : 'opacity-0'}`}
-                            onError={handleImageError}
-                        />
-                    ))}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6">
+                    <Swiper
+                        modules={[Autoplay, EffectFade]}
+                        effect="fade"
+                        autoplay={{ delay: 4000, disableOnInteraction: false }}
+                        loop={BANNER_IMAGES.length > 1}
+                        className="w-full h-full absolute inset-0 z-0"
+                    >
+                        {BANNER_IMAGES.map((img: string, idx: number) => (
+                            <SwiperSlide key={idx}>
+                                <img
+                                    src={img}
+                                    alt={`Banner ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={handleImageError}
+                                />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-6 z-10 pointer-events-none">
                         <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 leading-tight drop-shadow-md">
                             {config.name}
                         </h2>
                         <p className="text-white/90 text-sm md:text-base font-medium drop-shadow-sm">
                             {isAr ? "أشهى الأطعمة بين يديك" : "Delicious food at your fingertips"}
                         </p>
-                    </div>
-                    {/* Slider Indicators */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                        {BANNER_IMAGES.map((_, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setCurrentBannerIdx(idx)}
-                                className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentBannerIdx ? 'w-8' : 'w-4 bg-white/50 hover:bg-white/80'}`}
-                                style={idx === currentBannerIdx ? { backgroundColor: PRIMARY, width: '2rem' } : {}}
-                            />
-                        ))}
                     </div>
                 </div>
             </section>
@@ -415,15 +412,17 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                             {cat.items.map((item) => {
                                 const displayPrice = item.prices[0];
+                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                const hasManyPrices = item.prices.length > 1;
                                 return (
                                     <div
                                         key={item.id}
                                         className="bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-2xl p-3 md:p-4 flex flex-col shadow-sm border border-[#EAEAEA] dark:border-[#333] relative group cursor-pointer hover:shadow-md transition-shadow"
                                     >
-                                        {/* Image */}
-                                        <div className="relative aspect-square rounded-xl overflow-hidden mb-3 bg-white dark:bg-[#121212]">
+                                        {/* Item Image */}
+                                        <div className="w-full h-32 md:h-40 overflow-hidden relative" style={{ backgroundColor: '#FDFBF7' }}>
                                             <img
-                                                src={item.image_url || cat.image_url || ""}
+                                                src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop"}
                                                 alt={isAr ? item.title_ar : item.title_en || item.title_ar}
                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                 loading="lazy"
@@ -469,10 +468,10 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
                                                 </div>
                                             </div>
 
-                                            {/* Price / Sizes */}
-                                            <div className="mt-auto mb-3 flex flex-col items-end justify-end gap-1 w-full">
+                                            {/* Prices */}
+                                            <div className="mt-auto flex flex-col items-end justify-end gap-1 w-full">
                                                 {item.prices.length > 1 ? (
-                                                    <div className="w-full space-y-1">
+                                                    <div className="w-full space-y-1 mb-3">
                                                         {item.prices.map((price, idx) => {
                                                             const sizeLabel = item.size_labels?.[idx] || (isAr ? "عادي" : "Reg");
                                                             return (
@@ -487,22 +486,28 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
                                                         })}
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-end gap-1">
-                                                        <span className="font-bold text-lg leading-none tabular-nums" style={{ color: PRIMARY }}>{displayPrice}</span>
-                                                        <span className="text-[10px] font-bold" style={{ color: PRIMARY }}>{currency}</span>
+                                                    <div className={`flex items-end shrink-0 ${config.orders_enabled !== false ? "mb-3 gap-1" : "py-2 gap-1"}`}>
+                                                        <div className={config.orders_enabled !== false ? "" : "px-3 py-1.5 min-w-[50px] rounded-xl border bg-white dark:bg-zinc-800 border-zinc-100 dark:border-white/5 flex items-center justify-center gap-1 shadow-sm"}>
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <span className={config.orders_enabled !== false ? "font-bold text-lg leading-none tabular-nums" : "text-[#D39E3B] text-base font-bold leading-none tabular-nums"} style={config.orders_enabled !== false ? { color: PRIMARY } : {}}>{displayPrice}</span>
+                                                                <span className={config.orders_enabled !== false ? "text-[10px] font-bold" : "text-zinc-500 text-[9px] font-bold"} style={config.orders_enabled !== false ? { color: PRIMARY } : {}}>{currency}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 )}
                                             </div>
                                             {/* Add to Cart */}
-                                            <button
-                                                onClick={() => openItemSelect(item, cat.name_ar)}
-                                                disabled={item.is_available === false}
-                                                className="w-full text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-95"
-                                                style={{ backgroundColor: PRIMARY, opacity: item.is_available === false ? 0.5 : 1 }}
-                                            >
-                                                <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                                                {isAr ? "أضف للسلة" : "Add to Cart"}
-                                            </button>
+                                            {config.orders_enabled !== false && (
+                                                <button
+                                                    onClick={() => openItemSelect(item, cat.name_ar)}
+                                                    disabled={item.is_available === false}
+                                                    className="w-full text-white py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:opacity-90 transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-95"
+                                                    style={{ backgroundColor: PRIMARY, opacity: item.is_available === false ? 0.5 : 1 }}
+                                                >
+                                                    <svg className="w-4 h-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                                                    {isAr ? "أضف للسلة" : "Add to Cart"}
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -663,7 +668,7 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
 
             {/* ═══════ FLOATING CART BUTTON ═══════ */}
             <AnimatePresence>
-                {cartCount > 0 && !showCart && (
+                {cartCount > 0 && !showCart && config.orders_enabled !== false && (
                     <motion.button
                         initial={{ scale: 0, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
@@ -769,15 +774,8 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
                                         <span className="font-bold text-[#B89038] text-xl">{cartTotal} {currency}</span>
                                         <span className="font-bold text-gray-500">{isAr ? "الإجمالي" : "Total"}</span>
                                     </div>
-                                    <div className="space-y-3 mb-5">
-                                        <input type="text" placeholder={isAr ? "الاسم" : "Name"} value={customerInfo.name} onChange={e => setCustomerInfo(p => ({ ...p, name: e.target.value }))} className="w-full border border-[#EAEAEA] dark:border-[#333] rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right focus:border-[#B89038] outline-none" dir="rtl" />
-                                        <input type="tel" placeholder={isAr ? "رقم الموبايل" : "Phone"} value={customerInfo.phone} onChange={e => setCustomerInfo(p => ({ ...p, phone: e.target.value }))} className="w-full border border-[#EAEAEA] dark:border-[#333] rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right focus:border-[#B89038] outline-none" dir="rtl" />
-                                        <textarea placeholder={isAr ? "العنوان بالتفصيل" : "Detailed Address"} value={customerInfo.address} onChange={e => setCustomerInfo(p => ({ ...p, address: e.target.value }))} className="w-full border border-[#EAEAEA] dark:border-[#333] rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right focus:border-[#B89038] outline-none h-20 resize-none" dir="rtl" />
-                                        <textarea placeholder={isAr ? "ملاحظات إضافية (اختياري)" : "Additional Notes (Optional)"} value={customerInfo.notes} onChange={e => setCustomerInfo(p => ({ ...p, notes: e.target.value }))} className="w-full border border-[#EAEAEA] dark:border-[#333] rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right focus:border-[#B89038] outline-none h-16 resize-none" dir="rtl" />
-                                    </div>
-                                    <button onClick={checkOutWhatsApp} className="w-full text-white py-4 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-colors flex justify-center items-center gap-2 active:scale-95 bg-green-500">
-                                        <FaWhatsapp className="w-6 h-6" />
-                                        {isAr ? "إرسال الطلب عبر واتساب" : "Order via WhatsApp"}
+                                    <button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="w-full text-white py-4 rounded-xl font-bold shadow-lg transition-colors flex justify-center items-center gap-2 active:scale-95" style={{ backgroundColor: PRIMARY }}>
+                                        🛒 {isAr ? "إتمام الطلب" : "Proceed to Checkout"}
                                     </button>
                                 </div>
                             )}
@@ -846,6 +844,26 @@ export default function AtyabEtoileMenu({ config, categories, language }: Props)
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <CheckoutModal
+                isOpen={showCheckout}
+                onClose={() => setShowCheckout(false)}
+                cartItems={cart.map(c => ({
+                    id: c.id,
+                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
+                    qty: c.quantity,
+                    price: c.price,
+                    size: c.size_label,
+                    category: c.category_name,
+                }))}
+                subtotal={cartTotal}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.whatsapp_number || config.phone}
+                currency={isAr ? 'ج.م' : 'EGP'}
+                language={isAr ? 'ar' : 'en'}
+                onOrderSuccess={() => { setCart([]); setShowCart(false); }}
+            />
 
             {/* ═══════ INLINE CSS ═══════ */}
             <style jsx global>{`

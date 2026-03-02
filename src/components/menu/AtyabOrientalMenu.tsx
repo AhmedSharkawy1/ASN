@@ -3,9 +3,15 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { ShoppingCart, X, MapPin, Phone } from "lucide-react";
+import { ShoppingCart, X, Phone } from "lucide-react";
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import SharedMarquee from "./SharedMarquee";
+import CheckoutModal from "./CheckoutModal";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, EffectFade } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/effect-fade";
 
 // ─── Types (same as PizzaPastaMenu) ───
 type Item = {
@@ -42,6 +48,11 @@ type RestaurantConfig = {
     map_link?: string;
     logo_url?: string;
     cover_url?: string;
+    cover_images?: string[];
+    marquee_enabled?: boolean;
+    marquee_text_ar?: string;
+    marquee_text_en?: string;
+    orders_enabled?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -60,12 +71,14 @@ type CartItem = {
     price: number;
     size_label: string;
     quantity: number;
+    category_name: string;
 };
 
 type Props = {
     config: RestaurantConfig;
     categories: Category[];
     language: string;
+    restaurantId: string;
 };
 
 /**
@@ -77,7 +90,7 @@ type Props = {
  * Typography: Cairo (Arabic-focused Sans-Serif).
  * Features: Floating emojis, Haptic feedback, Sticky nav, Category banners.
  */
-export default function AtyabOrientalMenu({ config, categories, language }: Props) {
+export default function AtyabOrientalMenu({ config, categories, language, restaurantId }: Props) {
     const isAr = language === "ar";
 
     // Dark mode via next-themes
@@ -93,10 +106,12 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: Item; cName: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
     const [showCallMenu, setShowCallMenu] = useState(false);
     const [showCategoriesGrid, setShowCategoriesGrid] = useState(false);
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+    const [showCheckout, setShowCheckout] = useState(false);
 
     const navRef = useRef<HTMLDivElement>(null);
     const isManualScroll = useRef(false);
@@ -152,27 +167,29 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
 
     // ─── Cart Logic ───
     const openItemSelect = (item: Item, cName: string) => {
+        if (config.orders_enabled === false) return; // Prevent opening if orders are disabled
         setSelectedItem({ item, cName });
         setTempSizeIdx(0);
         haptic(10);
     };
 
     const addToCart = () => {
-        if (!selectedItem) return;
-        const { item } = selectedItem;
+        if (!selectedItem || config.orders_enabled === false) return;
+        const { item, cName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || "عادي";
         const cartId = `${item.id}-${sizeLabel}`;
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
-            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1 }];
+            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName }];
         });
         setSelectedItem(null);
         haptic(20);
     };
 
     const updateCartQty = (id: string, delta: number) => {
+        if (config.orders_enabled === false) return;
         setCart((prev) =>
             prev.map((c) => (c.id === id ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c)).filter((c) => c.quantity > 0)
         );
@@ -181,6 +198,7 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
 
     const cartTotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const checkOutWhatsApp = () => {
         if (!config.whatsapp_number) { alert(isAr ? "عذراً، لم يتم توفير رقم واتساب." : "No WhatsApp number available."); return; }
         if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
@@ -225,6 +243,40 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-zinc-200 antialiased selection:bg-yellow-500/30" style={{ fontFamily: "'Cairo', sans-serif" }}>
+
+            {/* ===== SHARED MARQUEE ===== */}
+            {config.marquee_enabled && (config.marquee_text_ar || config.marquee_text_en) && (
+                <div className="relative z-[60]">
+                    <SharedMarquee
+                        text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
+                        bgColor="#eab308" // yellow-500
+                    />
+                </div>
+            )}
+
+            {/* ===== HERO COVER ===== */}
+            {(config.cover_images && config.cover_images.length > 0) ? (
+                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                    <Swiper
+                        modules={[Autoplay, EffectFade]}
+                        effect="fade"
+                        autoplay={{ delay: 3000, disableOnInteraction: false }}
+                        loop={config.cover_images.length > 1}
+                        className="w-full h-full"
+                    >
+                        {config.cover_images.map((img: string, idx: number) => (
+                            <SwiperSlide key={idx}>
+                                <img src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'}
+                                    alt={`Banner ${idx}`} className="w-full h-full object-cover" />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                </div>
+            ) : config.cover_url ? (
+                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                    <img src={config.cover_url} alt="Cover" className="w-full h-full object-cover" />
+                </div>
+            ) : null}
 
             {/* ═══════ HEADER ═══════ */}
             <header className="relative z-50 bg-white dark:bg-[#050505] border-b border-zinc-200 dark:border-white/10 pt-[env(safe-area-inset-top,0px)]">
@@ -398,21 +450,35 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
                                             </div>
 
                                             {/* Prices */}
-                                            <div className={`${hasManyPrices ? "grid grid-cols-3 gap-1.5 w-full mt-1" : "flex gap-2 items-end shrink-0"}`}>
-                                                {item.prices.map((price, pIdx) => (
-                                                    <div key={pIdx} className={`flex flex-col items-center gap-0.5 ${hasManyPrices ? "bg-zinc-100 dark:bg-[#1a1a1a] border border-zinc-200 dark:border-white/10 rounded-xl py-1.5 px-1" : ""}`}>
-                                                        {item.size_labels?.[pIdx] && (
-                                                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-tighter mb-0.5">{item.size_labels[pIdx]}</span>
-                                                        )}
-                                                        <div className={`${hasManyPrices ? "" : "px-2 py-1 min-w-[45px] rounded-xl border bg-zinc-100 dark:bg-zinc-800/80 group-hover:bg-white dark:group-hover:bg-zinc-800 border-zinc-200 dark:border-white/5 group-hover:border-[#eab308]/40 transition-all flex items-center justify-center gap-1 shadow-sm"}`}>
+                                            {config.orders_enabled !== false ? (
+                                                <div className={`${hasManyPrices ? "grid grid-cols-3 gap-1.5 w-full mt-1" : "flex gap-2 items-end shrink-0"}`}>
+                                                    {item.prices.map((price, pIdx) => (
+                                                        <div key={pIdx} className={`flex flex-col items-center gap-0.5 ${hasManyPrices ? "bg-zinc-100 dark:bg-[#1a1a1a] border border-zinc-200 dark:border-white/10 rounded-xl py-1.5 px-1" : ""}`}>
+                                                            {item.size_labels?.[pIdx] && (
+                                                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-tighter mb-0.5">{item.size_labels[pIdx]}</span>
+                                                            )}
+                                                            <div className={`${hasManyPrices ? "" : "px-2 py-1 min-w-[45px] rounded-xl border bg-zinc-100 dark:bg-zinc-800/80 group-hover:bg-white dark:group-hover:bg-zinc-800 border-zinc-200 dark:border-white/5 group-hover:border-[#eab308]/40 transition-all flex items-center justify-center gap-1 shadow-sm"}`}>
+                                                                <div className="flex items-center justify-center gap-0.5">
+                                                                    <span className={`${hasManyPrices ? "text-[#eab308] text-lg" : "text-[#eab308] text-base"} font-black leading-none tabular-nums`}>{price}</span>
+                                                                    <span className={`${hasManyPrices ? "text-[#eab308]/60 text-[9px]" : "text-zinc-500 text-[8px]"} font-black`}>{currency}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                // Display only the first price if orders are disabled
+                                                item.prices.length > 0 && (
+                                                    <div className="flex items-end shrink-0">
+                                                        <div className="px-2 py-1 min-w-[45px] rounded-xl border bg-zinc-100 dark:bg-zinc-800/80 border-zinc-200 dark:border-white/5 flex items-center justify-center gap-1 shadow-sm">
                                                             <div className="flex items-center justify-center gap-0.5">
-                                                                <span className={`${hasManyPrices ? "text-[#eab308] text-lg" : "text-[#eab308] text-base"} font-black leading-none tabular-nums`}>{price}</span>
-                                                                <span className={`${hasManyPrices ? "text-[#eab308]/60 text-[9px]" : "text-zinc-500 text-[8px]"} font-black`}>{currency}</span>
+                                                                <span className="text-[#eab308] text-base font-black leading-none tabular-nums">{item.prices[0]}</span>
+                                                                <span className="text-zinc-500 text-[8px] font-black">{currency}</span>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                )
+                                            )}
                                         </div>
                                     );
                                 })}
@@ -457,7 +523,7 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
 
             {/* ═══════ ADD TO CART MODAL ═══════ */}
             <AnimatePresence>
-                {selectedItem && (
+                {selectedItem && config.orders_enabled !== false && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
                         onClick={() => setSelectedItem(null)}>
@@ -516,35 +582,11 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
                                 <button onClick={() => setShowCart(false)} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
                                 <div className="text-right">
                                     <h3 className="text-xl font-black">{isAr ? "🛒 مراجعة الطلب" : "🛒 Order Review"}</h3>
-                                    <p className="text-[10px] opacity-60 font-black uppercase tracking-widest mt-1">{isAr ? "أكمل بياناتك للمتابعة" : "Complete details to proceed"}</p>
+                                    <p className="text-[10px] opacity-60 font-black uppercase tracking-widest mt-1">{isAr ? "راجع طلبك ثم أكمل الشراء" : "Review then checkout"}</p>
                                 </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8">
-                                {/* Customer Form */}
-                                <div className="space-y-4">
-                                    <h4 className="text-sm font-black text-right flex items-center justify-end gap-2">{isAr ? "بيانات التوصيل" : "Delivery Details"} <MapPin className="w-4 h-4 text-[#eab308]" /></h4>
-                                    <div className="space-y-3">
-                                        {[
-                                            { label: isAr ? "الاسم" : "Name", value: customerInfo.name, key: "name" as const, type: "text" },
-                                            { label: isAr ? "الموبايل" : "Phone", value: customerInfo.phone, key: "phone" as const, type: "tel" },
-                                        ].map((f) => (
-                                            <div key={f.key} className="space-y-1">
-                                                <label className="text-[10px] font-black uppercase opacity-60 ml-2 block text-right">{f.label}</label>
-                                                <input type={f.type} value={f.value} onChange={(e) => setCustomerInfo({ ...customerInfo, [f.key]: e.target.value })}
-                                                    className="w-full bg-zinc-50 dark:bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-[#eab308] transition-all font-bold text-sm"
-                                                    dir={f.key === "phone" ? "ltr" : isAr ? "rtl" : "ltr"} />
-                                            </div>
-                                        ))}
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-black uppercase opacity-60 ml-2 block text-right">{isAr ? "العنوان" : "Address"}</label>
-                                            <textarea value={customerInfo.address} onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-                                                className="w-full bg-zinc-50 dark:bg-white/5 border border-transparent p-3.5 rounded-xl outline-none focus:border-[#eab308] transition-all font-bold text-sm min-h-[80px]"
-                                                dir={isAr ? "rtl" : "ltr"} />
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* Cart Items */}
                                 <div className="space-y-3">
                                     <h4 className="text-xs font-black text-right opacity-60 uppercase tracking-widest border-b border-zinc-100 dark:border-white/5 pb-2">{isAr ? "محتويات السلة" : "Cart Items"}</h4>
@@ -570,16 +612,35 @@ export default function AtyabOrientalMenu({ config, categories, language }: Prop
                                     <span className="text-2xl font-black tabular-nums text-[#eab308]">{cartTotal} {isAr ? "ج.م" : "EGP"}</span>
                                     <span className="text-[9px] font-black opacity-60 uppercase tracking-widest">{isAr ? "إجمالي الحساب" : "Total"}</span>
                                 </div>
-                                <button onClick={checkOutWhatsApp}
-                                    className="w-full bg-[#25D366] text-white font-black py-4 rounded-2xl shadow-lg shadow-green-500/20 active:scale-95 transition-all text-base flex items-center justify-center gap-3 hover:bg-[#20bd5a]">
-                                    <FaWhatsapp className="w-5 h-5" />
-                                    {isAr ? "تأكيد الطلب عبر واتساب" : "Confirm via WhatsApp"}
+                                <button onClick={() => { setShowCart(false); setShowCheckout(true); }}
+                                    className="w-full bg-[#eab308] text-black font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3">
+                                    🛒 {isAr ? "إتمام الطلب" : "Proceed to Checkout"}
                                 </button>
                             </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            <CheckoutModal
+                isOpen={showCheckout}
+                onClose={() => setShowCheckout(false)}
+                cartItems={cart.map(c => ({
+                    id: c.id,
+                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
+                    qty: c.quantity,
+                    price: c.price,
+                    size: c.size_label,
+                    category: c.category_name,
+                }))}
+                subtotal={cartTotal}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.whatsapp_number || config.phone}
+                currency={isAr ? 'ج.م' : 'EGP'}
+                language={isAr ? 'ar' : 'en'}
+                onOrderSuccess={() => { setCart([]); setShowCart(false); }}
+            />
 
             {/* ═══════ FLOATING CART BUTTON ═══════ */}
             <AnimatePresence>

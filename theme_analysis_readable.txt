@@ -1,0 +1,57 @@
+=== THEME ANALYSIS ===
+
+[AtyabEtoileMenu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[AtyabOrientalMenu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[BabAlHaraMenu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[PizzaPastaMenu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme10Menu.tsx]
+Missing Links: Instagram
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme11Menu.tsx]
+Missing Links: Instagram
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme13Menu.tsx]
+Missing Links: Location (MapPin), Facebook, Instagram
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme14Menu.tsx]
+Missing Links: Phone (tel:), Location (MapPin), Facebook, Instagram
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme15Menu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme16Menu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme5Menu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme6Menu.tsx]
+Missing Links: Instagram
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme7Menu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes
+
+[Theme9Menu.tsx]
+Missing Links: None
+Has Condition For Prices (orders enabled)? Yes

@@ -6,6 +6,12 @@ import { useTheme } from "next-themes";
 import { ShoppingCart, MapPin } from "lucide-react";
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import SharedMarquee from "./SharedMarquee";
+import CheckoutModal from "./CheckoutModal";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, EffectFade } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/effect-fade";
 
 type Item = {
     id: string;
@@ -41,6 +47,11 @@ type RestaurantConfig = {
     map_link?: string;
     logo_url?: string;
     cover_url?: string;
+    cover_images?: string[];
+    marquee_enabled?: boolean;
+    marquee_text_ar?: string;
+    marquee_text_en?: string;
+    orders_enabled?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -59,15 +70,17 @@ type CartItem = {
     price: number;
     size_label: string;
     quantity: number;
+    category_name: string;
 };
 
 interface Props {
     config: RestaurantConfig;
     categories: Category[];
     language: string;
+    restaurantId: string;
 }
 
-export default function PizzaPastaMenu({ config, categories, language }: Props) {
+export default function PizzaPastaMenu({ config, categories, language, restaurantId }: Props) {
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
     const toggleDarkMode = () => setTheme(isDark ? 'light' : 'dark');
@@ -77,10 +90,12 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: Item; catName: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
     const [showCallMenu, setShowCallMenu] = useState(false);
     const [showCategoriesModal, setShowCategoriesModal] = useState(false);
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+    const [showCheckout, setShowCheckout] = useState(false);
     const navScrollRef = useRef<HTMLDivElement>(null);
 
     const triggerHaptic = (ms: number = 10) => {
@@ -114,18 +129,17 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
 
     const addToCart = () => {
         if (!selectedItem) return;
-        const { item } = selectedItem;
+        const { item, catName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || "عادي";
         const cartId = `${item.id}-${sizeLabel}`;
-
         setCart((prev) => {
-            const existing = prev.find((c) => c.id === cartId);
-            if (existing) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
-            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1 }];
+            const ex = prev.find((c) => c.id === cartId);
+            if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
+            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: catName }];
         });
         setSelectedItem(null);
-        triggerHaptic(30);
+        triggerHaptic(20);
     };
 
     const updateCartQty = (id: string, delta: number) => {
@@ -139,6 +153,7 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
 
     const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const checkOutWhatsApp = () => {
         if (!config.whatsapp_number) {
             alert("⚠️ المطعم لم يقم بتوفير رقم واتساب للطلبات.");
@@ -192,6 +207,40 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-zinc-200 antialiased selection:bg-rose-500/30 font-cairo" dir="rtl">
+
+            {/* ===== SHARED MARQUEE ===== */}
+            {config.marquee_enabled && (config.marquee_text_ar || config.marquee_text_en) && (
+                <div className="relative z-[60]">
+                    <SharedMarquee
+                        text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
+                        bgColor="#e11d48" // rose-600
+                    />
+                </div>
+            )}
+
+            {/* ===== HERO COVER ===== */}
+            {(config.cover_images && config.cover_images.length > 0) ? (
+                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                    <Swiper
+                        modules={[Autoplay, EffectFade]}
+                        effect="fade"
+                        autoplay={{ delay: 3000, disableOnInteraction: false }}
+                        loop={config.cover_images.length > 1}
+                        className="w-full h-full"
+                    >
+                        {config.cover_images.map((img: string, idx: number) => (
+                            <SwiperSlide key={idx}>
+                                <img src={img || 'https://images.unsplash.com/photo-1574126154517-d1e0d89ef734?q=80&w=1000'}
+                                    alt={`Banner ${idx}`} className="w-full h-full object-cover" />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                </div>
+            ) : config.cover_url ? (
+                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                    <img src={config.cover_url} alt="Cover" className="w-full h-full object-cover" />
+                </div>
+            ) : null}
 
             {/* ===== HEADER ===== */}
             <header className="relative z-50 bg-white dark:bg-[#050505] border-b border-zinc-200 dark:border-white/10">
@@ -292,26 +341,28 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
             </nav>
 
             {/* ===== FLOATING CART BAR ===== */}
-            <AnimatePresence>
-                {cart.length > 0 && !showCart && !selectedItem && (
-                    <motion.button
-                        initial={{ y: 100, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 100, opacity: 0 }}
-                        onClick={() => { setShowCart(true); triggerHaptic(20); }}
-                        className="fixed bottom-24 right-6 left-6 z-[70] bg-rose-600 text-white p-5 rounded-3xl shadow-2xl flex items-center justify-between animate-reveal border border-white/20 hover:scale-[1.02] transition-transform"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className="bg-white text-rose-600 w-7 h-7 rounded-xl flex items-center justify-center font-black text-sm shadow-inner animate-popular">{cart.length}</div>
-                            <span className="font-black text-base">{isAr ? "مراجعة الفاتورة والطلب" : "Review order"}</span>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <span className="font-black text-lg leading-none">{cartTotal} {isAr ? "ج" : "EGP"}</span>
-                            <span className="text-[10px] opacity-70 font-bold">{isAr ? "الإجمالي" : "Total"}</span>
-                        </div>
-                    </motion.button>
-                )}
-            </AnimatePresence>
+            {config.orders_enabled !== false && (
+                <AnimatePresence>
+                    {cart.length > 0 && !showCart && !selectedItem && (
+                        <motion.button
+                            initial={{ y: 100, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 100, opacity: 0 }}
+                            onClick={() => { setShowCart(true); triggerHaptic(20); }}
+                            className="fixed bottom-24 right-6 left-6 z-[70] bg-rose-600 text-white p-5 rounded-3xl shadow-2xl flex items-center justify-between animate-reveal border border-white/20 hover:scale-[1.02] transition-transform"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="bg-white text-rose-600 w-7 h-7 rounded-xl flex items-center justify-center font-black text-sm shadow-inner animate-popular">{cart.length}</div>
+                                <span className="font-black text-base">{isAr ? "مراجعة الفاتورة والطلب" : "Review order"}</span>
+                            </div>
+                            <div className="flex flex-col items-end">
+                                <span className="font-black text-lg leading-none">{cartTotal} {isAr ? "ج" : "EGP"}</span>
+                                <span className="text-[10px] opacity-70 font-bold">{isAr ? "الإجمالي" : "Total"}</span>
+                            </div>
+                        </motion.button>
+                    )}
+                </AnimatePresence>
+            )}
 
             {/* ===== MAIN CONTENT ===== */}
             <main className="max-w-2xl mx-auto px-5 py-8 pb-12">
@@ -381,27 +432,50 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
                                             {/* Prices */}
                                             <div className={`${hasManyPrices ? "grid grid-cols-3 gap-2 w-full mt-2" : "flex gap-2 items-center shrink-0"}`}>
                                                 {item.prices?.map((price, pIdx) => (
-                                                    <button
-                                                        key={pIdx}
-                                                        onClick={() => openItemSelect(item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), pIdx)}
-                                                        className={`flex flex-col items-center gap-1 transition-all group/btn
-                                                            ${hasManyPrices
-                                                                ? "bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-2xl py-2 px-1 active:scale-95 hover:border-rose-500/50"
-                                                                : "active:scale-90"
-                                                            }`}
-                                                    >
-                                                        {item.size_labels?.[pIdx] && (
-                                                            <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-tighter">
-                                                                {item.size_labels[pIdx]}
-                                                            </span>
-                                                        )}
-                                                        <div className={`flex items-center justify-center gap-0.5
-                                                            ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-2xl border border-zinc-200 dark:border-white/5 hover:border-rose-500/40 shadow-sm"}`}
+                                                    config.orders_enabled !== false ? (
+                                                        <button
+                                                            key={pIdx}
+                                                            onClick={() => openItemSelect(item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), pIdx)}
+                                                            className={`flex flex-col items-center gap-1 transition-all group/btn
+                                                                ${hasManyPrices
+                                                                    ? "bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-2xl py-2 px-1 active:scale-95 hover:border-rose-500/50"
+                                                                    : "active:scale-90"
+                                                                }`}
                                                         >
-                                                            <span className={`${hasManyPrices ? "text-rose-600 dark:text-rose-500 text-lg" : "text-rose-600 text-base"} font-black leading-none tabular-nums`}>{price}</span>
-                                                            <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{isAr ? "ج" : "EGP"}</span>
+                                                            {item.size_labels?.[pIdx] && (
+                                                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-tighter">
+                                                                    {item.size_labels[pIdx]}
+                                                                </span>
+                                                            )}
+                                                            <div className={`flex items-center justify-center gap-0.5
+                                                                ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-2xl border border-zinc-200 dark:border-white/5 hover:border-rose-500/40 shadow-sm"}`}
+                                                            >
+                                                                <span className={`${hasManyPrices ? "text-rose-600 dark:text-rose-500 text-lg" : "text-rose-600 text-base"} font-black leading-none tabular-nums`}>{price}</span>
+                                                                <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{isAr ? "ج" : "EGP"}</span>
+                                                            </div>
+                                                        </button>
+                                                    ) : (
+                                                        <div
+                                                            key={pIdx}
+                                                            className={`flex flex-col items-center gap-1 transition-all group/btn
+                                                                ${hasManyPrices
+                                                                    ? "bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-2xl py-2 px-1"
+                                                                    : ""
+                                                                }`}
+                                                        >
+                                                            {item.size_labels?.[pIdx] && (
+                                                                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-tighter">
+                                                                    {item.size_labels[pIdx]}
+                                                                </span>
+                                                            )}
+                                                            <div className={`flex items-center justify-center gap-0.5
+                                                                ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-2xl border border-zinc-200 dark:border-white/5 shadow-sm"}`}
+                                                            >
+                                                                <span className={`${hasManyPrices ? "text-rose-600 dark:text-rose-500 text-lg" : "text-rose-600 text-base"} font-black leading-none tabular-nums`}>{price}</span>
+                                                                <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{isAr ? "ج" : "EGP"}</span>
+                                                            </div>
                                                         </div>
-                                                    </button>
+                                                    )
                                                 ))}
                                             </div>
                                         </div>
@@ -470,14 +544,16 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
                                 </div>
                             </div>
                             <div className="p-6 bg-zinc-50 dark:bg-white/5 border-t border-zinc-100 dark:border-white/5">
-                                <button
-                                    onClick={addToCart}
-                                    className="w-full bg-rose-600 text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-base"
-                                >
-                                    <ShoppingCart className="w-5 h-5" />
-                                    {isAr ? "إضافة للطلب - " : "Add to Order - "}
-                                    {selectedItem.item.prices?.[tempSizeIdx] || 0} {isAr ? "ج" : "EGP"}
-                                </button>
+                                {config.orders_enabled !== false && (
+                                    <button
+                                        onClick={addToCart}
+                                        className="w-full bg-rose-600 text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-base"
+                                    >
+                                        <ShoppingCart className="w-5 h-5" />
+                                        {isAr ? "إضافة للطلب - " : "Add to Order - "}
+                                        {selectedItem.item.prices?.[tempSizeIdx] || 0} {isAr ? "ج" : "EGP"}
+                                    </button>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>
@@ -501,35 +577,11 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
                                 <button onClick={() => setShowCart(false)} className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black transition-all active:scale-90 hover:bg-rose-600 hover:text-white">✕</button>
                                 <div className="text-right">
                                     <h3 className="text-xl font-black italic">🛒 {isAr ? "مراجعة وتأكيد" : "Review & Confirm"}</h3>
-                                    <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mt-1">{isAr ? "أكمل بياناتك لمتابعة الطلب" : "Complete details to proceed"}</p>
+                                    <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest mt-1">{isAr ? "راجع طلبك ثم أكمل الشراء" : "Review your order then checkout"}</p>
                                 </div>
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8" style={{ scrollbarWidth: "none" }}>
-                                {/* Customer Form */}
-                                <div className="space-y-6">
-                                    <h4 className="text-sm font-black text-right text-zinc-900 dark:text-white flex items-center justify-end gap-2">
-                                        {isAr ? "بيانات التوصيل" : "Delivery Details"} <span className="text-xl">📍</span>
-                                    </h4>
-                                    <div className="space-y-4">
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black uppercase text-zinc-400 mr-2 tracking-widest">{isAr ? "الاسم" : "Name"}</label>
-                                            <input type="text" value={customerInfo.name} onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
-                                                className="w-full bg-zinc-50 dark:bg-zinc-800 border-2 border-zinc-100 dark:border-white/10 p-4 rounded-xl outline-none focus:border-rose-600 transition-all font-bold text-right text-sm" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black uppercase text-zinc-400 mr-2 tracking-widest">{isAr ? "الموبايل" : "Phone"}</label>
-                                            <input type="tel" value={customerInfo.phone} onChange={(e) => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
-                                                className="w-full bg-zinc-50 dark:bg-zinc-800 border-2 border-zinc-100 dark:border-white/10 p-4 rounded-xl outline-none focus:border-rose-600 transition-all font-bold text-right tabular-nums text-sm" dir="ltr" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[9px] font-black uppercase text-zinc-400 mr-2 tracking-widest">{isAr ? "العنوان" : "Address"}</label>
-                                            <textarea value={customerInfo.address} onChange={(e) => setCustomerInfo({ ...customerInfo, address: e.target.value })}
-                                                className="w-full bg-zinc-50 dark:bg-zinc-800 border-2 border-zinc-100 dark:border-white/10 p-4 rounded-xl outline-none focus:border-rose-600 transition-all font-bold text-right min-h-[100px] text-sm" />
-                                        </div>
-                                    </div>
-                                </div>
-
                                 {/* Cart Items */}
                                 <div className="space-y-4">
                                     <h4 className="text-xs font-black text-right text-zinc-400 uppercase tracking-widest">{isAr ? "محتويات السلة" : "Cart Items"}</h4>
@@ -560,16 +612,36 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
                                     </div>
                                     <span className="text-base font-black text-zinc-500">{isAr ? "الحساب الكلي" : "Grand Total"}</span>
                                 </div>
-                                <button onClick={checkOutWhatsApp}
-                                    className="w-full bg-[#25D366] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3">
-                                    <FaWhatsapp className="w-6 h-6" />
-                                    {isAr ? "تأكيد الطلب عبر واتساب" : "Confirm via WhatsApp"}
+                                <button onClick={() => { setShowCart(false); setShowCheckout(true); }}
+                                    className="w-full bg-rose-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3">
+                                    🛒 {isAr ? "إتمام الطلب" : "Proceed to Checkout"}
                                 </button>
                             </div>
                         </motion.div>
                     </motion.div>
-                )}
-            </AnimatePresence>
+                )
+                }
+            </AnimatePresence >
+
+            <CheckoutModal
+                isOpen={showCheckout}
+                onClose={() => setShowCheckout(false)}
+                cartItems={cart.map(c => ({
+                    id: c.id,
+                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
+                    qty: c.quantity,
+                    price: c.price,
+                    size: c.size_label,
+                    category: c.category_name,
+                }))}
+                subtotal={cartTotal}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.whatsapp_number || config.phone}
+                currency={isAr ? 'ج.م' : 'EGP'}
+                language={isAr ? 'ar' : 'en'}
+                onOrderSuccess={() => { setCart([]); setShowCart(false); }}
+            />
 
             {/* ===== CATEGORIES FULLSCREEN MODAL ===== */}
             <AnimatePresence>
@@ -707,6 +779,6 @@ export default function PizzaPastaMenu({ config, categories, language }: Props) 
             <style jsx global>{`
                 .font-cairo { font-family: var(--font-cairo), 'Cairo', sans-serif; }
             `}</style>
-        </div>
+        </div >
     );
 }

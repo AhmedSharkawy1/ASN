@@ -1,0 +1,48 @@
+
+> temp@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./src/components/menu/Theme14Menu.tsx
+Error: 
+  [31mx[0m Detected nested styled-jsx tag.
+  [31m|[0m Read more: https://nextjs.org/docs/messages/nested-styled-jsx-tags
+     ,-[[36;1;4mF:\ASN\ASN\src\components\menu\Theme14Menu.tsx[0m:874:1]
+ [2m874[0m |                 {selectedItem && (
+ [2m875[0m |                     <div className="fixed inset-0 z-[1050] flex items-end justify-center bg-black/50 backdrop-blur-sm" onClick={closeModal} style={{ animation: "fadeIn 0.2s" }}>
+ [2m876[0m |                         <div className="bg-white w-full max-w-[600px] max-h-[90vh] overflow-y-auto relative pb-8 rounded-t-[30px]" onClick={e => e.stopPropagation()} style={{ animation: "slideUp 0.3s ease-out" }}>
+ [2m877[0m | [31;1m,[0m[31;1m-[0m[31;1m>[0m                         <style jsx>{`
+ [2m878[0m | [31;1m|[0m                       @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+ [2m879[0m | [31;1m|[0m                       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+ [2m880[0m | [31;1m`[0m[31;1m-[0m[31;1m>[0m                 `}</style>
+ [2m881[0m |                             <div className="w-[40px] h-[5px] bg-gray-200 rounded-[5px] mx-auto my-[15px]"></div>
+ [2m882[0m |                             <button className="absolute top-[20px] right-[20px] bg-white/90 text-[var(--secondary-color)] w-[40px] h-[40px] rounded-full flex items-center justify-center shadow-md z-10" onClick={closeModal}>
+ [2m882[0m |                                 <X size={20} />
+     `----
+
+  [31mx[0m Detected nested styled-jsx tag.
+  [31m|[0m Read more: https://nextjs.org/docs/messages/nested-styled-jsx-tags
+     ,-[[36;1;4mF:\ASN\ASN\src\components\menu\Theme14Menu.tsx[0m:986:1]
+ [2m986[0m |                             style={{ animation: isRTL ? "slideInFromRight 0.3s ease-out" : "slideInFromLeft 0.3s ease-out" }}
+ [2m987[0m |                             onClick={e => e.stopPropagation()}
+ [2m988[0m |                         >
+ [2m989[0m | [31;1m,[0m[31;1m-[0m[31;1m>[0m                         <style jsx>{`
+ [2m990[0m | [31;1m|[0m                       @keyframes slideInFromRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+ [2m991[0m | [31;1m|[0m                       @keyframes slideInFromLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+ [2m992[0m | [31;1m`[0m[31;1m-[0m[31;1m>[0m                   `}</style>
+ [2m993[0m |     
+ [2m994[0m |                             <div className="p-5 flex justify-between items-center text-white shadow-md z-10" style={{ backgroundColor: primaryColor }}>
+ [2m994[0m |                                 <div className="flex items-center gap-3">
+     `----
+
+Import trace for requested module:
+./src/components/menu/Theme14Menu.tsx
+./src/app/menu/[restaurantId]/page.tsx
+
+
+> Build failed because of webpack errors

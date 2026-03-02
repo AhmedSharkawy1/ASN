@@ -1,0 +1,27 @@
+﻿src/components/menu/Theme14Menu.tsx(900,107): error TS1127: Invalid character.
+src/components/menu/Theme14Menu.tsx(903,142): error TS1127: Invalid character.
+src/components/menu/Theme14Menu.tsx(903,181): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(903,182): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(904,72): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/components/menu/Theme14Menu.tsx(907,39): error TS17002: Expected corresponding JSX closing tag for 'div'.
+src/components/menu/Theme14Menu.tsx(909,33): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(909,35): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(911,25): error TS1005: ')' expected.
+src/components/menu/Theme14Menu.tsx(912,22): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(924,103): error TS1127: Invalid character.
+src/components/menu/Theme14Menu.tsx(924,142): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(924,143): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(924,144): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+src/components/menu/Theme14Menu.tsx(937,121): error TS1127: Invalid character.
+src/components/menu/Theme14Menu.tsx(937,177): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(938,35): error TS17002: Expected corresponding JSX closing tag for 'div'.
+src/components/menu/Theme14Menu.tsx(940,33): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(940,35): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(942,25): error TS1005: ')' expected.
+src/components/menu/Theme14Menu.tsx(943,22): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+src/components/menu/Theme14Menu.tsx(976,13): error TS1005: ')' expected.
+src/components/menu/Theme14Menu.tsx(977,9): error TS1005: ')' expected.
+src/components/menu/Theme14Menu.tsx(978,7): error TS1109: Expression expected.
+src/components/menu/Theme14Menu.tsx(1074,5): error TS1128: Declaration or statement expected.
+src/components/menu/Theme14Menu.tsx(1075,3): error TS1109: Expression expected.
+src/components/menu/Theme14Menu.tsx(1076,1): error TS1128: Declaration or statement expected.

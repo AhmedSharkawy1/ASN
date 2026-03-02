@@ -1,0 +1,10 @@
+[0m[0m
+[0m[4mF:\ASN\ASN\src\components\ui\CustomCursor.tsx[24m[0m
+[0m  [2m6:12[22m  [31merror[39m  'position' is assigned a value but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m6:22[22m  [31merror[39m  'setPosition' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mF:\ASN\ASN\src\lib\helpers\submitOrder.ts[24m[0m
+[0m  [2m64:9[22m  [31merror[39m  'orderNumber' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[31m[1m✖ 3 problems (3 errors, 0 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

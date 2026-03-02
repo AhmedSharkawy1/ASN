@@ -1,0 +1,7 @@
+src/components/Theme12Menu/Theme12Menu.tsx(290,41): error TS2607: JSX element class does not support attributes because it does not have a 'props' property.
+src/components/Theme12Menu/Theme12Menu.tsx(290,42): error TS2786: 'Image' cannot be used as a JSX component.
+  Its type 'new (width?: number | undefined, height?: number | undefined) => HTMLImageElement' is not a valid JSX element type.
+    Type 'new (width?: number | undefined, height?: number | undefined) => HTMLImageElement' is not assignable to type 'new (props: any, deprecatedLegacyContext?: any) => Component<any, any, any>'.
+      Type 'HTMLImageElement' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, render, and 3 more.
+src/components/Theme12Menu/Theme12Menu.tsx(308,69): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
+  Type 'number' is not assignable to type 'string'.

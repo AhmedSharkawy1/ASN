@@ -4,6 +4,12 @@ import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Share2, Bike, X, Moon, Sun, ShoppingBag, Plus as PlusIcon, Minus, LayoutGrid } from 'lucide-react';
 import { FaWhatsapp, FaFacebook } from 'react-icons/fa';
+import SharedMarquee from './SharedMarquee';
+import CheckoutModal from './CheckoutModal';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/effect-fade';
 
 type Item = {
     id: string;
@@ -39,6 +45,11 @@ type RestaurantConfig = {
     map_link?: string;
     logo_url?: string;
     cover_url?: string;
+    cover_images?: string[];
+    marquee_enabled?: boolean;
+    marquee_text_ar?: string;
+    marquee_text_en?: string;
+    orders_enabled?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -58,12 +69,14 @@ interface CartItem {
     size_label: string;
     quantity: number;
     notes?: string;
+    category_name: string;
 }
 
 type Props = {
     config: RestaurantConfig;
     categories: Category[];
     language: string;
+    restaurantId: string;
 };
 
 // Colors from F:\\ASN\\theme5
@@ -72,7 +85,7 @@ const THEME5_LIGHT = '#e6f2fa';
 const THEME5_GREEN = '#a7f3d0';
 const THEME5_GREEN_TEXT = '#059669';
 
-export default function Theme5Menu({ config, categories, language }: Props) {
+export default function Theme5Menu({ config, categories, language, restaurantId }: Props) {
     const isAr = language === "ar";
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
@@ -84,14 +97,15 @@ export default function Theme5Menu({ config, categories, language }: Props) {
     const [showPaymentMenu, setShowPaymentMenu] = useState(false);
 
     // Modals
-    const [selectedItem, setSelectedItem] = useState<{ item: Item; cName: string } | null>(null);
+    const [selectedItem, setSelectedItem] = useState<{ item: Item; cName: string; catImg?: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
     const [showCart, setShowCart] = useState(false);
     const [showCategoriesModal, setShowCategoriesModal] = useState(false);
 
-    // Cart State
     const [cart, setCart] = useState<CartItem[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "", notes: "" });
+    const [showCheckout, setShowCheckout] = useState(false);
 
     const categoryNavRef = useRef<HTMLDivElement>(null);
     const isManualScroll = useRef(false);
@@ -182,22 +196,24 @@ export default function Theme5Menu({ config, categories, language }: Props) {
         }
     };
 
+    // ─── Cart Logic ───
     const openItemSelect = (item: Item, cName: string) => {
+        if (config.orders_enabled === false) return;
         setSelectedItem({ item, cName });
         setTempSizeIdx(0);
         haptic(10);
     };
 
     const addToCart = () => {
-        if (!selectedItem) return;
-        const { item } = selectedItem;
+        if (!selectedItem || config.orders_enabled === false) return;
+        const { item, cName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || (isAr ? "عادي" : "Regular");
         const cartId = `${item.id}-${sizeLabel}`;
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
-            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1 }];
+            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName }];
         });
         setSelectedItem(null);
         haptic(20);
@@ -213,6 +229,7 @@ export default function Theme5Menu({ config, categories, language }: Props) {
     const cartTotal = cart.reduce((s, c) => s + c.price * c.quantity, 0);
     const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const checkOutWhatsApp = () => {
         if (!config.whatsapp_number) { alert(isAr ? "عذراً، لم يتم توفير رقم واتساب." : "No WhatsApp number available."); return; }
         if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
@@ -304,19 +321,42 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                     </div>
                 </div>
 
+                {/* Shared Marquee Banner */}
+                {config.marquee_enabled && (config.marquee_text_ar || config.marquee_text_en) && (
+                    <SharedMarquee
+                        text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
+                        bgColor={THEME5_PRIMARY}
+                    />
+                )}
+
                 {/* Hero Section */}
                 <div className="relative">
                     {/* Banner Image */}
                     <div className="h-48 md:h-64 w-full relative">
-                        {config.cover_url ? (
-                            <img src={config.cover_url} alt="Restaurant Banner" className="w-full h-full object-cover" />
+                        {config.cover_images && config.cover_images.length > 0 ? (
+                            <Swiper
+                                modules={[Autoplay, EffectFade]}
+                                effect="fade"
+                                autoplay={{ delay: 3000, disableOnInteraction: false }}
+                                loop={config.cover_images.length > 1}
+                                className="w-full h-full absolute inset-0 z-0"
+                            >
+                                {config.cover_images.map((img: string, idx: number) => (
+                                    <SwiperSlide key={idx}>
+                                        <img src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'}
+                                            alt={`Cover ${idx}`} className="w-full h-full object-cover" />
+                                    </SwiperSlide>
+                                ))}
+                            </Swiper>
+                        ) : config.cover_url ? (
+                            <img src={config.cover_url} alt="Restaurant Banner" className="w-full h-full object-cover z-0" />
                         ) : (
-                            <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800"></div>
+                            <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800 z-0"></div>
                         )}
                     </div>
 
                     {/* Floating Info Card */}
-                    <div className="absolute -bottom-12 left-4 right-4 bg-white dark:bg-zinc-800 rounded-xl t5-shadow-floating p-4 flex items-center justify-between border border-zinc-100 dark:border-zinc-700">
+                    <div className="absolute -bottom-12 left-4 right-4 bg-white dark:bg-zinc-800 rounded-xl t5-shadow-floating p-4 flex items-center justify-between border border-zinc-100 dark:border-zinc-700 z-10">
                         <div className="flex flex-col gap-2">
                             <div className="px-3 py-1 rounded-md text-xs font-bold w-fit" style={{ backgroundColor: `${THEME5_GREEN}33`, color: THEME5_GREEN_TEXT }}>
                                 {isAr ? "مفتوح" : "Open"}
@@ -329,7 +369,7 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                         </div>
 
                         {/* Overlapping Logo */}
-                        <div className="absolute -top-6 -right-2 w-24 h-24 rounded-full border-4 border-white dark:border-zinc-800 overflow-hidden bg-white shadow-sm">
+                        <div className="absolute -top-6 -right-2 w-24 h-24 rounded-full border-4 border-white dark:border-zinc-800 overflow-hidden bg-white shadow-sm z-20">
                             {config.logo_url ? (
                                 <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover" />
                             ) : (
@@ -417,7 +457,6 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                                 return (
                                     <div
                                         key={idx}
-                                        onClick={() => openItemSelect(item, title)}
                                         className="t5-item-card overflow-hidden flex items-center p-3 gap-3 transition-all duration-300 bg-white dark:bg-[#18181b] border border-[#edf2f7] dark:border-[#27272a] cursor-pointer"
                                         dir="ltr" // forces price left, image right when inside flex
                                     >
@@ -449,8 +488,8 @@ export default function Theme5Menu({ config, categories, language }: Props) {
 
                                         {/* Image (Right) */}
                                         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                                            {item.image_url ? (
-                                                <img src={item.image_url} alt={title} className="w-full h-full object-cover" loading="lazy" />
+                                            {item.image_url || cat.image_url ? (
+                                                <img src={item.image_url || cat.image_url} alt={title} className="w-full h-full object-cover" loading="lazy" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-8 h-8 opacity-20" /></div>
                                             )}
@@ -460,6 +499,11 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                                                 </div>
                                             )}
                                         </div>
+                                        {config.orders_enabled !== false && (
+                                            <button onClick={() => openItemSelect(item, title)} className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-600 dark:text-zinc-300 ml-3 active:scale-90 transition-transform shadow-sm">
+                                                <PlusIcon className="w-5 h-5" />
+                                            </button>
+                                        )}
                                     </div>
                                 );
                             })}
@@ -500,15 +544,26 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? "الدفع" : "Pay"}</span>
                 </div>
 
-                <div onClick={() => setShowCart(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer relative">
-                    <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
-                        <ShoppingBag className="w-5 h-5" />
+                {config.map_link && (
+                    <a href={config.map_link} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
+                        <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                            <span className="text-lg">📍</span>
+                        </div>
+                        <span className="text-[9px] font-black text-zinc-500">{isAr ? "الموقع" : "Map"}</span>
+                    </a>
+                )}
+
+                {config.orders_enabled !== false && (
+                    <div onClick={() => setShowCart(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer relative">
+                        <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                            <ShoppingBag className="w-5 h-5" />
+                        </div>
+                        {cartCount > 0 && (
+                            <div className="absolute -top-1 right-2 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cartCount}</div>
+                        )}
+                        <span className="text-[9px] font-black text-zinc-500">{isAr ? "السلة" : "Cart"}</span>
                     </div>
-                    {cartCount > 0 && (
-                        <div className="absolute -top-1 right-2 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{cartCount}</div>
-                    )}
-                    <span className="text-[9px] font-black text-zinc-500">{isAr ? "السلة" : "Cart"}</span>
-                </div>
+                )}
             </nav>
 
             {/* Floating WhatsApp */}
@@ -524,11 +579,11 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                 {selectedItem && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setSelectedItem(null)}>
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-lg bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl" onClick={e => e.stopPropagation()}>
-                            <div className="relative">
-                                {selectedItem.item.image_url ? (
-                                    <img src={selectedItem.item.image_url} alt={selectedItem.cName} className="w-full h-64 object-cover" />
+                            <div className="relative h-48 bg-zinc-100 dark:bg-zinc-800">
+                                {selectedItem.catImg ? (
+                                    <img src={selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-cover" />
                                 ) : (
-                                    <div className="w-full h-40 bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center"><ShoppingBag className="w-12 h-12 opacity-20" /></div>
+                                    <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">{selectedItem.item.is_spicy ? "🌶️" : "🍽️"}</div>
                                 )}
                                 <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center"><X className="w-5 h-5" /></button>
                             </div>
@@ -555,12 +610,14 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                                     })}
                                 </div>
                             </div>
-                            <div className="p-6 border-t border-zinc-100 dark:border-zinc-800">
-                                <button onClick={addToCart} className="w-full text-white py-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2" style={{ backgroundColor: THEME5_PRIMARY }}>
-                                    <ShoppingBag className="w-5 h-5" />
-                                    {isAr ? "إضافة للسلة" : "Add to Cart"} — {selectedItem.item.prices[tempSizeIdx]} {currency}
-                                </button>
-                            </div>
+                            {config.orders_enabled !== false && (
+                                <div className="p-6 border-t border-zinc-100 dark:border-zinc-800">
+                                    <button onClick={addToCart} className="w-full text-white py-4 rounded-xl font-bold text-lg flex justify-center items-center gap-2" style={{ backgroundColor: THEME5_PRIMARY }}>
+                                        <ShoppingBag className="w-5 h-5" />
+                                        {isAr ? "إضافة للسلة" : "Add to Cart"} — {selectedItem.item.prices[tempSizeIdx]} {currency}
+                                    </button>
+                                </div>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}
@@ -605,15 +662,8 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                                         <span className="font-bold text-zinc-500">{isAr ? "الإجمالي" : "Total"}</span>
                                         <span className="font-bold text-2xl tabular-nums" style={{ color: THEME5_PRIMARY }}>{cartTotal} {currency}</span>
                                     </div>
-                                    <div className="space-y-3 mb-5">
-                                        <input type="text" placeholder={isAr ? "الاسم" : "Name"} value={customerInfo.name} onChange={e => setCustomerInfo(p => ({ ...p, name: e.target.value }))} className="w-full border rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right border-zinc-200 dark:border-zinc-800 outline-none focus:border-[#4ba3e3]" dir="rtl" />
-                                        <input type="tel" placeholder={isAr ? "رقم الموبايل" : "Phone"} value={customerInfo.phone} onChange={e => setCustomerInfo(p => ({ ...p, phone: e.target.value }))} className="w-full border rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right border-zinc-200 dark:border-zinc-800 outline-none focus:border-[#4ba3e3]" dir="rtl" />
-                                        <textarea placeholder={isAr ? "العنوان بالتفصيل" : "Address"} value={customerInfo.address} onChange={e => setCustomerInfo(p => ({ ...p, address: e.target.value }))} className="w-full border rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right border-zinc-200 dark:border-zinc-800 outline-none h-20 resize-none focus:border-[#4ba3e3]" dir="rtl" />
-                                        <textarea placeholder={isAr ? "ملاحظات إضافية (اختياري)" : "Notes (Optional)"} value={customerInfo.notes} onChange={e => setCustomerInfo(p => ({ ...p, notes: e.target.value }))} className="w-full border rounded-xl px-4 py-3 bg-white dark:bg-[#1E1E1E] text-right border-zinc-200 dark:border-zinc-800 outline-none h-16 resize-none focus:border-[#4ba3e3]" dir="rtl" />
-                                    </div>
-                                    <button onClick={checkOutWhatsApp} className="w-full bg-[#25D366] text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 text-lg active:scale-95 transition-all shadow-lg shadow-green-500/30">
-                                        <FaWhatsapp className="w-6 h-6" />
-                                        {isAr ? "إرسال الطلب عبر واتساب" : "Confirm via WhatsApp"}
+                                    <button onClick={() => { setShowCart(false); setShowCheckout(true); }} className="w-full bg-emerald-500 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 text-lg active:scale-95 transition-all shadow-lg shadow-emerald-500/30">
+                                        {isAr ? "إتمام الطلب" : "Proceed to Checkout"}
                                     </button>
                                 </div>
                             )}
@@ -756,6 +806,27 @@ export default function Theme5Menu({ config, categories, language }: Props) {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Checkout Modal */}
+            <CheckoutModal
+                isOpen={showCheckout}
+                onClose={() => setShowCheckout(false)}
+                cartItems={cart.map(c => ({
+                    id: c.id,
+                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
+                    qty: c.quantity,
+                    price: c.price,
+                    size: c.size_label,
+                    category: c.category_name,
+                }))}
+                subtotal={cartTotal}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.whatsapp_number}
+                currency={currency}
+                language={language}
+                onOrderSuccess={() => { setCart([]); setShowCart(false); }}
+            />
 
             <style jsx global>{`
                 .t5-scrollbar::-webkit-scrollbar { display: none; }

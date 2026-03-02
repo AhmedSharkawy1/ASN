@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Globe, LineChart, Code, Palette } from "lucide-react";
-import { FaFacebook, FaWhatsapp, FaInstagram, FaHeadset, FaTiktok, FaRobot, FaQrcode } from "react-icons/fa";
+import { ArrowRight, Globe, Code, LineChart, Palette } from "lucide-react";
+import { FaFacebook, FaWhatsapp, FaInstagram, FaRobot, FaQrcode, FaTiktok, FaHeadset } from "react-icons/fa";
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useTheme } from "next-themes";
 import Image from "next/image";
@@ -13,10 +13,8 @@ const floatingIcons = [
     { Icon: FaWhatsapp, color: "#16a34a", label: "WhatsApp", size: 50, x: "32vw", y: "20vh", delay: 0.5 },
     { Icon: FaInstagram, color: "#db2777", label: "Instagram", size: 46, x: "25vw", y: "-30vh", delay: 1 },
     { Icon: FaTiktok, color: "#000000", label: "TikTok", size: 45, x: "-15vw", y: "40vh", delay: 1.2 },
-    // Unique global colors for utility icons
     { Icon: Globe, color: "#0ea5e9", label: "Web", size: 48, x: "-30vw", y: "25vh", delay: 1.5 },
     { Icon: LineChart, color: "#f43f5e", label: "Analytics", size: 40, x: "40vw", y: "-10vh", delay: 2 },
-    // AI Icon gets unique purple globally
     { Icon: FaRobot, color: "#8b5cf6", label: "AI", size: 55, x: "-42vw", y: "5vh", delay: 2.5 },
     { Icon: FaHeadset, color: "#0ea5e9", label: "Customer Service", size: 42, x: "15vw", y: "35vh", delay: 3 },
     { Icon: FaQrcode, color: "#10b981", label: "QR Code", size: 45, x: "-10vw", y: "-35vh", delay: 3.5 },
@@ -28,9 +26,14 @@ export default function Hero() {
     const { language } = useLanguage();
     const { theme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         setMounted(true);
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
     const isLightMode = mounted && theme === "light";
@@ -78,22 +81,29 @@ export default function Hero() {
                     // Special case for TikTok icon: Dark gray in Dark Mode, Black in Light Mode
                     const activeColor = (item.label === "TikTok" && !isLightMode) ? "#4b5563" : item.color;
 
+                    // Calculate perfect circular orbit for mobile
+                    const totalIcons = floatingIcons.length;
+                    const angle = (index / totalIcons) * Math.PI * 2;
+                    // Orbit radius: mostly vertical oval to fit phone screens (e.g. 40vw width, 35vh height)
+                    const radiusX = 40; // vw
+                    const radiusY = 32; // vh
+                    const mobileX = `${Math.cos(angle) * radiusX}vw`;
+                    const mobileY = `${Math.sin(angle) * radiusY}vh`;
+
                     return (
                         <motion.div
                             key={index}
                             className="absolute pointer-events-auto cursor-pointer flex flex-col items-center justify-center"
                             initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
-                            animate={{ opacity: 1, scale: 1, x: item.x, y: item.y }}
+                            animate={{ opacity: 1, scale: 1, x: isMobile ? mobileX : item.x, y: isMobile ? mobileY : item.y }}
                             transition={{ duration: 1.5, delay: item.delay, type: "spring", bounce: 0.4 }}
                             whileHover={{ zIndex: 50, scale: 1.1 }}
                         >
                             <motion.div
                                 animate={{
-                                    y: [0, -40, 20, -30, 0],
-                                    x: [0, 30, -20, 35, 0],
-                                    rotateZ: [0, 15, -10, 12, 0],
-                                    rotateY: [0, 25, -20, 18, 0],
-                                    rotateX: [0, -15, 25, -10, 0]
+                                    y: [0, -25, 0],
+                                    x: [0, 20, 0],
+                                    rotateZ: [0, 8, 0],
                                 }}
                                 transition={{
                                     duration: 12 + (index % 5) * 3,

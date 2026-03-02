@@ -6,9 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, MapPin, Phone, List,
     Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X,
-    Home, UtensilsCrossed, User
+    Home, UtensilsCrossed, User, Globe, PhoneCall
 } from 'lucide-react';
-import { FaWhatsapp, FaInstagram } from 'react-icons/fa';
+import { FaWhatsapp, FaInstagram, FaFacebookF } from 'react-icons/fa';
+import SharedMarquee from './SharedMarquee';
+import CheckoutModal from './CheckoutModal';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/effect-fade';
 
 // Import necessary types directly from where they are defined, or define locally
 type MenuItem = {
@@ -22,6 +28,7 @@ type MenuItem = {
     size_labels?: string[];
     extras?: { id?: number | string; name_ar: string; name_en?: string; price: number }[];
     is_available?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 };
 
@@ -34,35 +41,41 @@ interface CategoryWithItemsType {
     name_ar: string;
     name_en?: string;
     items?: MenuItem[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
 
 interface RestaurantType {
-    id: string | number;
-    name_ar: string;
-    name_en?: string;
+    name: string;
     theme?: string;
     theme_colors?: {
         main_color?: string;
         bg_color?: string;
         text_color?: string;
     };
+    cover_images?: string[];
+    marquee_enabled?: boolean;
+    marquee_text_ar?: string;
+    marquee_text_en?: string;
+    orders_enabled?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
 
 interface Theme9MenuProps {
     config: RestaurantType;
     categories: CategoryWithItemsType[];
+    restaurantId: string;
 }
 
-export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
+export default function Theme9Menu({ config, categories, restaurantId }: Theme9MenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
     const isAr = config.default_language === 'ar';
     const isDark = mounted && theme === 'dark';
-    const cur = isAr ? 'ر.س' : 'SAR'; // Assuming SAR by default or config
+    const cur = ''; // Removed SAR per user request
 
     // Theme Variables
     const bgBody = isDark ? '#0f172a' : '#fafafa';
@@ -75,17 +88,21 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false);
 
     // Drawers & Modals
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string } | null>(null);
+    const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string; catImg?: string } | null>(null);
 
     // Item Detail Modal
     const [qty, setQty] = useState(1);
     const [sizeIdx, setSizeIdx] = useState(0);
     const [notes, setNotes] = useState('');
     const [selectedExtras, setSelectedExtras] = useState<{ id: number | string, name: string, price: number }[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
+    const [showCheckout, setShowCheckout] = useState(false);
 
     const [cart, setCart] = useState<{ id: string, item: MenuItem, catName: string, price: number, sizeLabel: string, quantity: number, notes: string }[]>([]);
 
@@ -97,12 +114,15 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
     const filteredCategories = React.useMemo(() => {
         if (!searchQuery) return categories;
         const q = searchQuery.toLowerCase();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return categories.map((c: any) => ({
             ...c,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             items: c.items?.filter((i: any) =>
                 (i.title_ar || '').toLowerCase().includes(q) ||
                 (i.title_en || '').toLowerCase().includes(q)
             ) || []
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         })).filter((c: any) => c.items && c.items.length > 0);
     }, [categories, searchQuery]);
 
@@ -156,7 +176,7 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
 
     // Cart Logic
     const addToCart = () => {
-        if (!selectedItem) return;
+        if (!selectedItem || config.orders_enabled === false) return;
         const basePrice = selectedItem.item.prices[sizeIdx] || 0;
         const extrasTotal = selectedExtras.reduce((sum, ext) => sum + ext.price, 0);
         const finalPrice = basePrice + extrasTotal;
@@ -181,6 +201,7 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
         closeModal();
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const addToCartDirect = (item: MenuItem, catNameStr: string) => {
         const price = item.prices[0] || 0;
         const label = item.size_labels?.[0] || '';
@@ -209,6 +230,54 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
             return i;
         }).filter(i => i.quantity > 0));
     };
+    // ── CART HANDLING ──
+    const handleCardButtonClick = (e: React.MouseEvent, item: MenuItem, cName: string, cImg?: string) => {
+        e.stopPropagation();
+        if (config.orders_enabled === false) return;
+        setSelectedItem({ item, catName: cName, catImg: cImg });
+        setSizeIdx(0);
+        setQty(1);
+        setNotes('');
+        setSelectedExtras([]);
+        // openItemModal();
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const checkOutWhatsApp = () => {
+        if (!config.social_links?.whatsapp && !config.whatsapp_number && !config.phone) {
+            alert(isAr ? "عذراً، المطعم لم يقم بتوفير رقم واتساب للطلبات." : "Sorry, the restaurant hasn't provided a WhatsApp number for orders.");
+            return;
+        }
+        if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
+            alert(isAr ? "⚠️ يرجى إدخال جميع البيانات (الاسم، الموبايل، العنوان) لإتمام الطلب" : "⚠️ Please enter all details to complete the order");
+            return;
+        }
+
+        let message = `*🧾 فاتورة طلب جديدة - ${config.name}*\n`;
+        message += `------------------------------\n`;
+        message += `👤 *الاسم:* ${customerInfo.name}\n`;
+        message += `📞 *الموبايل:* ${customerInfo.phone}\n`;
+        message += `📍 *العنوان:* ${customerInfo.address}\n`;
+        message += `------------------------------\n`;
+        message += `*📋 الأصناف المطلوبة:*\n\n`;
+
+        cart.forEach((c, idx) => {
+            message += `${idx + 1}. ✨ *${itemName(c.item)}*\n`;
+            if (c.sizeLabel && c.sizeLabel !== 'عادي') message += `   📏 ${c.sizeLabel}\n`;
+            if (c.notes) message += `   📝 ${c.notes}\n`;
+            message += `   💵 السعر: ${c.price}\n`;
+            message += `   🔢 الكمية: ${c.quantity}\n`;
+            message += `   💰 المجموع: *${c.price * c.quantity}*\n\n`;
+        });
+
+        message += `------------------------------\n`;
+        message += `*💵 الإجمالي المطلوب: ${cartTotal}*\n`;
+        message += `------------------------------\n`;
+
+        const waNumber = config.social_links?.whatsapp || config.whatsapp_number || config.phone;
+        const formattedNumber = waNumber.replace(/\+/g, '');
+        window.open(`https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`, '_blank');
+    };
 
     // Body style
     useEffect(() => {
@@ -223,12 +292,39 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
     return (
         <div className={`min-h-screen pb-24 font-cairo ${isDark ? 'dark' : ''}`} style={{ backgroundColor: bgBody, color: textDark }}>
 
+            {/* ─── SHARED MARQUEE ─── */}
+            {config.marquee_enabled && (config.marquee_text_ar || config.marquee_text_en) && (
+                <SharedMarquee
+                    text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
+                    bgColor={T9_RED}
+                />
+            )}
+
             {/* ─── COVER BANNER ─── */}
             <div className="relative w-full h-[220px] md:h-[450px] overflow-hidden bg-gradient-to-br from-gray-800 to-gray-900">
-                <img src={config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000'}
-                    alt={config.name}
-                    className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-6 md:p-12">
+                {config.cover_images && config.cover_images.length > 0 ? (
+                    <Swiper
+                        modules={[Autoplay, EffectFade]}
+                        effect="fade"
+                        autoplay={{ delay: 3000, disableOnInteraction: false }}
+                        loop={config.cover_images.length > 1}
+                        className="w-full h-full absolute inset-0 z-0"
+                    >
+                        {config.cover_images.map((img: string, idx: number) => (
+                            <SwiperSlide key={idx}>
+                                <img src={img || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000'}
+                                    alt={`Cover ${idx}`}
+                                    className="w-full h-full object-cover" />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                ) : (
+                    <img src={config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000'}
+                        alt={config.name}
+                        className="w-full h-full object-cover absolute inset-0 z-0" />
+                )}
+
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-6 md:p-12">
                     <div className="flex items-center gap-6 w-full max-w-6xl mx-auto">
                         <img src={config.logo_url} alt="Logo" className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 shadow-xl flex-shrink-0" style={{ borderColor: T9_RED }} />
                         <div>
@@ -254,13 +350,10 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
 
             {/* ─── CATEGORY NAVIGATION (STICKY) ─── */}
             <nav className="sticky top-0 z-40 shadow-sm" style={{ background: bgWhite, borderBottom: `1px solid ${borderColor}` }}>
-                <div className="max-w-6xl mx-auto flex items-center">
-                    <div className="flex-1 overflow-x-auto flex items-center gap-2 px-4 py-2" style={{ scrollbarWidth: 'none' }} ref={catScrollRef}>
-                        <button onClick={() => setIsSearchOpen(!isSearchOpen)}
-                            className="p-2 shrink-0 rounded-full transition-colors"
-                            style={{ color: isSearchOpen ? T9_RED : textMuted, background: isSearchOpen ? (isDark ? 'rgba(231, 76, 60, 0.15)' : '#fceceb') : 'transparent' }}>
-                            <Search className="w-5 h-5" />
-                        </button>
+                <div className="max-w-6xl mx-auto flex items-center justify-between px-4 py-2">
+
+                    {/* Right side (Categories) - RTL */}
+                    <div className="flex-1 overflow-x-auto flex items-center justify-center md:justify-start gap-2 pr-2" style={{ scrollbarWidth: 'none' }} ref={catScrollRef}>
                         <button data-cat="all" onClick={() => scrollToSection('all')}
                             className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm shrink-0 whitespace-nowrap transition-all"
                             style={{
@@ -270,9 +363,9 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
                             {isAr ? 'الكل' : 'All'}
                         </button>
                         {categories.filter(c => c.items && c.items.length > 0).map(cat => {
-                            const active = activeCategory === cat.id;
+                            const active = activeCategory === cat.id.toString();
                             return (
-                                <button key={cat.id} data-cat={cat.id} onClick={() => scrollToSection(cat.id)}
+                                <button key={cat.id} data-cat={cat.id} onClick={() => scrollToSection(cat.id.toString())}
                                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm shrink-0 whitespace-nowrap transition-all"
                                     style={{
                                         background: active ? T9_RED : 'transparent',
@@ -331,14 +424,15 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
 
                             {/* Diablo Style Item Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {cat.items?.filter((i: any) => i.is_available !== false).map((item: any) => (
-                                    <div key={item.id} onClick={() => setSelectedItem({ item, catName: catName(cat) })}
+                                    <div key={item.id} onClick={() => setSelectedItem({ item, catName: catName(cat), catImg: cat.image_url || cat.image })}
                                         className="relative rounded-[14px] md:rounded-[20px] overflow-hidden cursor-pointer group flex flex-col transition-all duration-300 transform hover:-translate-y-1"
                                         style={{ background: bgWhite, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${borderColor}` }}>
 
                                         {/* Top Image Box */}
                                         <div className="w-full h-32 md:h-48 overflow-hidden bg-gray-100 relative">
-                                            <img src={item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
+                                            <img src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
                                                 alt={itemName(item)}
                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                                             {/* Price Badge over image on mobile/small screens (optional) */}
@@ -361,15 +455,26 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
                                             )}
 
                                             {/* Footer area */}
-                                            <div className="mt-auto flex items-center justify-between w-full" dir={isAr ? 'rtl' : 'ltr'}>
-                                                <button onClick={(e) => { e.stopPropagation(); addToCartDirect(item, catName(cat)); }}
-                                                    className="px-3 py-1.5 md:px-5 md:py-2.5 rounded-lg md:rounded-xl text-[11px] md:text-sm font-bold text-white transition-colors active:scale-95"
-                                                    style={{ background: T9_RED }}>
-                                                    {isAr ? 'عرض' : 'View'}
-                                                </button>
-                                                <span className="font-black text-[13px] md:text-[17px] tracking-tight" style={{ color: T9_RED }}>
-                                                    {cur}{(item.prices[0]?.toFixed?.(0) || item.prices[0])}
-                                                </span>
+                                            <div className="mt-auto flex flex-col gap-2 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                <div className="flex flex-col gap-1 w-full text-right mb-2 px-1">
+                                                    {item.prices.map((p: number, idx: number) => (
+                                                        <div key={idx} className="flex justify-between items-center w-full">
+                                                            <span className="text-[11px] md:text-sm text-gray-500 font-bold whitespace-nowrap">
+                                                                {item.size_labels && item.size_labels[idx] ? item.size_labels[idx] : (isAr ? `الحجم ${idx + 1}` : `Size ${idx + 1}`)}
+                                                            </span>
+                                                            <span className="font-black text-[13px] md:text-[15px] tracking-tight shrink-0" style={{ color: T9_RED }}>
+                                                                {cur}{p?.toFixed?.(0) || p}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                {config.orders_enabled !== false && (
+                                                    <button onClick={(e) => handleCardButtonClick(e, item, catName(cat), cat.image_url)}
+                                                        className="w-full py-2 rounded-lg md:rounded-xl text-[12px] md:text-sm font-bold text-white transition-colors active:scale-95"
+                                                        style={{ background: T9_RED }}>
+                                                        {isAr ? 'إضافة إلى السلة' : 'Add to Cart'}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -378,20 +483,7 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
                         </div>
                     ))}
 
-                    {/* Customer Review Notice (simulated from Diablo logic) */}
-                    <div className="mt-12 text-center p-6 border-t" style={{ borderColor }}>
-                        <h4 className="font-bold text-lg mb-2">{isAr ? 'شاركنا تقييمك' : 'Share your feedback'}</h4>
-                        <button className="px-6 py-2 rounded-full font-bold text-sm text-white transition-transform hover:scale-105"
-                            style={{ background: T9_RED }}>
-                            {isAr ? 'تقييم المطعم' : 'Rate us'}
-                        </button>
-                    </div>
-
-                    {/* Footer Inside Main Layout */}
-                    <footer className="mt-8 text-center" style={{ color: textMuted }}>
-                        <p className="text-sm font-bold">{config.name} © 2024</p>
-                        <p className="text-xs mt-1">Powered by ASN</p>
-                    </footer>
+                    {/* Footer Inside Main Layout Removed per request */}
                 </div>
 
                 {/* SIDEBAR (Desktop Only) */}
@@ -442,8 +534,8 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
                             </button>
 
                             {/* Image Box */}
-                            <div className="w-full h-[250px] shrink-0 relative">
-                                <img src={selectedItem.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
+                            <div className="w-full h-[250px] shrink-0 relative flex items-center justify-center" style={{ backgroundColor: bgBody }}>
+                                <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
                                     alt={itemName(selectedItem.item)}
                                     className="w-full h-full object-cover" />
                             </div>
@@ -524,23 +616,27 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
                                     style={{ background: bgBody, color: textDark, borderColor }} />
 
                                 {/* Qty Row */}
-                                <div className="flex items-center justify-center gap-6 my-6">
-                                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-colors hover:text-red-500 hover:border-red-500"
-                                        style={{ borderColor, color: textDark }}>
-                                        <Minus className="w-5 h-5" />
-                                    </button>
-                                    <span className="text-3xl font-black min-w-[40px] text-center">{qty}</span>
-                                    <button onClick={() => setQty(qty + 1)} className="w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-colors hover:text-red-500 hover:border-red-500"
-                                        style={{ borderColor, color: textDark }}>
-                                        <Plus className="w-5 h-5" />
-                                    </button>
-                                </div>
+                                {config.orders_enabled !== false && (
+                                    <>
+                                        <div className="flex items-center justify-center gap-6 my-6">
+                                            <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-colors hover:text-red-500 hover:border-red-500"
+                                                style={{ borderColor, color: textDark }}>
+                                                <Minus className="w-5 h-5" />
+                                            </button>
+                                            <span className="text-3xl font-black min-w-[40px] text-center">{qty}</span>
+                                            <button onClick={() => setQty(qty + 1)} className="w-12 h-12 rounded-full border-2 flex flex-col items-center justify-center transition-colors hover:text-red-500 hover:border-red-500"
+                                                style={{ borderColor, color: textDark }}>
+                                                <Plus className="w-5 h-5" />
+                                            </button>
+                                        </div>
 
-                                {/* Add Button */}
-                                <button onClick={addToCart} className="w-full py-4 rounded-xl text-white font-black text-lg transition-colors active:scale-95"
-                                    style={{ background: T9_RED }}>
-                                    {isAr ? 'أضف للسلة' : 'Add to Cart'} — {cur}{(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed?.(0)}
-                                </button>
+                                        {/* Add Button */}
+                                        <button onClick={addToCart} className="w-full py-4 rounded-xl text-white font-black text-lg transition-colors active:scale-95"
+                                            style={{ background: T9_RED }}>
+                                            {isAr ? 'إضافة إلى السلة' : 'Add to Cart'} — {cur}{(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s: number, e: { price: number }) => s + e.price, 0)) * qty).toFixed?.(0)}
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>
@@ -566,7 +662,7 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
                             </div>
 
                             {/* Body */}
-                            <div className="flex-1 overflow-y-auto p-5 pb-24">
+                            <div className="flex-1 overflow-y-auto p-5 pb-40">
                                 {cart.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-full text-center" style={{ color: textMuted }}>
                                         <ShoppingCart className="w-16 h-16 mb-4 opacity-50" />
@@ -603,20 +699,22 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
                                                 </button>
                                             </div>
                                         ))}
+
+
                                     </div>
                                 )}
                             </div>
 
                             {/* Footer */}
                             {cart.length > 0 && (
-                                <div className="absolute bottom-0 w-full p-5 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] border-t" style={{ background: bgBody, borderColor }}>
+                                <div className="absolute bottom-0 w-full p-5 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] border-t z-20" style={{ background: bgBody, borderColor }}>
                                     <div className="flex justify-between items-center mb-4 text-sm font-black" style={{ color: textDark }}>
                                         <span>{isAr ? 'المجموع' : 'Total'}</span>
                                         <span className="text-xl" style={{ color: T9_RED }}>{cur}{cartTotal.toFixed?.(0)}</span>
                                     </div>
-                                    <button className="w-full py-4 rounded-xl text-white font-black text-lg transition-colors active:scale-95"
-                                        style={{ background: T9_RED }}>
-                                        {isAr ? 'الدفع' : 'Checkout'}
+                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full flex justify-center items-center gap-2 py-3.5 rounded-xl text-white font-black text-lg transition-colors active:scale-95"
+                                        style={{ background: '#10b981' }}>
+                                        {isAr ? 'إتمام الطلب' : 'Proceed to Checkout'}
                                     </button>
                                 </div>
                             )}
@@ -672,15 +770,127 @@ export default function Theme9Menu({ config, categories }: Theme9MenuProps) {
             </AnimatePresence>
 
             {/* ─── FLOATING CART FAB ─── */}
-            <button onClick={() => setIsCartOpen(true)}
-                className={`fixed bottom-6 left-6 z-[80] w-14 h-14 rounded-full flex flex-col items-center justify-center text-white shadow-[0_4px_20px_rgba(231,76,60,0.4)] transition-transform duration-300 hover:scale-110 active:scale-95 ${cartCount > 0 ? 'scale-100' : 'scale-0'}`}
-                style={{ background: T9_RED }}>
-                <ShoppingCart className="w-6 h-6" />
-                <span className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-yellow-400 text-black font-black text-[11px] flex items-center justify-center border-2 border-white">
-                    {cartCount}
-                </span>
-            </button>
+            {config.orders_enabled !== false && (
+                <button onClick={() => setIsCartOpen(true)} className="fixed bottom-20 left-6 z-[80] w-14 h-14 rounded-full flex flex-col items-center justify-center text-white shadow-[0_4px_20px_rgba(231,76,60,0.4)] transition-transform duration-300 hover:scale-110 active:scale-95"
+                    style={{ background: T9_RED, transform: cartCount > 0 ? 'scale(1)' : 'scale(0)' }}>
+                    <ShoppingCart className="w-6 h-6" />
+                    <span className="absolute -top-1 -left-1 w-6 h-6 rounded-full bg-yellow-400 text-black font-black text-[11px] flex items-center justify-center border-2 border-white">
+                        {cartCount}
+                    </span>
+                </button>
+            )}
 
+            {/* ─── BOTTOM INTERACTIVE ICONS BAR ─── */}
+            <div className="fixed bottom-0 left-0 w-full z-[90] border-t flex items-center justify-center p-3 pb-safe backdrop-blur-md"
+                style={{ background: isDark ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)', borderColor }}>
+                <div className="flex items-center gap-2 md:gap-3 hide-scrollbar" dir="ltr" style={{ overflowX: 'auto' }}>
+                    {config.map_link ? (
+                        <a href={config.map_link} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                            <MapPin className="w-5 h-5" />
+                        </a>
+                    ) : (config.latitude && config.longitude && (
+                        <a href={`https://www.google.com/maps/search/?api=1&query=${config.latitude},${config.longitude}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                            <MapPin className="w-5 h-5" />
+                        </a>
+                    ))}
+
+                    {(config.social_links?.facebook || config.facebook_url) && (
+                        <a href={config.social_links?.facebook || config.facebook_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#1877f2] hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                            <FaFacebookF className="text-lg" />
+                        </a>
+                    )}
+
+                    {(config.social_links?.whatsapp || config.whatsapp_number) && (
+                        <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#25D366] hover:bg-green-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                            <FaWhatsapp className="text-xl" />
+                        </a>
+                    )}
+
+                    {config.website_url && (
+                        <a href={config.website_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                            <Globe className="w-5 h-5" />
+                        </a>
+                    )}
+
+                    {(config.phone || (config.phones && config.phones.length > 0)) && (
+                        <div className="relative shrink-0">
+                            <button
+                                onClick={() => setIsPhoneMenuOpen(!isPhoneMenuOpen)}
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#e74c3c] hover:bg-red-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm"
+                            >
+                                <PhoneCall className="w-5 h-5" />
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="w-px h-6 bg-gray-300 dark:bg-slate-600 mx-2 shrink-0"></div>
+
+                    <button onClick={() => { setIsSearchOpen(!isSearchOpen); if (!isSearchOpen) window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                        className="p-2 shrink-0 w-10 h-10 rounded-full transition-colors flex items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 shadow-sm"
+                        style={{ color: isSearchOpen ? T9_RED : textMuted }}>
+                        <Search className="w-5 h-5" />
+                    </button>
+
+                    <button onClick={() => setTheme(isDark ? 'light' : 'dark')} className="p-2 shrink-0 w-10 h-10 rounded-full transition-colors flex items-center justify-center bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 shadow-sm ml-1">
+                        {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
+                    </button>
+                </div>
+
+                {/* Phone Dropdown Modal (outsided scroll container) */}
+                <AnimatePresence>
+                    {isPhoneMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 10 }}
+                            className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-slate-700 py-2 z-[110] overflow-hidden"
+                        >
+                            <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center" dir={isAr ? 'rtl' : 'ltr'}>
+                                أرقام الديلفري
+                            </div>
+                            {config.phones && config.phones.length > 0 ? (
+                                config.phones.map((phoneNum: string, idx: number) => (
+                                    <a
+                                        key={idx}
+                                        href={`tel:${phoneNum}`}
+                                        className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                    >
+                                        {phoneNum}
+                                    </a>
+                                ))
+                            ) : (
+                                <a
+                                    href={`tel:${config.phone}`}
+                                    className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                >
+                                    {config.phone}
+                                </a>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Checkout Modal */}
+            <CheckoutModal
+                isOpen={showCheckout}
+                onClose={() => setShowCheckout(false)}
+                cartItems={cart.map(c => ({
+                    id: c.id,
+                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
+                    qty: c.quantity,
+                    price: c.price,
+                    size: c.sizeLabel,
+                    category: c.catName,
+                }))}
+                subtotal={cartTotal}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.whatsapp_number || config.social_links?.whatsapp}
+                currency={cur || 'ج.م'}
+                language={isAr ? 'ar' : 'en'}
+                onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
+            />
         </div>
     );
 }

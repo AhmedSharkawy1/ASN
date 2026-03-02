@@ -1,0 +1,9 @@
+﻿src/components/menu/Theme14Menu.tsx(5,32): error TS2307: Cannot find module '@/types' or its corresponding type declarations.
+src/components/menu/Theme14Menu.tsx(6,25): error TS2307: Cannot find module '@/context/CartContext' or its corresponding type declarations.
+src/components/menu/Theme14Menu.tsx(7,25): error TS2307: Cannot find module '@/context/MenuContext' or its corresponding type declarations.
+src/components/menu/Theme14Menu.tsx(8,29): error TS2307: Cannot find module '@/context/LanguageContext' or its corresponding type declarations.
+src/components/menu/Theme14Menu.tsx(9,26): error TS2307: Cannot find module '@/translations' or its corresponding type declarations.
+src/components/menu/Theme14Menu.tsx(25,32): error TS2307: Cannot find module '@/utils/formatCurrency' or its corresponding type declarations.
+src/components/menu/Theme14Menu.tsx(829,22): error TS2304: Cannot find name 'Info'.
+src/components/menu/Theme14Menu.tsx(841,54): error TS7006: Parameter 'acc' implicitly has an 'any' type.
+src/components/menu/Theme14Menu.tsx(841,59): error TS7006: Parameter 'i' implicitly has an 'any' type.

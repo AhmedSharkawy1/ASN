@@ -8,7 +8,13 @@ import { formatCurrency, formatDate, statusLabel, statusColor, nextStatuses, ela
 import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type OrderItem = { title: string; qty: number; price: number; size?: string };
+type OrderItem = {
+    title: string;
+    qty: number;
+    price: number;
+    size?: string;
+    category?: string;
+};
 type Order = {
     id: string; order_number: number; status: string; items: OrderItem[];
     subtotal: number; discount: number; total: number; payment_method: string;
@@ -191,7 +197,10 @@ export default function OrdersPage() {
                                                     <h4 className="text-xs font-bold text-zinc-400 mb-2 uppercase">{isAr ? "الأصناف" : "Items"}</h4>
                                                     {order.items.map((item, i) => (
                                                         <div key={i} className="flex items-center justify-between py-1.5 border-b border-zinc-800/30 last:border-0 text-sm">
-                                                            <span className="text-zinc-300">{item.title} {item.size ? `(${item.size})` : ""} × {item.qty}</span>
+                                                            <div className="flex flex-col gap-0.5">
+                                                                <span className="text-zinc-300">{item.title} {item.size && item.size !== 'عادي' ? `(${item.size})` : ""} × {item.qty}</span>
+                                                                {item.category && <span className="text-[10px] text-zinc-500">🗂️ {item.category}</span>}
+                                                            </div>
                                                             <span className="text-zinc-400 font-bold">{formatCurrency(item.price * item.qty)}</span>
                                                         </div>
                                                     ))}

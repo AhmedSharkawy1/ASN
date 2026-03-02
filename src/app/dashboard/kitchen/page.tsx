@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import { statusLabel, statusColor, nextStatuses, elapsedTime } from "@/lib/helpers/formatters";
 import { ChefHat, Clock, Volume2, VolumeX } from "lucide-react";
 
-type OrderItem = { title: string; qty: number; price: number; size?: string };
+type OrderItem = { title: string; qty: number; price: number; size?: string; category?: string };
 type Order = { id: string; order_number: number; status: string; items: OrderItem[]; total: number; table_id?: string; customer_name?: string; notes?: string; created_at: string; is_draft?: boolean };
 
 export default function KitchenPage() {
@@ -138,8 +138,11 @@ export default function KitchenPage() {
                                             {order.customer_name && <p className="text-[10px] text-zinc-400 mb-1">👤 {order.customer_name}</p>}
                                             <div className="space-y-1 mb-3">
                                                 {order.items.map((item, i) => (
-                                                    <div key={i} className="flex justify-between text-xs">
-                                                        <span className="text-zinc-300">{item.qty}× {item.title} {item.size ? `(${item.size})` : ""}</span>
+                                                    <div key={i} className="flex flex-col text-xs mb-1">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-zinc-300">{item.qty}× {item.title} {item.size && item.size !== 'عادي' ? `(${item.size})` : ""}</span>
+                                                        </div>
+                                                        {item.category && <span className="text-[9px] text-zinc-500">🗂️ {item.category}</span>}
                                                     </div>
                                                 ))}
                                             </div>

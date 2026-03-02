@@ -6,6 +6,13 @@ import { useTheme } from "next-themes";
 // lucide-react icons used elsewhere
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingCart, Plus, Minus } from "lucide-react";
+import SharedMarquee from "./SharedMarquee";
+import CheckoutModal from "./CheckoutModal";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, EffectFade } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/effect-fade";
 
 // ─── Types (same interface as other themes) ───
 type Item = {
@@ -42,6 +49,11 @@ type RestaurantConfig = {
     map_link?: string;
     logo_url?: string;
     cover_url?: string;
+    cover_images?: string[];
+    marquee_enabled?: boolean;
+    marquee_text_ar?: string;
+    marquee_text_en?: string;
+    orders_enabled?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -54,10 +66,21 @@ type RestaurantConfig = {
     }[];
 };
 
+type CartItem = {
+    id: string;
+    item: Item;
+    price: number;
+    size_label: string;
+    quantity: number;
+    categoryType?: "savory" | "sweet";
+    category_name: string;
+};
+
 type Props = {
     config: RestaurantConfig;
     categories: Category[];
     language: string;
+    restaurantId: string;
 };
 
 /**
@@ -71,7 +94,7 @@ type Props = {
  *           floating WhatsApp button.
  * Typography: Cairo.
  */
-export default function BabAlHaraMenu({ config, categories, language }: Props) {
+export default function BabAlHaraMenu({ config, categories, language, restaurantId }: Props) {
     const isAr = language === "ar";
 
     // Dark mode via next-themes
@@ -83,6 +106,10 @@ export default function BabAlHaraMenu({ config, categories, language }: Props) {
     const [activeSection, setActiveSection] = useState<string>("");
     const [showCallMenu, setShowCallMenu] = useState(false);
     const [showPaymentMenu, setShowPaymentMenu] = useState(false);
+
+    // --- Cart & Checkout State ---
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [showCheckout, setShowCheckout] = useState(false);
 
     const categoryNavRef = useRef<HTMLDivElement>(null);
     const isManualScroll = useRef(false);
@@ -135,6 +162,32 @@ export default function BabAlHaraMenu({ config, categories, language }: Props) {
         setActiveSection("");
     };
 
+    // ─── CART HANDLERS ───
+    const addToCart = (e: React.MouseEvent, item: Item, catName: string, price: number, sizeLabel: string, categoryType?: "savory" | "sweet") => {
+        e.stopPropagation();
+        if (config.orders_enabled === false) return;
+        haptic();
+        setCart(prev => {
+            const ext = prev.find(c => c.item.id === item.id && c.size_label === sizeLabel);
+            if (ext) return prev.map(c => c === ext ? { ...c, quantity: c.quantity + 1 } : c);
+            return [...prev, { id: crypto.randomUUID(), item, price, size_label: sizeLabel, quantity: 1, category_name: catName, categoryType }];
+        });
+    };
+
+    const removeFromCart = (e: React.MouseEvent, item: Item, sizeLabel: string) => {
+        e.stopPropagation();
+        if (config.orders_enabled === false) return;
+        haptic();
+        setCart(prev => {
+            const ext = prev.find(c => c.item.id === item.id && c.size_label === sizeLabel);
+            if (!ext) return prev;
+            if (ext.quantity > 1) return prev.map(c => c === ext ? { ...c, quantity: c.quantity - 1 } : c);
+            return prev.filter(c => c.id !== ext.id);
+        });
+    };
+
+    const qtyInCart = (item: Item, sizeLabel: string) => cart.find(c => c.item.id === item.id && c.size_label === sizeLabel)?.quantity || 0;
+
     const currency = isAr ? "ج.م" : "EGP";
     const PRIMARY = "#e31e24";
 
@@ -145,14 +198,39 @@ export default function BabAlHaraMenu({ config, categories, language }: Props) {
     return (
         <div className="min-h-screen pb-40 bg-[#f8f9fa] dark:bg-[#0a0a0a] transition-colors duration-500 antialiased" style={{ fontFamily: "'Cairo', sans-serif" }}>
 
+            {/* ===== SHARED MARQUEE ===== */}
+            {config.marquee_enabled && (config.marquee_text_ar || config.marquee_text_en) && (
+                <div className="relative z-[60]">
+                    <SharedMarquee
+                        text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
+                        bgColor={PRIMARY}
+                    />
+                </div>
+            )}
+
             {/* ═══════ HERO HEADER ═══════ */}
             <div className="relative">
                 {/* Top Banner with Background Image */}
                 <div className="relative overflow-hidden px-6 py-14 md:py-24 flex flex-col items-center justify-center min-h-[280px]">
-                    {config.cover_url && (
+                    {config.cover_images && config.cover_images.length > 0 ? (
+                        <Swiper
+                            modules={[Autoplay, EffectFade]}
+                            effect="fade"
+                            autoplay={{ delay: 3000, disableOnInteraction: false }}
+                            loop={config.cover_images.length > 1}
+                            className="absolute inset-0 z-0 w-full h-full"
+                        >
+                            {config.cover_images.map((img: string, idx: number) => (
+                                <SwiperSlide key={idx}>
+                                    <div className="w-full h-full bg-cover bg-center transition-transform duration-1000 scale-105"
+                                        style={{ backgroundImage: `url(${img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'})` }} />
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    ) : config.cover_url ? (
                         <div className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-1000 scale-105"
                             style={{ backgroundImage: `url(${config.cover_url})` }} />
-                    )}
+                    ) : null}
                     {/* Overlay */}
                     <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/40 via-black/20 to-[#f8f9fa] dark:to-[#0a0a0a]" />
                     <div className="absolute inset-0 z-[1] bg-black/30 backdrop-blur-[1px]" />
@@ -278,18 +356,41 @@ export default function BabAlHaraMenu({ config, categories, language }: Props) {
                                         </p>
 
                                         {/* Prices */}
-                                        <div className="mt-auto space-y-1.5">
+                                        <div className="mt-auto space-y-1.5 z-20 relative">
                                             {item.prices.map((price, pIdx) => {
-                                                const sizeLabel = item.size_labels?.[pIdx];
+                                                const sizeLabel = item.size_labels?.[pIdx] || "عادي";
+                                                const curQty = qtyInCart(item, sizeLabel);
+                                                const btnClass = "w-6 h-6 rounded-full flex items-center justify-center text-white active:scale-90 transition-transform shadow cursor-pointer";
                                                 return (
-                                                    <div key={pIdx} className="flex items-center justify-between bg-zinc-50 dark:bg-white/5 p-1 rounded-lg">
-                                                        <div className="flex items-baseline gap-0.5 order-1">
-                                                            <span className="text-[11px] font-black tabular-nums" style={{ color: PRIMARY }}>{price}</span>
-                                                            <span className="text-[7px] font-bold" style={{ color: `${PRIMARY}99` }}>{currency}</span>
+                                                    <div key={pIdx} className={`flex items-center ${config.orders_enabled !== false ? 'justify-between bg-zinc-50 dark:bg-white/5' : 'justify-end'} p-1 rounded-lg`}>
+                                                        {config.orders_enabled !== false && (
+                                                            <>
+                                                                {curQty > 0 ? (
+                                                                    <div className="flex items-center gap-2 order-1">
+                                                                        <button onClick={(e) => removeFromCart(e, item, sizeLabel)} className={`${btnClass} bg-red-500`}>
+                                                                            <Minus size={12} strokeWidth={3} />
+                                                                        </button>
+                                                                        <span className="font-bold text-[11px] w-3 text-center text-zinc-800 dark:text-zinc-100">{curQty}</span>
+                                                                        <button onClick={(e) => addToCart(e, item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), price, sizeLabel, cat.name_ar.includes("حلو") ? "sweet" : "savory")} className={`${btnClass}`} style={{ backgroundColor: PRIMARY }}>
+                                                                            <Plus size={12} strokeWidth={3} />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div onClick={(e) => addToCart(e, item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), price, sizeLabel, cat.name_ar.includes("حلو") ? "sweet" : "savory")} className="bg-zinc-200 dark:bg-zinc-700 w-6 h-6 rounded-full flex items-center justify-center text-zinc-600 dark:text-white cursor-pointer active:scale-90 transition-transform order-1">
+                                                                        <Plus size={12} strokeWidth={3} />
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                        <div className="flex flex-col items-end pointer-events-none order-2 px-1">
+                                                            <div className="flex items-baseline gap-0.5">
+                                                                <span className="text-[11px] font-black tabular-nums" style={{ color: PRIMARY }}>{price}</span>
+                                                                <span className="text-[7px] font-bold" style={{ color: `${PRIMARY}99` }}>{currency}</span>
+                                                            </div>
+                                                            <span className="text-[8px] font-bold text-zinc-500 dark:text-zinc-400">
+                                                                {sizeLabel === "عادي" || !sizeLabel ? (isAr ? "سعر" : "Price") : sizeLabel}
+                                                            </span>
                                                         </div>
-                                                        <span className="text-[8px] font-bold text-zinc-500 dark:text-zinc-400 order-2">
-                                                            {sizeLabel || (isAr ? "سعر" : "Price")}
-                                                        </span>
                                                     </div>
                                                 );
                                             })}
@@ -302,8 +403,38 @@ export default function BabAlHaraMenu({ config, categories, language }: Props) {
                 ))}
             </main>
 
+            {/* ═══════ FLOATING CART INDICATOR ═══════ */}
+            <AnimatePresence>
+                {!showCheckout && cart.length > 0 && config.orders_enabled !== false && (
+                    <motion.div
+                        initial={{ y: 200, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 200, opacity: 0 }}
+                        className="fixed bottom-[95px] left-4 right-4 z-[120]"
+                    >
+                        <div onClick={() => { haptic(); setShowCheckout(true); }} className="bg-gradient-to-r from-zinc-900 to-black dark:from-white dark:to-zinc-200 text-white dark:text-black rounded-[1.5rem] shadow-2xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform">
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <ShoppingCart className="w-6 h-6" />
+                                    <span className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-black border-2 border-black dark:border-white" style={{ backgroundColor: PRIMARY, color: '#fff' }}>
+                                        {cart.reduce((a, b) => a + b.quantity, 0)}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-black text-sm">{isAr ? "إتمام الطلب" : "Checkout"}</span>
+                                    <span className="text-[10px] opacity-70 font-bold">{isAr ? "عرض السلة وتأكيد الطلب" : "View cart & complete order"}</span>
+                                </div>
+                            </div>
+                            <div className="font-black text-lg tabular-nums">
+                                {cart.reduce((a, b) => a + b.price * b.quantity, 0)} <span className="text-[10px] opacity-70 ml-1">{currency}</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* ═══════ BOTTOM NAVIGATION ═══════ */}
-            <nav className="fixed bottom-0 left-0 right-0 z-[130] bab-bottom-nav px-2 py-4 flex items-center justify-around rounded-t-[2rem]">
+            <nav className="fixed bottom-0 left-0 right-0 z-[110] bab-bottom-nav px-2 py-4 flex items-center justify-around rounded-t-[2rem]">
                 {config.facebook_url && (
                     <a href={config.facebook_url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 flex-1">
                         <div className="w-10 h-10 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
@@ -478,6 +609,30 @@ export default function BabAlHaraMenu({ config, categories, language }: Props) {
                     {isAr ? "مدعوم بواسطة" : "Powered by"} <span className="font-black" style={{ color: PRIMARY }}>ASN Technology</span>
                 </p>
             </div>
+
+            {/* ═══════ CHECKOUT MODAL ═══════ */}
+            <CheckoutModal
+                isOpen={showCheckout}
+                onClose={() => setShowCheckout(false)}
+                cartItems={cart.map(c => ({
+                    ...c,
+                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
+                    qty: c.quantity,
+                    size: c.size_label !== 'عادي' ? c.size_label : undefined,
+                    category: c.category_name,
+                    categoryType: c.categoryType,
+                }))}
+                subtotal={cart.reduce((s, c) => s + c.price * c.quantity, 0)}
+                language={language}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.whatsapp_number}
+                currency={currency}
+                onOrderSuccess={() => {
+                    setCart([]);
+                    setShowCheckout(false);
+                }}
+            />
 
             {/* ═══════ INLINE CSS ═══════ */}
             <style jsx global>{`

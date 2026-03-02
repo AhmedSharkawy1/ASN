@@ -1,0 +1,22 @@
+[0m[0m
+[0m[4mF:\ASN\ASN\src\components\menu\Theme14Menu.tsx[24m[0m
+[0m    [2m5:8[22m   [31merror[39m  'SharedMarquee' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m252:40[22m  [31merror[39m  'catName' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m252:94[22m  [31merror[39m  'onCopy' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mF:\ASN\ASN\src\components\menu\Theme15Menu.tsx[24m[0m
+[0m  [2m17:5[22m  [31merror[39m  'ArrowRight' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m18:5[22m  [31merror[39m  'ArrowLeft' is defined but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mF:\ASN\ASN\src\components\menu\Theme16Menu.tsx[24m[0m
+[0m  [2m17:5[22m  [31merror[39m  'ArrowRight' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m18:5[22m  [31merror[39m  'ArrowLeft' is defined but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mF:\ASN\ASN\src\components\menu\Theme7Menu.tsx[24m[0m
+[0m  [2m9:47[22m  [31merror[39m  'User' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m9:53[22m  [31merror[39m  'Filter' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m9:61[22m  [31merror[39m  'RefreshCcw' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m9:73[22m  [31merror[39m  'Bell' is defined but never used        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[31m[1m✖ 11 problems (11 errors, 0 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m

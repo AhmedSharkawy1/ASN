@@ -1,0 +1,53 @@
+
+--- F:\ASN\ASN\src\components\Theme12Menu\Theme12Menu.tsx ---
+Line 6: 'MonitorSmartphone' is defined but never used.
+Line 6: 'Instagram' is defined but never used.
+Line 6: 'AlertCircle' is defined but never used.
+Line 80: 'isLangMenuOpen' is assigned a value but never used.
+Line 80: 'setIsLangMenuOpen' is assigned a value but never used.
+Line 146: 'currentLang' is assigned a value but never used.
+Line 167: 'handleLanguageChange' is assigned a value but never used.
+
+--- F:\ASN\ASN\src\components\menu\Theme10Menu.tsx ---
+Line 7: 'FaInstagram' is defined but never used.
+Line 7: 'FaTwitter' is defined but never used.
+Line 7: 'FaTiktok' is defined but never used.
+
+--- F:\ASN\ASN\src\components\menu\Theme11Menu.tsx ---
+Line 7: 'FaInstagram' is defined but never used.
+Line 7: 'FaTwitter' is defined but never used.
+Line 7: 'FaTiktok' is defined but never used.
+
+--- F:\ASN\ASN\src\components\menu\Theme13Menu.tsx ---
+Line 7: 'FaInstagram' is defined but never used.
+Line 7: 'FaFacebookF' is defined but never used.
+Line 7: 'FaTwitter' is defined but never used.
+Line 7: 'FaTiktok' is defined but never used.
+Line 7: 'FaSnapchatGhost' is defined but never used.
+Line 33: 'T13_PRIMARY_LIGHT' is assigned a value but never used.
+Line 70: 'setTheme' is assigned a value but never used.
+
+--- F:\ASN\ASN\src\components\menu\Theme14Menu.tsx ---
+Line 731: Unexpected any. Specify a different type.
+Line 820: Unexpected any. Specify a different type.
+Line 821: Unexpected any. Specify a different type.
+Line 840: Unexpected any. Specify a different type.
+Line 841: Unexpected any. Specify a different type.
+Line 928: Unexpected any. Specify a different type.
+Line 1075: Unexpected any. Specify a different type.
+Line 1075: Unexpected any. Specify a different type.
+Line 1075: Unexpected any. Specify a different type.
+Line 1075: Unexpected any. Specify a different type.
+
+--- F:\ASN\ASN\src\components\menu\Theme15Menu.tsx ---
+Line 14: 'Minus' is defined but never used.
+Line 50: 'MenuItem' is defined but never used.
+Line 111: 'setSearchQuery' is assigned a value but never used.
+
+--- F:\ASN\ASN\src\components\menu\Theme16Menu.tsx ---
+Line 49: 'MenuItem' is defined but never used.
+Line 110: 'setSearchQuery' is assigned a value but never used.
+
+--- F:\ASN\ASN\test_insert.js ---
+Line 1: A `require()` style import is forbidden.
+Line 2: A `require()` style import is forbidden.

@@ -1,10 +1,15 @@
 import Hero from "@/components/sections/Hero";
-import Services from "@/components/sections/Services";
-import About from "@/components/sections/About";
-import Contact from "@/components/sections/Contact";
-import StarsBackground from "@/components/ui/StarsBackground";
-import LightBackgroundAnimation from "@/components/ui/LightBackgroundAnimation";
 import Footer from "@/components/ui/Footer";
+import dynamic from "next/dynamic";
+
+// Dynamically load heavy background animations
+const StarsBackground = dynamic(() => import("@/components/ui/StarsBackground"), { ssr: false });
+const LightBackgroundAnimation = dynamic(() => import("@/components/ui/LightBackgroundAnimation"), { ssr: false });
+
+// Dynamically load below-the-fold sections
+const Services = dynamic(() => import("@/components/sections/Services"));
+const About = dynamic(() => import("@/components/sections/About"));
+const Contact = dynamic(() => import("@/components/sections/Contact"));
 
 export default function Home() {
   return (

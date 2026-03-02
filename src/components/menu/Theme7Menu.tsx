@@ -6,10 +6,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    Star, MapPin, Phone, Link as LinkIcon,
-    Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, Share2, ArrowRight
+    MapPin, Phone, Minus, Plus, ShoppingCart,
+    Moon, Sun, Trash2, X, Share2, ArrowRight
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebook, FaTiktok, FaSnapchat, FaInstagram } from 'react-icons/fa';
+import SharedMarquee from './SharedMarquee';
+import CheckoutModal from './CheckoutModal';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/effect-fade';
 
 /* ───── THEME 7 CONSTANTS ───── */
 const T7_BG = '#0b1120';       // dark navy
@@ -19,7 +25,7 @@ const T7_CARD = '#ffffff';     // white card bg
 const T7_BORDER = '#1e293b';   // subtle border
 
 /* ───── COMPONENT ───── */
-export default function Theme7Menu({ config, categories }: { config: any; categories: any[] }) {
+export default function Theme7Menu({ config, categories, restaurantId }: { config: any; categories: any[]; restaurantId: string }) {
     const { setTheme } = useTheme();
     const isAr = (config.language || 'ar') === 'ar';
     const cur = config.currency || 'EGP';
@@ -28,7 +34,7 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
 
     const [activeSubCat, setActiveSubCat] = useState(categories[0]?.id || '');
     const [cart, setCart] = useState<any[]>([]);
-    const [selectedItem, setSelectedItem] = useState<{ item: any; catName: string } | null>(null);
+    const [selectedItem, setSelectedItem] = useState<{ item: any; catName: string; catImg?: string } | null>(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
 
@@ -38,6 +44,8 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
     const [notes, setNotes] = useState('');
 
     // checkout
+    const [showCheckout, setShowCheckout] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [cust, setCust] = useState({ name: '', phone: '', address: '' });
 
     const catNavRef = useRef<HTMLDivElement>(null);
@@ -70,14 +78,21 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
 
     /* helpers */
 
+    // ── Cart ──
+    const openItemSelect = (item: any, catName: string, catImg?: string) => {
+        if (config.orders_enabled === false) return;
+        setSelectedItem({ item, catName, catImg });
+        setSizeIdx(0); setQty(1); setNotes('');
+    };
     const addToCart = () => {
-        if (!selectedItem) return;
+        if (!selectedItem || config.orders_enabled === false) return;
         const price = selectedItem.item.prices[sizeIdx] || 0;
         const label = selectedItem.item.size_labels?.[sizeIdx] || '';
         const ci = {
             id: `${selectedItem.item.id}-${sizeIdx}`,
             item: selectedItem.item,
             catName: selectedItem.catName,
+            catImg: selectedItem.catImg,
             price, sizeLabel: label, quantity: qty, notes,
         };
         setCart(prev => {
@@ -97,6 +112,7 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
     const removeCI = (id: string, n: string) => setCart(p => p.filter(c => !(c.id === id && c.notes === n)));
     const itemName = (item: any) => isAr ? item.title_ar : (item.title_en || item.title_ar);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const sendOrder = (method: string) => {
         if (!config.whatsapp_number) return;
         let msg = `*طلب جديد من ${config.name}*\n\n`;
@@ -122,10 +138,36 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
         <div className="min-h-screen pb-20" dir="rtl"
             style={{ background: isDarkMode ? `linear-gradient(180deg, ${T7_BG} 0%, ${T7_BG2} 100%)` : '#f8fafc', fontFamily: "'Cairo', 'STC', sans-serif", color: isDarkMode ? '#fff' : '#1e293b' }}>
 
+            {/* ─── SHARED MARQUEE ─── */}
+            {config.marquee_enabled && (config.marquee_text_ar || config.marquee_text_en) && (
+                <SharedMarquee
+                    text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
+                    bgColor={T7_GOLD}
+                    textColor="#111827"
+                />
+            )}
+
             {/* ─── HERO COVER ─── */}
             <div className="relative h-56 md:h-72 w-full">
-                <img src={config.cover_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop'}
-                    alt="cover" className="w-full h-full object-cover" />
+                {config.cover_images && config.cover_images.length > 0 ? (
+                    <Swiper
+                        modules={[Autoplay, EffectFade]}
+                        effect="fade"
+                        autoplay={{ delay: 3000, disableOnInteraction: false }}
+                        loop={config.cover_images.length > 1}
+                        className="w-full h-full z-0 absolute inset-0"
+                    >
+                        {config.cover_images.map((img: string, idx: number) => (
+                            <SwiperSlide key={idx}>
+                                <img src={img || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop'}
+                                    alt={`Cover ${idx}`} className="w-full h-full object-cover" />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                ) : (
+                    <img src={config.cover_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop'}
+                        alt="cover" className="w-full h-full object-cover z-0" />
+                )}
                 {/* dark/light toggle */}
                 <button onClick={toggleDark}
                     className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white active:scale-90 transition-transform z-20">
@@ -147,9 +189,6 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
 
             {/* ─── SOCIAL ICONS ROW ─── */}
             <div className="flex justify-center items-center gap-3 mt-4 flex-wrap px-4">
-                <button className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                    <Star className="w-5 h-5" />
-                </button>
                 {config.map_link && (
                     <a href={config.map_link} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
                         <MapPin className="w-5 h-5" />
@@ -165,24 +204,26 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                         <FaWhatsapp className="w-5 h-5" />
                     </a>
                 )}
-                <button className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                    <FaInstagram className="w-5 h-5" />
-                </button>
-                <button className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                    <FaSnapchat className="w-5 h-5" />
-                </button>
-                <button className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                    <FaTiktok className="w-5 h-5" />
-                </button>
+                {config.instagram_url && (
+                    <a href={config.instagram_url} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                        <FaInstagram className="w-5 h-5" />
+                    </a>
+                )}
+                {config.snapchat_url && (
+                    <a href={config.snapchat_url} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                        <FaSnapchat className="w-5 h-5" />
+                    </a>
+                )}
+                {config.tiktok_url && (
+                    <a href={config.tiktok_url} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                        <FaTiktok className="w-5 h-5" />
+                    </a>
+                )}
                 {config.phone && (
                     <a href={`tel:${config.phone}`} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
                         <Phone className="w-5 h-5" />
                     </a>
                 )}
-                <button onClick={() => { if (navigator.share) navigator.share({ title: config.name, url: location.href }); else { navigator.clipboard.writeText(location.href); } }}
-                    className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                    <LinkIcon className="w-5 h-5" />
-                </button>
             </div>
 
             {/* ─── STICKY NAV: TEXT TABS + CIRCULAR SUB-CATS ─── */}
@@ -248,8 +289,7 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                         <div className="flex flex-col gap-5">
                             {section.items.filter((i: any) => i.is_available !== false).map((item: any) => (
                                 <div key={item.id}
-                                    onClick={() => setSelectedItem({ item, catName: isAr ? section.name_ar : (section.name_en || section.name_ar) })}
-                                    className="flex items-start gap-4 cursor-pointer rounded-2xl p-3 transition-all active:scale-[0.98]"
+                                    className="flex items-start gap-4 cursor-pointer rounded-2xl p-3 transition-all active:scale-[0.98] relative"
                                     style={{
                                         background: isDarkMode ? 'rgba(255,255,255,0.03)' : T7_CARD,
                                         border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}`,
@@ -258,15 +298,16 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                                     {/* IMAGE — LEFT side (second child in RTL flex = visually LEFT) */}
                                     <div className="relative w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden order-last"
                                         style={{ background: isDarkMode ? '#1e293b' : '#f1f5f9' }}>
-                                        {item.image_url
-                                            ? <img src={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" loading="lazy"
+                                        {item.image_url || section.image_url
+                                            ? <img src={item.image_url || section.image_url} alt={item.title_ar} className="w-full h-full object-cover" loading="lazy"
                                                 onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop'; }} />
                                             : <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">{section.emoji || '🍽️'}</div>
                                         }
                                     </div>
 
                                     {/* TEXT — RIGHT side (first child in RTL flex = visually RIGHT) */}
-                                    <div className="flex-1 flex flex-col text-right min-h-[100px] justify-between">
+                                    <div className="flex-1 flex flex-col text-right min-h-[100px] justify-between"
+                                        onClick={() => openItemSelect(item, isAr ? section.name_ar : (section.name_en || section.name_ar), section.image_url || section.image)}>
                                         <div>
                                             <h3 className="text-base font-bold mb-1" style={{ color: isDarkMode ? '#fff' : '#0f172a' }}>
                                                 {itemName(item)}
@@ -296,6 +337,15 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                                             })}
                                         </div>
                                     </div>
+
+                                    {/* item action */}
+                                    {config.orders_enabled !== false && (
+                                        <button onClick={(e) => { e.stopPropagation(); openItemSelect(item, isAr ? section.name_ar : (section.name_en || section.name_ar), section.image_url || section.image); }}
+                                            className="absolute top-3 left-3 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-lg active:scale-95 transition-transform"
+                                            style={{ background: `linear-gradient(135deg, ${T7_GOLD}, #b8942e)` }}>
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -331,26 +381,28 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                 </a>
             )}
 
-            {/* ─── CART BAR ─── */}
+            {/* ── FLOATING CART NAV ── */}
             <AnimatePresence>
-                {cartCount > 0 && !isCartOpen && (
-                    <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
-                        className="fixed bottom-4 left-4 right-4 z-[150]">
+                {config.orders_enabled !== false && cartCount > 0 && !isCartOpen && (
+                    <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm rounded-[2rem] shadow-2xl p-2 flex items-center justify-between backdrop-blur-md border"
+                        style={{
+                            background: isDarkMode ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)',
+                            borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
+                        }}>
                         <button onClick={() => setIsCartOpen(true)}
-                            className="w-full text-white rounded-xl py-3 px-4 flex items-center justify-between font-bold shadow-lg"
-                            style={{ background: `linear-gradient(135deg, ${T7_GOLD}, #b8942e)` }}>
-                            <div className="flex items-center gap-2">
-                                <div className="bg-white/20 px-2 py-0.5 rounded-md text-xs">{cartCount} {isAr ? 'صنف' : 'items'}</div>
-                                <div className="flex items-center gap-1">
-                                    <span>{cartTotal.toFixed(2)}</span>
-                                    <span className="text-xs">{cur}</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span>{isAr ? 'عرض السلة' : 'View Cart'}</span>
-                                <ShoppingCart className="w-5 h-5" />
-                            </div>
+                            className="bg-red-500 text-white w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform relative">
+                            <ShoppingCart className="w-5 h-5" />
+                            <span className="absolute -top-1 -right-1 bg-white text-red-500 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-red-500">
+                                {cartCount}
+                            </span>
                         </button>
+                        <div className="flex-1 flex justify-end px-4 text-right">
+                            <div className="flex flex-col">
+                                <span className="font-bold text-lg" style={{ color: isDarkMode ? '#fff' : '#0f172a' }}>{cartTotal.toFixed(2)} {cur}</span>
+                                <span className="text-[10px] uppercase tracking-wider" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isAr ? 'عرض السلة' : 'View Cart'}</span>
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -367,7 +419,7 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                             onClick={e => e.stopPropagation()}>
                             {/* big image */}
                             <div className="relative w-full h-72 md:h-96 shrink-0" style={{ background: isDarkMode ? '#1e293b' : '#e2e8f0' }}>
-                                <img src={selectedItem.item.image_url || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800'}
+                                <img src={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800'}
                                     alt="" className="w-full h-full object-cover" />
                                 <button onClick={closeModal}
                                     className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white shadow-md active:scale-90 z-10">
@@ -449,29 +501,31 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                             </div>
 
                             {/* Add to cart bar */}
-                            <div className="p-4 flex items-center gap-4 shrink-0 border-t"
-                                style={{ borderColor: isDarkMode ? T7_BORDER : '#e2e8f0', background: isDarkMode ? T7_BG : '#fff' }}>
-                                <div className="flex items-center justify-between rounded-xl p-1 w-32 shrink-0"
-                                    style={{ background: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }}>
-                                    <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg"
-                                        style={{ background: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }}>
-                                        <Minus className="w-4 h-4" />
-                                    </button>
-                                    <span className="font-bold text-sm">{qty}</span>
-                                    <button onClick={() => setQty(qty + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg"
-                                        style={{ background: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }}>
-                                        <Plus className="w-4 h-4" />
+                            {config.orders_enabled !== false && (
+                                <div className="p-4 flex items-center gap-4 shrink-0 border-t"
+                                    style={{ borderColor: isDarkMode ? T7_BORDER : '#e2e8f0', background: isDarkMode ? T7_BG : '#fff' }}>
+                                    <div className="flex items-center justify-between rounded-xl p-1 w-32 shrink-0"
+                                        style={{ background: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }}>
+                                        <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg"
+                                            style={{ background: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }}>
+                                            <Minus className="w-4 h-4" />
+                                        </button>
+                                        <span className="font-bold text-sm">{qty}</span>
+                                        <button onClick={() => setQty(qty + 1)} className="w-8 h-8 flex items-center justify-center rounded-lg"
+                                            style={{ background: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }}>
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <button onClick={addToCart} className="flex-1 text-white rounded-xl py-3 px-4 flex items-center justify-between font-bold active:scale-95 transition-transform"
+                                        style={{ background: `linear-gradient(135deg, ${T7_GOLD}, #b8942e)` }}>
+                                        <div className="flex items-center gap-1">
+                                            <span>{((selectedItem.item.prices[sizeIdx] || 0) * qty).toFixed(2)}</span>
+                                            <span className="text-xs">{cur}</span>
+                                        </div>
+                                        <span>{isAr ? 'أضف للسلة' : 'Add to Cart'}</span>
                                     </button>
                                 </div>
-                                <button onClick={addToCart} className="flex-1 text-white rounded-xl py-3 px-4 flex items-center justify-between font-bold active:scale-95 transition-transform"
-                                    style={{ background: `linear-gradient(135deg, ${T7_GOLD}, #b8942e)` }}>
-                                    <div className="flex items-center gap-1">
-                                        <span>{((selectedItem.item.prices[sizeIdx] || 0) * qty).toFixed(2)}</span>
-                                        <span className="text-xs">{cur}</span>
-                                    </div>
-                                    <span>{isAr ? 'أضف للسلة' : 'Add to Cart'}</span>
-                                </button>
-                            </div>
+                            )}
                         </motion.div>
                     </div>
                 )}
@@ -503,7 +557,7 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                                     <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-3 p-3 rounded-2xl"
                                         style={{ background: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}` }}>
                                         <div className="w-14 h-14 rounded-xl shrink-0 overflow-hidden" style={{ background: isDarkMode ? '#1e293b' : '#e2e8f0' }}>
-                                            <img src={ci.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
+                                            <img src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 flex flex-col gap-1">
                                             <div className="flex justify-between items-start">
@@ -526,28 +580,16 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                             </div>
 
                             {/* checkout */}
-                            {cart.length > 0 && (
+                            {config.orders_enabled !== false && cart.length > 0 && (
                                 <div className="p-4 shrink-0 border-t" style={{ borderColor: isDarkMode ? T7_BORDER : '#e2e8f0' }}>
                                     <div className="flex justify-between items-center mb-4">
                                         <span className="font-bold text-lg" style={{ color: T7_GOLD }}>{cartTotal.toFixed(2)} {cur}</span>
                                         <span className="text-sm" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isAr ? 'الاجمالي' : 'Total'}</span>
                                     </div>
-                                    <div className="space-y-2 mb-4">
-                                        <input type="text" placeholder={isAr ? 'الاسم' : 'Name'} value={cust.name} onChange={e => setCust(p => ({ ...p, name: e.target.value }))}
-                                            className="w-full rounded-xl px-4 py-3 text-right outline-none text-sm"
-                                            style={{ background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}`, color: isDarkMode ? '#fff' : '#0f172a' }} />
-                                        <input type="tel" placeholder={isAr ? 'رقم الموبايل' : 'Phone'} value={cust.phone} onChange={e => setCust(p => ({ ...p, phone: e.target.value }))}
-                                            className="w-full rounded-xl px-4 py-3 text-right outline-none text-sm"
-                                            style={{ background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}`, color: isDarkMode ? '#fff' : '#0f172a' }} />
-                                        <textarea placeholder={isAr ? 'العنوان' : 'Address'} value={cust.address} onChange={e => setCust(p => ({ ...p, address: e.target.value }))}
-                                            className="w-full rounded-xl px-4 py-3 text-right outline-none h-16 resize-none text-sm"
-                                            style={{ background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}`, color: isDarkMode ? '#fff' : '#0f172a' }} />
-                                    </div>
-                                    <button onClick={() => sendOrder(isAr ? 'كاش عند الاستلام' : 'Cash on Delivery')}
+                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }}
                                         className="w-full text-white rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
-                                        style={{ background: `linear-gradient(135deg, ${T7_GOLD}, #b8942e)` }}>
-                                        <FaWhatsapp className="w-5 h-5" />
-                                        {isAr ? 'اكمال الطلب عبر واتساب' : 'Complete Order via WhatsApp'}
+                                        style={{ background: `linear-gradient(135deg, #10b981, #059669)` }}>
+                                        {isAr ? 'إتمام الطلب' : 'Proceed to Checkout'}
                                     </button>
                                 </div>
                             )}
@@ -555,6 +597,26 @@ export default function Theme7Menu({ config, categories }: { config: any; catego
                     </div>
                 )}
             </AnimatePresence>
+
+            <CheckoutModal
+                isOpen={showCheckout}
+                onClose={() => setShowCheckout(false)}
+                cartItems={cart.map((c: any) => ({
+                    id: c.id,
+                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
+                    qty: c.quantity,
+                    price: c.price,
+                    size: c.sizeLabel,
+                    category: c.catName || '',
+                }))}
+                subtotal={cartTotal}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.whatsapp_number}
+                currency={cur || 'ج.م'}
+                language={isAr ? 'ar' : 'en'}
+                onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
+            />
         </div>
     );
 }

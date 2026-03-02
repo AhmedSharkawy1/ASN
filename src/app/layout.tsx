@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Cairo } from "next/font/google";
+import { Inter, Cairo } from "next/font/google";
 import "./globals.css";
 import clsx from "clsx";
-import Navbar from "@/components/ui/Navbar";
-import CustomCursor from "@/components/ui/CustomCursor";
+import dynamic from "next/dynamic";
+import { headers } from "next/headers";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
-const cairo = Cairo({ subsets: ["latin", "arabic"], variable: "--font-cairo" });
+const CustomCursor = dynamic(() => import("@/components/ui/CustomCursor"), { ssr: false });
+const Navbar = dynamic(() => import("@/components/ui/Navbar"));
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const cairo = Cairo({ subsets: ["latin", "arabic"], variable: "--font-cairo", display: "swap" });
 
 export const metadata: Metadata = {
   title: "ASN Technology | Futuristic AI Solutions",
@@ -30,12 +32,26 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Check if we are on a restaurant subdomain based on the host header
+  const headersList = headers();
+  const host = headersList.get('host') || '';
+  const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+  const rootDomain = isLocalhost ? 'localhost:3000' : 'asntechnology.net';
+  const currentHost = host.replace(`.${rootDomain}`, '');
+
+  const reservedSubdomains = ['www', 'admin', 'api', 'dashboard', 'app', rootDomain];
+  const isRestaurantSubdomain = currentHost !== host && currentHost !== rootDomain && !reservedSubdomains.includes(currentHost);
+
   return (
     <html lang="en" suppressHydrationWarning className="scroll-smooth">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://supabase.co" />
+      </head>
       <body
         className={clsx(
           inter.variable,
-          outfit.variable,
           cairo.variable,
           "font-sans antialiased selection:bg-blue selection:text-white"
         )}
@@ -43,7 +59,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <LanguageProvider>
             <CustomCursor />
-            <Navbar />
+            {!isRestaurantSubdomain && <Navbar />}
             {children}
           </LanguageProvider>
         </ThemeProvider>
