@@ -61,6 +61,7 @@ interface RestaurantType {
     marquee_text_ar?: string;
     marquee_text_en?: string;
     orders_enabled?: boolean;
+    order_channel?: 'whatsapp' | 'website' | 'both';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }

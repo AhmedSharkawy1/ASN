@@ -50,6 +50,7 @@ type RestaurantConfig = {
     marquee_text_ar?: string;
     marquee_text_en?: string;
     orders_enabled?: boolean;
+    order_channel?: 'whatsapp' | 'website' | 'both';
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
