@@ -88,20 +88,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 "postgres_changes",
                 { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
                 (payload) => {
-                    const order = payload.new as { order_number: number; customer_name?: string; is_draft?: boolean };
-                    if (order.is_draft) return; // skip POS hold orders
+                    const order = payload.new as any;
+                    if (order.is_draft || order.source !== "menu") return; // skip POS hold orders
 
                     playChime();
 
+                    const shortId = order.id ? order.id.split('-')[0].toUpperCase() : 'جديد';
+                    const title = language === "ar" ? "🛍️ طلب جديد!" : "🛍️ New Order!";
+                    const body = language === "ar"
+                        ? `طلب #${shortId} ${order.customer_name ? `لـ ${order.customer_name}` : ""}`
+                        : `Order #${shortId} ${order.customer_name ? `for ${order.customer_name}` : ""}`;
+
+                    // Native browser notification
                     if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-                        new Notification("🛍️ طلب جديد!", {
-                            body: `طلب رقم #${order.order_number}${order.customer_name ? ` — ${order.customer_name}` : ""}`,
-                            icon: "/logo.png",
-                            tag: `order-${order.order_number}`,
+                        const notif = new Notification(title, {
+                            body: body + `\nالإجمالي: ${order.total || 0} ج`,
+                            icon: "/icon-192x192.png", // using standard PWA icon name if logo missing
+                            tag: `order-${order.id}`,
+                            requireInteraction: true // Keeps the notification on screen until clicked
                         });
+                        notif.onclick = () => window.focus();
                     }
 
-                    setNewOrderToast({ orderNumber: order.order_number, customerName: order.customer_name });
+                    // In-app Toast
+                    setNewOrderToast({ orderNumber: shortId, customerName: order.customer_name });
                     setTimeout(() => setNewOrderToast(null), 6000);
                 }
             )
