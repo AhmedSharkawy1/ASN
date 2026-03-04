@@ -76,6 +76,7 @@ type RestaurantConfig = {
   marquee_text_ar?: string;
   marquee_text_en?: string;
   orders_enabled?: boolean;
+  order_channel?: "whatsapp" | "website" | "both"; // new
   theme_colors?: {
     primary?: string;
     secondary?: string;
@@ -130,17 +131,16 @@ function SmartMenuContent({
         const { data: d1, error: e1 } = await supabase
           .from("restaurants")
           .select(
-            "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, theme_colors",
+            "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors",
           )
           .eq("id", params.restaurantId)
           .single();
 
         if (e1) {
-          // Fallback: try without theme_colors in case migration hasn't been run
           const { data: d2 } = await supabase
             .from("restaurants")
             .select(
-              "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
+              "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel",
             )
             .eq("id", params.restaurantId)
             .single();
@@ -384,6 +384,49 @@ function SmartMenuContent({
   };
 
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
+
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+
+  /* ── Submit to Supabase (website channel) ── */
+  const checkOutWebsite = async () => {
+    if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
+      alert(language === "ar" ? "⚠️ يرجى إدخال جميع البيانات (الاسم، الموبايل، العنوان)" : "⚠️ Please enter all details");
+      return;
+    }
+    setOrderSubmitting(true);
+    try {
+      const items = cart.map(c => ({
+        title: language === "ar" ? c.item.title_ar : (c.item.title_en || c.item.title_ar),
+        qty: c.quantity, price: c.price,
+        size: c.size_label !== "عادي" ? c.size_label : undefined,
+      }));
+      const total = cartTotal;
+      const { error } = await supabase.from("orders").insert({
+        restaurant_id: params.restaurantId,
+        status: "pending",
+        items,
+        subtotal: total,
+        discount: 0,
+        total,
+        payment_method: "cash",
+        customer_name: customerInfo.name,
+        customer_phone: customerInfo.phone,
+        customer_address: customerInfo.address,
+        is_draft: false,
+        source: "menu",
+        created_at: new Date().toISOString(),
+      });
+      if (!error) {
+        setOrderSuccess(true);
+        setCart([]);
+        setTimeout(() => { setShowCart(false); setOrderSuccess(false); }, 3000);
+      } else {
+        alert(language === "ar" ? "حدث خطأ، حاول مرة أخرى" : "Error submitting, please try again");
+      }
+    } catch { alert("حدث خطأ"); }
+    finally { setOrderSubmitting(false); }
+  };
 
   const checkOutWhatsApp = () => {
     if (!config.whatsapp_number) {
@@ -975,14 +1018,43 @@ function SmartMenuContent({
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={checkOutWhatsApp}
-                  className="w-full bg-[#25D366] text-white font-black py-4 rounded-2xl shadow-lg shadow-green-500/20 active:scale-95 transition-all text-base flex items-center justify-center gap-3 hover:bg-[#20bd5a]"
-                >
-                  {language === "ar"
-                    ? "تأكيد الطلب عبر واتساب"
-                    : "Confirm via WhatsApp"}
-                </button>
+
+                {/* Order success state */}
+                {orderSuccess && (
+                  <div className="text-center py-4 text-green-400 font-extrabold text-sm animate-pulse">
+                    ✅ {language === "ar" ? "تم إرسال طلبك بنجاح! ستتواصل معك قريباً" : "Order placed! We'll contact you shortly"}
+                  </div>
+                )}
+
+                {/* Dynamic checkout buttons */}
+                {!orderSuccess && (() => {
+                  const channel = config.order_channel || "whatsapp";
+                  return (
+                    <div className="space-y-2">
+                      {(channel === "website" || channel === "both") && (
+                        <button
+                          onClick={checkOutWebsite}
+                          disabled={orderSubmitting}
+                          className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3 hover:bg-blue-700 disabled:opacity-60"
+                        >
+                          {orderSubmitting ? (
+                            <>⏳ {language === "ar" ? "جاري إرسال طلبك..." : "Sending..."}</>
+                          ) : (
+                            <>{language === "ar" ? "📦 إرسال عبر الويبسايت" : "📦 Order Online"}</>
+                          )}
+                        </button>
+                      )}
+                      {(channel === "whatsapp" || channel === "both") && (
+                        <button
+                          onClick={checkOutWhatsApp}
+                          className="w-full bg-[#25D366] text-white font-black py-4 rounded-2xl shadow-lg shadow-green-500/20 active:scale-95 transition-all text-base flex items-center justify-center gap-3 hover:bg-[#20bd5a]"
+                        >
+                          {language === "ar" ? "تأكيد الطلب عبر واتساب" : "Confirm via WhatsApp"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </motion.div>
           </motion.div>

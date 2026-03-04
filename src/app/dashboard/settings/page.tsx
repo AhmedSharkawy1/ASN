@@ -40,6 +40,7 @@ type RestaurantProfile = {
     marquee_text_ar?: string;
     marquee_text_en?: string;
     orders_enabled?: boolean;
+    order_channel?: "whatsapp" | "website" | "both";
     theme_colors?: {
         primary?: string;
         secondary?: string;
@@ -69,7 +70,7 @@ export default function SettingsPage() {
 
             const { data } = await supabase
                 .from('restaurants')
-                .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, theme_colors')
+                .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors')
                 .eq('email', user.email)
                 .single();
 
@@ -110,6 +111,7 @@ export default function SettingsPage() {
                     marquee_text_ar: profile.marquee_text_ar || '',
                     marquee_text_en: profile.marquee_text_en || '',
                     orders_enabled: profile.orders_enabled ?? true,
+                    order_channel: profile.order_channel || 'whatsapp',
                     theme_colors: profile.theme_colors || {},
                 })
                 .eq('id', profile.id);
@@ -261,6 +263,23 @@ export default function SettingsPage() {
                             <input type="checkbox" className="sr-only peer" checked={profile.orders_enabled ?? true} onChange={e => setProfile({ ...profile, orders_enabled: e.target.checked })} />
                             <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] rtl:after:left-auto rtl:after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-green-500 shadow-inner"></div>
                         </label>
+
+                        {/* Order Channel selector */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400">{language === "ar" ? "طريقة استلام الطلبات:" : "Order Channel:"}</span>
+                            {(["whatsapp", "website", "both"] as const).map(ch => (
+                                <button type="button" key={ch}
+                                    onClick={() => setProfile({ ...profile, order_channel: ch })}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${(profile.order_channel || "whatsapp") === ch
+                                            ? ch === "whatsapp" ? "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/40"
+                                                : ch === "website" ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/40"
+                                                    : "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/40"
+                                            : "bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 border-zinc-200 dark:border-zinc-700/50 hover:text-zinc-700 dark:hover:text-zinc-300"
+                                        }`}>
+                                    {ch === "whatsapp" ? "📲 واتساب" : ch === "website" ? "📦 ويبسايت" : "🔄 الاثنين"}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
