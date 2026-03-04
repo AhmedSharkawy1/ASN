@@ -703,10 +703,10 @@ export default function CheckoutModal({
                                 <CheckCircle className="w-10 h-10 text-emerald-500" />
                             </div>
                             <div>
-                                <p className="text-2xl font-extrabold text-zinc-900 dark:text-white">{isAr ? "تم استلام طلبك!" : "Order Received!"}</p>
+                                <p className="text-2xl font-extrabold text-zinc-900 dark:text-white">{isAr ? "تم إرسال الأوردر!" : "Order Sent!"}</p>
                                 <p className="text-4xl font-black text-emerald-500 mt-2">#{orderNumber}</p>
-                                <p className="text-sm text-zinc-500 mt-2">
-                                    {isAr ? "سيتم تحضير طلبك في أقرب وقت. شكراً لك!" : "Your order will be prepared shortly. Thank you!"}
+                                <p className="text-sm text-zinc-500 mt-2 font-bold">
+                                    {isAr ? "تم ارسال الاوردر وسيتم تاكيده من احد موظفى المطعم" : "Your order has been sent and will be confirmed by restaurant staff."}
                                 </p>
                             </div>
 
@@ -733,7 +733,7 @@ export default function CheckoutModal({
                                     onClick={onClose}
                                     className="w-full py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm"
                                 >
-                                    {isAr ? "إغلاق" : "Close"}
+                                    {isAr ? "الرجوع للمنيو" : "Back to Menu"}
                                 </button>
                             </div>
                         </div>
