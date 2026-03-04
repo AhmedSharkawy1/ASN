@@ -68,17 +68,32 @@ export default function SettingsPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data } = await supabase
+            let finalData: any = null;
+
+            // Try fetching with all new columns first
+            const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
                 .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors')
                 .eq('email', user.email)
                 .single();
 
-            if (data) {
-                setProfile(data);
-                setPhoneNumbers(data.phone_numbers || []);
-                setPaymentMethods(data.payment_methods || []);
-                setCoverImages(data.cover_images || []);
+            if (e1) {
+                // Fallback: omit new columns if they don't exist
+                const { data: d2 } = await supabase
+                    .from('restaurants')
+                    .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled')
+                    .eq('email', user.email)
+                    .single();
+                finalData = d2;
+            } else {
+                finalData = d1;
+            }
+
+            if (finalData) {
+                setProfile(finalData);
+                setPhoneNumbers(finalData.phone_numbers || []);
+                setPaymentMethods(finalData.payment_methods || []);
+                setCoverImages(finalData.cover_images || []);
             }
             setLoading(false);
         };
@@ -271,10 +286,10 @@ export default function SettingsPage() {
                                 <button type="button" key={ch}
                                     onClick={() => setProfile({ ...profile, order_channel: ch })}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${(profile.order_channel || "whatsapp") === ch
-                                            ? ch === "whatsapp" ? "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/40"
-                                                : ch === "website" ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/40"
-                                                    : "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/40"
-                                            : "bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 border-zinc-200 dark:border-zinc-700/50 hover:text-zinc-700 dark:hover:text-zinc-300"
+                                        ? ch === "whatsapp" ? "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/40"
+                                            : ch === "website" ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/40"
+                                                : "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/40"
+                                        : "bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 border-zinc-200 dark:border-zinc-700/50 hover:text-zinc-700 dark:hover:text-zinc-300"
                                         }`}>
                                     {ch === "whatsapp" ? "📲 واتساب" : ch === "website" ? "📦 ويبسايت" : "🔄 الاثنين"}
                                 </button>
