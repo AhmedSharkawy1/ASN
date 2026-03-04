@@ -90,7 +90,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 (payload) => {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const order = payload.new as any;
-                    if (order.is_draft || order.source !== "menu") return; // skip POS hold orders
+
+                    // Skip POS hold orders (drafts) or orders explicitly marked as POS source
+                    if (order.is_draft || order.source === "pos") return;
 
                     playChime();
 
