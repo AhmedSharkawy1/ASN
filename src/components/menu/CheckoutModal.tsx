@@ -38,13 +38,14 @@ type CheckoutModalProps = {
     whatsappNumber?: string;
     currency?: string;
     language: string;
+    orderChannel?: "whatsapp" | "website" | "both";
     onOrderSuccess?: () => void;
 };
 
 export default function CheckoutModal({
     isOpen, onClose, cartItems, subtotal,
     restaurantId, restaurantName, whatsappNumber,
-    currency = "ج.م", language, onOrderSuccess
+    currency = "ج.م", language, orderChannel = "whatsapp", onOrderSuccess
 }: CheckoutModalProps) {
     const isAr = language === "ar";
     const printRef = useRef<HTMLDivElement>(null);
@@ -173,7 +174,7 @@ export default function CheckoutModal({
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
     const canProceedStep3 = orderType === 'pickup' || (orderType === 'delivery' && selectedZone && address.trim().length > 0);
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (viaWhatsApp = false) => {
         setLoading(true);
         const finalItems = getFinalItems();
         const result = await submitOrder({
@@ -198,8 +199,8 @@ export default function CheckoutModal({
             setStep(5);
             onOrderSuccess?.();
 
-            // Auto send WhatsApp
-            if (whatsappNumber) {
+            // Auto send WhatsApp ONLY if channel explicitly requested it
+            if (viaWhatsApp && whatsappNumber) {
                 const msg = buildWhatsAppMessage({
                     orderNumber: result.orderNumber || 0,
                     restaurantName,
@@ -660,20 +661,37 @@ export default function CheckoutModal({
                             </div>
 
                             <div className="flex gap-2">
-                                <button onClick={() => setStep(hasAddons ? 3 : 2)} className="flex-1 py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
+                                <button onClick={() => setStep(hasAddons ? 3 : 2)} className="w-[100px] py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
                                     {isAr ? "← رجوع" : "← Back"}
                                 </button>
-                                <button
-                                    disabled={loading}
-                                    onClick={handleSubmit}
-                                    className="flex-[2] py-3.5 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
-                                >
-                                    {loading ? (
-                                        <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Submitting..."}</>
-                                    ) : (
-                                        <><CheckCircle className="w-4 h-4" /> {isAr ? "تأكيد الطلب" : "Confirm Order"}</>
+                                <div className="flex-1 flex flex-col gap-2">
+                                    {(orderChannel === "website" || orderChannel === "both") && (
+                                        <button
+                                            disabled={loading}
+                                            onClick={() => handleSubmit(false)}
+                                            className="w-full py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
+                                        >
+                                            {loading ? (
+                                                <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Submitting..."}</>
+                                            ) : (
+                                                <><CheckCircle className="w-4 h-4" /> {isAr ? "طلب عبر الويبسايت" : "Order Online"}</>
+                                            )}
+                                        </button>
                                     )}
-                                </button>
+                                    {(orderChannel === "whatsapp" || orderChannel === "both") && (
+                                        <button
+                                            disabled={loading}
+                                            onClick={() => handleSubmit(true)}
+                                            className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
+                                        >
+                                            {loading ? (
+                                                <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "WhatsApp..."}</>
+                                            ) : (
+                                                <><FaWhatsapp className="w-4 h-4" /> {isAr ? "طلب عبر واتساب" : "Confirm via WhatsApp"}</>
+                                            )}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </>
                     )}

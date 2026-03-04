@@ -204,6 +204,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 payment_method: paymentMethod || 'cash',
                 status: 'pending',
                 is_draft: false,
+                source: 'menu',
             })
             .select('id, order_number')
             .single();

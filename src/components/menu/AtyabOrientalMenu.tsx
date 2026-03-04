@@ -639,6 +639,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                 whatsappNumber={config.whatsapp_number || config.phone}
                 currency={isAr ? 'ج.م' : 'EGP'}
                 language={isAr ? 'ar' : 'en'}
+                orderChannel={config.order_channel}
                 onOrderSuccess={() => { setCart([]); setShowCart(false); }}
             />
 

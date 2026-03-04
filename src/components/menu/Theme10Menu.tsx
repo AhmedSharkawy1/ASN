@@ -733,6 +733,7 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                 whatsappNumber={config.whatsapp_number || config.social_links?.whatsapp}
                 currency={cur || 'ج.م'}
                 language={isAr ? 'ar' : 'en'}
+                orderChannel={config.order_channel}
                 onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
             />
         </div>
