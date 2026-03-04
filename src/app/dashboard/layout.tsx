@@ -10,10 +10,11 @@ import {
     LayoutDashboard, Utensils, QrCode, LogOut, Settings, Palette,
     Menu, X, ChevronLeft, ClipboardList, ChefHat,
     TableProperties, Truck, Users, UserCog, Bell, CreditCard,
-    Wifi, WifiOff, BarChart3, ShoppingBag
+    Wifi, WifiOff, BarChart3
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { Toaster, toast } from "sonner";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const { language } = useLanguage();
@@ -23,7 +24,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [restaurantName, setRestaurantName] = useState("");
     const [isOnline, setIsOnline] = useState(true);
-    const [newOrderToast, setNewOrderToast] = useState<{ orderNumber: number; customerName?: string } | null>(null);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const restaurantIdRef = useRef<string | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
@@ -113,9 +113,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         notif.onclick = () => window.focus();
                     }
 
-                    // In-app Toast
-                    setNewOrderToast({ orderNumber: shortId, customerName: order.customer_name });
-                    setTimeout(() => setNewOrderToast(null), 6000);
+                    // In-app Sonner Toast
+                    toast.success(
+                        <div className="flex flex-col gap-1 w-full text-right" dir={language === "ar" ? "rtl" : "ltr"}>
+                            <p className="font-extrabold text-white text-base">🛍️ {language === "ar" ? "طلب جديد!" : "New Order!"}</p>
+                            <p className="font-medium text-emerald-400">#{shortId} {order.customer_name ? `— ${order.customer_name}` : ""}</p>
+                        </div>,
+                        {
+                            duration: 10000,
+                            className: "bg-[#0d1117] border-emerald-500/40 text-white shadow-2xl shadow-emerald-500/20",
+                        }
+                    );
                 }
             )
             .subscribe();
@@ -187,33 +195,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
-            )}
-
-            {/* ════ NEW ORDER TOAST ════ */}
-            {newOrderToast && (
-                <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] w-full max-w-sm px-4 pointer-events-none">
-                    <div className="pointer-events-auto bg-[#0d1117] border border-emerald-500/40 rounded-2xl shadow-2xl shadow-emerald-500/20 overflow-hidden animate-in slide-in-from-top-4 duration-300">
-                        <div className="flex items-center gap-3 p-4">
-                            <div className="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 animate-pulse">
-                                <ShoppingBag className="w-5 h-5 text-emerald-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <p className="text-sm font-extrabold text-white">🛍️ طلب جديد!</p>
-                                <p className="text-xs text-zinc-400 truncate">
-                                    طلب رقم <span className="text-emerald-400 font-bold">#{newOrderToast.orderNumber}</span>
-                                    {newOrderToast.customerName && <> — {newOrderToast.customerName}</>}
-                                </p>
-                            </div>
-                            <button onClick={() => setNewOrderToast(null)} className="text-zinc-500 hover:text-white transition p-1">
-                                <X className="w-4 h-4" />
-                            </button>
-                        </div>
-                        {/* 6-second countdown bar */}
-                        <div className="h-0.5 bg-zinc-800">
-                            <div className="h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-400 animate-[shrink_6s_linear_forwards]" style={{ width: "100%" }} />
-                        </div>
-                    </div>
-                </div>
             )}
 
             {/* ====== SIDEBAR ====== */}
@@ -331,6 +312,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="p-4 md:p-8 flex-1">
                     {children}
                 </div>
+                <Toaster position="top-right" theme="dark" richColors closeButton />
             </main>
         </div>
     );
