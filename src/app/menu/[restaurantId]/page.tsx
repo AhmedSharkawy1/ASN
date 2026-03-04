@@ -122,6 +122,10 @@ function SmartMenuContent({
     address: "",
   });
 
+  // Submission State
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+
   useEffect(() => {
     const fetchPublicMenu = async () => {
       try {
@@ -384,9 +388,6 @@ function SmartMenuContent({
   };
 
   const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
-
-  const [orderSubmitting, setOrderSubmitting] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
 
   /* ── Submit to Supabase (website channel) ── */
   const checkOutWebsite = async () => {
