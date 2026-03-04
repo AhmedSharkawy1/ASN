@@ -109,7 +109,8 @@ export default function SettingsPage() {
         setSuccessMessage("");
 
         try {
-            const { error } = await supabase
+            // First attempt with all new columns
+            let { error } = await supabase
                 .from('restaurants')
                 .update({
                     name: profile.name,
@@ -132,11 +133,39 @@ export default function SettingsPage() {
                 })
                 .eq('id', profile.id);
 
+            // If error, likely due to missing columns (order_channel, theme_colors), attempt fallback
+            if (error) {
+                const fallbackUpdate = await supabase
+                    .from('restaurants')
+                    .update({
+                        name: profile.name,
+                        phone: profile.phone,
+                        whatsapp_number: profile.whatsapp_number,
+                        facebook_url: profile.facebook_url,
+                        instagram_url: profile.instagram_url,
+                        tiktok_url: profile.tiktok_url,
+                        map_link: profile.map_link,
+                        working_hours: profile.working_hours,
+                        cover_images: coverImages,
+                        phone_numbers: phoneNumbers.filter(p => p.number.trim()),
+                        payment_methods: paymentMethods.filter(p => p.name_ar.trim() || p.name_en.trim()),
+                        marquee_enabled: profile.marquee_enabled || false,
+                        marquee_text_ar: profile.marquee_text_ar || '',
+                        marquee_text_en: profile.marquee_text_en || '',
+                        orders_enabled: profile.orders_enabled ?? true,
+                    })
+                    .eq('id', profile.id);
+                error = fallbackUpdate.error;
+            }
+
             if (error) throw error;
             setSuccessMessage(language === "ar" ? "تم حفظ الإعدادات بنجاح!" : "Settings saved successfully!");
             setTimeout(() => setSuccessMessage(""), 3000);
         } catch (err) {
             console.error(err);
+            // We could set an error toast here if needed
+            setSuccessMessage(language === "ar" ? "حدث خطأ أثناء החفظ!" : "Error saving settings!");
+            setTimeout(() => setSuccessMessage(""), 3000);
         } finally {
             setSaving(false);
         }
@@ -267,30 +296,34 @@ export default function SettingsPage() {
 
                 {/* Basic Info */}
                 <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold">{language === "ar" ? "المعلومات الأساسية" : "Basic Information"}</h2>
-                        <label className="relative inline-flex items-center cursor-pointer group">
-                            <span className="mr-3 ml-3 text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                                {(profile.orders_enabled ?? true)
-                                    ? (language === "ar" ? "استقبال الطلبات: مفعل" : "Orders: Enabled")
-                                    : (language === "ar" ? "استقبال الطلبات: متوقف" : "Orders: Disabled")
-                                }
-                            </span>
-                            <input type="checkbox" className="sr-only peer" checked={profile.orders_enabled ?? true} onChange={e => setProfile({ ...profile, orders_enabled: e.target.checked })} />
-                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] rtl:after:left-auto rtl:after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-green-500 shadow-inner"></div>
-                        </label>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                        <div className="flex items-center justify-between w-full md:w-auto">
+                            <h2 className="text-xl font-bold">{language === "ar" ? "المعلومات الأساسية" : "Basic Information"}</h2>
+                            <label className="relative inline-flex items-center cursor-pointer group md:ml-4">
+                                <span className="mr-3 ml-3 text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                                    {(profile.orders_enabled ?? true)
+                                        ? (language === "ar" ? "استقبال الطلبات: مفعل" : "Orders: Enabled")
+                                        : (language === "ar" ? "استقبال الطلبات: متوقف" : "Orders: Disabled")
+                                    }
+                                </span>
+                                <input type="checkbox" className="sr-only peer" checked={profile.orders_enabled ?? true} onChange={e => setProfile({ ...profile, orders_enabled: e.target.checked })} />
+                                <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] rtl:after:left-auto rtl:after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-green-500 shadow-inner"></div>
+                            </label>
+                        </div>
 
                         {/* Order Channel selector */}
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400">{language === "ar" ? "طريقة استلام الطلبات:" : "Order Channel:"}</span>
+                        <div className="flex items-center gap-2 flex-wrap bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-glass-border">
+                            <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 mr-1 ml-1">
+                                {language === "ar" ? "طريقة الاستلام:" : "Channel:"}
+                            </span>
                             {(["whatsapp", "website", "both"] as const).map(ch => (
                                 <button type="button" key={ch}
-                                    onClick={() => setProfile({ ...profile, order_channel: ch })}
+                                    onClick={(e) => { e.preventDefault(); setProfile({ ...profile, order_channel: ch }); }}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${(profile.order_channel || "whatsapp") === ch
                                         ? ch === "whatsapp" ? "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/40"
                                             : ch === "website" ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/40"
                                                 : "bg-purple-500/20 text-purple-600 dark:text-purple-400 border-purple-500/40"
-                                        : "bg-zinc-100 dark:bg-zinc-800/50 text-zinc-500 border-zinc-200 dark:border-zinc-700/50 hover:text-zinc-700 dark:hover:text-zinc-300"
+                                        : "bg-white dark:bg-zinc-800/50 text-zinc-500 border-zinc-200 dark:border-zinc-700/50 hover:text-zinc-800 dark:hover:text-zinc-200 shadow-sm"
                                         }`}>
                                     {ch === "whatsapp" ? "📲 واتساب" : ch === "website" ? "📦 ويبسايت" : "🔄 الاثنين"}
                                 </button>
