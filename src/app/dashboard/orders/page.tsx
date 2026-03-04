@@ -4,8 +4,9 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { posDb } from "@/lib/pos-db";
 import { formatCurrency, formatDate, statusLabel, statusColor, nextStatuses, elapsedTime, timeAgo } from "@/lib/helpers/formatters";
-import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw } from "lucide-react";
+import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type OrderItem = {
@@ -20,6 +21,7 @@ type Order = {
     subtotal: number; discount: number; total: number; payment_method: string;
     customer_name?: string; customer_phone?: string; table_id?: string; notes?: string;
     created_at: string; updated_at: string;
+    _offline?: boolean; // from Dexie but not yet synced
 };
 type OrderLog = { id: string; action: string; old_status?: string; new_status?: string; performed_by?: string; created_at: string };
 
@@ -39,12 +41,57 @@ export default function OrdersPage() {
     const fetchOrders = useCallback(async () => {
         if (!restaurantId) return;
         setLoading(true);
-        let query = supabase.from('orders').select('*').eq('restaurant_id', restaurantId).eq('is_draft', false).order('created_at', { ascending: false });
-        if (statusFilter !== "all") query = query.eq('status', statusFilter);
-        if (dateRange.from) query = query.gte('created_at', dateRange.from);
-        if (dateRange.to) query = query.lte('created_at', dateRange.to + 'T23:59:59');
-        const { data } = await query;
-        setOrders((data as Order[]) || []);
+
+        // 1️⃣ Load from Dexie (local, always available)
+        const localOrders = await posDb.orders
+            .where("restaurant_id").equals(restaurantId)
+            .and(o => !o.is_draft && o.status !== "cancelled")
+            .toArray();
+
+        // Map Dexie orders to the Order shape
+        const localMapped: Order[] = localOrders.map(o => ({
+            id: o.id,
+            order_number: o.order_number,
+            status: o.status || "completed",
+            items: (o.items || []) as OrderItem[],
+            subtotal: o.subtotal || 0,
+            discount: o.discount || 0,
+            total: o.total || 0,
+            payment_method: o.payment_method || "cash",
+            customer_name: o.customer_name,
+            customer_phone: o.customer_phone,
+            notes: o.notes,
+            created_at: o.created_at,
+            updated_at: o.created_at,
+            _offline: !!o._dirty,
+        }));
+
+        // 2️⃣ Also fetch from Supabase (online orders & synced records)
+        let remoteOrders: Order[] = [];
+        try {
+            let query = supabase.from('orders').select('*').eq('restaurant_id', restaurantId).eq('is_draft', false).order('created_at', { ascending: false }).limit(500);
+            if (statusFilter !== "all") query = query.eq('status', statusFilter);
+            if (dateRange.from) query = query.gte('created_at', dateRange.from);
+            if (dateRange.to) query = query.lte('created_at', dateRange.to + 'T23:59:59');
+            const { data } = await query;
+            remoteOrders = (data as Order[]) || [];
+        } catch { /* offline - use local only */ }
+
+        // 3️⃣ Merge: remote takes priority, local fills gaps
+        const mergedMap = new Map<string, Order>();
+        localMapped.forEach(o => mergedMap.set(o.id, o));
+        remoteOrders.forEach(o => mergedMap.set(o.id, { ...o, _offline: false })); // remote wins
+
+        let merged = Array.from(mergedMap.values()).sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        // Apply status filter to merged list if needed
+        if (statusFilter !== "all") merged = merged.filter(o => o.status === statusFilter);
+        if (dateRange.from) merged = merged.filter(o => o.created_at >= dateRange.from);
+        if (dateRange.to) merged = merged.filter(o => o.created_at <= dateRange.to + "T23:59:59");
+
+        setOrders(merged);
         setLoading(false);
     }, [restaurantId, statusFilter, dateRange]);
 
@@ -77,6 +124,53 @@ export default function OrdersPage() {
         const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a"); a.href = url; a.download = "orders.csv"; a.click();
+    };
+
+    const printOrderReceipt = (order: Order) => {
+        const itemsHtml = order.items.map(item =>
+            `<tr><td style="padding:2px 0">${item.title}${item.size && item.size !== 'عادي' ? ` (${item.size})` : ''}</td><td style="text-align:center">${item.qty}</td><td style="text-align:left">${formatCurrency(item.price * item.qty)}</td></tr>`
+        ).join('');
+        const discountHtml = order.discount > 0 ? `<div style="display:flex;justify-content:space-between"><span>${isAr ? 'الخصم' : 'Discount'}</span><span>-${formatCurrency(order.discount)}</span></div>` : '';
+        const printWindow = window.open('', '_blank', 'width=300,height=600');
+        if (!printWindow) return;
+        printWindow.document.write(`
+            <html><head><title>Receipt #${order.order_number}</title>
+            <style>
+                body { font-family: 'Courier New', Courier, monospace; font-size: 15px; width: 72mm; margin: 0 auto; padding: 10px; direction: rtl; color: #000; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 10px; } 
+                td { padding: 4px 0; vertical-align: top; font-size: 15px; }
+                .divider { border-top: 1.5px dashed #000; margin: 12px 0; }
+                .text-center { text-align: center; }
+                .text-left { text-align: left; }
+                .font-bold { font-weight: bold; }
+                @media print { body { width: 72mm; margin: 0; padding: 0; } }
+            </style></head><body>
+            <div class="text-center" style="margin-bottom: 15px;">
+                <p class="font-bold" style="font-size: 22px; margin: 0 0 5px 0;">${isAr ? 'فاتورة طلب' : 'Order Receipt'}</p>
+                <p style="font-size: 14px; margin: 0 0 5px 0;">${new Date(order.created_at).toLocaleDateString('ar-EG')} - ${new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                <p class="font-bold" style="font-size: 18px; margin: 0;">${isAr ? 'طلب رقم' : 'Order No'} #${order.order_number}</p>
+                ${order.customer_name ? `<p class="font-bold" style="font-size: 15px; margin: 5px 0 0 0;">👤 ${order.customer_name}</p>` : ''}
+            </div>
+            <div class="divider"></div>
+            <table><thead><tr>
+                <td class="font-bold" style="padding-bottom: 8px;">${isAr ? 'الصنف' : 'Item'}</td>
+                <td class="font-bold text-center" style="padding-bottom: 8px;">${isAr ? 'الكمية' : 'Qty'}</td>
+                <td class="font-bold text-left" style="padding-bottom: 8px;">${isAr ? 'المبلغ' : 'Amt'}</td>
+            </tr></thead><tbody>${itemsHtml}</tbody></table>
+            <div class="divider"></div>
+            ${discountHtml}
+            <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px;">
+                <span>${isAr ? 'الإجمالي' : 'Total'}</span><span>${formatCurrency(order.total)}</span>
+            </div>
+            <div class="divider"></div>
+            <div class="text-center" style="font-size: 14px; margin-top: 20px; font-weight: bold;">
+                <p style="margin: 0;">${isAr ? 'شكراً لزيارتكم' : 'Thank you for your visit'}</p>
+            </div>
+            </body></html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
     };
 
     const filteredOrders = orders.filter(o => {
@@ -176,6 +270,11 @@ export default function OrdersPage() {
                                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${statusColor(order.status)}`}>
                                         {statusLabel(order.status, isAr)}
                                     </span>
+                                    {order._offline && (
+                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg border bg-orange-500/10 text-orange-400 border-orange-500/20 flex items-center gap-0.5">
+                                            <WifiOff className="w-2.5 h-2.5" /> لم يُزامن
+                                        </span>
+                                    )}
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-bold text-zinc-300 truncate">{order.customer_name || (isAr ? "عميل" : "Customer")}</p>
                                         <p className="text-[10px] text-zinc-500">{order.items.length} {isAr ? "أصناف" : "items"}</p>
@@ -184,6 +283,11 @@ export default function OrdersPage() {
                                         <Clock className="w-3 h-3" /> {elapsed.text}
                                     </div>
                                     <span className="text-sm font-extrabold text-emerald-400">{formatCurrency(order.total)}</span>
+                                    <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
+                                        title={isAr ? "طباعة الفاتورة" : "Print Receipt"}
+                                        className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition">
+                                        <Printer className="w-4 h-4" />
+                                    </button>
                                     {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
                                 </div>
 
@@ -229,6 +333,13 @@ export default function OrdersPage() {
                                                         ))}
                                                     </div>
                                                 )}
+
+                                                {/* Print Receipt Button */}
+                                                <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
+                                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 text-emerald-400 font-bold text-xs rounded-xl hover:bg-emerald-500/20 transition-all active:scale-95 border border-emerald-500/20">
+                                                    <Printer className="w-4 h-4" />
+                                                    {isAr ? "طباعة الفاتورة" : "Print Receipt"}
+                                                </button>
 
                                                 {/* Activity Log */}
                                                 {orderLogs[order.id] && orderLogs[order.id].length > 0 && (

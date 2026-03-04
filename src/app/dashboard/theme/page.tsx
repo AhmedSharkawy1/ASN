@@ -130,6 +130,13 @@ const THEMES = [
     }
 ];
 
+const DEFAULT_COLORS = {
+    primary: '#af0a13',
+    secondary: '#9b0000',
+    background: '#f8f9fa',
+    text: '#333333'
+};
+
 export default function ThemePage() {
     const { language } = useLanguage();
     const isArabic = language === "ar";
@@ -137,6 +144,8 @@ export default function ThemePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [selectedTheme, setSelectedTheme] = useState("");
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [_themeColors, setThemeColors] = useState({ ...DEFAULT_COLORS });
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -148,15 +157,27 @@ export default function ThemePage() {
 
                 const { data: restaurant, error } = await supabase
                     .from('restaurants')
-                    .select('id, theme')
+                    .select('id, theme, theme_colors')
                     .eq('email', user.email)
                     .single();
 
-                if (error) throw error;
-
-                if (restaurant) {
+                // If error (e.g. theme_colors column doesn't exist yet), try without it
+                if (error) {
+                    const { data: restaurant2 } = await supabase
+                        .from('restaurants')
+                        .select('id, theme')
+                        .eq('email', user.email)
+                        .single();
+                    if (restaurant2) {
+                        setRestaurantId(restaurant2.id);
+                        setSelectedTheme(restaurant2.theme || "pizzapasta");
+                    }
+                } else if (restaurant) {
                     setRestaurantId(restaurant.id);
                     setSelectedTheme(restaurant.theme || "pizzapasta");
+                    if (restaurant.theme_colors) {
+                        setThemeColors(prev => ({ ...prev, ...restaurant.theme_colors }));
+                    }
                 }
             } catch (err) {
                 console.error("Error fetching theme:", err);
@@ -209,7 +230,7 @@ export default function ThemePage() {
     }
 
     return (
-        <div className="p-6 max-w-4xl mx-auto space-y-8" dir={isArabic ? "rtl" : "ltr"}>
+        <div className="p-6 max-w-6xl mx-auto space-y-8" dir={isArabic ? "rtl" : "ltr"}>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-blue/10 rounded-2xl flex items-center justify-center">
@@ -245,75 +266,121 @@ export default function ThemePage() {
                 </motion.div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {THEMES.map((theme) => (
-                    <div
-                        key={theme.id}
-                        onClick={() => setSelectedTheme(theme.id)}
-                        className={`relative cursor-pointer group rounded-3xl border-2 transition-all p-5 overflow-hidden
-                            ${selectedTheme === theme.id
-                                ? 'border-blue bg-blue/5'
-                                : 'border-card bg-card hover:border-silver/30'}`}
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="space-y-1">
-                                <h3 className="text-xl font-bold text-foreground">
-                                    {isArabic ? theme.name_ar : theme.name_en}
+            <div className="lg:grid lg:grid-cols-12 lg:gap-8 flex flex-col-reverse">
+
+                {/* Left Column (Settings and Themes) */}
+                <div className="col-span-12 lg:col-span-7 space-y-8">
+
+
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                        {THEMES.map((theme) => (
+                            <div
+                                key={theme.id}
+                                onClick={() => setSelectedTheme(theme.id)}
+                                className={`relative cursor-pointer group rounded-2xl border-2 transition-all p-4 overflow-hidden
+                                    ${selectedTheme === theme.id
+                                        ? 'border-blue bg-blue/5'
+                                        : 'border-card bg-card hover:border-silver/30'}`}
+                            >
+                                <div className="flex items-start justify-between mb-3">
+                                    <div className="space-y-1">
+                                        <h3 className="text-base font-bold text-foreground">
+                                            {isArabic ? theme.name_ar : theme.name_en}
+                                        </h3>
+                                        <p className="text-silver text-[10px] leading-tight max-w-[160px]">
+                                            {isArabic ? theme.description_ar : theme.description_en}
+                                        </p>
+                                    </div>
+                                    <div
+                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ml-2 rtl:ml-0 rtl:mr-2"
+                                        style={{ backgroundColor: theme.preview_color + '20' }}
+                                    >
+                                        {selectedTheme === theme.id ? (
+                                            <Check className="w-4 h-4 text-blue" />
+                                        ) : (
+                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.preview_color }} />
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Visual Preview Placeholder */}
+                                <div className="w-full aspect-[16/9] rounded-xl bg-background/50 border border-white/5 p-3 flex flex-col gap-1.5">
+                                    <div className="w-1/3 h-2 rounded-full opacity-20" style={{ backgroundColor: theme.preview_color }} />
+                                    <div className="w-full h-8 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                    <div className="grid grid-cols-2 gap-2 mt-auto">
+                                        <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                        <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                    </div>
+                                </div>
+
+                                {selectedTheme === theme.id && (
+                                    <div className="absolute top-0 right-0 p-3">
+                                        <span className="bg-blue text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                            {isArabic ? "مفعل" : "Active"}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-blue/5 border border-blue/10 p-6 rounded-[2rem] flex items-center justify-between">
+                        <div className="space-y-1">
+                            <h4 className="font-bold text-foreground">
+                                {isArabic ? "رابط المنيو العام" : "Public Menu Link"}
+                            </h4>
+                            <p className="text-silver text-xs">
+                                {isArabic ? "افتح المنيو في نافذة جديدة." : "Open the menu in a new window."}
+                            </p>
+                        </div>
+                        <a
+                            href={restaurantId ? `/menu/${restaurantId}` : "#"}
+                            target="_blank"
+                            className="flex items-center gap-2 text-blue font-bold hover:underline"
+                        >
+                            {isArabic ? "فتح المنيو" : "Open Menu"}
+                            <ExternalLink className="w-4 h-4" />
+                        </a>
+                    </div>
+                </div>
+
+                {/* Right Column (Live Preview Iframe Simulator) */}
+                <div className="col-span-12 lg:col-span-5 hidden lg:block">
+                    <div className="sticky top-[90px]">
+                        <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-[3rem] p-4 shadow-xl flex flex-col items-center w-max mx-auto">
+                            <div className="w-full flex justify-between items-center mb-5 px-3">
+                                <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                                    <span className="flex h-3 w-3 relative">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                    </span>
+                                    {isArabic ? "معاينة حية" : "Live Preview"}
                                 </h3>
-                                <p className="text-silver text-xs leading-relaxed max-w-[200px]">
-                                    {isArabic ? theme.description_ar : theme.description_en}
+                                <p className="text-xs text-silver font-medium">
+                                    {isArabic ? "تحديث تلقائي" : "Auto-updating"}
                                 </p>
                             </div>
-                            <div
-                                className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
-                                style={{ backgroundColor: theme.preview_color + '20' }}
-                            >
-                                {selectedTheme === theme.id ? (
-                                    <Check className="w-6 h-6 text-blue" />
+
+                            <div className="w-[380px] h-[760px] border-[10px] border-slate-900 dark:border-slate-800 rounded-[2.5rem] overflow-hidden bg-slate-50 dark:bg-slate-900 relative shadow-inner">
+                                {/* Phone Notch */}
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[18px] bg-slate-900 dark:bg-slate-800 rounded-b-xl z-10"></div>
+
+                                {restaurantId ? (
+                                    <iframe
+                                        src={`/menu/${restaurantId}?preview_theme=${selectedTheme}`}
+                                        className="w-full h-full border-0 absolute inset-0"
+                                        sandbox="allow-scripts allow-same-origin"
+                                    />
                                 ) : (
-                                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: theme.preview_color }} />
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <Loader2 className="w-6 h-6 animate-spin text-silver" />
+                                    </div>
                                 )}
                             </div>
                         </div>
-
-                        {/* Visual Preview Placeholder */}
-                        <div className="w-full aspect-[16/9] rounded-2xl bg-background/50 border border-white/5 p-4 flex flex-col gap-2">
-                            <div className="w-1/3 h-2 rounded-full opacity-20" style={{ backgroundColor: theme.preview_color }} />
-                            <div className="w-full h-8 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
-                            <div className="grid grid-cols-2 gap-2 mt-auto">
-                                <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
-                                <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
-                            </div>
-                        </div>
-
-                        {selectedTheme === theme.id && (
-                            <div className="absolute top-0 right-0 p-3">
-                                <span className="bg-blue text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
-                                    {isArabic ? "مفعل" : "Active"}
-                                </span>
-                            </div>
-                        )}
                     </div>
-                ))}
-            </div>
-
-            <div className="bg-blue/5 border border-blue/10 p-6 rounded-[2rem] flex items-center justify-between">
-                <div className="space-y-1">
-                    <h4 className="font-bold text-foreground">
-                        {isArabic ? "معاينة المنيو" : "Preview Menu"}
-                    </h4>
-                    <p className="text-silver text-xs">
-                        {isArabic ? "افتح المنيو في نافذة جديدة لرؤية التغييرات فوراً." : "Open the menu in a new window to see changes immediately."}
-                    </p>
                 </div>
-                <a
-                    href={restaurantId ? `/menu/${restaurantId}` : "#"}
-                    target="_blank"
-                    className="flex items-center gap-2 text-blue font-bold hover:underline"
-                >
-                    {isArabic ? "معاينة مباشرة" : "Live Preview"}
-                    <ExternalLink className="w-4 h-4" />
-                </a>
+
             </div>
         </div>
     );

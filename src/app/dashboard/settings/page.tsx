@@ -5,7 +5,8 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
-import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon } from "lucide-react";
+import { posDb } from "@/lib/pos-db";
+import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 
 export type PhoneEntry = { label: string; number: string };
@@ -39,6 +40,12 @@ type RestaurantProfile = {
     marquee_text_ar?: string;
     marquee_text_en?: string;
     orders_enabled?: boolean;
+    theme_colors?: {
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
+    };
 };
 
 export default function SettingsPage() {
@@ -62,7 +69,7 @@ export default function SettingsPage() {
 
             const { data } = await supabase
                 .from('restaurants')
-                .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled')
+                .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, theme_colors')
                 .eq('email', user.email)
                 .single();
 
@@ -103,6 +110,7 @@ export default function SettingsPage() {
                     marquee_text_ar: profile.marquee_text_ar || '',
                     marquee_text_en: profile.marquee_text_en || '',
                     orders_enabled: profile.orders_enabled ?? true,
+                    theme_colors: profile.theme_colors || {},
                 })
                 .eq('id', profile.id);
 
@@ -301,6 +309,7 @@ export default function SettingsPage() {
                     )}
                 </div>
 
+
                 {/* Multi-Phone Numbers */}
                 <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
                     <div className="flex items-center justify-between mb-6">
@@ -446,6 +455,9 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
+                {/* Backup & Restore */}
+                <BackupRestorePanel />
+
                 {/* Save */}
                 <div className="flex items-center gap-4">
                     <button type="submit" disabled={saving}
@@ -456,6 +468,63 @@ export default function SettingsPage() {
                     {successMessage && <span className="text-green-500 font-bold">{successMessage}</span>}
                 </div>
             </form>
+        </div>
+    );
+}
+
+function BackupRestorePanel() {
+    const [restoring, setRestoring] = useState(false);
+    const [status, setStatus] = useState("");
+    const fileRef = useRef<HTMLInputElement>(null);
+
+    const handleExport = async () => {
+        const data = {
+            categories: await posDb.categories.toArray(),
+            menu_items: await posDb.menu_items.toArray(),
+            orders: await posDb.orders.toArray(),
+            customers: await posDb.customers.toArray(),
+            pos_users: await posDb.pos_users.toArray(),
+            settings: await posDb.settings.toArray(),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+        a.download = `ASN_POS_Backup_${new Date().toISOString().split("T")[0]}.json`;
+        a.click(); URL.revokeObjectURL(a.href);
+    };
+
+    const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]; if (!file) return;
+        setRestoring(true); setStatus("");
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            try {
+                const data = JSON.parse(ev.target?.result as string);
+                if (data.categories?.length) await posDb.categories.bulkPut(data.categories);
+                if (data.menu_items?.length) await posDb.menu_items.bulkPut(data.menu_items);
+                if (data.orders?.length) await posDb.orders.bulkPut(data.orders);
+                if (data.customers?.length) await posDb.customers.bulkPut(data.customers);
+                if (data.pos_users?.length) await posDb.pos_users.bulkPut(data.pos_users);
+                setStatus("✓ تم استعادة البيانات بنجاح!");
+            } catch { setStatus("✗ ملف غير صالح أو خطأ في الاستعادة"); }
+            finally { setRestoring(false); }
+        };
+        reader.readAsText(file);
+        if (fileRef.current) fileRef.current.value = "";
+    };
+
+    return (
+        <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-400" /> النسخ الاحتياطي والاستعادة</h2>
+            <p className="text-sm text-zinc-500 mb-5">احتفظ بنسخة احتياطية من بيانات POS المحلية أو استعدها من ملف سابق.</p>
+            <div className="flex flex-wrap gap-3 items-center">
+                <button type="button" onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 rounded-xl font-bold text-sm transition"><Download className="w-4 h-4" /> تنزيل نسخة احتياطية</button>
+                <label className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 rounded-xl font-bold text-sm transition cursor-pointer">
+                    <Upload className="w-4 h-4" /> {restoring ? "جاري الاستعادة..." : "استعادة من ملف"}
+                    <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+                </label>
+            </div>
+            <div className="flex items-center gap-2 mt-3 text-xs text-amber-400"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> استعادة البيانات ستضيف البيانات إلى القاعدة المحلية دون حذف الحالية.</div>
+            {status && <p className="mt-2 text-sm font-bold text-emerald-400">{status}</p>}
         </div>
     );
 }

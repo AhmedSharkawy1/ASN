@@ -325,79 +325,82 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
 
                         {/* Items Grid (2 columns) */}
                         <div className="grid grid-cols-2 gap-3.5 md:gap-6">
-                            {cat.items.map((item) => (
-                                <div key={item.id} className="bab-item-card overflow-hidden flex flex-col transition-all duration-300 bg-white dark:bg-zinc-900 border border-transparent dark:border-white/5">
-                                    {/* Item Image */}
-                                    <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-                                        <img
-                                            src={item.image_url || cat.image_url || ""}
-                                            alt={isAr ? item.title_ar : item.title_en || item.title_ar}
-                                            className="w-full h-full object-cover"
-                                            loading="lazy"
-                                            onError={handleImageError}
-                                        />
-                                        <div className="absolute top-1.5 left-1.5 w-6 h-6 bg-black/30 backdrop-blur-md text-white rounded-lg flex items-center justify-center text-[8px] shadow-sm z-10">
-                                            {item.is_spicy ? "🌶️" : "📄"}
-                                        </div>
-                                        {item.is_popular && (
-                                            <div className="absolute top-1.5 right-1.5 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-lg z-10" style={{ backgroundColor: PRIMARY }}>
-                                                {isAr ? "شائع" : "Popular"}
+                            {cat.items.map((item) => {
+                                const hasMultiSizes = item.prices.length > 1;
+                                return (
+                                    <div key={item.id} className={`bab-item-card overflow-hidden transition-all duration-300 bg-white dark:bg-zinc-900 border border-transparent dark:border-white/5 ${hasMultiSizes ? 'col-span-2 flex flex-row' : 'flex flex-col'}`}>
+                                        {/* Item Image */}
+                                        <div className={`relative overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0 ${hasMultiSizes ? 'w-32 md:w-40' : 'aspect-square'}`}>
+                                            <img
+                                                src={item.image_url || cat.image_url || ""}
+                                                alt={isAr ? item.title_ar : item.title_en || item.title_ar}
+                                                className="w-full h-full object-cover"
+                                                loading="lazy"
+                                                onError={handleImageError}
+                                            />
+                                            <div className="absolute top-1.5 left-1.5 w-6 h-6 bg-black/30 backdrop-blur-md text-white rounded-lg flex items-center justify-center text-[8px] shadow-sm z-10">
+                                                {item.is_spicy ? "🌶️" : "📄"}
                                             </div>
-                                        )}
-                                    </div>
+                                            {item.is_popular && (
+                                                <div className="absolute top-1.5 right-1.5 text-white text-[7px] font-black px-1.5 py-0.5 rounded shadow-lg z-10" style={{ backgroundColor: PRIMARY }}>
+                                                    {isAr ? "شائع" : "Popular"}
+                                                </div>
+                                            )}
+                                        </div>
 
-                                    {/* Item Info */}
-                                    <div className="p-3 flex flex-col flex-1">
-                                        <h3 className="text-[11px] md:text-base font-black text-zinc-900 dark:text-white line-clamp-1 mb-0.5">
-                                            {isAr ? item.title_ar : item.title_en || item.title_ar}
-                                        </h3>
-                                        <p className="text-[8px] md:text-xs text-zinc-400 dark:text-zinc-500 line-clamp-2 h-6 leading-tight mb-2">
-                                            {isAr ? (item.desc_ar || "جودة وطعم لا مثيل لهما") : (item.desc_en || item.desc_ar || "Premium quality and taste")}
-                                        </p>
+                                        {/* Item Info */}
+                                        <div className="p-3 flex flex-col flex-1 min-w-0">
+                                            <h3 className={`${hasMultiSizes ? 'text-[13px] md:text-lg' : 'text-[11px] md:text-base'} font-black text-zinc-900 dark:text-white line-clamp-1 mb-0.5`}>
+                                                {isAr ? item.title_ar : item.title_en || item.title_ar}
+                                            </h3>
+                                            <p className="text-[8px] md:text-xs text-zinc-400 dark:text-zinc-500 line-clamp-2 leading-tight mb-2">
+                                                {isAr ? (item.desc_ar || "جودة وطعم لا مثيل لهما") : (item.desc_en || item.desc_ar || "Premium quality and taste")}
+                                            </p>
 
-                                        {/* Prices */}
-                                        <div className="mt-auto space-y-1.5 z-20 relative">
-                                            {item.prices.map((price, pIdx) => {
-                                                const sizeLabel = item.size_labels?.[pIdx] || "عادي";
-                                                const curQty = qtyInCart(item, sizeLabel);
-                                                const btnClass = "w-6 h-6 rounded-full flex items-center justify-center text-white active:scale-90 transition-transform shadow cursor-pointer";
-                                                return (
-                                                    <div key={pIdx} className={`flex items-center ${config.orders_enabled !== false ? 'justify-between bg-zinc-50 dark:bg-white/5' : 'justify-end'} p-1 rounded-lg`}>
-                                                        {config.orders_enabled !== false && (
-                                                            <>
-                                                                {curQty > 0 ? (
-                                                                    <div className="flex items-center gap-2 order-1">
-                                                                        <button onClick={(e) => removeFromCart(e, item, sizeLabel)} className={`${btnClass} bg-red-500`}>
-                                                                            <Minus size={12} strokeWidth={3} />
-                                                                        </button>
-                                                                        <span className="font-bold text-[11px] w-3 text-center text-zinc-800 dark:text-zinc-100">{curQty}</span>
-                                                                        <button onClick={(e) => addToCart(e, item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), price, sizeLabel, cat.name_ar.includes("حلو") ? "sweet" : "savory")} className={`${btnClass}`} style={{ backgroundColor: PRIMARY }}>
+                                            {/* Prices */}
+                                            <div className="mt-auto space-y-1.5 z-20 relative">
+                                                {item.prices.map((price, pIdx) => {
+                                                    const sizeLabel = item.size_labels?.[pIdx] || "عادي";
+                                                    const curQty = qtyInCart(item, sizeLabel);
+                                                    const btnClass = "w-6 h-6 rounded-full flex items-center justify-center text-white active:scale-90 transition-transform shadow cursor-pointer";
+                                                    return (
+                                                        <div key={pIdx} className={`flex items-center ${config.orders_enabled !== false ? 'justify-between bg-zinc-50 dark:bg-white/5' : 'justify-end'} p-1 rounded-lg`}>
+                                                            {config.orders_enabled !== false && (
+                                                                <>
+                                                                    {curQty > 0 ? (
+                                                                        <div className="flex items-center gap-2 order-1">
+                                                                            <button onClick={(e) => removeFromCart(e, item, sizeLabel)} className={`${btnClass} bg-red-500`}>
+                                                                                <Minus size={12} strokeWidth={3} />
+                                                                            </button>
+                                                                            <span className="font-bold text-[11px] w-3 text-center text-zinc-800 dark:text-zinc-100">{curQty}</span>
+                                                                            <button onClick={(e) => addToCart(e, item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), price, sizeLabel, cat.name_ar.includes("حلو") ? "sweet" : "savory")} className={`${btnClass}`} style={{ backgroundColor: PRIMARY }}>
+                                                                                <Plus size={12} strokeWidth={3} />
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div onClick={(e) => addToCart(e, item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), price, sizeLabel, cat.name_ar.includes("حلو") ? "sweet" : "savory")} className="bg-zinc-200 dark:bg-zinc-700 w-6 h-6 rounded-full flex items-center justify-center text-zinc-600 dark:text-white cursor-pointer active:scale-90 transition-transform order-1">
                                                                             <Plus size={12} strokeWidth={3} />
-                                                                        </button>
-                                                                    </div>
-                                                                ) : (
-                                                                    <div onClick={(e) => addToCart(e, item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), price, sizeLabel, cat.name_ar.includes("حلو") ? "sweet" : "savory")} className="bg-zinc-200 dark:bg-zinc-700 w-6 h-6 rounded-full flex items-center justify-center text-zinc-600 dark:text-white cursor-pointer active:scale-90 transition-transform order-1">
-                                                                        <Plus size={12} strokeWidth={3} />
-                                                                    </div>
-                                                                )}
-                                                            </>
-                                                        )}
-                                                        <div className="flex flex-col items-end pointer-events-none order-2 px-1">
-                                                            <div className="flex items-baseline gap-0.5">
-                                                                <span className="text-[11px] font-black tabular-nums" style={{ color: PRIMARY }}>{price}</span>
-                                                                <span className="text-[7px] font-bold" style={{ color: `${PRIMARY}99` }}>{currency}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                            <div className="flex flex-col items-end pointer-events-none order-2 px-1">
+                                                                <div className="flex items-baseline gap-0.5">
+                                                                    <span className="text-[11px] font-black tabular-nums" style={{ color: PRIMARY }}>{price}</span>
+                                                                    <span className="text-[7px] font-bold" style={{ color: `${PRIMARY}99` }}>{currency}</span>
+                                                                </div>
+                                                                <span className="text-[8px] font-bold text-zinc-500 dark:text-zinc-400">
+                                                                    {sizeLabel === "عادي" || !sizeLabel ? (isAr ? "سعر" : "Price") : sizeLabel}
+                                                                </span>
                                                             </div>
-                                                            <span className="text-[8px] font-bold text-zinc-500 dark:text-zinc-400">
-                                                                {sizeLabel === "عادي" || !sizeLabel ? (isAr ? "سعر" : "Price") : sizeLabel}
-                                                            </span>
                                                         </div>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </section>
                 ))}

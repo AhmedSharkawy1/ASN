@@ -197,9 +197,9 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
     };
 
     // ─── Cart Logic ───
-    const openItemSelect = (item: Item, cName: string) => {
+    const openItemSelect = (item: Item, cName: string, catImg?: string) => {
         if (config.orders_enabled === false) return;
-        setSelectedItem({ item, cName });
+        setSelectedItem({ item, cName, catImg });
         setTempSizeIdx(0);
         haptic(10);
     };
@@ -498,12 +498,12 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                                                     {isAr ? "شائع" : "Popular"}
                                                 </div>
                                             )}
+                                            {config.orders_enabled !== false && (
+                                                <button onClick={(e) => { e.stopPropagation(); openItemSelect(item, title, cat.image_url); }} className="absolute bottom-1 left-1 w-7 h-7 bg-white/90 dark:bg-zinc-700/90 rounded-lg flex items-center justify-center text-zinc-700 dark:text-zinc-200 active:scale-90 transition-transform shadow-sm z-10">
+                                                    <PlusIcon className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
-                                        {config.orders_enabled !== false && (
-                                            <button onClick={() => openItemSelect(item, title)} className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-600 dark:text-zinc-300 ml-3 active:scale-90 transition-transform shadow-sm">
-                                                <PlusIcon className="w-5 h-5" />
-                                            </button>
-                                        )}
                                     </div>
                                 );
                             })}
@@ -580,8 +580,8 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setSelectedItem(null)}>
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-lg bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl" onClick={e => e.stopPropagation()}>
                             <div className="relative h-48 bg-zinc-100 dark:bg-zinc-800">
-                                {selectedItem.catImg ? (
-                                    <img src={selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-cover" />
+                                {(selectedItem.item.image_url || selectedItem.catImg) ? (
+                                    <img src={selectedItem.item.image_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-cover" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">{selectedItem.item.is_spicy ? "🌶️" : "🍽️"}</div>
                                 )}

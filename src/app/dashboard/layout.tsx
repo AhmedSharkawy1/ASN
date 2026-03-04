@@ -2,13 +2,15 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { subscribeSyncStatus } from "@/lib/sync-service";
 import {
     LayoutDashboard, Utensils, QrCode, LogOut, Settings, Palette,
     Menu, X, ChevronLeft, ClipboardList, ChefHat,
-    TableProperties, Truck, Users, UserCog, Bell, CreditCard
+    TableProperties, Truck, Users, UserCog, Bell, CreditCard,
+    Wifi, WifiOff, BarChart3, ShoppingBag
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -20,6 +22,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [restaurantName, setRestaurantName] = useState("");
+    const [isOnline, setIsOnline] = useState(true);
+    const [newOrderToast, setNewOrderToast] = useState<{ orderNumber: number; customerName?: string } | null>(null);
+    const [restaurantId, setRestaurantId] = useState<string | null>(null);
+    const restaurantIdRef = useRef<string | null>(null);
+    const audioCtxRef = useRef<AudioContext | null>(null);
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -27,15 +34,81 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (!session) {
                 router.push("/login");
             } else {
-                // Fetch restaurant name
+                // Fetch restaurant name + ID
                 const { data: rest } = await supabase
-                    .from('restaurants').select('name').eq('email', session.user.email).single();
-                if (rest) setRestaurantName(rest.name);
+                    .from('restaurants').select('id,name').eq('email', session.user.email).single();
+                if (rest) {
+                    setRestaurantName(rest.name);
+                    restaurantIdRef.current = rest.id;
+                    setRestaurantId(rest.id); // triggers Realtime subscription
+                }
                 setLoading(false);
             }
         };
         checkAuth();
+
+        // Subscribe to online/offline status
+        const unsub = subscribeSyncStatus(s => setIsOnline(s.isOnline));
+        return () => unsub();
     }, [router]);
+
+    /* ── Play chime sound ── */
+    const playChime = useCallback(() => {
+        try {
+            if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
+            const ctx = audioCtxRef.current;
+            // Play 3 ascending beeps
+            [0, 0.18, 0.36].forEach((delay, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.type = "sine";
+                osc.frequency.value = 520 + i * 120; // 520, 640, 760 Hz
+                gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+                gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + delay + 0.04);
+                gain.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + 0.22);
+                osc.start(ctx.currentTime + delay);
+                osc.stop(ctx.currentTime + delay + 0.25);
+            });
+        } catch { /* browser may block autoplay */ }
+    }, []);
+
+    /* ── Realtime: watch for new orders from online menu ── */
+    useEffect(() => {
+        if (!restaurantId) return;
+
+        // Request browser notification permission once
+        if (typeof Notification !== "undefined" && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
+        const channel = supabase
+            .channel(`new-orders-${restaurantId}`)
+            .on(
+                "postgres_changes",
+                { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
+                (payload) => {
+                    const order = payload.new as { order_number: number; customer_name?: string; is_draft?: boolean };
+                    if (order.is_draft) return; // skip POS hold orders
+
+                    playChime();
+
+                    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                        new Notification("🛍️ طلب جديد!", {
+                            body: `طلب رقم #${order.order_number}${order.customer_name ? ` — ${order.customer_name}` : ""}`,
+                            icon: "/logo.png",
+                            tag: `order-${order.order_number}`,
+                        });
+                    }
+
+                    setNewOrderToast({ orderNumber: order.order_number, customerName: order.customer_name });
+                    setTimeout(() => setNewOrderToast(null), 6000);
+                }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [restaurantId, playChime]);
 
     if (loading) {
         return (
@@ -61,6 +134,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/orders", icon: ClipboardList, labelAr: "نظام الطلبيات", labelEn: "Orders" },
                 { href: "/dashboard/pos", icon: CreditCard, labelAr: "POS", labelEn: "POS" },
                 { href: "/dashboard/kitchen", icon: ChefHat, labelAr: "شاشة المطبخ", labelEn: "Kitchen Display" },
+                { href: "/dashboard/reports", icon: BarChart3, labelAr: "التقارير", labelEn: "Reports" },
             ]
         },
         {
@@ -68,7 +142,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             items: [
                 { href: "/dashboard/menu", icon: Utensils, labelAr: "المنتجات", labelEn: "Products" },
                 { href: "/dashboard/tables", icon: TableProperties, labelAr: "الطاولات", labelEn: "Tables" },
-                { href: "/dashboard/delivery", icon: Truck, labelAr: "مناطق التوصيل", labelEn: "Delivery Zones" },
+                { href: "/dashboard/delivery", icon: Truck, labelAr: "الدليفري", labelEn: "Delivery" },
             ]
         },
         {
@@ -100,6 +174,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+            )}
+
+            {/* ════ NEW ORDER TOAST ════ */}
+            {newOrderToast && (
+                <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[200] w-full max-w-sm px-4 pointer-events-none">
+                    <div className="pointer-events-auto bg-[#0d1117] border border-emerald-500/40 rounded-2xl shadow-2xl shadow-emerald-500/20 overflow-hidden animate-in slide-in-from-top-4 duration-300">
+                        <div className="flex items-center gap-3 p-4">
+                            <div className="w-11 h-11 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 animate-pulse">
+                                <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-extrabold text-white">🛍️ طلب جديد!</p>
+                                <p className="text-xs text-zinc-400 truncate">
+                                    طلب رقم <span className="text-emerald-400 font-bold">#{newOrderToast.orderNumber}</span>
+                                    {newOrderToast.customerName && <> — {newOrderToast.customerName}</>}
+                                </p>
+                            </div>
+                            <button onClick={() => setNewOrderToast(null)} className="text-zinc-500 hover:text-white transition p-1">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        {/* 6-second countdown bar */}
+                        <div className="h-0.5 bg-zinc-800">
+                            <div className="h-0.5 bg-gradient-to-r from-emerald-500 to-cyan-400 animate-[shrink_6s_linear_forwards]" style={{ width: "100%" }} />
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* ====== SIDEBAR ====== */}
@@ -200,8 +301,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 {language === "ar" ? `مرحباً بك في لوحة تحكم` : "Welcome to"} <strong className="text-emerald-400">{restaurantName}</strong>
                             </span>
                         )}
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                            {restaurantName ? restaurantName.charAt(0) : "?"}
+                        <div className="flex items-center gap-2">
+                            <span title={isOnline ? "Online - syncing with cloud" : "Offline - data saved locally"}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-[10px] font-bold transition-all ${isOnline ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`}>
+                                {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                                <span className="hidden sm:block">{isOnline ? "أونلاين" : "أوفلاين"}</span>
+                            </span>
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                                {restaurantName ? restaurantName.charAt(0) : "?"}
+                            </div>
                         </div>
                     </div>
                 </header>

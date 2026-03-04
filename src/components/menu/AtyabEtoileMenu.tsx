@@ -417,10 +417,10 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
                                 return (
                                     <div
                                         key={item.id}
-                                        className="bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-2xl p-3 md:p-4 flex flex-col shadow-sm border border-[#EAEAEA] dark:border-[#333] relative group cursor-pointer hover:shadow-md transition-shadow"
+                                        className={`bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-2xl p-3 md:p-4 shadow-sm border border-[#EAEAEA] dark:border-[#333] relative group cursor-pointer hover:shadow-md transition-shadow ${hasManyPrices ? 'col-span-2 flex flex-row gap-3' : 'flex flex-col'}`}
                                     >
                                         {/* Item Image */}
-                                        <div className="w-full h-32 md:h-40 overflow-hidden relative" style={{ backgroundColor: '#FDFBF7' }}>
+                                        <div className={`overflow-hidden relative shrink-0 ${hasManyPrices ? 'w-28 md:w-36 rounded-xl' : 'w-full h-32 md:h-40'}`} style={{ backgroundColor: '#FDFBF7' }}>
                                             <img
                                                 src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop"}
                                                 alt={isAr ? item.title_ar : item.title_en || item.title_ar}

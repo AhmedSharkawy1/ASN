@@ -49,9 +49,10 @@ interface RestaurantType {
     name: string;
     theme?: string;
     theme_colors?: {
-        main_color?: string;
-        bg_color?: string;
-        text_color?: string;
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
     };
     cover_images?: string[];
     marquee_enabled?: boolean;
@@ -425,60 +426,62 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                             {/* Diablo Style Item Grid */}
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {cat.items?.filter((i: any) => i.is_available !== false).map((item: any) => (
-                                    <div key={item.id} onClick={() => setSelectedItem({ item, catName: catName(cat), catImg: cat.image_url || cat.image })}
-                                        className="relative rounded-[14px] md:rounded-[20px] overflow-hidden cursor-pointer group flex flex-col transition-all duration-300 transform hover:-translate-y-1"
-                                        style={{ background: bgWhite, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${borderColor}` }}>
+                                {cat.items?.filter((i: any) => i.is_available !== false).map((item: any) => {
+                                    const hasMultiSizes = item.prices.length > 1;
+                                    return (
+                                        <div key={item.id} onClick={() => setSelectedItem({ item, catName: catName(cat), catImg: cat.image_url || cat.image })}
+                                            className={`relative rounded-[14px] md:rounded-[20px] overflow-hidden cursor-pointer group transition-all duration-300 transform hover:-translate-y-1 ${hasMultiSizes ? 'col-span-2 flex flex-row' : 'flex flex-col'}`}
+                                            style={{ background: bgWhite, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${borderColor}` }}>
 
-                                        {/* Top Image Box */}
-                                        <div className="w-full h-32 md:h-48 overflow-hidden bg-gray-100 relative">
-                                            <img src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
-                                                alt={itemName(item)}
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
-                                            {/* Price Badge over image on mobile/small screens (optional) */}
-                                            {item.calories && (
-                                                <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold">
-                                                    {item.calories} {isAr ? 'كالوري' : 'Cal'}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Body */}
-                                        <div className="p-3 md:p-5 flex-1 flex flex-col text-center">
-                                            <h3 className="font-extrabold text-[13px] md:text-base mb-1 md:mb-2 line-clamp-1 leading-tight" style={{ color: textDark }}>
-                                                {itemName(item)}
-                                            </h3>
-                                            {item.desc_ar && (
-                                                <p className="text-[10px] md:text-xs line-clamp-2 md:line-clamp-3 mb-3 md:mb-4 min-h-[1.5rem] md:min-h-[2.5rem]" style={{ color: textMuted, lineHeight: 1.4 }}>
-                                                    {isAr ? item.desc_ar : (item.desc_en || item.desc_ar)}
-                                                </p>
-                                            )}
-
-                                            {/* Footer area */}
-                                            <div className="mt-auto flex flex-col gap-2 w-full" dir={isAr ? 'rtl' : 'ltr'}>
-                                                <div className="flex flex-col gap-1 w-full text-right mb-2 px-1">
-                                                    {item.prices.map((p: number, idx: number) => (
-                                                        <div key={idx} className="flex justify-between items-center w-full">
-                                                            <span className="text-[11px] md:text-sm text-gray-500 font-bold whitespace-nowrap">
-                                                                {item.size_labels && item.size_labels[idx] ? item.size_labels[idx] : (isAr ? `الحجم ${idx + 1}` : `Size ${idx + 1}`)}
-                                                            </span>
-                                                            <span className="font-black text-[13px] md:text-[15px] tracking-tight shrink-0" style={{ color: T9_RED }}>
-                                                                {cur}{p?.toFixed?.(0) || p}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {config.orders_enabled !== false && (
-                                                    <button onClick={(e) => handleCardButtonClick(e, item, catName(cat), cat.image_url)}
-                                                        className="w-full py-2 rounded-lg md:rounded-xl text-[12px] md:text-sm font-bold text-white transition-colors active:scale-95"
-                                                        style={{ background: T9_RED }}>
-                                                        {isAr ? 'إضافة إلى السلة' : 'Add to Cart'}
-                                                    </button>
+                                            {/* Top Image Box */}
+                                            <div className={`overflow-hidden bg-gray-100 relative shrink-0 ${hasMultiSizes ? 'w-32 md:w-44' : 'w-full h-32 md:h-48'}`}>
+                                                <img src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
+                                                    alt={itemName(item)}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                                                {item.calories && (
+                                                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold">
+                                                        {item.calories} {isAr ? 'كالوري' : 'Cal'}
+                                                    </div>
                                                 )}
                                             </div>
+
+                                            {/* Body */}
+                                            <div className={`p-3 md:p-5 flex-1 flex flex-col ${hasMultiSizes ? 'text-right min-w-0' : 'text-center'}`}>
+                                                <h3 className={`font-extrabold ${hasMultiSizes ? 'text-[14px] md:text-lg' : 'text-[13px] md:text-base'} mb-1 md:mb-2 line-clamp-1 leading-tight`} style={{ color: textDark }}>
+                                                    {itemName(item)}
+                                                </h3>
+                                                {item.desc_ar && (
+                                                    <p className="text-[10px] md:text-xs line-clamp-2 md:line-clamp-3 mb-3 md:mb-4" style={{ color: textMuted, lineHeight: 1.4 }}>
+                                                        {isAr ? item.desc_ar : (item.desc_en || item.desc_ar)}
+                                                    </p>
+                                                )}
+
+                                                {/* Footer area */}
+                                                <div className="mt-auto flex flex-col gap-2 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                    <div className="flex flex-col gap-1 w-full text-right mb-2 px-1">
+                                                        {item.prices.map((p: number, idx: number) => (
+                                                            <div key={idx} className="flex justify-between items-center w-full">
+                                                                <span className="text-[11px] md:text-sm text-gray-500 font-bold whitespace-nowrap">
+                                                                    {item.size_labels && item.size_labels[idx] ? item.size_labels[idx] : (isAr ? `الحجم ${idx + 1}` : `Size ${idx + 1}`)}
+                                                                </span>
+                                                                <span className="font-black text-[13px] md:text-[15px] tracking-tight shrink-0" style={{ color: T9_RED }}>
+                                                                    {cur}{p?.toFixed?.(0) || p}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    {config.orders_enabled !== false && (
+                                                        <button onClick={(e) => handleCardButtonClick(e, item, catName(cat), cat.image_url)}
+                                                            className="w-full py-2 rounded-lg md:rounded-xl text-[12px] md:text-sm font-bold text-white transition-colors active:scale-95"
+                                                            style={{ background: T9_RED }}>
+                                                            {isAr ? 'إضافة إلى السلة' : 'Add to Cart'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     ))}

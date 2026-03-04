@@ -83,6 +83,7 @@ const config: Config = {
         'popular': 'popular-pulse 2s infinite ease-in-out',
         'emoji': 'floating-emoji 3s ease-in-out infinite',
         'spicy': 'spicy-shake 2.5s ease-in-out infinite',
+        'shrink': 'shrink 6s linear forwards',
       },
       keyframes: {
         fadeIn: {
@@ -122,7 +123,11 @@ const config: Config = {
           '0%, 50%, 100%': { transform: 'rotate(0deg) scale(1)' },
           '25%': { transform: 'rotate(10deg) scale(1.05)' },
           '75%': { transform: 'rotate(-10deg) scale(1.05)' },
-        }
+        },
+        'shrink': {
+          '0%': { width: '100%' },
+          '100%': { width: '0%' },
+        },
       },
       boxShadow: {
         'glow': '0 0 30px -5px rgba(46, 163, 255, 0.4)',

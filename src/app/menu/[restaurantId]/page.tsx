@@ -1,10 +1,10 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { notFound } from "next/navigation";
+import { notFound, useSearchParams } from "next/navigation";
 import {
   Search,
   MapPin,
@@ -76,6 +76,12 @@ type RestaurantConfig = {
   marquee_text_ar?: string;
   marquee_text_en?: string;
   orders_enabled?: boolean;
+  theme_colors?: {
+    primary?: string;
+    secondary?: string;
+    background?: string;
+    text?: string;
+  };
 };
 
 type CartItem = {
@@ -86,12 +92,13 @@ type CartItem = {
   quantity: number;
 };
 
-export default function SmartMenuPage({
+function SmartMenuContent({
   params,
 }: {
   params: { restaurantId: string };
 }) {
   const { language } = useLanguage();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -117,18 +124,41 @@ export default function SmartMenuPage({
   useEffect(() => {
     const fetchPublicMenu = async () => {
       try {
-        const { data: restData } = await supabase
+        // Try fetching with theme_colors first; if the column doesn't exist yet, fallback without it
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let restData: any = null;
+        const { data: d1, error: e1 } = await supabase
           .from("restaurants")
           .select(
-            "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
+            "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, theme_colors",
           )
           .eq("id", params.restaurantId)
           .single();
+
+        if (e1) {
+          // Fallback: try without theme_colors in case migration hasn't been run
+          const { data: d2 } = await supabase
+            .from("restaurants")
+            .select(
+              "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
+            )
+            .eq("id", params.restaurantId)
+            .single();
+          restData = d2;
+        } else {
+          restData = d1;
+        }
 
         if (!restData) {
           notFound();
           return;
         }
+
+        // Apply URL overrides if we are in preview mode
+        const previewTheme = searchParams.get("preview_theme");
+
+        if (previewTheme) restData.theme = previewTheme;
+
         setConfig(restData);
 
         const { data: catsData } = await supabase
@@ -166,7 +196,7 @@ export default function SmartMenuPage({
       }
     };
     fetchPublicMenu();
-  }, [params.restaurantId]);
+  }, [params.restaurantId, searchParams]);
 
   if (loading) {
     return (
@@ -984,5 +1014,23 @@ export default function SmartMenuPage({
         }
       `}</style>
     </main>
+  );
+}
+
+export default function SmartMenuPage({
+  params,
+}: {
+  params: { restaurantId: string };
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+          <div className="w-16 h-16 border-4 border-blue border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+    >
+      <SmartMenuContent params={params} />
+    </Suspense>
   );
 }

@@ -69,9 +69,10 @@ interface RestaurantType {
     name: string;
     theme?: string;
     theme_colors?: {
-        main_color?: string;
-        bg_color?: string;
-        text_color?: string;
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
     };
     cover_images?: string[];
     logo_url?: string;
@@ -124,10 +125,9 @@ export default function Theme14Menu({ config, categories, restaurantId }: Theme1
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Theme 14 colors (fallback to typical defaults if not provided in theme_colors)
-    const primaryColor = config?.theme_colors?.main_color || "#e67e22";
-    const secondaryColor = config?.theme_colors?.text_color || "#2c3e50";
-    const backgroundColor = config?.theme_colors?.bg_color || "#f8f9fa";
+    const primaryColor = config?.theme_colors?.primary || "#e67e22";
+    const secondaryColor = config?.theme_colors?.secondary || config?.theme_colors?.text || "#2c3e50";
+    const backgroundColor = config?.theme_colors?.background || "#f8f9fa";
 
     const extendedCategories = [{ id: "all", name_ar: "الكل", name_en: "All", icon: "🏠" }, ...categories];
     const allItems = categories.flatMap((c: CategoryWithItemsType) => c.items || []);

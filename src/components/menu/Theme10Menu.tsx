@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UtensilsCrossed, AlertCircle, Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, FileText, MapPin as MapIcon, List, Globe, PhoneCall } from 'lucide-react';
+import { AlertCircle, Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, FileText, MapPin as MapIcon, List, Globe, PhoneCall } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram } from 'react-icons/fa';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
@@ -45,9 +45,10 @@ interface RestaurantType {
     name: string;
     theme?: string;
     theme_colors?: {
-        main_color?: string;
-        bg_color?: string;
-        text_color?: string;
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
     };
     cover_images?: string[];
     marquee_enabled?: boolean;
@@ -80,7 +81,7 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
     const textMain = isDark ? '#f1f5f9' : '#0f172a'; // slate-100 / slate-900
     const textMuted = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
     const borderColor = isDark ? '#334155' : '#e2e8f0'; // slate-700 / slate-200
-    const primaryColor = config.theme_colors?.main_color || T10_PRIMARY;
+    const primaryColor = config.theme_colors?.primary || T10_PRIMARY;
 
     // State
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -218,13 +219,6 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                 <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <img src={config.logo_url} alt="Logo" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover border-2 shadow-sm" style={{ borderColor: primaryColor }} />
-                        <div>
-                            <h1 className="font-extrabold text-base md:text-xl line-clamp-1">{config.name}</h1>
-                            <p className="text-[10px] md:text-sm font-semibold flex items-center gap-1" style={{ color: textMuted }}>
-                                <UtensilsCrossed className="w-3 h-3" />
-                                {isAr ? 'القائمة الرقمية' : 'Digital Menu'}
-                            </p>
-                        </div>
                     </div>
                     <div className="flex items-center gap-2 md:gap-4">
                         <div className="flex items-center gap-1.5 md:gap-2 mr-2 md:mr-4 border-r pr-2 md:pr-4 border-gray-200 dark:border-slate-700">
@@ -502,16 +496,11 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4"
                         onClick={closeModal}>
-                        <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative w-full sm:max-w-[500px] h-[90vh] sm:h-auto sm:max-h-[90vh] rounded-t-3xl sm:rounded-[24px] overflow-hidden flex flex-col shadow-2xl"
+                            className="relative w-full max-w-[340px] max-h-[85vh] rounded-[24px] overflow-hidden flex flex-col shadow-2xl mx-auto"
                             style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()}>
-
-                            {/* Mobile DRAG Handle */}
-                            <div className="w-full flex justify-center pt-3 pb-1 sm:hidden absolute top-0 z-30" onClick={closeModal}>
-                                <div className="w-12 h-1.5 rounded-full bg-white/50 backdrop-blur-md" />
-                            </div>
 
                             {/* Close Button UI */}
                             <button onClick={closeModal} className="absolute top-4 left-4 z-20 w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/40 transition-colors">
@@ -519,7 +508,7 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                             </button>
 
                             {/* Modal Header Image */}
-                            <div className="w-full h-[35vh] sm:h-[250px] shrink-0 relative bg-slate-100 dark:bg-slate-800">
+                            <div className="w-full h-[200px] sm:h-[180px] shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
                                 <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
                                     alt={itemName(selectedItem.item)} className="w-full h-full object-cover" />

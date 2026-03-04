@@ -2,10 +2,12 @@
 
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { UserCog, Plus, Edit3, Trash2, Shield, X, ToggleLeft, ToggleRight } from "lucide-react";
+import { posDb } from "@/lib/pos-db";
+import { UserCog, Plus, Edit3, Trash2, Shield, X, ToggleLeft, ToggleRight, BarChart2, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatCurrency } from "@/lib/helpers/formatters";
 
 type TeamMember = { id: string; name: string; email?: string; phone?: string; role: string; permissions: Record<string, boolean>; is_active: boolean; created_at: string };
 
@@ -166,6 +168,86 @@ export default function TeamPage() {
                     ))}
                 </div>
             )}
+
+            {/* Per-Employee Performance Reports */}
+            {members.length > 0 && <EmployeeReports restaurantId={restaurantId || ""} members={members} />}
+        </div>
+    );
+}
+
+function EmployeeReports({ restaurantId, members }: { restaurantId: string; members: { id: string; name: string; is_active: boolean }[] }) {
+    const [expanded, setExpanded] = useState<string | null>(null);
+    const [dateRange, setDateRange] = useState("month");
+    const [stats, setStats] = useState<Record<string, { count: number; revenue: number }>>({});
+
+    const dateFrom = useMemo(() => {
+        const d = new Date();
+        if (dateRange === "today") d.setHours(0, 0, 0, 0);
+        else if (dateRange === "week") d.setDate(d.getDate() - 7);
+        else if (dateRange === "month") d.setDate(d.getDate() - 30);
+        else return null;
+        return d.toISOString();
+    }, [dateRange]);
+
+    useEffect(() => {
+        if (!restaurantId) return;
+        posDb.orders.where("restaurant_id").equals(restaurantId)
+            .and(o => o.status !== "cancelled" && !o.is_draft && (!dateFrom || o.created_at >= dateFrom))
+            .toArray().then(orders => {
+                const map: Record<string, { count: number; revenue: number }> = {};
+                for (const o of orders) {
+                    if (o.cashier_name) {
+                        if (!map[o.cashier_name]) map[o.cashier_name] = { count: 0, revenue: 0 };
+                        map[o.cashier_name].count++;
+                        map[o.cashier_name].revenue += o.total;
+                    }
+                    if (o.delivery_driver_name) {
+                        if (!map[o.delivery_driver_name]) map[o.delivery_driver_name] = { count: 0, revenue: 0 };
+                        map[o.delivery_driver_name].count++;
+                        map[o.delivery_driver_name].revenue += o.delivery_fee || 0;
+                    }
+                }
+                setStats(map);
+            });
+    }, [restaurantId, dateFrom]);
+
+    return (
+        <div className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                <h2 className="font-extrabold text-white flex items-center gap-2"><BarChart2 className="w-5 h-5 text-emerald-400" /> تقريري أداء الموظفين</h2>
+                <div className="flex gap-2">
+                    {["today", "week", "month"].map(r => (
+                        <button key={r} onClick={() => setDateRange(r)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${dateRange === r ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-zinc-800/50 text-zinc-500 border-zinc-700/30"}`}>
+                            {r === "today" ? "اليوم" : r === "week" ? "الأسبوع" : "الشهر"}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-2">
+                {members.filter(m => m.is_active).map(m => {
+                    const s = stats[m.name] || { count: 0, revenue: 0 };
+                    return (
+                        <div key={m.id} className="bg-black/20 rounded-xl overflow-hidden">
+                            <button onClick={() => setExpanded(expanded === m.id ? null : m.id)}
+                                className="w-full flex items-center gap-3 p-3 hover:bg-white/[0.03] transition">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-bold">{m.name.charAt(0)}</div>
+                                <span className="flex-1 text-sm font-bold text-zinc-300 text-right">{m.name}</span>
+                                <span className="text-xs text-zinc-500 font-bold">{s.count} طلب</span>
+                                <span className="text-xs font-extrabold text-emerald-400 w-24 text-left">{formatCurrency(s.revenue)}</span>
+                                {expanded === m.id ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
+                            </button>
+                            {expanded === m.id && (
+                                <div className="px-4 pb-3 pt-1 border-t border-zinc-800/30 grid grid-cols-3 gap-3 text-center">
+                                    {[{ label: "الطلبات", val: s.count, color: "text-zinc-300" }, { label: "الإيرادات", val: formatCurrency(s.revenue), color: "text-emerald-400" }, { label: "متوسط الفاتورة", val: s.count > 0 ? formatCurrency(s.revenue / s.count) : "—", color: "text-cyan-400" }].map((item, i) => (
+                                        <div key={i}><p className="text-[9px] text-zinc-500 uppercase mb-1">{item.label}</p><p className={`text-sm font-extrabold ${item.color}`}>{item.val}</p></div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+                {members.filter(m => m.is_active).length === 0 && <p className="text-center text-zinc-600 text-sm py-4">لا يوجد موظفون نشطون</p>}
+            </div>
         </div>
     );
 }

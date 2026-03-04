@@ -42,9 +42,10 @@ interface RestaurantType {
     name: string;
     theme?: string;
     theme_colors?: {
-        main_color?: string;
-        bg_color?: string;
-        text_color?: string;
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
     };
     cover_images?: string[];
     marquee_enabled?: boolean;
@@ -71,7 +72,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
     const cur = '';
     const bgBody = isDark ? '#1a1a2e' : '#f5f6fa';
     const textMain = isDark ? '#f5f6fa' : '#2d3436';
-    const primaryColor = config.theme_colors?.main_color || '#6c63ff';
+    const primaryColor = config.theme_colors?.primary || '#6c63ff';
 
     const getPrimaryColor = () => primaryColor;
     const getLogo = () => config.logo_url || '/asn-logo.png';
@@ -201,20 +202,23 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                 </div>
             )}
 
+            {/* Logo Bar */}
+            <div className="w-full bg-white dark:bg-[#1a1a2e] py-4 flex flex-col items-center justify-center gap-3">
+                <div className="w-20 h-20 md:w-24 md:h-24 relative rounded-full overflow-hidden border-4 border-[#6c63ff] p-1 bg-white shadow-md">
+                    <img src={getLogo()} alt={getRestaurantName()} className="w-full h-full object-cover rounded-full" />
+                </div>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-[#6c63ff] uppercase tracking-wide">
+                    {getRestaurantName()}
+                </h1>
+            </div>
+
             {/* Header */}
             <header ref={headerRef} className="sticky top-0 z-50 transition-all duration-300 bg-white/90 dark:bg-[#1a1a2e]/90 backdrop-blur-md border-b border-[#dfe6e9] dark:border-white/5 py-3">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
 
-                        {/* Left: Mobile Menu & Actions */}
+                        {/* Left: Actions */}
                         <div className="flex items-center gap-2 lg:gap-4">
-                            <button
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                                className="lg:hidden p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200"
-                            >
-                                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                            </button>
-
                             <button
                                 onClick={toggleTheme}
                                 className="p-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 hover:-translate-y-1 transition-transform"
@@ -320,15 +324,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                             </div>
                         </div>
 
-                        {/* Center: Logo */}
-                        <div className="absolute left-1/2 -translate-x-1/2 lg:relative lg:left-0 lg:translate-x-0">
-                            <a href="#" className="flex items-center gap-2">
-                                <div className="w-12 h-12 lg:w-14 lg:h-14 relative rounded-full overflow-hidden border-2 border-[#6c63ff] p-0.5 bg-white">
-                                    <img src={getLogo()} alt={getRestaurantName()} className="w-full h-full object-cover rounded-full" />
-                                </div>
-                                <span className="hidden lg:block text-xl font-extrabold text-[#6c63ff] uppercase tracking-wider">{getRestaurantName()}</span>
-                            </a>
-                        </div>
+
 
                         {/* Right: Cart */}
                         <div className="flex items-center gap-4 lg:gap-6">
@@ -466,9 +462,9 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                         <span className="relative z-10">{catName(category)}</span>
                                         <span className="absolute bottom-1 left-0 w-full h-3 bg-[#6c63ff]/20 -rotate-1 rounded-sm -z-0"></span>
                                     </h2>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 bg-white dark:bg-[#16213e] p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-white/5 mx-auto max-w-4xl my-4">
                                         {categoryItems.map(item => (
-                                            <div key={item.id} id={`item-${item.id}`} className="bg-white dark:bg-[#16213e] rounded-2xl overflow-hidden shadow-[0_8px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_20px_rgba(0,0,0,0.3)] hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(108,99,255,0.2)] transition-all duration-300 group flex flex-col">
+                                            <div key={item.id} id={`item-${item.id}`} className="bg-gray-50 dark:bg-[#1a1a2e] rounded-xl sm:rounded-2xl overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_15px_rgba(0,0,0,0.2)] hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_25px_rgba(108,99,255,0.15)] transition-all duration-300 group flex flex-col border border-transparent hover:border-[#6c63ff]/30">
                                                 <div className="relative aspect-[4/3] w-full overflow-hidden">
                                                     <img
                                                         src={item.image_url || category.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400'}
@@ -477,11 +473,11 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                                     />
                                                     {/* Badges styling from theme 12 */}
                                                 </div>
-                                                <div className="p-5 flex-1 flex flex-col justify-between">
+                                                <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between">
                                                     <div>
-                                                        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-2 line-clamp-2 leading-tight group-hover:text-[#6c63ff] transition-colors">{itemName(item)}</h3>
+                                                        <h3 className="text-sm sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 line-clamp-2 leading-tight group-hover:text-[#6c63ff] transition-colors">{itemName(item)}</h3>
                                                         {(item.desc_ar || item.desc_en) && (
-                                                            <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4">{isAr ? item.desc_ar : (item.desc_en || item.desc_ar)}</p>
+                                                            <p className="hidden sm:block text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4">{isAr ? item.desc_ar : (item.desc_en || item.desc_ar)}</p>
                                                         )}
                                                         {item.size_labels && item.size_labels.length > 0 && (
                                                             <div className="flex flex-wrap gap-2 mb-4">
@@ -495,15 +491,15 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                                         )}
                                                     </div>
 
-                                                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100 dark:border-white/10">
-                                                        <div className="font-black text-lg text-[#6c63ff]">
-                                                            {item.prices?.[0] || 0} <span className="text-sm font-semibold">EGP</span>
+                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-auto pt-3 sm:pt-4 border-t border-gray-200 dark:border-white/10 gap-2 sm:gap-0">
+                                                        <div className="font-black text-sm sm:text-lg text-[#6c63ff]">
+                                                            {item.prices?.[0] || 0} <span className="text-xs sm:text-sm font-semibold">EGP</span>
                                                         </div>
                                                         <button
                                                             onClick={() => openModal(item, catName(category), category.image_url)}
-                                                            className="w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[#6c63ff] flex items-center justify-center hover:bg-[#6c63ff] hover:text-white hover:border-transparent transition-all group-hover:rgb-btn"
+                                                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-[#6c63ff] flex items-center justify-center hover:bg-[#6c63ff] hover:text-white hover:border-transparent transition-all group-hover:bg-[#6c63ff] group-hover:text-white self-end sm:self-auto"
                                                         >
-                                                            <Plus size={18} />
+                                                            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                                                         </button>
                                                     </div>
                                                 </div>

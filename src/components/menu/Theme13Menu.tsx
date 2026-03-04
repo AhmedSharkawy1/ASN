@@ -49,9 +49,10 @@ interface RestaurantType {
     name: string;
     theme?: string;
     theme_colors?: {
-        main_color?: string;
-        bg_color?: string;
-        text_color?: string;
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
     };
     cover_images?: string[];
     logo_url?: string;
@@ -80,7 +81,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
     const cur = config.currency || 'ج.م';
 
     // Theme Variables - matching Theme 13 CSS
-    const primaryColor = config.theme_colors?.main_color || T13_PRIMARY;
+    const primaryColor = config.theme_colors?.primary || T13_PRIMARY;
     const bgBody = isDark ? '#121212' : '#f8f9fa';
     const bgCard = isDark ? '#1e1e1e' : '#ffffff';
     const textMain = isDark ? '#f1f1f1' : '#333333';
@@ -462,76 +463,79 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                                {cat.items?.map((item: MenuItem, idx: number) => (
-                                    <div
-                                        key={item.id || idx}
-                                        onClick={() => openItemSelect(item, catName(cat), cat.image_url)}
-                                        className="bg-white dark:bg-[#1e1e1e] rounded-xl overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.08)] transition-all duration-300 border hover:-translate-y-1 hover:shadow-[0_8px_25px_rgba(0,0,0,0.12)] cursor-pointer flex flex-col min-h-[250px] md:min-h-[290px] animate-fade-in-up"
-                                        style={{ borderColor }}
-                                    >
-                                        <div className="w-full h-[130px] md:h-[150px] relative overflow-hidden shrink-0">
-                                            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10 opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                                            <img
-                                                src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"}
-                                                alt={itemName(item)}
-                                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                                            />
-                                            {/* Action Buttons Overlay */}
-                                            <div className="absolute top-2 left-2 z-20 flex gap-2">
-                                                <button
-                                                    className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center text-xs hover:scale-110 transition-transform shadow-sm"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        navigator.clipboard.writeText(window.location.href);
-                                                        showToast(isAr ? 'تم نسخ الرابط' : 'Link copied');
-                                                    }}
-                                                >
-                                                    <LinkIcon className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div className="p-3 flex flex-col justify-between flex-1">
-                                            <div>
-                                                <h3 className="font-semibold text-xs md:text-sm line-clamp-2 mb-1" style={{ color: textMain }}>
-                                                    {itemName(item)}
-                                                </h3>
-                                                {(item.description_ar || item.description_en) && (
-                                                    <p className="text-[10px] md:text-xs line-clamp-1 md:line-clamp-2 leading-tight" style={{ color: textMuted }}>
-                                                        {isAr ? item.description_ar : (item.description_en || item.description_ar)}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div className="flex justify-between items-end mt-2 pt-2 border-t" style={{ borderColor }}>
-                                                <div className="flex flex-col gap-1 w-full max-h-[70px] overflow-y-auto pr-1 custom-scrollbar">
-                                                    {item.prices.map((p, pIdx) => (
-                                                        <div key={pIdx} className="flex items-center gap-2">
-                                                            <span className="font-bold text-sm md:text-base whitespace-nowrap" style={{ color: primaryColor }}>
-                                                                {cur} {p?.toFixed?.(0) || p}
-                                                            </span>
-                                                            {item.size_labels?.[pIdx] && (
-                                                                <span className="text-[10px] md:text-xs opacity-70 line-clamp-1" style={{ color: textMuted }}>
-                                                                    ({item.size_labels[pIdx]})
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                                {config.orders_enabled !== false && (
+                                {cat.items?.map((item: MenuItem, idx: number) => {
+                                    const hasMultiSizes = item.prices.length > 1;
+                                    return (
+                                        <div
+                                            key={item.id || idx}
+                                            onClick={() => openItemSelect(item, catName(cat), cat.image_url)}
+                                            className={`bg-white dark:bg-[#1e1e1e] rounded-xl overflow-hidden shadow-[0_5px_15px_rgba(0,0,0,0.08)] transition-all duration-300 border hover:-translate-y-1 hover:shadow-[0_8px_25px_rgba(0,0,0,0.12)] cursor-pointer ${hasMultiSizes ? 'col-span-2 flex flex-row min-h-[160px]' : 'flex flex-col min-h-[250px] md:min-h-[290px]'} animate-fade-in-up`}
+                                            style={{ borderColor }}
+                                        >
+                                            <div className={`relative overflow-hidden shrink-0 ${hasMultiSizes ? 'w-32 md:w-40' : 'w-full h-[130px] md:h-[150px]'}`}>
+                                                <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10 opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                                                <img
+                                                    src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"}
+                                                    alt={itemName(item)}
+                                                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                                                />
+                                                {/* Action Buttons Overlay */}
+                                                <div className="absolute top-2 left-2 z-20 flex gap-2">
                                                     <button
-                                                        className="rounded-full px-2.5 py-1 text-[10px] md:text-xs font-semibold text-white transition-all hover:-translate-y-0.5 flex items-center gap-1 shrink-0"
-                                                        style={{ backgroundColor: primaryColor }}
-                                                        onClick={(e) => { e.stopPropagation(); openItemSelect(item, catName(cat), cat.image_url); }}
+                                                        className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center text-xs hover:scale-110 transition-transform shadow-sm"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigator.clipboard.writeText(window.location.href);
+                                                            showToast(isAr ? 'تم نسخ الرابط' : 'Link copied');
+                                                        }}
                                                     >
-                                                        <Plus className="w-3 h-3" />
-                                                        <span className="hidden sm:inline">{isAr ? 'أضف' : 'Add'}</span>
+                                                        <LinkIcon className="w-3.5 h-3.5" />
                                                     </button>
-                                                )}
+                                                </div>
+                                            </div>
+
+                                            <div className="p-3 flex flex-col justify-between flex-1">
+                                                <div>
+                                                    <h3 className="font-semibold text-xs md:text-sm line-clamp-2 mb-1" style={{ color: textMain }}>
+                                                        {itemName(item)}
+                                                    </h3>
+                                                    {(item.description_ar || item.description_en) && (
+                                                        <p className="text-[10px] md:text-xs line-clamp-1 md:line-clamp-2 leading-tight" style={{ color: textMuted }}>
+                                                            {isAr ? item.description_ar : (item.description_en || item.description_ar)}
+                                                        </p>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex justify-between items-end mt-2 pt-2 border-t" style={{ borderColor }}>
+                                                    <div className="flex flex-col gap-1 w-full max-h-[70px] overflow-y-auto pr-1 custom-scrollbar">
+                                                        {item.prices.map((p, pIdx) => (
+                                                            <div key={pIdx} className="flex items-center gap-2">
+                                                                <span className="font-bold text-sm md:text-base whitespace-nowrap" style={{ color: primaryColor }}>
+                                                                    {cur} {p?.toFixed?.(0) || p}
+                                                                </span>
+                                                                {item.size_labels?.[pIdx] && (
+                                                                    <span className="text-[10px] md:text-xs opacity-70 line-clamp-1" style={{ color: textMuted }}>
+                                                                        ({item.size_labels[pIdx]})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    {config.orders_enabled !== false && (
+                                                        <button
+                                                            className="rounded-full px-2.5 py-1 text-[10px] md:text-xs font-semibold text-white transition-all hover:-translate-y-0.5 flex items-center gap-1 shrink-0"
+                                                            style={{ backgroundColor: primaryColor }}
+                                                            onClick={(e) => { e.stopPropagation(); openItemSelect(item, catName(cat), cat.image_url); }}
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                            <span className="hidden sm:inline">{isAr ? 'أضف' : 'Add'}</span>
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {(!cat.items || cat.items.length === 0) && (
