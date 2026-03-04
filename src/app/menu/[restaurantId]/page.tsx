@@ -415,7 +415,6 @@ function SmartMenuContent({
         customer_phone: customerInfo.phone,
         customer_address: customerInfo.address,
         is_draft: false,
-        source: "menu",
         created_at: new Date().toISOString(),
       });
       if (!error) {
