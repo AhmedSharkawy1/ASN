@@ -68,6 +68,7 @@ export default function SettingsPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let finalData: any = null;
 
             // Try fetching with all new columns first
