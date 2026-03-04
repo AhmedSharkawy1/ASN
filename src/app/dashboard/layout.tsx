@@ -88,6 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 "postgres_changes",
                 { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
                 (payload) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const order = payload.new as any;
                     if (order.is_draft || order.source !== "menu") return; // skip POS hold orders
 
@@ -118,7 +119,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             .subscribe();
 
         return () => { supabase.removeChannel(channel); };
-    }, [restaurantId, playChime]);
+    }, [restaurantId, playChime, language]);
 
     if (loading) {
         return (
