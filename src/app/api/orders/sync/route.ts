@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { appendFileSync } from "fs";
 
 export async function POST(request: Request) {
     try {
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
             for (const order of orders) {
                 const { error } = await supabaseAdmin.from('orders').upsert(order);
                 if (error) {
-                    require('fs').appendFileSync('sync_errors.log', `\nOrder Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(order)}\n`);
+                    appendFileSync('sync_errors.log', `\nOrder Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(order)}\n`);
                     results.errors.push(`Order ${order.id}: ${error.message}`);
                 } else {
                     results.orders++;
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
             for (const cust of customers) {
                 const { error } = await supabaseAdmin.from('customers').upsert(cust);
                 if (error) {
-                    require('fs').appendFileSync('sync_errors.log', `\nCustomer Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(cust)}\n`);
+                    appendFileSync('sync_errors.log', `\nCustomer Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(cust)}\n`);
                     results.errors.push(`Customer ${cust.id}: ${error.message}`);
                 } else {
                     results.customers++;
@@ -46,9 +47,10 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json({ success: true, ...results });
-    } catch (err: any) {
-        require('fs').appendFileSync('sync_errors.log', `\nFatal Exception: ${err.message}\n${err.stack}\n`);
+    } catch (err: unknown) {
+        const error = err as Error;
+        appendFileSync('sync_errors.log', `\nFatal Exception: ${error.message}\n${error.stack}\n`);
         console.error("Orders Sync API Error:", err);
-        return NextResponse.json({ error: err.message }, { status: 500 });
+        return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

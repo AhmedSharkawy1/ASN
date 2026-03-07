@@ -149,8 +149,8 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
                 delivery_driver_id: rest.delivery_driver_id || null,
                 delivery_driver_name: rest.delivery_driver_name || null,
                 delivery_fee: rest.delivery_fee || null,
-                notes: (rest as any).notes || null,
-                source: (rest as any).source || 'pos',
+                notes: (rest as { notes?: string }).notes || null,
+                source: (rest as { source?: string }).source || 'pos',
             };
         });
 

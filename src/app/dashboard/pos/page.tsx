@@ -14,7 +14,7 @@ import {
     DollarSign, Save, Send, X, Printer, Clock, Banknote,
     Smartphone, PauseCircle, Play, StickyNote, Users,
     LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
-    Package, Truck, Wifi, WifiOff, MapPin, Maximize2, Minimize2
+    Package, Truck, Wifi, WifiOff, Maximize2, Minimize2
 } from "lucide-react";
 
 /* ═══════════════════════════ TYPES ═══════════════════════════ */
@@ -36,7 +36,6 @@ export default function POSPage() {
     const [todayStats, setTodayStats] = useState({ count: 0, revenue: 0 });
     const [drivers, setDrivers] = useState<PosStaffUser[]>([]);
     const [allCustomers, setAllCustomers] = useState<PosCustomer[]>([]);
-    const [zones, setZones] = useState<{ id: string; name_ar: string; fee: number; estimated_time: number }[]>([]);
     const [isOnline, setIsOnline] = useState(true);
 
     /* ── UI state ── */
@@ -66,7 +65,6 @@ export default function POSPage() {
     const [lastDeliveryFee, setLastDeliveryFee] = useState(0);
     const [lastDriverName, setLastDriverName] = useState("");
     const [successFlash, setSuccessFlash] = useState(false);
-    const [sizePickerItem, setSizePickerItem] = useState<PosMenuItem | null>(null);
     const [editNoteIdx, setEditNoteIdx] = useState<number | null>(null);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -146,11 +144,10 @@ export default function POSPage() {
         const custs = await posDb.customers.where("restaurant_id").equals(restaurantId).toArray();
         setAllCustomers(custs);
 
-        // Load delivery zones
-        const { data: zoneData } = await supabase
+        // Load delivery zones (fetching to ensure cache is warm or just omit the result)
+        await supabase
             .from("delivery_zones").select("id,name_ar,fee,estimated_time")
             .eq("restaurant_id", restaurantId).eq("is_active", true).order("fee");
-        if (zoneData) setZones(zoneData);
     }, [restaurantId]);
 
     /* ── Initial sync + load ── */
@@ -199,10 +196,6 @@ export default function POSPage() {
     }, [menuItems]);
 
     const getCatName = (catId: string) => categories.find(c => c.id === catId)?.name_ar || "";
-    const getCatImage = (catId: string) => {
-        const cat = categories.find(c => c.id === catId);
-        return cat?.image_data || cat?.image_url;
-    };
 
     /* ── Cart ── */
     const addToCart = useCallback((item: PosMenuItem, sizeIdx: number = 0) => {
@@ -451,7 +444,7 @@ export default function POSPage() {
                                 });
                             });
 
-                            return flattenedCards.map(({ item, sizeIdx, price, colorIdx }, index) => {
+                            return flattenedCards.map(({ item, sizeIdx, price, colorIdx }) => {
                                 const sizeName = item.size_labels?.[sizeIdx] || "";
                                 const hasMultipleSizes = item.prices.length > 1;
                                 
@@ -560,7 +553,7 @@ export default function POSPage() {
                                 {[{ key: "dine_in", icon: <LayoutGrid className="w-3.5 h-3.5" />, label: "صالة" },
                                   { key: "takeaway", icon: <Package className="w-3.5 h-3.5" />, label: "تيك أواي" },
                                   { key: "delivery", icon: <Truck className="w-3.5 h-3.5" />, label: "دليفري" }].map(t => (
-                                    <button key={t.key} onClick={() => setOrderType(t.key as any)} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all ${orderType === t.key ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300"}`}>
+                                    <button key={t.key} onClick={() => setOrderType(t.key as "dine_in" | "takeaway" | "delivery")} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all ${orderType === t.key ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300"}`}>
                                         {t.icon} {t.label}
                                     </button>
                                 ))}

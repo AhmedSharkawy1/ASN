@@ -64,6 +64,7 @@ export default function TeamPage() {
         
         try {
             if (editId) {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { username, password, ...restForm } = form; // Do not update auth credentials here natively yet
                 await supabase.from('team_members').update(restForm).eq('id', editId);
             } else {
@@ -83,9 +84,9 @@ export default function TeamPage() {
             }
             resetForm(); 
             fetchMembers();
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error(e);
-            alert(e.message);
+            alert((e as Error).message);
         }
     };
 

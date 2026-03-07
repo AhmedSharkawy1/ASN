@@ -42,8 +42,8 @@ export async function POST(request: Request) {
         const internalEmail = `${username}@${data.restaurant_id}.asn`;
         return NextResponse.json({ email: internalEmail });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         console.error("Auth Lookup API Error:", err);
-        return NextResponse.json({ error: "حدث خطأ غير متوقع", details: err.message }, { status: 500 });
+        return NextResponse.json({ error: "حدث خطأ غير متوقع", details: (err as Error).message }, { status: 500 });
     }
 }

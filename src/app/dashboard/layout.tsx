@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const { language } = useLanguage();
     const router = useRouter();
     const pathname = usePathname();
-    const { theme, setTheme, resolvedTheme } = useTheme();
+    const { setTheme, resolvedTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -253,7 +253,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (p[section.key] === false) return { ...section, items: [] };
 
         // Otherwise filter sub-items
-        const filteredItems = section.items.filter((item: any) => {
+        const filteredItems = section.items.filter((item: { href: string; permKey?: string; [key: string]: unknown }) => {
             if (!item.permKey) return true; // If no specific perm key, it relies on section key (which passed)
             return p[item.permKey] === true;
         });
