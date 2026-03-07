@@ -230,7 +230,7 @@ export default function ThemePage() {
     }
 
     return (
-        <div className="p-6 max-w-6xl mx-auto space-y-8" dir={isArabic ? "rtl" : "ltr"}>
+        <div className="p-6 w-full mx-auto space-y-8" dir={isArabic ? "rtl" : "ltr"}>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-blue/10 rounded-2xl flex items-center justify-center">
@@ -249,7 +249,7 @@ export default function ThemePage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="flex items-center gap-2 bg-blue hover:bg-blue-hover disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue/20"
+                    className="flex items-center gap-2 bg-blue hover:bg-blue-hover disabled:opacity-50 text-slate-900 dark:text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue/20"
                 >
                     {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
                     {isArabic ? "حفظ التغييرات" : "Save Changes"}
@@ -260,7 +260,7 @@ export default function ThemePage() {
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 rounded-xl text-center font-bold ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}
+                    className={`p-4 rounded-xl text-center font-bold ${message.type === 'success' ? 'bg-green-500/10 text-green-500' : 'bg-red-50 dark:bg-red-500/10 text-red-500'}`}
                 >
                     {message.text}
                 </motion.div>
@@ -315,7 +315,7 @@ export default function ThemePage() {
 
                                 {selectedTheme === theme.id && (
                                     <div className="absolute top-0 right-0 p-3">
-                                        <span className="bg-blue text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                        <span className="bg-blue text-slate-900 dark:text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
                                             {isArabic ? "مفعل" : "Active"}
                                         </span>
                                     </div>
@@ -336,10 +336,10 @@ export default function ThemePage() {
                         <a
                             href={restaurantId ? `/menu/${restaurantId}` : "#"}
                             target="_blank"
-                            className="flex items-center gap-2 text-blue font-bold hover:underline"
+                            className="flex items-center gap-2 text-blue font-bold hover:underline text-base"
                         >
                             {isArabic ? "فتح المنيو" : "Open Menu"}
-                            <ExternalLink className="w-4 h-4" />
+                            <ExternalLink className="w-5 h-5" />
                         </a>
                     </div>
                 </div>

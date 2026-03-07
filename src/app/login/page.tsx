@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 export default function LoginPage() {
     const { language } = useLanguage();
     const router = useRouter();
-    const [email, setEmail] = useState("");
+    const [usernameOrEmail, setUsernameOrEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -26,8 +26,25 @@ export default function LoginPage() {
         setError(null);
 
         try {
+            let loginEmail = usernameOrEmail.trim();
+
+            if (!loginEmail.includes('@')) {
+                // It's a staff username, look up the internal email
+                const res = await fetch("/api/auth/lookup", {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: loginEmail })
+                });
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.error || "اسم المستخدم غير صحيح");
+                }
+                loginEmail = data.email;
+            }
+
             const { error } = await supabase.auth.signInWithPassword({
-                email,
+                email: loginEmail,
                 password,
             });
 
@@ -170,21 +187,21 @@ export default function LoginPage() {
                         >
                             <div className="space-y-2 relative group">
                                 <label className={`text-sm font-medium text-silver px-1 block ${language === "ar" ? "text-right" : "text-left"}`} htmlFor="email">
-                                    {language === "ar" ? "البريد الإلكتروني" : "Email Address"}
+                                    {language === "ar" ? "البريد الإلكتروني أو اسم المستخدم" : "Email or Username"}
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-silver group-focus-within:text-blue transition-colors">
                                         <Mail className="w-5 h-5" />
                                     </div>
                                     <input
-                                        type="email"
+                                        type="text"
                                         id="email"
                                         required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
+                                        value={usernameOrEmail}
+                                        onChange={(e) => setUsernameOrEmail(e.target.value)}
                                         dir="ltr"
                                         className="w-full pl-11 pr-5 py-3.5 rounded-xl bg-glass-dark border border-glass-border focus:border-blue focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue transition-all text-foreground placeholder-silver/30 shadow-inner"
-                                        placeholder="user@example.com"
+                                        placeholder={language === "ar" ? "admin@website.com أو admin1" : "user@example.com or admin1"}
                                     />
                                 </div>
                             </div>

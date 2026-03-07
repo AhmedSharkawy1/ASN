@@ -188,22 +188,22 @@ export default function OrdersPage() {
         completed: orders.filter(o => o.status === "completed").length,
     };
 
-    if (loading && orders.length === 0) return <div className="p-8 text-center text-zinc-500 animate-pulse">{isAr ? "جاري تحميل الطلبات..." : "Loading orders..."}</div>;
+    if (loading && orders.length === 0) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري تحميل الطلبات..." : "Loading orders..."}</div>;
 
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-20">
+        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-                        <ClipboardList className="w-8 h-8 text-emerald-400" />
+                    <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+                        <ClipboardList className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
                         {isAr ? "إدارة الطلبات" : "Orders Management"}
                     </h1>
-                    <p className="text-zinc-400 text-sm mt-1">{isAr ? "تتبع وإدارة جميع الطلبات في مكان واحد" : "Track and manage all orders in one place"}</p>
+                    <p className="text-slate-500 dark:text-zinc-400 text-base mt-1">{isAr ? "تتبع وإدارة جميع الطلبات في مكان واحد" : "Track and manage all orders in one place"}</p>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={fetchOrders} className="p-2.5 bg-zinc-800 text-zinc-400 hover:text-white rounded-xl border border-zinc-700/50 transition"><RefreshCw className="w-4 h-4" /></button>
-                    <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2.5 bg-zinc-800 text-zinc-300 font-medium text-sm rounded-xl border border-zinc-700/50 hover:border-emerald-500/30 transition">
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto">
+                    <button onClick={fetchOrders} className="flex-1 sm:flex-none p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-300 dark:border-zinc-700/50 transition flex items-center justify-center"><RefreshCw className="w-4 h-4" /></button>
+                    <button onClick={exportCSV} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium text-base rounded-xl border border-slate-300 dark:border-zinc-700/50 -blue/30 transition">
                         <Download className="w-4 h-4" /> {isAr ? "تصدير CSV" : "Export CSV"}
                     </button>
                 </div>
@@ -212,45 +212,47 @@ export default function OrdersPage() {
             {/* Stat Mini Cards */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                    { label: isAr ? "إجمالي الطلبات" : "Total", value: statCounts.total, color: "text-zinc-300" },
-                    { label: isAr ? "قيد الانتظار" : "Pending", value: statCounts.pending, color: "text-amber-400" },
-                    { label: isAr ? "نشطة" : "Active", value: statCounts.active, color: "text-blue-400" },
-                    { label: isAr ? "مكتملة" : "Completed", value: statCounts.completed, color: "text-emerald-400" },
+                    { label: isAr ? "إجمالي الطلبات" : "Total", value: statCounts.total, color: "text-slate-700 dark:text-zinc-300" },
+                    { label: isAr ? "قيد الانتظار" : "Pending", value: statCounts.pending, color: "text-amber-600 dark:text-amber-400" },
+                    { label: isAr ? "نشطة" : "Active", value: statCounts.active, color: "text-blue-600 dark:text-blue-400" },
+                    { label: isAr ? "مكتملة" : "Completed", value: statCounts.completed, color: "text-emerald-600 dark:text-emerald-400" },
                 ].map((s, i) => (
-                    <div key={i} className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-4">
-                        <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1">{s.label}</p>
-                        <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
+                    <div key={i} className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-4">
+                        <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase mb-1">{s.label}</p>
+                        <p className={`text-3xl font-extrabold ${s.color}`}>{s.value}</p>
                     </div>
                 ))}
             </div>
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 items-stretch sm:items-center">
                 <div className="relative flex-1 min-w-[200px]">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-500" />
                     <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                         placeholder={isAr ? "بحث برقم الطلب أو اسم العميل..." : "Search by order # or customer..."}
-                        className="w-full pe-10 ps-4 py-2.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl text-sm text-white placeholder:text-zinc-500 outline-none focus:border-emerald-500/50" />
+                        className="w-full pe-10 ps-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none -blue/50" />
                 </div>
-                <div className="relative">
-                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-500" />
+                <div className="relative w-full sm:w-auto">
+                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500 dark:text-zinc-500" />
                     <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-                        className="pe-8 ps-4 py-2.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl text-sm text-white outline-none focus:border-emerald-500/50 appearance-none cursor-pointer">
+                        className="w-full sm:w-auto pe-8 ps-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-sm text-slate-900 dark:text-white outline-none -blue/50 appearance-none cursor-pointer">
                         <option value="all">{isAr ? "كل الحالات" : "All"}</option>
                         {["pending", "accepted", "preparing", "ready", "out_for_delivery", "completed", "cancelled"].map(s => (
                             <option key={s} value={s}>{statusLabel(s, isAr)}</option>
                         ))}
                     </select>
                 </div>
-                <input type="date" value={dateRange.from} onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))}
-                    className="px-3 py-2.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl text-sm text-white outline-none" />
-                <input type="date" value={dateRange.to} onChange={e => setDateRange(p => ({ ...p, to: e.target.value }))}
-                    className="px-3 py-2.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl text-sm text-white outline-none" />
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <input type="date" value={dateRange.from} onChange={e => setDateRange(p => ({ ...p, from: e.target.value }))}
+                        className="flex-1 sm:flex-none px-3 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-base text-slate-900 dark:text-white outline-none" />
+                    <input type="date" value={dateRange.to} onChange={e => setDateRange(p => ({ ...p, to: e.target.value }))}
+                        className="flex-1 sm:flex-none px-3 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-base text-slate-900 dark:text-white outline-none" />
+                </div>
             </div>
 
             {/* Orders List */}
             {filteredOrders.length === 0 ? (
-                <div className="text-center py-16 text-zinc-500">
+                <div className="text-center py-16 text-slate-500 dark:text-zinc-500">
                     <ClipboardList className="w-16 h-16 mx-auto mb-3 opacity-30" />
                     <p className="font-bold">{isAr ? "لا توجد طلبات" : "No orders found"}</p>
                 </div>
@@ -261,65 +263,75 @@ export default function OrdersPage() {
                         const isExpanded = expandedOrder === order.id;
                         const validNext = nextStatuses(order.status);
                         return (
-                            <div key={order.id} className={`bg-[#0d1117] border rounded-xl overflow-hidden transition-colors ${elapsed.isDelayed && !["completed", "cancelled"].includes(order.status) ? "border-red-500/40" : "border-zinc-800/50"}`}>
+                            <div key={order.id} className={`bg-white dark:bg-card border rounded-xl overflow-hidden transition-colors ${elapsed.isDelayed && !["completed", "cancelled"].includes(order.status) ? "border-red-500/40" : "border-slate-200 dark:border-zinc-800/50"}`}>
                                 {/* Order Row */}
-                                <div className="flex items-center gap-4 p-4 cursor-pointer hover:bg-white/[0.02] transition" onClick={() => toggleExpand(order.id)}>
-                                    <div className="w-14 text-center">
-                                        <span className="text-lg font-extrabold text-white">#{order.order_number}</span>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 p-4 cursor-pointer hover:bg-white/[0.02] transition" onClick={() => toggleExpand(order.id)}>
+                                    <div className="flex items-center justify-between sm:w-16 sm:block sm:text-center">
+                                        <span className="text-xl font-extrabold text-slate-900 dark:text-white">#{order.order_number}</span>
+                                        <span className={`sm:hidden text-xs font-bold px-2.5 py-1 rounded-lg border ${statusColor(order.status)}`}>
+                                            {statusLabel(order.status, isAr)}
+                                        </span>
                                     </div>
-                                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${statusColor(order.status)}`}>
+                                    <span className={`hidden sm:inline-flex text-xs font-bold px-2.5 py-1 rounded-lg border ${statusColor(order.status)} shrink-0`}>
                                         {statusLabel(order.status, isAr)}
                                     </span>
                                     {order._offline && (
-                                        <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg border bg-orange-500/10 text-orange-400 border-orange-500/20 flex items-center gap-0.5">
-                                            <WifiOff className="w-2.5 h-2.5" /> لم يُزامن
+                                        <span className="text-xs font-bold px-2 py-0.5 rounded-lg border bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-500/20 flex items-center gap-0.5 shrink-0">
+                                            <WifiOff className="w-3 h-3" /> لم يُزامن
                                         </span>
                                     )}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-bold text-zinc-300 truncate">{order.customer_name || (isAr ? "عميل" : "Customer")}</p>
-                                        <p className="text-[10px] text-zinc-500">{order.items.length} {isAr ? "أصناف" : "items"}</p>
+                                    <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                        <p className="text-base font-bold text-slate-700 dark:text-zinc-300 truncate">{order.customer_name || (isAr ? "عميل" : "Customer")}</p>
+                                        <div className="flex items-center gap-3">
+                                            <p className="text-xs text-slate-500 dark:text-zinc-500">{order.items.length} {isAr ? "أصناف" : "items"}</p>
+                                            <div className={`flex items-center gap-1 text-xs font-bold ${elapsed.isDelayed && !["completed", "cancelled"].includes(order.status) ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-zinc-500"}`}>
+                                                <Clock className="w-3 h-3" /> {elapsed.text}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className={`flex items-center gap-1 text-xs font-bold ${elapsed.isDelayed && !["completed", "cancelled"].includes(order.status) ? "text-red-400" : "text-zinc-500"}`}>
-                                        <Clock className="w-3 h-3" /> {elapsed.text}
+                                    
+                                    <div className="flex items-center justify-between sm:justify-end gap-4 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-zinc-800/20">
+                                        <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(order.total)}</span>
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
+                                                title={isAr ? "طباعة الفاتورة" : "Print Receipt"}
+                                                className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition">
+                                                <Printer className="w-4 h-4" />
+                                            </button>
+                                            {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-500 dark:text-zinc-500" /> : <ChevronDown className="w-5 h-5 text-slate-500 dark:text-zinc-500" />}
+                                        </div>
                                     </div>
-                                    <span className="text-sm font-extrabold text-emerald-400">{formatCurrency(order.total)}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
-                                        title={isAr ? "طباعة الفاتورة" : "Print Receipt"}
-                                        className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition">
-                                        <Printer className="w-4 h-4" />
-                                    </button>
-                                    {isExpanded ? <ChevronUp className="w-4 h-4 text-zinc-500" /> : <ChevronDown className="w-4 h-4 text-zinc-500" />}
                                 </div>
 
                                 {/* Expanded Details */}
                                 <AnimatePresence>
                                     {isExpanded && (
                                         <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="overflow-hidden">
-                                            <div className="border-t border-zinc-800/50 p-4 space-y-4">
+                                            <div className="border-t border-slate-200 dark:border-zinc-800/50 p-4 space-y-4">
                                                 {/* Items Table */}
-                                                <div className="bg-black/20 rounded-xl p-3">
-                                                    <h4 className="text-xs font-bold text-zinc-400 mb-2 uppercase">{isAr ? "الأصناف" : "Items"}</h4>
+                                                <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3">
+                                                    <h4 className="text-sm font-bold text-slate-500 dark:text-zinc-400 mb-2 uppercase">{isAr ? "الأصناف" : "Items"}</h4>
                                                     {order.items.map((item, i) => (
-                                                        <div key={i} className="flex items-center justify-between py-1.5 border-b border-zinc-800/30 last:border-0 text-sm">
+                                                        <div key={i} className="flex items-center justify-between py-1.5 border-b border-slate-200 dark:border-zinc-800/30 last:border-0 text-base">
                                                             <div className="flex flex-col gap-0.5">
-                                                                <span className="text-zinc-300">{item.title} {item.size && item.size !== 'عادي' ? `(${item.size})` : ""} × {item.qty}</span>
-                                                                {item.category && <span className="text-[10px] text-zinc-500">🗂️ {item.category}</span>}
+                                                                <span className="text-slate-700 dark:text-zinc-300">{item.title} {item.size && item.size !== 'عادي' ? `(${item.size})` : ""} × {item.qty}</span>
+                                                                {item.category && <span className="text-xs text-slate-500 dark:text-zinc-500">🗂️ {item.category}</span>}
                                                             </div>
-                                                            <span className="text-zinc-400 font-bold">{formatCurrency(item.price * item.qty)}</span>
+                                                            <span className="text-slate-500 dark:text-zinc-400 font-bold">{formatCurrency(item.price * item.qty)}</span>
                                                         </div>
                                                     ))}
-                                                    <div className="flex justify-between pt-2 mt-2 border-t border-zinc-700/50 text-sm font-extrabold">
-                                                        <span className="text-zinc-400">{isAr ? "الإجمالي" : "Total"}</span>
-                                                        <span className="text-emerald-400">{formatCurrency(order.total)}</span>
+                                                    <div className="flex justify-between pt-2 mt-2 border-t border-slate-300 dark:border-zinc-700/50 text-base font-extrabold">
+                                                        <span className="text-slate-500 dark:text-zinc-400">{isAr ? "الإجمالي" : "Total"}</span>
+                                                        <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(order.total)}</span>
                                                     </div>
                                                 </div>
 
                                                 {/* Info Grid */}
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                                                    {order.customer_phone && <div className="bg-black/20 p-2.5 rounded-lg"><span className="text-zinc-500 block mb-0.5">{isAr ? "الهاتف" : "Phone"}</span><span className="text-zinc-300 font-bold" dir="ltr">{order.customer_phone}</span></div>}
-                                                    <div className="bg-black/20 p-2.5 rounded-lg"><span className="text-zinc-500 block mb-0.5">{isAr ? "الدفع" : "Payment"}</span><span className="text-zinc-300 font-bold">{order.payment_method}</span></div>
-                                                    <div className="bg-black/20 p-2.5 rounded-lg"><span className="text-zinc-500 block mb-0.5">{isAr ? "التاريخ" : "Date"}</span><span className="text-zinc-300 font-bold">{formatDate(order.created_at)}</span></div>
-                                                    {order.notes && <div className="bg-black/20 p-2.5 rounded-lg col-span-2"><span className="text-zinc-500 block mb-0.5">{isAr ? "ملاحظات" : "Notes"}</span><span className="text-zinc-300">{order.notes}</span></div>}
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                    {order.customer_phone && <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "الهاتف" : "Phone"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold" dir="ltr">{order.customer_phone}</span></div>}
+                                                    <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "الدفع" : "Payment"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold">{order.payment_method}</span></div>
+                                                    <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "التاريخ" : "Date"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold">{formatDate(order.created_at)}</span></div>
+                                                    {order.notes && <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg col-span-2"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "ملاحظات" : "Notes"}</span><span className="text-slate-700 dark:text-zinc-300">{order.notes}</span></div>}
                                                 </div>
 
                                                 {/* Status Actions */}
@@ -327,7 +339,7 @@ export default function OrdersPage() {
                                                     <div className="flex gap-2 flex-wrap">
                                                         {validNext.map(ns => (
                                                             <button key={ns} onClick={(e) => { e.stopPropagation(); updateStatus(order.id, ns); }}
-                                                                className={`text-xs font-bold px-4 py-2 rounded-lg border transition-all hover:scale-105 active:scale-95 ${statusColor(ns)}`}>
+                                                                className={`text-sm font-bold px-4 py-2 rounded-lg border transition-all hover:scale-105 active:scale-95 ${statusColor(ns)}`}>
                                                                 → {statusLabel(ns, isAr)}
                                                             </button>
                                                         ))}
@@ -336,20 +348,20 @@ export default function OrdersPage() {
 
                                                 {/* Print Receipt Button */}
                                                 <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
-                                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 text-emerald-400 font-bold text-xs rounded-xl hover:bg-emerald-500/20 transition-all active:scale-95 border border-emerald-500/20">
+                                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all active:scale-95 border border-emerald-200 dark:border-glass-border">
                                                     <Printer className="w-4 h-4" />
                                                     {isAr ? "طباعة الفاتورة" : "Print Receipt"}
                                                 </button>
 
                                                 {/* Activity Log */}
                                                 {orderLogs[order.id] && orderLogs[order.id].length > 0 && (
-                                                    <div className="bg-black/20 rounded-xl p-3">
-                                                        <h4 className="text-xs font-bold text-zinc-400 mb-2 uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> {isAr ? "سجل النشاط" : "Activity Log"}</h4>
+                                                    <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3">
+                                                        <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 mb-2 uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> {isAr ? "سجل النشاط" : "Activity Log"}</h4>
                                                         {orderLogs[order.id].map(log => (
-                                                            <div key={log.id} className="flex items-center gap-2 text-[10px] py-1 border-b border-zinc-800/20 last:border-0">
-                                                                <span className="text-zinc-500">{timeAgo(log.created_at, isAr)}</span>
+                                                            <div key={log.id} className="flex items-center gap-2 text-[10px] py-1 border-b border-slate-100 dark:border-zinc-800/20 last:border-0">
+                                                                <span className="text-slate-500 dark:text-zinc-500">{timeAgo(log.created_at, isAr)}</span>
                                                                 {log.old_status && <span className={`px-1.5 py-0.5 rounded ${statusColor(log.old_status)}`}>{statusLabel(log.old_status, isAr)}</span>}
-                                                                {log.new_status && <><span className="text-zinc-600">→</span><span className={`px-1.5 py-0.5 rounded ${statusColor(log.new_status)}`}>{statusLabel(log.new_status, isAr)}</span></>}
+                                                                {log.new_status && <><span className="text-slate-400 dark:text-zinc-600">→</span><span className={`px-1.5 py-0.5 rounded ${statusColor(log.new_status)}`}>{statusLabel(log.new_status, isAr)}</span></>}
                                                             </div>
                                                         ))}
                                                     </div>

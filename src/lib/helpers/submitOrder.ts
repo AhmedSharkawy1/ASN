@@ -128,6 +128,135 @@ export function buildWhatsAppMessage(params: {
 }
 
 /**
+ * Build a formatted Telegram message for the order notification.
+ */
+function buildTelegramMessage(params: {
+    orderNumber: number;
+    restaurantName: string;
+    customerName: string;
+    customerPhone: string;
+    customerAddress?: string;
+    orderType: 'delivery' | 'pickup';
+    deliveryZoneName?: string;
+    deliveryFee?: number;
+    items: OrderItem[];
+    subtotal: number;
+    total: number;
+    notes?: string;
+    currency?: string;
+}): string {
+    const {
+        orderNumber, restaurantName, customerName, customerPhone,
+        customerAddress, orderType, deliveryZoneName, deliveryFee,
+        items, subtotal, total, notes, currency = 'ج'
+    } = params;
+
+    let msg = `🧾 *فاتورة طلب جديد #${orderNumber} — ${restaurantName}*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `👤 *الاسم:* ${customerName}\n`;
+    msg += `📞 *الموبايل:* ${customerPhone}\n`;
+    if (orderType === 'delivery' && customerAddress) {
+        msg += `📍 *العنوان:* ${customerAddress}\n`;
+    }
+    if (orderType === 'pickup') {
+        msg += `🏪 *استلام من المطعم*\n`;
+    }
+    if (orderType === 'delivery' && deliveryZoneName) {
+        msg += `📍 *منطقة التوصيل:* ${deliveryZoneName}\n`;
+    }
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `📋 *الأصناف المطلوبة:*\n\n`;
+
+    items.forEach((item, idx) => {
+        const itemExtrasTotal = (item.extras || []).reduce((s, e) => s + e.price * e.qty, 0);
+        const itemTotal = (item.price * item.qty) + (itemExtrasTotal * item.qty);
+
+        msg += `${idx + 1}. ✨ *${item.title}*\n`;
+        if (item.category) {
+            msg += `   🗂️ القسم: ${item.category}\n`;
+        }
+        msg += `   💵 السعر: ${item.price} ${currency}\n`;
+        if (item.size && item.size !== 'عادي' && item.size !== 'Default') {
+            msg += `   📏 الحجم: ${item.size}\n`;
+        }
+        if (item.extras && item.extras.length > 0) {
+            msg += `   ➕ الإضافات:\n`;
+            item.extras.forEach(e => {
+                msg += `      🔹 ${e.name} (×${e.qty}) بقيمة ${e.price * e.qty} ${currency}\n`;
+            });
+        }
+        msg += `   🔢 الكمية: ${item.qty}\n`;
+        msg += `   💰 المجموع: *${itemTotal} ${currency}*\n\n`;
+    });
+
+    if (notes) {
+        msg += `📝 *ملاحظات:* ${notes}\n`;
+    }
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    if (deliveryFee && deliveryFee > 0) {
+        msg += `🛒 مجموع الأصناف: ${subtotal} ${currency}\n`;
+        msg += `🚚 خدمة التوصيل: ${deliveryFee} ${currency}\n`;
+    }
+    msg += `💵 *الإجمالي المطلوب: ${total} ${currency}*\n`;
+    msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+    msg += `⏰ ${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}\n`;
+    msg += `❤️ مع تحيات إدارة مطعم *${restaurantName}*`;
+
+    return msg;
+}
+
+/**
+ * Send a Telegram notification for a new order.
+ * Fetches the restaurant's Telegram credentials from the database,
+ * then sends the message via the /api/telegram API route.
+ * Fails silently — errors are logged but never block the order flow.
+ */
+async function sendTelegramNotification(params: {
+    restaurantId: string;
+    orderNumber: number;
+    restaurantName: string;
+    customerName: string;
+    customerPhone: string;
+    customerAddress?: string;
+    orderType: 'delivery' | 'pickup';
+    deliveryZoneName?: string;
+    deliveryFee?: number;
+    items: OrderItem[];
+    subtotal: number;
+    total: number;
+    notes?: string;
+    currency?: string;
+}): Promise<void> {
+    try {
+        // Fetch Telegram credentials for this restaurant
+        const { data: restaurant } = await supabase
+            .from('restaurants')
+            .select('telegram_bot_token, telegram_chat_id')
+            .eq('id', params.restaurantId)
+            .single();
+
+        if (!restaurant?.telegram_bot_token || !restaurant?.telegram_chat_id) {
+            return; // Telegram not configured, skip silently
+        }
+
+        const message = buildTelegramMessage(params);
+
+        // Call the server-side API route to send via Telegram Bot API
+        await fetch('/api/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                botToken: restaurant.telegram_bot_token,
+                chatId: restaurant.telegram_chat_id,
+                message,
+            }),
+        });
+    } catch (err) {
+        console.error('Telegram notification error (non-blocking):', err);
+    }
+}
+
+/**
  * Submit an order to the database, auto-create/update customer, and send notification.
  * Used by all theme checkout flows.
  */
@@ -136,7 +265,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         const {
             restaurantId, customerName, customerPhone, customerAddress,
             notes, orderType, deliveryZoneId, deliveryZoneName, deliveryFee,
-            items, subtotal, total, paymentMethod
+            items, subtotal, total, paymentMethod, restaurantName
         } = params;
 
         // 1. Upsert customer — find by phone + restaurant, or create new
@@ -221,7 +350,24 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             is_read: false,
         });
 
-        // 4. Log the order creation
+        // 4. Send Telegram notification (non-blocking)
+        sendTelegramNotification({
+            restaurantId,
+            orderNumber: order.order_number,
+            restaurantName: restaurantName || '',
+            customerName,
+            customerPhone,
+            customerAddress,
+            orderType,
+            deliveryZoneName,
+            deliveryFee,
+            items,
+            subtotal,
+            total,
+            notes,
+        });
+
+        // 5. Log the order creation
         await supabase.from('order_logs').insert({
             order_id: order.id,
             action: 'order_created',

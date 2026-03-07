@@ -94,19 +94,19 @@ export default function KitchenPage() {
         { status: 'ready', label: isAr ? 'جاهز' : 'Ready', color: 'border-emerald-500/50' },
     ];
 
-    if (loading) return <div className="p-8 text-center text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
+    if (loading) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
 
     return (
         <div className="flex flex-col gap-6 pb-20">
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-extrabold text-white flex items-center gap-3">
-                    <ChefHat className="w-7 h-7 text-emerald-400" />
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+                    <ChefHat className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
                     {isAr ? "شاشة المطبخ" : "Kitchen Display"}
-                    <span className="text-sm font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">{orders.length} {isAr ? "طلب نشط" : "active"}</span>
+                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-1 rounded-lg">{orders.length} {isAr ? "طلب نشط" : "active"}</span>
                 </h1>
                 <button onClick={() => setSoundEnabled(!soundEnabled)}
-                    className={`p-2.5 rounded-xl border transition ${soundEnabled ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-zinc-800 text-zinc-500 border-zinc-700/50"}`}>
+                    className={`p-2.5 rounded-xl border transition ${soundEnabled ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-500 border-slate-300 dark:border-zinc-700/50"}`}>
                     {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
                 </button>
             </div>
@@ -116,45 +116,82 @@ export default function KitchenPage() {
                 {statusGroups.map(group => {
                     const groupOrders = orders.filter(o => o.status === group.status);
                     return (
-                        <div key={group.status} className={`bg-[#0d1117] border-2 ${group.color} rounded-xl overflow-hidden`}>
-                            <div className="px-4 py-3 border-b border-zinc-800/50 flex items-center justify-between">
-                                <h3 className="font-bold text-zinc-300 text-sm">{group.label}</h3>
-                                <span className="text-xs font-extrabold text-zinc-500">{groupOrders.length}</span>
+                        <div key={group.status} className={`bg-white dark:bg-card border-2 ${group.color} rounded-xl overflow-hidden`}>
+                            <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800/50 flex items-center justify-between">
+                                <h3 className="font-bold text-slate-700 dark:text-zinc-300 text-sm">{group.label}</h3>
+                                <span className="text-xs font-extrabold text-slate-500 dark:text-zinc-500">{groupOrders.length}</span>
                             </div>
                             <div className="p-3 space-y-3 max-h-[60vh] overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                                 {groupOrders.length === 0 ? (
-                                    <p className="text-center py-8 text-zinc-600 text-xs">{isAr ? "لا يوجد طلبات" : "No orders"}</p>
+                                    <p className="text-center py-8 text-slate-400 dark:text-zinc-600 text-xs">{isAr ? "لا يوجد طلبات" : "No orders"}</p>
                                 ) : groupOrders.map(order => {
                                     const elapsed = elapsedTime(order.created_at, isAr);
                                     const validNext = nextStatuses(order.status);
                                     return (
-                                        <div key={order.id} className={`bg-black/30 rounded-xl p-3 border ${elapsed.isDelayed ? "border-red-500/50 animate-pulse" : "border-zinc-800/30"}`}>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <span className="text-lg font-extrabold text-white">#{order.order_number}</span>
-                                                <span className={`text-[9px] font-bold flex items-center gap-1 ${elapsed.isDelayed ? "text-red-400" : "text-zinc-500"}`}>
-                                                    <Clock className="w-3 h-3" /> {elapsed.text}
-                                                </span>
+                                        <div key={order.id} className={`bg-white dark:bg-card rounded-md p-4 border-2 shadow-sm ${elapsed.isDelayed ? "border-red-500/80 shadow-red-500/20" : "border-slate-200 dark:border-zinc-800"}`}>
+                                            
+                                            {/* Ticket Header */}
+                                            <div className="flex items-start justify-between mb-3 pb-3 border-b-2 border-dashed border-slate-300 dark:border-zinc-700">
+                                                <div>
+                                                    <span className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">#{order.order_number}</span>
+                                                    {order.customer_name && <p className="text-sm font-bold text-slate-500 dark:text-zinc-400 mt-1">{order.customer_name}</p>}
+                                                </div>
+                                                <div className={`flex flex-col items-end gap-1 ${elapsed.isDelayed ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-zinc-400"}`}>
+                                                    <span className="text-xs font-bold uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 px-2 py-1 rounded flex items-center gap-1.5 border border-slate-200 dark:border-zinc-700">
+                                                        <Clock className="w-3.5 h-3.5" /> {elapsed.text}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            {order.customer_name && <p className="text-[10px] text-zinc-400 mb-1">👤 {order.customer_name}</p>}
-                                            <div className="space-y-1 mb-3">
+                                            
+                                            {/* Order Items */}
+                                            <div className="space-y-2 mb-4">
                                                 {order.items.map((item, i) => (
-                                                    <div key={i} className="flex flex-col text-xs mb-1">
-                                                        <div className="flex justify-between">
-                                                            <span className="text-zinc-300">{item.qty}× {item.title} {item.size && item.size !== 'عادي' ? `(${item.size})` : ""}</span>
+                                                    <div key={i} className="flex gap-3 text-base font-bold text-slate-800 dark:text-zinc-200 leading-tight">
+                                                        <span className="text-lg font-black text-indigo-600 dark:text-emerald-400 w-6 shrink-0">{item.qty}×</span>
+                                                        <div className="flex-1">
+                                                            <span className="text-lg">{item.title}</span>
+                                                            {item.size && item.size !== 'عادي' && (
+                                                                <span className="ml-1 text-sm bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-zinc-400">({item.size})</span>
+                                                            )}
+                                                            {item.category && <p className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase font-bold tracking-wider mt-0.5">{item.category}</p>}
                                                         </div>
-                                                        {item.category && <span className="text-[9px] text-zinc-500">🗂️ {item.category}</span>}
                                                     </div>
                                                 ))}
                                             </div>
-                                            {order.notes && <p className="text-[9px] bg-amber-500/10 text-amber-400 rounded-lg px-2 py-1 mb-2">📝 {order.notes}</p>}
-                                            <div className="flex gap-1.5">
-                                                {validNext.map(ns => (
-                                                    <button key={ns} onClick={() => updateOrderStatus(order.id, ns)}
-                                                        className={`flex-1 text-[10px] font-bold py-2 rounded-lg border transition-all hover:scale-105 active:scale-95 ${statusColor(ns)}`}>
-                                                        {statusLabel(ns, isAr)}
-                                                    </button>
-                                                ))}
+                                            
+                                            {/* Notes (if any) */}
+                                            {order.notes && (
+                                                <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-md p-2 mb-4">
+                                                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                                                        <span className="uppercase tracking-wide text-[10px] opacity-70 block mb-0.5">ملاحظات:</span>
+                                                        {order.notes}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            
+                                            {/* Action Buttons Footer */}
+                                            <div className="pt-3 border-t-2 border-dashed border-slate-300 dark:border-zinc-700 flex gap-2">
+                                                {validNext.map(ns => {
+                                                    // Map status to a solid button color rather than just outline
+                                                    const bgColors: Record<string, string> = {
+                                                        accepted: "bg-blue-600 hover:bg-blue-700 text-white border-transparent",
+                                                        preparing: "bg-violet-600 hover:bg-violet-700 text-white border-transparent",
+                                                        ready: "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent",
+                                                        completed: "bg-slate-800 hover:bg-slate-900 text-white border-transparent",
+                                                        cancelled: "bg-red-100 text-red-700 hover:bg-red-200 border-red-200"
+                                                    };
+                                                    
+                                                    const btnStyle = bgColors[ns] || statusColor(ns);
+                                                    
+                                                    return (
+                                                        <button key={ns} onClick={() => updateOrderStatus(order.id, ns)}
+                                                            className={`flex-1 text-xs font-black py-2.5 rounded border transition-all shadow-sm active:scale-95 uppercase tracking-wider ${btnStyle}`}>
+                                                            {statusLabel(ns, isAr)}
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
+                                            
                                         </div>
                                     );
                                 })}

@@ -66,12 +66,10 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
             }
         }
 
-        // Pull recent orders (last 7 days)
-        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        // Pull ALL orders
         const { data: orders } = await supabase.from('orders').select('*')
             .eq('restaurant_id', restaurantId)
-            .gte('created_at', weekAgo)
-            .order('created_at', { ascending: false }).limit(500);
+            .order('created_at', { ascending: false }).limit(5000);
         if (orders) {
             // Only pull-replace orders we don't have dirty local versions of
             for (const order of orders) {
@@ -131,44 +129,70 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
     }
 }
 
-/* ── Push: Dexie dirty records → Supabase ── */
+/* ── Push: Dexie dirty records → Server API → Supabase ── */
 export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
     notify({ isSyncing: true });
 
     try {
-        // Push dirty orders
+        // Gather dirty orders
         const dirtyOrders = await posDb.orders
             .where('restaurant_id').equals(restaurantId)
             .and(o => !!o._dirty).toArray();
 
-        for (const order of dirtyOrders) {
+        const ordersToSync = dirtyOrders.map(order => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { _dirty, customer_address, delivery_driver_id, delivery_driver_name, delivery_fee, ...orderData } = order;
-            const { error } = await supabase.from('orders').upsert({
-                ...orderData,
-                customer_address: customer_address || null,
-                delivery_driver_id: delivery_driver_id || null,
-                delivery_driver_name: delivery_driver_name || null,
-                delivery_fee: delivery_fee || null,
-            });
-            if (!error) {
-                await posDb.orders.update(order.id, { _dirty: false });
-            }
-        }
+            const { _dirty, ...rest } = order;
+            return {
+                ...rest,
+                customer_address: rest.customer_address || null,
+                delivery_driver_id: rest.delivery_driver_id || null,
+                delivery_driver_name: rest.delivery_driver_name || null,
+                delivery_fee: rest.delivery_fee || null,
+                notes: (rest as any).notes || null,
+                source: (rest as any).source || 'pos',
+            };
+        });
 
-        // Push dirty customers
+        // Gather dirty customers
         const dirtyCusts = await posDb.customers
             .where('restaurant_id').equals(restaurantId)
             .and(c => !!c._dirty).toArray();
 
-        for (const cust of dirtyCusts) {
+        const custsToSync = dirtyCusts.map(cust => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { _dirty, ...custData } = cust;
-            const { error } = await supabase.from('customers').upsert(custData);
-            if (!error) {
+            const { _dirty, ...rest } = cust;
+            return rest;
+        });
+
+        if (ordersToSync.length === 0 && custsToSync.length === 0) {
+            notify({ isSyncing: false });
+            return;
+        }
+
+        // Push via server-side API (uses SERVICE_ROLE_KEY, bypasses RLS)
+        const res = await fetch('/api/orders/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orders: ordersToSync, customers: custsToSync }),
+        });
+
+        const result = await res.json();
+
+        if (res.ok && result.success) {
+            // Mark synced orders as clean
+            for (const order of dirtyOrders) {
+                await posDb.orders.update(order.id, { _dirty: false });
+            }
+            for (const cust of dirtyCusts) {
                 await posDb.customers.update(cust.id, { _dirty: false });
             }
+            console.log(`[Sync] Pushed ${result.orders} orders, ${result.customers} customers`);
+            if (result.errors?.length > 0) {
+                console.warn('[Sync] Some items had errors:', result.errors);
+            }
+        } else {
+            console.error('[Sync] Push API failed:', result.error || result);
         }
 
         notify({ lastSynced: new Date().toISOString() });

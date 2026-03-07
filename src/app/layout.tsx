@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Cairo } from "next/font/google";
+import { Inter, Cairo, Outfit } from "next/font/google";
 import "./globals.css";
 import clsx from "clsx";
 import dynamic from "next/dynamic";
@@ -10,6 +10,7 @@ const Navbar = dynamic(() => import("@/components/ui/Navbar"));
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const cairo = Cairo({ subsets: ["latin", "arabic"], variable: "--font-cairo", display: "swap" });
+const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: "swap" });
 
 export const metadata: Metadata = {
   title: "ASN Technology | Futuristic AI Solutions",
@@ -53,6 +54,7 @@ export default function RootLayout({
         className={clsx(
           inter.variable,
           cairo.variable,
+          outfit.variable,
           "font-sans antialiased selection:bg-blue selection:text-white"
         )}
       >

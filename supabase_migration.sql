@@ -16,3 +16,7 @@ ALTER TABLE items ADD COLUMN IF NOT EXISTS title_en text;
 
 -- Theme color customization
 ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS theme_colors jsonb DEFAULT '{}';
+
+-- RBAC / Team User Accounts Support
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS username text UNIQUE;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS auth_id uuid REFERENCES auth.users(id);

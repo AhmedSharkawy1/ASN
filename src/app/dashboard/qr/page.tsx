@@ -56,22 +56,22 @@ export default function QRPage() {
     ];
 
     return (
-        <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-20">
+        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
             <div>
-                <h1 className="text-2xl font-extrabold text-white flex items-center gap-3"><QrCode className="w-7 h-7 text-emerald-400" />{isAr ? "إدارة أكواد QR" : "QR Code Management"}</h1>
-                <p className="text-zinc-400 text-sm mt-1">{isAr ? "أنشئ أكواد QR للمنيو والطاولات بألوان مخصصة" : "Generate QR codes for menu and tables with custom colors"}</p>
+                <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3"><QrCode className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />{isAr ? "إدارة أكواد QR" : "QR Code Management"}</h1>
+                <p className="text-slate-500 dark:text-zinc-400 text-base mt-1">{isAr ? "أنشئ أكواد QR للمنيو والطاولات بألوان مخصصة" : "Generate QR codes for menu and tables with custom colors"}</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* QR Preview */}
-                <div className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-6 flex flex-col items-center">
+                <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-6 flex flex-col items-center">
                     <div className="p-4 rounded-2xl shadow-xl mb-4" style={{ backgroundColor: qrBg }}>
                         <QRCodeSVG value={getQRUrl()} size={220} bgColor={qrBg} fgColor={qrColor} level="H" ref={qrRef} />
                     </div>
-                    <p className="text-sm font-bold text-zinc-300 mb-1">{qrItems.find(q => q.id === selectedItem)?.label || ""}</p>
-                    <p className="text-[10px] text-zinc-500 mb-4 break-all" dir="ltr">{getQRUrl()}</p>
+                    <p className="text-base font-bold text-slate-700 dark:text-zinc-300 mb-1">{qrItems.find(q => q.id === selectedItem)?.label || ""}</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-500 mb-4 break-all" dir="ltr">{getQRUrl()}</p>
                     <button onClick={() => downloadQR(qrItems.find(q => q.id === selectedItem)?.label || "QR")}
-                        className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-extrabold text-sm rounded-xl shadow-lg hover:shadow-xl transition active:scale-95">
+                        className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-extrabold text-base rounded-xl shadow-lg hover:shadow-xl transition active:scale-95">
                         <Download className="w-5 h-5" /> {isAr ? "تحميل الكود" : "Download QR"}
                     </button>
                 </div>
@@ -79,12 +79,12 @@ export default function QRPage() {
                 {/* Settings */}
                 <div className="space-y-4">
                     {/* Target selector */}
-                    <div className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-4">
-                        <h3 className="text-sm font-bold text-zinc-300 mb-3">{isAr ? "اختر الهدف" : "Select Target"}</h3>
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-4">
+                        <h3 className="text-base font-bold text-slate-700 dark:text-zinc-300 mb-3">{isAr ? "اختر الهدف" : "Select Target"}</h3>
                         <div className="flex flex-wrap gap-2">
                             {qrItems.map(q => (
                                 <button key={q.id} onClick={() => setSelectedItem(q.id)}
-                                    className={`text-xs font-bold px-3 py-2 rounded-lg border transition ${selectedItem === q.id ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-zinc-800/50 text-zinc-500 border-zinc-700/30 hover:text-white"}`}>
+                                    className={`text-sm font-bold px-3 py-2 rounded-lg border transition ${selectedItem === q.id ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
                                     {q.label}
                                 </button>
                             ))}
@@ -92,29 +92,29 @@ export default function QRPage() {
                     </div>
 
                     {/* Color customization */}
-                    <div className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-4">
-                        <h3 className="text-sm font-bold text-zinc-300 mb-3">{isAr ? "تخصيص الألوان" : "Customize Colors"}</h3>
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-4">
+                        <h3 className="text-base font-bold text-slate-700 dark:text-zinc-300 mb-3">{isAr ? "تخصيص الألوان" : "Customize Colors"}</h3>
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                                <label className="text-[10px] text-zinc-500 font-bold uppercase">{isAr ? "لون الكود" : "QR Color"}</label>
+                                <label className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase">{isAr ? "لون الكود" : "QR Color"}</label>
                                 <div className="flex items-center gap-2">
-                                    <input type="color" value={qrColor} onChange={e => setQrColor(e.target.value)} className="w-10 h-10 rounded-lg border border-zinc-700 cursor-pointer" />
-                                    <input value={qrColor} onChange={e => setQrColor(e.target.value)} className="flex-1 px-2 py-1.5 bg-black/30 border border-zinc-800 rounded-lg text-xs font-mono text-white uppercase outline-none" dir="ltr" />
+                                    <input type="color" value={qrColor} onChange={e => setQrColor(e.target.value)} className="w-10 h-10 rounded-lg border border-slate-300 dark:border-zinc-700 cursor-pointer" />
+                                    <input value={qrColor} onChange={e => setQrColor(e.target.value)} className="flex-1 px-2 py-1.5 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm font-mono text-slate-900 dark:text-white uppercase outline-none" dir="ltr" />
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-[10px] text-zinc-500 font-bold uppercase">{isAr ? "لون الخلفية" : "Background"}</label>
+                                <label className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase">{isAr ? "لون الخلفية" : "Background"}</label>
                                 <div className="flex items-center gap-2">
-                                    <input type="color" value={qrBg} onChange={e => setQrBg(e.target.value)} className="w-10 h-10 rounded-lg border border-zinc-700 cursor-pointer" />
-                                    <input value={qrBg} onChange={e => setQrBg(e.target.value)} className="flex-1 px-2 py-1.5 bg-black/30 border border-zinc-800 rounded-lg text-xs font-mono text-white uppercase outline-none" dir="ltr" />
+                                    <input type="color" value={qrBg} onChange={e => setQrBg(e.target.value)} className="w-10 h-10 rounded-lg border border-slate-300 dark:border-zinc-700 cursor-pointer" />
+                                    <input value={qrBg} onChange={e => setQrBg(e.target.value)} className="flex-1 px-2 py-1.5 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm font-mono text-slate-900 dark:text-white uppercase outline-none" dir="ltr" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Quick presets */}
-                    <div className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-4">
-                        <h3 className="text-sm font-bold text-zinc-300 mb-3">{isAr ? "ألوان جاهزة" : "Quick Presets"}</h3>
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-4">
+                        <h3 className="text-base font-bold text-slate-700 dark:text-zinc-300 mb-3">{isAr ? "ألوان جاهزة" : "Quick Presets"}</h3>
                         <div className="flex gap-2">
                             {[
                                 { fg: "#020617", bg: "#ffffff", label: "Classic" },
@@ -124,7 +124,7 @@ export default function QRPage() {
                                 { fg: "#e11d48", bg: "#fef2f2", label: "Red" },
                             ].map((p, i) => (
                                 <button key={i} onClick={() => { setQrColor(p.fg); setQrBg(p.bg); }}
-                                    className="w-10 h-10 rounded-lg border border-zinc-700 overflow-hidden hover:scale-110 transition" title={p.label}>
+                                    className="w-10 h-10 rounded-lg border border-slate-300 dark:border-zinc-700 overflow-hidden hover:scale-110 transition" title={p.label}>
                                     <div className="w-full h-1/2" style={{ backgroundColor: p.fg }} />
                                     <div className="w-full h-1/2" style={{ backgroundColor: p.bg }} />
                                 </button>

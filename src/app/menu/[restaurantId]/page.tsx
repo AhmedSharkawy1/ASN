@@ -59,6 +59,7 @@ type Category = {
 };
 
 type RestaurantConfig = {
+  id: string;
   name: string;
   theme: string;
   phone?: string;
@@ -132,19 +133,20 @@ function SmartMenuContent({
         // Try fetching with theme_colors first; if the column doesn't exist yet, fallback without it
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let restData: any = null;
+
         const { data: d1, error: e1 } = await supabase
           .from("restaurants")
           .select(
-            "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors",
+            "id, name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors",
           )
           .eq("id", params.restaurantId)
           .single();
 
-        if (e1) {
+        if (e1 || !d1) {
           const { data: d2 } = await supabase
             .from("restaurants")
             .select(
-              "name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
+              "id, name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
             )
             .eq("id", params.restaurantId)
             .single();
@@ -168,7 +170,7 @@ function SmartMenuContent({
         const { data: catsData } = await supabase
           .from("categories")
           .select("*")
-          .eq("restaurant_id", params.restaurantId)
+          .eq("restaurant_id", restData.id)
           .order("sort_order", { ascending: true });
 
         if (catsData && catsData.length > 0) {
@@ -239,7 +241,7 @@ function SmartMenuContent({
         config={config}
         categories={categories}
         language={language}
-        restaurantId={params.restaurantId}
+        restaurantId={config.id}
       />
     );
   }
@@ -251,7 +253,7 @@ function SmartMenuContent({
         config={config}
         categories={categories}
         language={language}
-        restaurantId={params.restaurantId}
+        restaurantId={config.id}
       />
     );
   }
@@ -263,7 +265,7 @@ function SmartMenuContent({
         config={config}
         categories={categories}
         language={language}
-        restaurantId={params.restaurantId}
+        restaurantId={config.id}
       />
     );
   }
@@ -275,7 +277,7 @@ function SmartMenuContent({
         config={config}
         categories={categories}
         language={language}
-        restaurantId={params.restaurantId}
+        restaurantId={config.id}
       />
     );
   }
@@ -283,60 +285,60 @@ function SmartMenuContent({
   // If Premium Theme 5
   if (config?.theme === "theme5") {
     return (
-      <Theme5Menu config={config} categories={categories} language={language} restaurantId={params.restaurantId} />
+      <Theme5Menu config={config} categories={categories} language={language} restaurantId={config.id} />
     );
   }
 
   // If Veranda Theme 6
   if (config?.theme === "theme6") {
-    return <Theme6Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme6Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If Haleem Dark Theme 7
   if (config?.theme === "theme7") {
-    return <Theme7Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme7Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
 
 
   // If Diablo Modern Theme 9
   if (config?.theme === "theme9") {
-    return <Theme9Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme9Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If Orange Glow Theme 10
   if (config?.theme === "theme10") {
-    return <Theme10Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme10Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If Luxe Theme 11
   if (config?.theme === "theme11") {
-    return <Theme11Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme11Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If New Year Theme 12
   if (config?.theme === "theme12") {
-    return <Theme12Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme12Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If Fresh Bakery Theme 13
   if (config?.theme === "theme13") {
-    return <Theme13Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme13Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If Interactive Theme 14
   if (config?.theme === "theme14") {
-    return <Theme14Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme14Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If Seafood Theme 15
   if (config?.theme === "theme15") {
-    return <Theme15Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme15Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // If Theme 16
   if (config?.theme === "theme16") {
-    return <Theme16Menu config={config} categories={categories} restaurantId={params.restaurantId} />;
+    return <Theme16Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
   // ----------------- CART LOGIC -----------------
@@ -404,7 +406,7 @@ function SmartMenuContent({
       }));
       const total = cartTotal;
       const { error } = await supabase.from("orders").insert({
-        restaurant_id: params.restaurantId,
+        restaurant_id: config.id,
         status: "pending",
         items,
         subtotal: total,

@@ -11,11 +11,11 @@ import { motion, AnimatePresence } from "framer-motion";
 type Notification = { id: string; title: string; body?: string; type: string; target: string; is_read: boolean; scheduled_at?: string; created_at: string };
 
 const typeMap: Record<string, { color: string; icon: string }> = {
-    info: { color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: "ℹ" },
-    success: { color: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", icon: "✓" },
-    warning: { color: "bg-amber-500/20 text-amber-400 border-amber-500/30", icon: "⚠" },
-    error: { color: "bg-red-500/20 text-red-400 border-red-500/30", icon: "✕" },
-    order: { color: "bg-violet-500/20 text-violet-400 border-violet-500/30", icon: "📦" },
+    info: { color: "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30", icon: "ℹ" },
+    success: { color: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border", icon: "✓" },
+    warning: { color: "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30", icon: "⚠" },
+    error: { color: "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30", icon: "✕" },
+    order: { color: "bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30", icon: "📦" },
 };
 
 export default function NotificationsPage() {
@@ -60,21 +60,21 @@ export default function NotificationsPage() {
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    if (loading) return <div className="p-8 text-center text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
+    if (loading) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
 
     return (
-        <div className="flex flex-col gap-6 max-w-4xl mx-auto pb-20">
+        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-white flex items-center gap-3">
-                        <Bell className="w-7 h-7 text-emerald-400" />
+                    <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+                        <Bell className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
                         {isAr ? "مركز الإشعارات" : "Notification Center"}
                         {unreadCount > 0 && <span className="text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">{unreadCount}</span>}
                     </h1>
                 </div>
                 <div className="flex gap-2">
                     {unreadCount > 0 && (
-                        <button onClick={handleMarkAllRead} className="flex items-center gap-1 px-3 py-2 text-xs text-zinc-400 hover:text-white border border-zinc-700/50 rounded-xl transition">
+                        <button onClick={handleMarkAllRead} className="flex items-center gap-1 px-3 py-2 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white border border-slate-300 dark:border-zinc-700/50 rounded-xl transition">
                             <CheckCheck className="w-3.5 h-3.5" /> {isAr ? "قراءة الكل" : "Mark all read"}
                         </button>
                     )}
@@ -89,7 +89,7 @@ export default function NotificationsPage() {
             <div className="flex gap-2">
                 {(["all", "unread"] as const).map(f => (
                     <button key={f} onClick={() => setFilter(f)}
-                        className={`text-xs font-bold px-4 py-2 rounded-xl border transition ${filter === f ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-zinc-800/50 text-zinc-500 border-zinc-700/30 hover:text-white"}`}>
+                        className={`text-xs font-bold px-4 py-2 rounded-xl border transition ${filter === f ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
                         {f === "all" ? (isAr ? "الكل" : "All") : (isAr ? "غير مقروءة" : "Unread")}
                     </button>
                 ))}
@@ -99,20 +99,20 @@ export default function NotificationsPage() {
             <AnimatePresence>
                 {showForm && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-5 space-y-3">
-                            <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder={isAr ? "عنوان الإشعار" : "Notification title"} className="w-full px-3 py-2 bg-black/30 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 outline-none" />
-                            <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={2} placeholder={isAr ? "محتوى الإشعار..." : "Notification body..."} className="w-full px-3 py-2 bg-black/30 border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-600 outline-none resize-none" />
+                        <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5 space-y-3">
+                            <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder={isAr ? "عنوان الإشعار" : "Notification title"} className="w-full px-3 py-2 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none" />
+                            <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={2} placeholder={isAr ? "محتوى الإشعار..." : "Notification body..."} className="w-full px-3 py-2 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none resize-none" />
                             <div className="flex flex-wrap gap-2">
                                 {Object.keys(typeMap).map(t => (
                                     <button key={t} onClick={() => setForm(p => ({ ...p, type: t }))}
-                                        className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition ${form.type === t ? typeMap[t].color : "bg-zinc-800/50 text-zinc-500 border-zinc-700/30"}`}>
+                                        className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition ${form.type === t ? typeMap[t].color : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"}`}>
                                         {typeMap[t].icon} {t}
                                     </button>
                                 ))}
                             </div>
                             <div className="flex gap-2">
                                 <select value={form.target} onChange={e => setForm(p => ({ ...p, target: e.target.value }))}
-                                    className="px-3 py-2 bg-black/30 border border-zinc-800 rounded-lg text-xs text-white outline-none appearance-none cursor-pointer">
+                                    className="px-3 py-2 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs text-slate-900 dark:text-white outline-none appearance-none cursor-pointer">
                                     <option value="broadcast">{isAr ? "للجميع" : "Broadcast"}</option>
                                     <option value="admin">{isAr ? "المسؤولين" : "Admins"}</option>
                                     <option value="kitchen">{isAr ? "المطبخ" : "Kitchen"}</option>
@@ -121,7 +121,7 @@ export default function NotificationsPage() {
                                 <button onClick={handleSend} className="flex items-center gap-1 px-6 py-2 bg-emerald-500 text-white font-bold text-sm rounded-lg hover:bg-emerald-600 transition">
                                     <Send className="w-4 h-4" /> {isAr ? "إرسال" : "Send"}
                                 </button>
-                                <button onClick={() => setShowForm(false)} className="px-3 py-2 text-zinc-400"><X className="w-4 h-4" /></button>
+                                <button onClick={() => setShowForm(false)} className="px-3 py-2 text-slate-500 dark:text-zinc-400"><X className="w-4 h-4" /></button>
                             </div>
                         </div>
                     </motion.div>
@@ -130,27 +130,27 @@ export default function NotificationsPage() {
 
             {/* Notifications List */}
             {notifications.length === 0 ? (
-                <div className="text-center py-16 text-zinc-500"><Bell className="w-16 h-16 mx-auto mb-3 opacity-20" /><p className="font-bold">{isAr ? "لا توجد إشعارات" : "No notifications"}</p></div>
+                <div className="text-center py-16 text-slate-500 dark:text-zinc-500"><Bell className="w-16 h-16 mx-auto mb-3 opacity-20" /><p className="font-bold">{isAr ? "لا توجد إشعارات" : "No notifications"}</p></div>
             ) : (
                 <div className="flex flex-col gap-2">
                     {notifications.map(n => {
                         const tm = typeMap[n.type] || typeMap.info;
                         return (
-                            <div key={n.id} className={`bg-[#0d1117] border rounded-xl p-4 flex items-start gap-3 transition ${n.is_read ? "border-zinc-800/30 opacity-60" : "border-zinc-800/50"}`}>
+                            <div key={n.id} className={`bg-white dark:bg-card border rounded-xl p-4 flex items-start gap-3 transition ${n.is_read ? "border-slate-200 dark:border-zinc-800/30 opacity-60" : "border-slate-200 dark:border-zinc-800/50"}`}>
                                 <div className={`w-8 h-8 rounded-lg border flex items-center justify-center text-sm shrink-0 ${tm.color}`}>{tm.icon}</div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-white text-sm">{n.title}</p>
-                                    {n.body && <p className="text-xs text-zinc-400 mt-0.5 line-clamp-2">{n.body}</p>}
-                                    <div className="flex gap-2 mt-1 text-[9px] text-zinc-500">
+                                    <p className="font-bold text-slate-900 dark:text-white text-sm">{n.title}</p>
+                                    {n.body && <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 line-clamp-2">{n.body}</p>}
+                                    <div className="flex gap-2 mt-1 text-[9px] text-slate-500 dark:text-zinc-500">
                                         <span>{timeAgo(n.created_at, isAr)}</span>
                                         <span>• {n.target}</span>
                                     </div>
                                 </div>
                                 <div className="flex gap-1 shrink-0">
-                                    <button onClick={() => handleToggleRead(n)} className={`p-1 ${n.is_read ? "text-zinc-500" : "text-emerald-400"}`}>
+                                    <button onClick={() => handleToggleRead(n)} className={`p-1 ${n.is_read ? "text-slate-500 dark:text-zinc-500" : "text-emerald-600 dark:text-emerald-400"}`}>
                                         {n.is_read ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                                     </button>
-                                    <button onClick={() => handleDelete(n.id)} className="p-1 text-zinc-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    <button onClick={() => handleDelete(n.id)} className="p-1 text-slate-500 dark:text-zinc-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                                 </div>
                             </div>
                         );

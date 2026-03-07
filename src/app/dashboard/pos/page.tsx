@@ -14,7 +14,7 @@ import {
     DollarSign, Save, Send, X, Printer, Clock, Banknote,
     Smartphone, PauseCircle, Play, StickyNote, Users,
     LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
-    Package, Truck, Wifi, WifiOff, MapPin
+    Package, Truck, Wifi, WifiOff, MapPin, Maximize2, Minimize2
 } from "lucide-react";
 
 /* ═══════════════════════════ TYPES ═══════════════════════════ */
@@ -40,7 +40,8 @@ export default function POSPage() {
     const [isOnline, setIsOnline] = useState(true);
 
     /* ── UI state ── */
-    const [activeCategory, setActiveCategory] = useState<string>("all");
+    const [isCartCompact, setIsCartCompact] = useState(false);
+    const [activeCategory, setActiveCategory] = useState<string>("");
     const [searchQ, setSearchQ] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
     const [discountType, setDiscountType] = useState<"fixed" | "percent">("fixed");
@@ -49,6 +50,7 @@ export default function POSPage() {
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerAddress, setCustomerAddress] = useState("");
+    const [orderType, setOrderType] = useState<"dine_in" | "takeaway" | "delivery">("takeaway");
     const [orderNotes, setOrderNotes] = useState("");
     const [selectedDriver, setSelectedDriver] = useState<string>("");
     const [deliveryFee, setDeliveryFee] = useState(0);
@@ -104,6 +106,8 @@ export default function POSPage() {
 
         const cats = await posDb.categories.where("restaurant_id").equals(restaurantId).sortBy("sort_order");
         setCategories(cats);
+        // Default to the first category if none is selected
+        setActiveCategory(prev => (prev === "all" || !prev) && cats.length > 0 ? cats[0].id : prev);
         const items = await posDb.menu_items.where("restaurant_id").equals(restaurantId).toArray();
         setMenuItems(items.filter(i => i.is_available !== false));
 
@@ -158,7 +162,7 @@ export default function POSPage() {
     /* ── Keyboard shortcuts ── */
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if (e.key === "Escape") { setSearchQ(""); setSizePickerItem(null); setShowReceipt(false); setEditNoteIdx(null); setShowHeld(false); setShowCustomerSuggestions(false); }
+            if (e.key === "Escape") { setSearchQ(""); setShowReceipt(false); setEditNoteIdx(null); setShowHeld(false); setShowCustomerSuggestions(false); }
             if (e.key === "/" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
                 e.preventDefault(); searchRef.current?.focus();
             }
@@ -183,7 +187,7 @@ export default function POSPage() {
 
     /* ── Filtering ── */
     const filteredItems = useMemo(() => menuItems.filter(item => {
-        if (activeCategory !== "all" && item.category_id !== activeCategory) return false;
+        if (activeCategory && item.category_id !== activeCategory) return false;
         if (searchQ) { const q = searchQ.toLowerCase(); return item.title_ar.toLowerCase().includes(q) || item.title_en?.toLowerCase().includes(q); }
         return true;
     }), [menuItems, activeCategory, searchQ]);
@@ -225,7 +229,7 @@ export default function POSPage() {
     const clearCart = () => {
         setCart([]); setDiscountValue(0); setCustomerName(""); setCustomerPhone("");
         setCustomerAddress(""); setOrderNotes(""); setPaymentMethod("cash");
-        setSelectedDriver(""); setDeliveryFee(0);
+        setOrderType("takeaway"); setSelectedDriver(""); setDeliveryFee(0);
     };
 
     const subtotal = cart.reduce((sum, c) => sum + c.unitPrice * c.qty, 0);
@@ -260,7 +264,7 @@ export default function POSPage() {
                 delivery_driver_name: driverObj?.name,
                 delivery_fee: deliveryFee || undefined,
                 notes: orderNotes || undefined,
-                status: isHold ? "pending" : "completed",
+                status: "pending",
                 is_draft: isHold,
                 created_at: new Date().toISOString(),
                 _dirty: true,
@@ -354,7 +358,7 @@ export default function POSPage() {
         setHeldOrders(prev => prev.filter(h => h.id !== id));
     };
 
-    const handleItemClick = (item: PosMenuItem) => { if (item.prices.length > 1) { setSizePickerItem(item); } else { addToCart(item, 0); } };
+    const handleItemClick = (item: PosMenuItem, sizeIdx: number) => { addToCart(item, sizeIdx); };
 
     const { restaurant } = useRestaurant();
 
@@ -371,34 +375,45 @@ export default function POSPage() {
         <div className="flex flex-col h-[calc(100vh-88px)] relative" dir={isAr ? "rtl" : "ltr"}>
             {/* TOP BAR */}
             <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-                <h1 className="text-2xl font-extrabold text-white flex items-center gap-2">
-                    <CreditCard className="w-6 h-6 text-emerald-400" /> POS
-                    <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ml-2 ${isOnline ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
-                        {isOnline ? <><Wifi className="w-3 h-3" /> أونلاين</> : <><WifiOff className="w-3 h-3" /> أوفلاين</>}
-                    </span>
-                </h1>
+                <div className="flex items-center gap-4">
+                    <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <CreditCard className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /> POS
+                        <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ml-2 ${isOnline ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-500/15 text-red-600 dark:text-red-400"}`}>
+                            {isOnline ? <><Wifi className="w-3 h-3" /> أونلاين</> : <><WifiOff className="w-3 h-3" /> أوفلاين</>}
+                        </span>
+                    </h1>
+                    
+                    {/* Search */}
+                    <div className="relative w-64 hidden sm:block">
+                        <Search className={`absolute ${isAr ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-500`} />
+                        <input ref={searchRef} value={searchQ} onChange={e => setSearchQ(e.target.value)}
+                            placeholder="بحث عن صنف... (/)"
+                            className={`w-full ${isAr ? "pr-9 pl-4" : "pl-9 pr-4"} py-2 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none -blue/50 transition shadow-sm`} />
+                        {searchQ && <button onClick={() => setSearchQ("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white"><X className="w-4 h-4" /></button>}
+                    </div>
+                </div>
 
                 <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-1.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl px-3 py-2">
-                        <Receipt className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-[10px] text-zinc-500 font-bold">اليوم</span>
-                        <span className="text-xs font-extrabold text-white">{todayStats.count}</span>
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl px-3 py-2">
+                        <Receipt className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-500 font-bold">اليوم</span>
+                        <span className="text-xs font-extrabold text-slate-900 dark:text-white">{todayStats.count}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl px-3 py-2">
-                        <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-                        <span className="text-[10px] text-zinc-500 font-bold">الإيرادات</span>
-                        <span className="text-xs font-extrabold text-emerald-400">{formatCurrency(todayStats.revenue)}</span>
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl px-3 py-2">
+                        <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-[10px] text-slate-500 dark:text-zinc-500 font-bold">الإيرادات</span>
+                        <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(todayStats.revenue)}</span>
                     </div>
                     <button onClick={() => setShowHeld(!showHeld)}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showHeld ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-[#0d1117] text-zinc-400 border-zinc-800/50 hover:text-white"}`}>
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showHeld ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
                         <PauseCircle className="w-3.5 h-3.5" /> معلقة ({heldOrders.length})
                     </button>
-                    <button onClick={() => setSoundEnabled(!soundEnabled)} className="w-9 h-9 flex items-center justify-center bg-[#0d1117] border border-zinc-800/50 rounded-xl text-zinc-500 hover:text-white transition">
+                    <button onClick={() => setSoundEnabled(!soundEnabled)} className="w-9 h-9 flex items-center justify-center bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white transition">
                         {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                     </button>
-                    <div className="flex items-center gap-1.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl px-3 py-2">
-                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                        <span className="text-xs font-bold text-zinc-300 tabular-nums">{currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
+                    <div className="flex items-center gap-1.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl px-3 py-2">
+                        <Clock className="w-3.5 h-3.5 text-slate-500 dark:text-zinc-500" />
+                        <span className="text-xs font-bold text-slate-700 dark:text-zinc-300 tabular-nums">{currentTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
                 </div>
             </div>
@@ -407,105 +422,130 @@ export default function POSPage() {
             <div className="flex flex-1 gap-4 min-h-0">
                 {/* LEFT: MENU */}
                 <div className="flex-1 flex flex-col min-h-0 min-w-0">
-                    {/* Search */}
-                    <div className="relative mb-3">
-                        <Search className={`absolute ${isAr ? "right-3" : "left-3"} top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500`} />
-                        <input ref={searchRef} value={searchQ} onChange={e => setSearchQ(e.target.value)}
-                            placeholder="بحث عن صنف... (/)"
-                            className={`w-full ${isAr ? "pr-10 pl-4" : "pl-10 pr-4"} py-2.5 bg-[#0d1117] border border-zinc-800/50 rounded-xl text-sm text-white placeholder:text-zinc-600 outline-none focus:border-emerald-500/50 transition`} />
-                        {searchQ && <button onClick={() => setSearchQ("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>}
-                    </div>
+
 
                     {/* Category Tabs */}
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        <button onClick={() => setActiveCategory("all")}
-                            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeCategory === "all" ? "bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500/40 shadow-lg shadow-emerald-500/10" : "bg-[#0d1117] text-zinc-400 border border-zinc-800/50 hover:text-white"}`}>
-                            <LayoutGrid className="w-3.5 h-3.5" /> الكل
-                            <span className="bg-zinc-700/50 text-zinc-400 px-1.5 py-0.5 rounded-md text-[10px] font-bold">{menuItems.length}</span>
-                        </button>
+                    <div className="flex flex-wrap gap-2 mb-3 pb-1">
                         {categories.map(cat => (
                             <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
-                                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${activeCategory === cat.id ? "bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500/40 shadow-lg shadow-emerald-500/10" : "bg-[#0d1117] text-zinc-400 border border-zinc-800/50 hover:text-white"}`}>
-                                {(cat.image_data || cat.image_url) ? <img src={cat.image_data || cat.image_url} alt="" className="w-4 h-4 rounded object-cover" /> : cat.emoji && <span>{cat.emoji}</span>}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${activeCategory === cat.id ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-2 border-emerald-400 dark:border-glass-border shadow-sm" : "bg-white dark:bg-card text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800/50 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white"}`}>
+                                {(cat.image_data || cat.image_url) ? <img src={cat.image_data || cat.image_url} alt="" className="w-3.5 h-3.5 rounded object-cover" /> : cat.emoji && <span>{cat.emoji}</span>}
                                 {isAr ? cat.name_ar : (cat.name_en || cat.name_ar)}
-                                <span className="bg-zinc-700/50 text-zinc-400 px-1.5 py-0.5 rounded-md text-[10px] font-bold">{categoryCounts[cat.id] || 0}</span>
+                                <span className="bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-md text-[10px] font-bold">{categoryCounts[cat.id] || 0}</span>
                             </button>
                         ))}
                     </div>
 
                     {/* Items Grid */}
-                    <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-3 content-start pb-2 auto-rows-max" style={{ scrollbarWidth: "thin", scrollbarColor: "#333 transparent" }}>
+                    <div className="flex-1 overflow-y-auto grid grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-10 gap-1.5 content-start pb-2 auto-rows-max" style={{ scrollbarWidth: "none" }}>
                         {filteredItems.length === 0 ? (
-                            <div className="col-span-full text-center py-16 text-zinc-600"><Package className="w-12 h-12 mx-auto mb-3 opacity-30" /><p className="text-sm font-bold">لا توجد أصناف</p></div>
-                        ) : filteredItems.map(item => {
-                            const imgSrc = item.image_data || item.image_url || getCatImage(item.category_id);
-                            return (
-                                <button key={item.id} onClick={() => handleItemClick(item)}
-                                    className="bg-[#0d1117] border border-zinc-800/60 rounded-xl p-2 text-right transition-all group relative overflow-hidden hover:border-emerald-500/40 hover:shadow-md hover:shadow-emerald-500/5 active:scale-95 cursor-pointer flex flex-col">
-                                    {imgSrc ? (
-                                        <div className="w-full h-16 rounded-lg bg-zinc-800/30 mb-2 overflow-hidden"><img src={imgSrc} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" /></div>
-                                    ) : (
-                                        <div className="w-full h-16 rounded-lg bg-zinc-800/30 mb-2 flex items-center justify-center"><Package className="w-6 h-6 text-zinc-700" /></div>
-                                    )}
-                                    <p className="text-xs font-bold text-zinc-200 group-hover:text-emerald-400 transition leading-tight mb-1">{isAr ? item.title_ar : (item.title_en || item.title_ar)}</p>
-                                    <div className="flex flex-col gap-1 mt-auto pt-2 border-t border-zinc-800/50">
-                                        {item.prices.map((p, idx) => (
-                                            <div key={idx} className="flex items-center justify-between text-[13px] bg-black/20 px-2 py-1.5 rounded mt-1">
-                                                <span className="text-zinc-400 font-bold">{item.size_labels?.[idx] || (item.prices.length > 1 ? `حجم ${idx + 1}` : "السعر")}</span>
-                                                <span className="font-black text-emerald-400 text-lg">{formatCurrency(p)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {item.is_popular && <div className="absolute top-1 right-1 text-[8px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold z-10 border border-amber-500/20">⭐ مميز</div>}
-                                </button>
-                            );
-                        })}
+                            <div className="col-span-full text-center py-16 text-slate-400 dark:text-zinc-600"><Package className="w-12 h-12 mx-auto mb-3 opacity-30" /><p className="text-sm font-bold">لا توجد أصناف</p></div>
+                        ) : (() => {
+                            // Flatten items so each size variant becomes its own card
+                            const flattenedCards: { item: PosMenuItem, sizeIdx: number, price: number, colorIdx: number }[] = [];
+                            let colorCounter = 0;
+                            
+                            filteredItems.forEach(item => {
+                                item.prices.forEach((price, idx) => {
+                                    flattenedCards.push({ item, sizeIdx: idx, price, colorIdx: colorCounter++ });
+                                });
+                            });
+
+                            return flattenedCards.map(({ item, sizeIdx, price, colorIdx }, index) => {
+                                const sizeName = item.size_labels?.[sizeIdx] || "";
+                                const hasMultipleSizes = item.prices.length > 1;
+                                
+                                // Vibrant colors for the price footer band
+                                const bandColors = [
+                                    "bg-indigo-500",
+                                    "bg-rose-500",
+                                    "bg-emerald-500",
+                                    "bg-amber-500",
+                                    "bg-sky-500",
+                                    "bg-fuchsia-500"
+                                ];
+                                const bandColorClass = bandColors[colorIdx % bandColors.length];
+                                
+                                return (
+                                    <button key={`${item.id}-${sizeIdx}`} onClick={() => handleItemClick(item, sizeIdx)}
+                                        className="rounded-xl overflow-hidden text-center transition-all group relative active:scale-95 cursor-pointer flex flex-col items-stretch justify-between min-h-[115px] shadow-sm hover:shadow-md border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-card hover:border-slate-300 dark:hover:border-zinc-700">
+                                        
+                                        {/* Top section: Clean text */}
+                                        <div className="flex-1 flex flex-col items-center justify-center p-2 pt-3 gap-1">
+                                            <p className="text-[18px] xl:text-[22px] font-black leading-snug px-0.5 break-words w-full text-slate-800 dark:text-zinc-100 group-hover:text-black dark:group-hover:text-white transition-colors">
+                                                {isAr ? item.title_ar : (item.title_en || item.title_ar)}
+                                            </p>
+                                            
+                                            {hasMultipleSizes && sizeName && (
+                                                <p className="text-[14px] font-bold text-slate-500 dark:text-zinc-400 mt-0.5">
+                                                    ({sizeName})
+                                                </p>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Bottom section: Colored price band */}
+                                        <div className={`w-full py-2 flex justify-center items-center text-white ${bandColorClass} bg-opacity-90 group-hover:bg-opacity-100 transition-all`}>
+                                            <span className="text-[15px] font-black tracking-widest drop-shadow-sm">
+                                                {formatCurrency(price)}
+                                            </span>
+                                        </div>
+                                        
+                                        {item.is_popular && sizeIdx === 0 && <div className="absolute top-1.5 right-1.5 text-[10px] bg-amber-400 text-amber-950 font-black px-1.5 rounded-sm shadow-sm z-20">★ مميز</div>}
+                                    </button>
+                                );
+                            });
+                        })()}
                     </div>
                 </div>
 
                 {/* RIGHT: CART */}
-                <div className="w-full lg:w-[400px] bg-[#0d1117] border border-zinc-800/50 rounded-xl flex flex-col min-h-0 shrink-0">
-                    <div className="p-4 border-b border-zinc-800/50 flex items-center justify-between">
-                        <h2 className="font-extrabold text-white flex items-center gap-2">
-                            <ShoppingCart className="w-5 h-5 text-emerald-400" /> السلة <span className="text-emerald-400 text-sm">({cartCount})</span>
-                        </h2>
+                <div className={`w-full transition-all duration-300 ease-in-out bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl flex flex-col min-h-0 shrink-0 ${isCartCompact ? "lg:w-[260px]" : "lg:w-[480px] xl:w-[520px]"}`}>
+                    <div className="p-4 border-b border-slate-200 dark:border-zinc-800/50 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {lastOrderNumber && <button onClick={() => setShowReceipt(true)} className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg text-[10px] font-bold transition"><Printer className="w-3.5 h-3.5" /> #{lastOrderNumber}</button>}
-                            {cart.length > 0 && <button onClick={clearCart} className="text-[10px] text-red-400 hover:text-red-300 font-bold">مسح الكل</button>}
+                            <button onClick={() => setIsCartCompact(!isCartCompact)} className="p-1 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-white transition-colors" title={isCartCompact ? "توسيع السلة" : "تصغير السلة"}>
+                                {isCartCompact ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+                            </button>
+                            <h2 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                <ShoppingCart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> <span className={isCartCompact ? "hidden" : "inline"}>السلة</span> <span className="text-emerald-600 dark:text-emerald-400 text-sm">({cartCount})</span>
+                            </h2>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {lastOrderNumber && !isCartCompact && <button onClick={() => setShowReceipt(true)} className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg text-[10px] font-bold transition"><Printer className="w-3.5 h-3.5" /> #{lastOrderNumber}</button>}
+                            {cart.length > 0 && <button onClick={clearCart} className="text-[10px] text-red-600 dark:text-red-400 hover:text-red-300 font-bold">مسح</button>}
                         </div>
                     </div>
 
                     {/* Cart Items */}
                     <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ scrollbarWidth: "none" }}>
                         {cart.length === 0 ? (
-                            <div className="text-center py-12 text-zinc-600"><ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" /><p className="text-xs">السلة فارغة</p></div>
+                            <div className="text-center py-12 text-slate-400 dark:text-zinc-600"><ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" /><p className="text-xs">السلة فارغة</p></div>
                         ) : cart.map((c, i) => (
-                            <div key={`${c.menuItem.id}-${c.selectedSizeIdx}-${i}`} className="bg-black/20 rounded-lg p-2.5 group/item">
+                            <div key={`${c.menuItem.id}-${c.selectedSizeIdx}-${i}`} className="bg-slate-50 dark:bg-black/20 rounded-lg p-2.5 group/item">
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-bold text-zinc-200 truncate">
+                                        <p className="text-[17px] xl:text-[20px] font-black text-slate-800 dark:text-zinc-100 truncate">
                                             {c.menuItem.title_ar}
-                                            {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 && <span className="text-zinc-500"> ({c.menuItem.size_labels[c.selectedSizeIdx]})</span>}
+                                            {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 && <span className="text-slate-500 dark:text-zinc-400 text-[15px]"> ({c.menuItem.size_labels[c.selectedSizeIdx]})</span>}
                                         </p>
-                                        {c.categoryName && <p className="text-[10px] text-blue-400 font-bold">{c.categoryName}</p>}
-                                        <p className="text-[10px] text-emerald-400 font-bold">{formatCurrency(c.unitPrice)} × {c.qty}</p>
-                                        {c.note && <p className="text-[9px] text-amber-400/70 mt-0.5 truncate">📝 {c.note}</p>}
+                                        {c.categoryName && <p className="text-[13px] text-blue-600 dark:text-blue-400 font-bold mt-1">{c.categoryName}</p>}
+                                        <p className="text-[15px] xl:text-[17px] text-emerald-600 dark:text-emerald-400 font-black mt-1">{formatCurrency(c.unitPrice)} × {c.qty}</p>
+                                        {c.note && <p className="text-[13px] text-amber-500 mt-1 truncate font-bold">📝 {c.note}</p>}
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                        <button onClick={() => updateQty(i, -1)} className="w-6 h-6 bg-zinc-700/50 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-600"><Minus className="w-3 h-3" /></button>
-                                        <span className="w-6 text-center text-xs font-bold text-white tabular-nums">{c.qty}</span>
-                                        <button onClick={() => updateQty(i, 1)} className="w-6 h-6 bg-zinc-700/50 text-zinc-400 rounded flex items-center justify-center hover:bg-zinc-600"><Plus className="w-3 h-3" /></button>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => updateQty(i, -1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Minus className="w-4 h-4" /></button>
+                                        <span className="w-8 text-center text-[18px] xl:text-[20px] font-black text-slate-900 dark:text-white tabular-nums">{c.qty}</span>
+                                        <button onClick={() => updateQty(i, 1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Plus className="w-4 h-4" /></button>
                                     </div>
-                                    <span className="text-xs font-extrabold text-white w-16 text-left tabular-nums">{formatCurrency(c.unitPrice * c.qty)}</span>
+                                    <span className="text-[18px] xl:text-[20px] font-black text-slate-900 dark:text-white w-24 text-left tabular-nums">{formatCurrency(c.unitPrice * c.qty)}</span>
                                     <div className="flex items-center gap-1">
-                                        <button onClick={() => setEditNoteIdx(editNoteIdx === i ? null : i)} className={`${c.note ? "text-amber-400" : "text-zinc-600"} hover:text-amber-400 opacity-0 group-hover/item:opacity-100 transition-opacity`}><StickyNote className="w-3 h-3" /></button>
+                                        <button onClick={() => setEditNoteIdx(editNoteIdx === i ? null : i)} className={`${c.note ? "text-amber-600 dark:text-amber-400" : "text-slate-400 dark:text-zinc-600"} hover:text-amber-400 opacity-0 group-hover/item:opacity-100 transition-opacity`}><StickyNote className="w-3 h-3" /></button>
                                         <button onClick={() => removeFromCart(i)} className="text-red-400/60 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>
                                     </div>
                                 </div>
                                 {editNoteIdx === i && (
                                     <div className="mt-2 flex gap-1">
-                                        <input value={c.note || ""} onChange={e => setItemNote(i, e.target.value)} placeholder="ملاحظة..." className="flex-1 px-2 py-1 bg-zinc-800/50 border border-zinc-700/50 rounded text-[10px] text-white placeholder:text-zinc-600 outline-none" autoFocus onKeyDown={e => e.key === "Enter" && setEditNoteIdx(null)} />
-                                        <button onClick={() => setEditNoteIdx(null)} className="text-emerald-400 text-[10px] font-bold px-1">✓</button>
+                                        <input value={c.note || ""} onChange={e => setItemNote(i, e.target.value)} placeholder="ملاحظة..." className="flex-1 px-2 py-1 bg-slate-100 dark:bg-zinc-800/50 border border-slate-300 dark:border-zinc-700/50 rounded text-[10px] text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none" autoFocus onKeyDown={e => e.key === "Enter" && setEditNoteIdx(null)} />
+                                        <button onClick={() => setEditNoteIdx(null)} className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-1">✓</button>
                                     </div>
                                 )}
                             </div>
@@ -514,100 +554,97 @@ export default function POSPage() {
 
                     {/* Cart Footer */}
                     {cart.length > 0 && (
-                        <div className="border-t border-zinc-800/50 p-4 space-y-3">
-                            {/* Customer */}
+                        <div className="border-t border-slate-200 dark:border-zinc-800/50 p-4 space-y-3">
+                            {/* Order Type Toggle */}
+                            <div className="flex gap-1.5 p-1 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg">
+                                {[{ key: "dine_in", icon: <LayoutGrid className="w-3.5 h-3.5" />, label: "صالة" },
+                                  { key: "takeaway", icon: <Package className="w-3.5 h-3.5" />, label: "تيك أواي" },
+                                  { key: "delivery", icon: <Truck className="w-3.5 h-3.5" />, label: "دليفري" }].map(t => (
+                                    <button key={t.key} onClick={() => setOrderType(t.key as any)} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all ${orderType === t.key ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300"}`}>
+                                        {t.icon} {t.label}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            {/* Customer Search / Input */}
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="relative">
-                                    <Users className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
+                                    <Users className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
                                     <input value={customerName}
                                         onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
                                         onFocus={() => setShowCustomerSuggestions(true)}
                                         onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 300)}
-                                        placeholder="اسم العميل"
-                                        className="w-full pr-7 pl-2 py-2 bg-black/30 border border-zinc-800 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none focus:border-zinc-600 transition" />
+                                        placeholder="بحث برقم العميل أو اسمه..."
+                                        className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
                                     {showCustomerSuggestions && customerSuggestions.length > 0 && (
-                                        <div className="absolute top-full mt-1 left-0 right-0 bg-[#0d1117] border border-zinc-700 rounded-lg overflow-hidden z-50 shadow-xl">
+                                        <div className="absolute bottom-full mb-1 left-0 right-0 bg-white dark:bg-card border border-slate-300 dark:border-zinc-700 rounded-lg overflow-hidden z-50 shadow-xl max-h-48 overflow-y-auto">
                                             {customerSuggestions.map((c, i) => (
-                                                <button key={i} onClick={() => selectCustomer(c)} className="w-full text-right px-3 py-2 hover:bg-emerald-500/10 transition flex items-center justify-between">
-                                                    <span className="text-xs font-bold text-zinc-300">{c.name}</span>
-                                                    <span className="text-[10px] text-zinc-500" dir="ltr">{c.phone}</span>
+                                                <button key={i} onClick={() => selectCustomer(c)} className="w-full text-right px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition flex items-center justify-between">
+                                                    <span className="text-[13px] font-bold text-slate-800 dark:text-zinc-200">{c.name}</span>
+                                                    <span className="text-[11px] text-slate-500 dark:text-zinc-500 font-mono" dir="ltr">{c.phone}</span>
                                                 </button>
                                             ))}
                                         </div>
                                     )}
                                 </div>
-                                <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="الهاتف" dir="ltr" className="px-2.5 py-2 bg-black/30 border border-zinc-800 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none focus:border-zinc-600 transition" />
+                                <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="رقم الهاتف..." dir="ltr" className="px-2.5 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold font-mono text-right text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
                             </div>
 
-                            {/* Notes + Driver */}
-                            <div className="grid grid-cols-2 gap-2">
-                                <input value={orderNotes} onChange={e => setOrderNotes(e.target.value)} placeholder="ملاحظات الطلب" className="px-2.5 py-2 bg-black/30 border border-zinc-800 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none focus:border-zinc-600 transition" />
-                                <div className="relative">
-                                    <Truck className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-600" />
-                                    <select value={selectedDriver} onChange={e => setSelectedDriver(e.target.value)}
-                                        className="w-full pr-7 pl-2 py-2 bg-black/30 border border-zinc-800 rounded-lg text-xs text-white outline-none appearance-none cursor-pointer">
-                                        <option value="">بدون دليفري</option>
-                                        {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                    </select>
-                                </div>
-                            </div>
-                            {selectedDriver !== "" && (
-                                <div className="space-y-2">
-                                    {/* Delivery zones quick-select */}
-                                    {zones.length > 0 && (
-                                        <div>
-                                            <p className="text-[9px] text-zinc-500 font-bold uppercase mb-1.5 flex items-center gap-1"><MapPin className="w-3 h-3" /> منطقة التوصيل</p>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {zones.map(z => (
-                                                    <button key={z.id} onClick={() => setDeliveryFee(z.fee)}
-                                                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${deliveryFee === z.fee ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40 shadow-sm shadow-cyan-500/10" : "bg-zinc-800/50 text-zinc-400 border-zinc-700/30 hover:text-white hover:border-zinc-600"}`}>
-                                                        <MapPin className="w-2.5 h-2.5" />
-                                                        {z.name_ar}
-                                                        <span className={`font-extrabold ${deliveryFee === z.fee ? "text-cyan-300" : "text-emerald-400"}`}>{formatCurrency(z.fee)}</span>
-                                                        {z.estimated_time > 0 && <span className="text-zinc-600 text-[9px]">• {z.estimated_time}د</span>}
-                                                    </button>
-                                                ))}
-                                            </div>
+                            {/* Delivery Options (Only if Delivery) */}
+                            {orderType === "delivery" && (
+                                <div className="space-y-2 p-2.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg shadow-inner">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="relative">
+                                            <Truck className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
+                                            <select value={selectedDriver} onChange={e => setSelectedDriver(e.target.value)}
+                                                className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white outline-none appearance-none cursor-pointer focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm">
+                                                <option value="">اختر الطيار...</option>
+                                                {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                            </select>
                                         </div>
-                                    )}
-                                    <input value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="عنوان التوصيل" className="w-full px-2.5 py-2 bg-amber-500/10 border border-amber-500/30 rounded-lg text-xs text-white placeholder:text-amber-500/50 outline-none focus:border-amber-500 transition" />
-                                    <div className="flex items-center gap-2">
-                                        <Truck className="w-3 h-3 text-zinc-500 flex-shrink-0" />
-                                        <input type="number" value={deliveryFee || ""} onChange={e => setDeliveryFee(Number(e.target.value))} placeholder="حساب الدليفري (ج.م)" min="0" className="flex-1 px-2.5 py-2 bg-black/30 border border-zinc-800 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none focus:border-cyan-500/50 transition" />
-                                        <span className="text-[10px] font-extrabold text-cyan-400 whitespace-nowrap">{deliveryFee > 0 ? formatCurrency(deliveryFee) : ""}</span>
+                                        <div className="flex items-center gap-1.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg px-2.5 py-1 focus-within:border-black dark:focus-within:border-white focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm">
+                                            <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold whitespace-nowrap">حساب الدليفري</span>
+                                            <input type="number" value={deliveryFee || ""} onChange={e => setDeliveryFee(Number(e.target.value))} placeholder="0" min="0" className="w-full py-1 text-[13px] text-slate-900 dark:text-white placeholder:text-slate-400 text-center font-black outline-none bg-transparent" />
+                                        </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Discount */}
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => setDiscountType(discountType === "fixed" ? "percent" : "fixed")} className="w-8 h-8 bg-zinc-700/50 text-zinc-400 rounded-lg flex items-center justify-center hover:text-white transition">
-                                    {discountType === "percent" ? <Percent className="w-3.5 h-3.5" /> : <DollarSign className="w-3.5 h-3.5" />}
-                                </button>
-                                <input type="number" value={discountValue || ""} onChange={e => setDiscountValue(Number(e.target.value))} placeholder="خصم" min="0" className="flex-1 px-2.5 py-2 bg-black/30 border border-zinc-800 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none focus:border-zinc-600 transition" />
+                            {/* Notes + Discount (Compacted) */}
+                            <div className="grid grid-cols-[2fr_1fr] gap-2">
+                                <div className="relative">
+                                    <StickyNote className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
+                                    <input value={orderNotes} onChange={e => setOrderNotes(e.target.value)} placeholder="ملاحظات الطلب العام..." className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
+                                </div>
+                                <div className="flex bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg overflow-hidden focus-within:border-black dark:focus-within:border-white focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm group">
+                                     <button onClick={() => setDiscountType(discountType === "fixed" ? "percent" : "fixed")} className="px-2.5 flex items-center justify-center bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 transition border-l border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
+                                        {discountType === "percent" ? <Percent className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
+                                    </button>
+                                    <input type="number" value={discountValue || ""} onChange={e => setDiscountValue(Number(e.target.value))} placeholder="خصم..." min="0" className="w-full px-2 py-2.5 text-[13px] font-black text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none bg-transparent" />
+                                </div>
                             </div>
 
                             {/* Payment */}
                             <div className="flex gap-1.5">
                                 {[{ key: "cash", icon: <Banknote className="w-3 h-3" />, label: "كاش" }, { key: "card", icon: <CreditCard className="w-3 h-3" />, label: "بطاقة" }, { key: "online", icon: <Smartphone className="w-3 h-3" />, label: "أونلاين" }].map(pm => (
-                                    <button key={pm.key} onClick={() => setPaymentMethod(pm.key)} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all ${paymentMethod === pm.key ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" : "bg-zinc-800/50 text-zinc-400 border border-zinc-700/30 hover:text-white"}`}>
+                                    <button key={pm.key} onClick={() => setPaymentMethod(pm.key)} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all ${paymentMethod === pm.key ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
                                         {pm.icon} {pm.label}
                                     </button>
                                 ))}
                             </div>
 
                             {/* Totals */}
-                            <div className="space-y-1 text-xs">
-                                <div className="flex justify-between text-zinc-400"><span>المجموع الفرعي</span><span className="tabular-nums">{formatCurrency(subtotal)}</span></div>
-                                {discount > 0 && <div className="flex justify-between text-red-400"><span>الخصم</span><span className="tabular-nums">-{formatCurrency(discount)}</span></div>}
-                                {deliveryFee > 0 && <div className="flex justify-between text-cyan-400"><span>🚚 حساب الدليفري</span><span className="tabular-nums">+{formatCurrency(deliveryFee)}</span></div>}
-                                <div className="flex justify-between text-white font-extrabold text-lg pt-1.5 border-t border-zinc-700/50"><span>الإجمالي</span><span className="text-emerald-400 tabular-nums">{formatCurrency(total)}</span></div>
+                            <div className="space-y-2 text-[14px] xl:text-[15px] font-bold">
+                                <div className="flex justify-between text-slate-500 dark:text-zinc-400"><span>المجموع الفرعي</span><span className="tabular-nums">{formatCurrency(subtotal)}</span></div>
+                                {discount > 0 && <div className="flex justify-between text-red-600 dark:text-red-400"><span>الخصم</span><span className="tabular-nums">-{formatCurrency(discount)}</span></div>}
+                                {deliveryFee > 0 && <div className="flex justify-between text-cyan-600 dark:text-cyan-400"><span>🚚 حساب الدليفري</span><span className="tabular-nums">+{formatCurrency(deliveryFee)}</span></div>}
+                                <div className="flex justify-between text-slate-900 dark:text-white font-black text-[20px] xl:text-[24px] pt-3 mt-2 border-t-2 border-slate-300 dark:border-zinc-700/50"><span>الإجمالي</span><span className="text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(total)}</span></div>
                             </div>
 
                             {/* Actions */}
                             <div className="flex gap-2">
-                                <button onClick={() => submitOrder(true)} disabled={submitting} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-zinc-700/50 text-zinc-300 font-bold text-sm rounded-xl hover:bg-zinc-600/50 transition active:scale-95 disabled:opacity-50 border border-zinc-700/30"><Save className="w-4 h-4" /> تعليق</button>
-                                <button onClick={() => submitOrder(false)} disabled={submitting} className="flex-[2] flex items-center justify-center gap-1.5 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition active:scale-95 disabled:opacity-50"><Send className="w-4 h-4" /> {submitting ? "جاري..." : "إرسال الطلب"}</button>
+                                <button onClick={() => submitOrder(true)} disabled={submitting} className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-200 dark:bg-zinc-700/50 text-slate-700 dark:text-zinc-300 font-extrabold text-[15px] rounded-xl hover:bg-zinc-600/50 transition active:scale-95 disabled:opacity-50 border border-slate-200 dark:border-zinc-700/30"><Save className="w-5 h-5" /> تعليق</button>
+                                <button onClick={() => submitOrder(false)} disabled={submitting} className="flex-[2] flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-black text-[17px] xl:text-[19px] rounded-xl shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20 hover:shadow-emerald-500/40 transition active:scale-95 disabled:opacity-50"><Send className="w-5 h-5" /> {submitting ? "جاري..." : "إرسال الطلب"}</button>
                             </div>
                         </div>
                     )}
@@ -616,18 +653,18 @@ export default function POSPage() {
                 {/* HELD ORDERS */}
                 {showHeld && (
                     <div className="absolute top-0 bottom-0 left-0 right-0 z-50 flex">
-                        <div className="flex-1 bg-black/50 backdrop-blur-sm" onClick={() => setShowHeld(false)} />
-                        <div className="w-full max-w-sm bg-[#0a0e14] border-r border-zinc-800/50 flex flex-col shadow-2xl">
-                            <div className="p-4 border-b border-zinc-800/50 flex items-center justify-between"><h3 className="font-extrabold text-white flex items-center gap-2"><PauseCircle className="w-5 h-5 text-amber-400" /> طلبات معلقة ({heldOrders.length})</h3><button onClick={() => setShowHeld(false)} className="text-zinc-500 hover:text-white"><X className="w-5 h-5" /></button></div>
+                        <div className="flex-1 bg-slate-200 dark:bg-black/50 backdrop-blur-sm" onClick={() => setShowHeld(false)} />
+                        <div className="w-full max-w-sm bg-slate-50 dark:bg-background border-r border-slate-200 dark:border-zinc-800/50 flex flex-col shadow-2xl">
+                            <div className="p-4 border-b border-slate-200 dark:border-zinc-800/50 flex items-center justify-between"><h3 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><PauseCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" /> طلبات معلقة ({heldOrders.length})</h3><button onClick={() => setShowHeld(false)} className="text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white"><X className="w-5 h-5" /></button></div>
                             <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ scrollbarWidth: "none" }}>
-                                {heldOrders.length === 0 ? <div className="text-center py-12 text-zinc-600"><PauseCircle className="w-10 h-10 mx-auto mb-2 opacity-20" /><p className="text-xs">لا توجد طلبات معلقة</p></div> :
+                                {heldOrders.length === 0 ? <div className="text-center py-12 text-slate-400 dark:text-zinc-600"><PauseCircle className="w-10 h-10 mx-auto mb-2 opacity-20" /><p className="text-xs">لا توجد طلبات معلقة</p></div> :
                                     heldOrders.map(o => (
-                                        <div key={o.id} className="bg-[#0d1117] border border-zinc-800/50 rounded-xl p-3">
-                                            <div className="flex items-start justify-between mb-2"><div><p className="text-xs font-bold text-zinc-300">{o.customer_name || "بدون اسم"}</p><p className="text-[10px] text-zinc-500">{new Date(o.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</p></div><span className="text-xs font-extrabold text-emerald-400">{formatCurrency(o.total)}</span></div>
-                                            <div className="space-y-0.5 mb-2">{o.items.slice(0, 3).map((item, idx) => <p key={idx} className="text-[10px] text-zinc-500 truncate">• {item.title} × {item.qty}</p>)}{o.items.length > 3 && <p className="text-[10px] text-zinc-600">+{o.items.length - 3} أخرى</p>}</div>
+                                        <div key={o.id} className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-3">
+                                            <div className="flex items-start justify-between mb-2"><div><p className="text-xs font-bold text-slate-700 dark:text-zinc-300">{o.customer_name || "بدون اسم"}</p><p className="text-[10px] text-slate-500 dark:text-zinc-500">{new Date(o.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}</p></div><span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(o.total)}</span></div>
+                                            <div className="space-y-0.5 mb-2">{o.items.slice(0, 3).map((item, idx) => <p key={idx} className="text-[10px] text-slate-500 dark:text-zinc-500 truncate">• {item.title} × {item.qty}</p>)}{o.items.length > 3 && <p className="text-[10px] text-slate-400 dark:text-zinc-600">+{o.items.length - 3} أخرى</p>}</div>
                                             <div className="flex gap-1.5">
-                                                <button onClick={() => restoreHeldOrder(o)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-lg hover:bg-emerald-500/30 transition"><Play className="w-3 h-3" /> استعادة</button>
-                                                <button onClick={() => deleteHeldOrder(o.id)} className="px-3 py-1.5 bg-red-500/10 text-red-400 text-[10px] font-bold rounded-lg hover:bg-red-500/20 transition"><Trash2 className="w-3 h-3" /></button>
+                                                <button onClick={() => restoreHeldOrder(o)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition"><Play className="w-3 h-3" /> استعادة</button>
+                                                <button onClick={() => deleteHeldOrder(o.id)} className="px-3 py-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 text-[10px] font-bold rounded-lg hover:bg-red-500/20 transition"><Trash2 className="w-3 h-3" /></button>
                                             </div>
                                         </div>
                                     ))}
@@ -637,39 +674,22 @@ export default function POSPage() {
                 )}
             </div>
 
-            {/* SIZE PICKER */}
-            {sizePickerItem && (
-                <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSizePickerItem(null)}>
-                    <div className="bg-[#0d1117] border border-zinc-800/50 rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="p-4 border-b border-zinc-800/50 flex items-center justify-between"><h3 className="font-bold text-white text-sm">اختر الحجم</h3><button onClick={() => setSizePickerItem(null)} className="text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button></div>
-                        <div className="p-3 space-y-2">
-                            <p className="text-xs text-zinc-400 mb-2 font-bold">{sizePickerItem.title_ar}</p>
-                            {sizePickerItem.prices.map((price, idx) => (
-                                <button key={idx} onClick={() => { addToCart(sizePickerItem, idx); setSizePickerItem(null); }}
-                                    className="w-full flex items-center justify-between p-3 bg-black/20 border border-zinc-800/50 rounded-xl hover:border-emerald-500/30 hover:bg-emerald-500/5 transition active:scale-95 text-right mt-2">
-                                    <span className="text-xl font-black text-emerald-400">{formatCurrency(price)}</span>
-                                    <span className="text-sm font-bold text-zinc-300">{sizePickerItem.size_labels?.[idx] || `حجم ${idx + 1}`}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* SIZE PICKER (Removed) */}
 
             {/* SUCCESS */}
             {successFlash && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center pointer-events-none">
-                    <div className="bg-emerald-500/20 backdrop-blur-xl border border-emerald-500/30 rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-2xl animate-pulse">
-                        <CheckCircle2 className="w-12 h-12 text-emerald-400" /><p className="text-lg font-extrabold text-emerald-400">تم إرسال الطلب!</p>
-                        {lastOrderNumber && <p className="text-sm text-zinc-300 font-bold">#{lastOrderNumber}</p>}
-                        <button onClick={() => { setSuccessFlash(false); setShowReceipt(true); }} className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500/30 transition pointer-events-auto"><Printer className="w-3.5 h-3.5" /> طباعة الفاتورة</button>
+                    <div className="bg-emerald-100 dark:bg-emerald-500/20 backdrop-blur-xl border border-emerald-200 dark:border-glass-border rounded-2xl px-8 py-6 flex flex-col items-center gap-3 shadow-2xl animate-pulse">
+                        <CheckCircle2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400" /><p className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">تم إرسال الطلب!</p>
+                        {lastOrderNumber && <p className="text-sm text-slate-700 dark:text-zinc-300 font-bold">#{lastOrderNumber}</p>}
+                        <button onClick={() => { setSuccessFlash(false); setShowReceipt(true); }} className="flex items-center gap-1.5 px-4 py-2 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-200 dark:hover:bg-emerald-500/30 transition pointer-events-auto"><Printer className="w-3.5 h-3.5" /> طباعة الفاتورة</button>
                     </div>
                 </div>
             )}
 
             {/* RECEIPT */}
             {showReceipt && lastOrderNumber && (
-                <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowReceipt(false)}>
+                <div className="fixed inset-0 z-[200] bg-slate-300 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowReceipt(false)}>
                     <div className="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div ref={receiptRef} className="p-4 text-sm text-black bg-white" dir="rtl" style={{ fontFamily: "'Courier New', monospace" }}>
                             <div style={{ textAlign: "center", marginBottom: "15px" }}>
@@ -713,7 +733,7 @@ export default function POSPage() {
                             <div style={{ textAlign: "center", fontSize: "13px", marginTop: "20px", fontWeight: "bold" }}><p style={{ margin: 0 }}>شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
                         </div>
                         <div className="p-3 border-t flex gap-2">
-                            <button onClick={() => setShowReceipt(false)} className="flex-1 py-2.5 bg-zinc-100 text-zinc-600 rounded-xl text-xs font-bold hover:bg-zinc-200 transition">إغلاق</button>
+                            <button onClick={() => setShowReceipt(false)} className="flex-1 py-2.5 bg-zinc-100 text-slate-400 dark:text-zinc-600 rounded-xl text-xs font-bold hover:bg-zinc-200 transition">إغلاق</button>
                             <button onClick={printReceipt} className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-600 transition"><Printer className="w-3.5 h-3.5" /> طباعة</button>
                         </div>
                     </div>

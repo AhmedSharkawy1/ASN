@@ -4,15 +4,15 @@
 
 @layer base {
   :root {
-    /* Stronger cold blue background (slate-100/blue-50 mix) instead of pure white/airy blue */
-    --background: 210 40% 92%;
-    /* Deep Navy Blue for text, replacing dark gray/black */
+    /* Slightly darker gray for light mode background */
+    --background: 210 15% 88%;
+    /* Deep Navy Blue for text */
     --foreground: 222 75% 15%;
 
-    /* Slightly bluish white for cards and popovers */
-    --card: 210 80% 98%;
+    /* Pure white for cards and popovers */
+    --card: 0 0% 100%;
     --card-foreground: 222 75% 15%;
-    --popover: 210 80% 98%;
+    --popover: 0 0% 100%;
     --popover-foreground: 222 75% 15%;
 
     /* Vibrant Brand Blue */
@@ -20,64 +20,64 @@
     --primary-foreground: 0 0% 100%;
 
     /* Soft matching blue for secondary elements */
-    --secondary: 210 60% 90%;
+    --secondary: 210 25% 92%;
     --secondary-foreground: 222 75% 15%;
-    --muted: 210 60% 90%;
-    --muted-foreground: 215 50% 40%;
-    --accent: 210 60% 90%;
+    --muted: 210 25% 92%;
+    --muted-foreground: 215 40% 45%;
+    --accent: 210 25% 92%;
     --accent-foreground: 222 75% 15%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     /* Bluish borders instead of gray */
-    --border: 210 40% 85%;
-    --input: 210 40% 85%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
     --ring: 209 100% 50%;
     --radius: 0.75rem;
 
-    --glass-light: 255 255 255 / 0.5;
-    --glass-bg: 210 80% 98% / 0.7;
-    --glass-border: 210 40% 85% / 0.5;
+    --glass-light: 0 0% 100% / 0.5;
+    --glass-bg: 0 0% 100% / 0.7;
+    --glass-border: 210 20% 85% / 0.5;
 
     /* Deep blue text instead of silver in Light Mode */
-    --silver-text: 215 60% 35%;
+    --silver-text: 215 50% 40%;
     --glow-color: 209 100% 50%;
   }
 
   .dark {
-    /* Exact original: #020617 (Navy/Black) */
-    --background: 222 80% 5%;
-    /* Foreground: White (#f8fafc) */
+    /* Midnight Slate / Deep Navy Dark Mode (from reference image) */
+    /* Increased blue saturation to reflect "more blue" request */
+    --background: 228 45% 11%; /* Deeper, richer navy background #0f1628 */
     --foreground: 210 20% 98%;
-    --card: 222 80% 5%;
+    /* Cards/Panels: Slightly lighter blue-gray */
+    --card: 227 35% 16%; /* #1a2236 */
     --card-foreground: 210 20% 98%;
-    --popover: 222 80% 5%;
+    --popover: 227 35% 16%;
     --popover-foreground: 210 20% 98%;
-    /* Button: White */
+    /* Button: Stark White for high contrast */
     --primary: 0 0% 100%;
-    --primary-foreground: 222 80% 5%;
-    /* Secondary/Muted: Shades of Blue/Black */
-    --secondary: 222 47% 11%;
+    --primary-foreground: 228 45% 11%;
+    /* Secondary/Muted/Inputs: Distinct mid-tone navy/slate */
+    --secondary: 226 30% 22%; /* #26314a */
     --secondary-foreground: 210 20% 98%;
-    --muted: 222 47% 11%;
-    --muted-foreground: 209 60% 80%;
-    --accent: 222 47% 11%;
+    --muted: 226 30% 22%;
+    --muted-foreground: 220 25% 70%;
+    --accent: 226 30% 22%;
     --accent-foreground: 210 20% 98%;
-    /* Keeping destructive as is for utility, but avoiding in design */
     --destructive: 0 62% 30%;
-    --destructive-foreground: 210 20% 98%;
-    --border: 217 60% 15%;
-    --input: 217 60% 15%;
-    --ring: 209 100% 64%;
+    --destructive-foreground: 0 0% 98%;
+    /* Borders: Neutral deep navy without green tint */
+    --border: 226 30% 20%; /* Clean navy gray */
+    --input: 226 30% 20%;
+    --ring: 226 80% 60%; /* Changed ring from emerald to a bright blue to avoid any green glowing */
 
-    --glass-light: 255 255 255 / 0.03;
-    --glass-bg: 0 0% 0% / 0.4;
-    --glass-border: 209 100% 64% / 0.1;
-    /* Removed Silver -> Light Blue: #94cfff */
-    --silver-text: 209 100% 85%;
-    /* Electric Blue: #2ea3ff */
-    --glow-color: 209 100% 64%;
+    /* Enhanced Glass Morphism */
+    --glass-light: 0 0% 100% / 0.05;
+    --glass-bg: 228 45% 11% / 0.8;
+    --glass-border: 0 0% 100% / 0.08;
+    --silver-text: 220 25% 75%;
+    --glow-color: 226 80% 60%; /* Replaced Emerald glow with a pure blue glow */
   }
 }
 

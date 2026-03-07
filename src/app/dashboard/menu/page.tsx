@@ -138,7 +138,7 @@ export default function MenuBuilderPage() {
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري تحميل المنيو..." : "Loading Menu Builder..."}</div>;
 
     return (
-        <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-20">
+        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-glass-border pb-6">
                 <div>
                     <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
@@ -175,7 +175,7 @@ export default function MenuBuilderPage() {
                         }} />
                     </label>
                     <button onClick={() => { setShowAddCategory(true); setEditingCat(null); setEditingItem(null); setAddingItemToCat(null); }}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95 text-sm sm:text-base">
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95 text-sm sm:text-base">
                         <Plus className="w-5 h-5" />
                         {language === "ar" ? "إضافة قسم جديد" : "Add Category"}
                     </button>
@@ -200,7 +200,7 @@ export default function MenuBuilderPage() {
                     <h3 className="text-xl font-bold text-foreground mb-2">
                         {language === "ar" ? "المنيو فارغ تماماً" : "Your Menu is Empty"}
                     </h3>
-                    <p className="text-silver max-w-md">
+                    <p className="text-silver w-full max-w-xl">
                         {language === "ar" ? "اضغط على زر 'إضافة قسم جديد' بالأعلى لتبدأ." : "Click 'Add New Category' above to start."}
                     </p>
                 </div>
@@ -209,7 +209,7 @@ export default function MenuBuilderPage() {
                     {categories.map((cat) => {
                         const isCollapsed = collapsedCats.has(cat.id);
                         return (
-                            <div key={cat.id} className="bg-white dark:bg-[#080d20] border border-glass-border rounded-2xl overflow-hidden shadow-sm">
+                            <div key={cat.id} className="bg-white dark:bg-card border border-glass-border rounded-2xl overflow-hidden shadow-sm">
                                 {/* CATEGORY HEADER */}
                                 <div className="bg-slate-50 dark:bg-glass-dark px-6 py-4 border-b border-glass-border">
                                     {editingCat === cat.id ? (
@@ -230,12 +230,12 @@ export default function MenuBuilderPage() {
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                                                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
                                                         {cat.name_ar}
-                                                        <span className="text-silver text-xs font-normal">({cat.items.length})</span>
-                                                        {isCollapsed ? <ChevronDown className="w-4 h-4 text-silver" /> : <ChevronUp className="w-4 h-4 text-silver" />}
+                                                        <span className="text-silver text-sm font-normal">({cat.items.length})</span>
+                                                        {isCollapsed ? <ChevronDown className="w-5 h-5 text-silver" /> : <ChevronUp className="w-5 h-5 text-silver" />}
                                                     </h2>
-                                                    {cat.name_en && cat.name_en !== cat.name_ar && <span className="text-xs text-silver">{cat.name_en}</span>}
+                                                    {cat.name_en && cat.name_en !== cat.name_ar && <span className="text-sm text-silver">{cat.name_en}</span>}
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
@@ -253,11 +253,11 @@ export default function MenuBuilderPage() {
                                             className="overflow-hidden">
                                             <div className="p-4 md:p-6 flex flex-col gap-4">
                                                 {cat.items.length === 0 && addingItemToCat !== cat.id && (
-                                                    <div className="text-center py-4 text-silver/60 text-sm">{language === "ar" ? "لا توجد أصناف بعد." : "No items yet."}</div>
+                                                    <div className="text-center py-4 text-silver/60 text-base">{language === "ar" ? "لا توجد أصناف بعد." : "No items yet."}</div>
                                                 )}
 
                                                 {cat.items.map((item) => (
-                                                    <div key={item.id} className="group rounded-2xl border border-glass-border bg-slate-50/50 dark:bg-[#030712] p-4 hover:border-blue/30 transition-colors">
+                                                    <div key={item.id} className="group rounded-2xl border border-glass-border bg-slate-50/50 dark:bg-card p-4 hover:border-blue/30 transition-colors">
                                                         {editingItem === item.id ? (
                                                             <ItemEditor item={item} language={language}
                                                                 onUpdate={(u) => updateItem(cat.id, item.id, u)}
@@ -300,15 +300,15 @@ export default function MenuBuilderPage() {
 
             {/* DELETE CONFIRMATION MODALS */}
             {deletingCatId && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl p-6 max-w-sm w-full text-center">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-300 dark:bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-card rounded-3xl shadow-2xl p-6 max-w-sm w-full text-center">
                         <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
                         <h3 className="text-xl font-bold mb-6 text-foreground">{language === "ar" ? "هل أنت متأكد من حذف هذا القسم وكل أصنافه؟" : "Are you sure you want to delete this category and all its items?"}</h3>
                         <div className="flex gap-4 justify-center">
                             <button onClick={confirmDeleteCategory} className="px-6 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
                                 {language === "ar" ? "تأكيد الحذف" : "Confirm Delete"}
                             </button>
-                            <button onClick={() => setDeletingCatId(null)} className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 font-bold hover:opacity-80 transition-opacity">
+                            <button onClick={() => setDeletingCatId(null)} className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-secondary text-gray-700 dark:text-gray-300 font-bold hover:opacity-80 transition-opacity">
                                 {language === "ar" ? "إلغاء" : "Cancel"}
                             </button>
                         </div>
@@ -316,15 +316,15 @@ export default function MenuBuilderPage() {
                 </div>
             )}
             {deletingItemObj && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl p-6 max-w-sm w-full text-center">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-300 dark:bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-card rounded-3xl shadow-2xl p-6 w-full max-w-lg text-center">
                         <Trash2 className="w-12 h-12 text-red-500 mx-auto mb-4" />
                         <h3 className="text-xl font-bold mb-6 text-foreground">{language === "ar" ? "هل أنت متأكد من حذف هذا الصنف؟" : "Are you sure you want to delete this item?"}</h3>
                         <div className="flex gap-4 justify-center">
                             <button onClick={confirmDeleteItem} className="px-6 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors">
                                 {language === "ar" ? "تأكيد الحذف" : "Confirm Delete"}
                             </button>
-                            <button onClick={() => setDeletingItemObj(null)} className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 font-bold hover:opacity-80 transition-opacity">
+                            <button onClick={() => setDeletingItemObj(null)} className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-secondary text-gray-700 dark:text-gray-300 font-bold hover:opacity-80 transition-opacity">
                                 {language === "ar" ? "إلغاء" : "Cancel"}
                             </button>
                         </div>
@@ -376,7 +376,7 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
 
     return (
         <motion.div initial={{ opacity: 0, y: -20, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -20, height: 0 }}
-            className="bg-white dark:bg-[#080d20] border-2 border-blue/30 rounded-2xl overflow-hidden shadow-lg">
+            className="bg-white dark:bg-card border-2 border-blue/30 rounded-2xl overflow-hidden shadow-lg">
             <div className="bg-blue/5 px-6 py-4 border-b border-blue/20 flex items-center justify-between">
                 <h3 className="font-bold text-blue text-lg flex items-center gap-2">
                     <Plus className="w-5 h-5" />
@@ -387,32 +387,32 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
             <div className="p-6 space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-silver">{language === "ar" ? "اسم القسم (عربي) *" : "Name (Arabic) *"}</label>
+                        <label className="text-sm font-bold text-silver">{language === "ar" ? "اسم القسم (عربي) *" : "Name (Arabic) *"}</label>
                         <input value={nameAr} onChange={e => setNameAr(e.target.value)} placeholder={language === "ar" ? "مثال: البيتزا" : "e.g. Pizza"}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-sm font-bold" />
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-base font-bold" />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-silver">{language === "ar" ? "اسم القسم (إنجليزي)" : "Name (English)"}</label>
+                        <label className="text-sm font-bold text-silver">{language === "ar" ? "اسم القسم (إنجليزي)" : "Name (English)"}</label>
                         <input value={nameEn} onChange={e => setNameEn(e.target.value)} placeholder="e.g. Pizza" dir="ltr"
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-sm font-bold" />
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-base font-bold" />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-silver">{language === "ar" ? "الإيموجي" : "Emoji"}</label>
+                        <label className="text-sm font-bold text-silver">{language === "ar" ? "الإيموجي" : "Emoji"}</label>
                         <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-sm text-center font-bold text-2xl" />
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-base text-center font-bold text-2xl" />
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                     <button type="button" onClick={() => fileRef.current?.click()}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-blue/10 text-blue font-bold text-sm rounded-xl hover:bg-blue/20 transition-colors">
-                        <Upload className="w-4 h-4" /> {language === "ar" ? "رفع صورة غلاف" : "Upload Cover"}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-blue/10 text-blue font-bold text-base rounded-xl hover:bg-blue/20 transition-colors">
+                        <Upload className="w-5 h-5" /> {language === "ar" ? "رفع صورة غلاف" : "Upload Cover"}
                     </button>
                     {imagePreview && <img src={imagePreview} alt="" className="w-14 h-14 rounded-xl object-cover border border-glass-border" />}
                 </div>
                 <div className="flex items-center gap-3 pt-2 border-t border-glass-border">
                     <button onClick={handleSave} disabled={saving || !nameAr.trim()}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
                         <Save className="w-4 h-4" />
                         {saving ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ القسم" : "Save Category")}
                     </button>
@@ -475,9 +475,9 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
 
     return (
         <motion.div initial={{ opacity: 0, y: 20, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: 20, height: 0 }}
-            className="bg-white dark:bg-[#060a18] border-2 border-emerald-500/30 rounded-2xl overflow-hidden shadow-lg">
-            <div className="bg-emerald-500/5 px-6 py-4 border-b border-emerald-500/20 flex items-center justify-between">
-                <h3 className="font-bold text-emerald-500 text-lg flex items-center gap-2">
+            className="bg-white dark:bg-card border-2 border-slate-200 dark:border-glass-border rounded-2xl overflow-hidden shadow-lg">
+            <div className="bg-slate-50 dark:bg-glass-dark px-6 py-4 border-b border-slate-200 dark:border-glass-border flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2">
                     <Plus className="w-5 h-5" />
                     {language === "ar" ? "إضافة صنف جديد" : "Add New Item"}
                 </h3>
@@ -487,50 +487,50 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
                 {/* Names */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-silver">{language === "ar" ? "اسم الصنف (عربي) *" : "Item Name (Arabic) *"}</label>
+                        <label className="text-sm font-bold text-silver">{language === "ar" ? "اسم الصنف (عربي) *" : "Item Name (Arabic) *"}</label>
                         <input value={titleAr} onChange={e => setTitleAr(e.target.value)} placeholder={language === "ar" ? "مثال: بيتزا مارجريتا" : "e.g. Margherita Pizza"}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-emerald-500 outline-none text-sm font-bold" />
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border -blue outline-none text-base font-bold" />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-silver">{language === "ar" ? "اسم الصنف (إنجليزي)" : "Item Name (English)"}</label>
+                        <label className="text-sm font-bold text-silver">{language === "ar" ? "اسم الصنف (إنجليزي)" : "Item Name (English)"}</label>
                         <input value={titleEn} onChange={e => setTitleEn(e.target.value)} placeholder="Margherita Pizza" dir="ltr"
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-emerald-500 outline-none text-sm font-bold" />
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border -blue outline-none text-base font-bold" />
                     </div>
                 </div>
 
                 {/* Descriptions */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-silver">{language === "ar" ? "الوصف (عربي)" : "Description (Arabic)"}</label>
+                        <label className="text-sm font-bold text-silver">{language === "ar" ? "الوصف (عربي)" : "Description (Arabic)"}</label>
                         <textarea value={descAr} onChange={e => setDescAr(e.target.value)} rows={2}
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-emerald-500 outline-none text-sm resize-none" />
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border -blue outline-none text-base resize-none" />
                     </div>
                     <div className="space-y-1">
-                        <label className="text-xs font-bold text-silver">{language === "ar" ? "الوصف (إنجليزي)" : "Description (English)"}</label>
+                        <label className="text-sm font-bold text-silver">{language === "ar" ? "الوصف (إنجليزي)" : "Description (English)"}</label>
                         <textarea value={descEn} onChange={e => setDescEn(e.target.value)} rows={2} dir="ltr"
-                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-emerald-500 outline-none text-sm resize-none" />
+                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border -blue outline-none text-base resize-none" />
                     </div>
                 </div>
 
                 {/* Sizes & Prices */}
                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-silver">{language === "ar" ? "الأحجام والأسعار *" : "Sizes & Prices *"}</label>
+                    <label className="text-sm font-bold text-silver">{language === "ar" ? "الأحجام والأسعار *" : "Sizes & Prices *"}</label>
                     {prices.map((p, idx) => (
                         <div key={idx} className="flex items-center gap-2 bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-glass-border">
                             <input value={sizeLabels[idx] || ''} onChange={e => { const nl = [...sizeLabels]; nl[idx] = e.target.value; setSizeLabels(nl); }}
-                                placeholder={language === "ar" ? "اسم الحجم" : "Size"} className="flex-1 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border focus:border-emerald-500 outline-none text-sm font-bold" />
+                                placeholder={language === "ar" ? "اسم الحجم" : "Size"} className="flex-1 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-base font-bold" />
                             <input type="number" value={p || ''} onChange={e => { const np = [...prices]; np[idx] = parseFloat(e.target.value) || 0; setPrices(np); }}
-                                placeholder="0" className="w-24 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border focus:border-emerald-500 outline-none text-sm font-bold tabular-nums text-center" dir="ltr" />
-                            <span className="text-xs text-silver">{language === "ar" ? "ج.م" : "EGP"}</span>
+                                placeholder="0" className="w-24 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
+                            <span className="text-sm text-silver">{language === "ar" ? "ج.م" : "EGP"}</span>
                             {prices.length > 1 && (
                                 <button onClick={() => { setPrices(prices.filter((_, i) => i !== idx)); setSizeLabels(sizeLabels.filter((_, i) => i !== idx)); }}
-                                    className="p-1 text-red-500 hover:bg-red-500/10 rounded transition"><X className="w-3 h-3" /></button>
+                                    className="p-1 text-red-500 hover:bg-red-500/10 rounded transition"><X className="w-4 h-4" /></button>
                             )}
                         </div>
                     ))}
                     <button onClick={() => { setPrices([...prices, 0]); setSizeLabels([...sizeLabels, '']); }}
-                        className="text-xs text-emerald-500 font-bold px-2 flex items-center gap-1 hover:text-emerald-400">
-                        <Plus className="w-3 h-3" /> {language === "ar" ? "إضافة حجم" : "Add Size"}
+                        className="text-sm text-emerald-500 font-bold px-2 flex items-center gap-1 hover:text-emerald-400">
+                        <Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}
                     </button>
                 </div>
 
@@ -541,13 +541,13 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
                         ⭐ {language === "ar" ? "مميز" : "Popular"}
                     </button>
                     <button type="button" onClick={() => setIsSpicy(!isSpicy)}
-                        className={`text-xs px-3 py-2 rounded-xl border font-bold transition ${isSpicy ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-glass-border text-silver hover:border-red-500/50'}`}>
+                        className={`text-xs px-3 py-2 rounded-xl border font-bold transition ${isSpicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver hover:border-red-500/50'}`}>
                         🌶️ {language === "ar" ? "حار" : "Spicy"}
                     </button>
                     <div className="flex items-center gap-2">
                         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                         <button type="button" onClick={() => fileRef.current?.click()}
-                            className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 text-emerald-500 font-bold text-xs rounded-xl hover:bg-emerald-500/20 transition">
+                            className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 font-bold text-xs rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition">
                             <Upload className="w-3 h-3" /> {language === "ar" ? "رفع صورة" : "Upload Image"}
                         </button>
                         {imagePreview && <img src={imagePreview} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
@@ -581,12 +581,12 @@ function ItemRow({ item, language, onEdit, onDelete }: {
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className="font-bold text-foreground text-lg truncate">{item.title_ar}</h4>
-                            {item.is_popular && <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {language === "ar" ? "مميز" : "Popular"}</span>}
-                            {item.is_spicy && <span className="text-red-500 text-sm">🌶️</span>}
+                            <h4 className="font-bold text-foreground text-xl truncate">{item.title_ar}</h4>
+                            {item.is_popular && <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {language === "ar" ? "مميز" : "Popular"}</span>}
+                            {item.is_spicy && <span className="text-red-500 text-base">🌶️</span>}
                         </div>
-                        {item.title_en && <p className="text-xs text-silver mb-1">{item.title_en}</p>}
-                        <p className="text-sm text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
+                        {item.title_en && <p className="text-sm text-silver mb-1">{item.title_en}</p>}
+                        <p className="text-base text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
                     </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0">
@@ -597,8 +597,8 @@ function ItemRow({ item, language, onEdit, onDelete }: {
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-glass-border border-dashed">
                 {(item.prices || []).map((price, pIdx) => (
                     <div key={pIdx} className="bg-white dark:bg-black/40 border border-glass-border rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
-                        <span className="text-xs text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
-                        <span className="font-bold text-foreground">{price} {language === "ar" ? "ج.م" : "EGP"}</span>
+                        <span className="text-sm text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
+                        <span className="font-bold text-foreground text-base">{price} {language === "ar" ? "ج.م" : "EGP"}</span>
                     </div>
                 ))}
             </div>
@@ -634,29 +634,29 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل القسم" : "Edit Category"}</h3>
                 <div className="flex gap-2">
-                    <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-blue text-white text-sm font-bold rounded-lg"><Save className="w-3 h-3" /> {language === "ar" ? "حفظ" : "Save"}</button>
+                    <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-blue text-slate-900 dark:text-white text-sm font-bold rounded-lg"><Save className="w-3 h-3" /> {language === "ar" ? "حفظ" : "Save"}</button>
                     <button onClick={onClose} className="p-1.5 text-silver hover:text-red-500"><X className="w-4 h-4" /></button>
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "الاسم العربي" : "Name (AR)"}</label>
-                    <input value={nameAr} onChange={e => setNameAr(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-sm font-bold" />
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الاسم العربي" : "Name (AR)"}</label>
+                    <input value={nameAr} onChange={e => setNameAr(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "الاسم الإنجليزي" : "Name (EN)"}</label>
-                    <input value={nameEn} onChange={e => setNameEn(e.target.value)} dir="ltr" className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-sm font-bold" />
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الاسم الإنجليزي" : "Name (EN)"}</label>
+                    <input value={nameEn} onChange={e => setNameEn(e.target.value)} dir="ltr" className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "الإيموجي" : "Emoji"}</label>
-                    <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-sm text-center font-bold" />
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الإيموجي" : "Emoji"}</label>
+                    <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base text-center font-bold" />
                 </div>
             </div>
             <div className="flex items-center gap-3">
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue/10 text-blue font-bold text-xs rounded-lg disabled:opacity-50">
-                    <Upload className="w-3 h-3" /> {uploading ? "..." : (language === "ar" ? "رفع صورة غلاف" : "Upload Cover")}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue/10 text-blue font-bold text-sm rounded-lg disabled:opacity-50">
+                    <Upload className="w-4 h-4" /> {uploading ? "..." : (language === "ar" ? "رفع صورة غلاف" : "Upload Cover")}
                 </button>
                 {cat.image_url && <img src={cat.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
             </div>
@@ -695,53 +695,53 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose }: {
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل الصنف" : "Edit Item"}</h3>
                 <div className="flex gap-2">
-                    <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-blue text-white text-sm font-bold rounded-lg"><Save className="w-3 h-3" /> {language === "ar" ? "حفظ" : "Save"}</button>
+                    <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-blue text-slate-900 dark:text-white text-sm font-bold rounded-lg"><Save className="w-3 h-3" /> {language === "ar" ? "حفظ" : "Save"}</button>
                     <button onClick={onClose} className="p-1.5 text-silver hover:text-red-500"><X className="w-4 h-4" /></button>
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "اسم الصنف (عربي)" : "Name (AR)"}</label>
-                    <input value={titleAr} onChange={e => setTitleAr(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-sm font-bold" />
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "اسم الصنف (عربي)" : "Name (AR)"}</label>
+                    <input value={titleAr} onChange={e => setTitleAr(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "اسم الصنف (إنجليزي)" : "Name (EN)"}</label>
-                    <input value={titleEn} onChange={e => setTitleEn(e.target.value)} dir="ltr" className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-sm font-bold" />
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "اسم الصنف (إنجليزي)" : "Name (EN)"}</label>
+                    <input value={titleEn} onChange={e => setTitleEn(e.target.value)} dir="ltr" className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" />
                 </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "الوصف (عربي)" : "Desc (AR)"}</label>
-                    <textarea value={descAr} onChange={e => setDescAr(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-sm resize-none" />
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الوصف (عربي)" : "Desc (AR)"}</label>
+                    <textarea value={descAr} onChange={e => setDescAr(e.target.value)} rows={2} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base resize-none" />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "الوصف (إنجليزي)" : "Desc (EN)"}</label>
-                    <textarea value={descEn} onChange={e => setDescEn(e.target.value)} rows={2} dir="ltr" className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-sm resize-none" />
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الوصف (إنجليزي)" : "Desc (EN)"}</label>
+                    <textarea value={descEn} onChange={e => setDescEn(e.target.value)} rows={2} dir="ltr" className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base resize-none" />
                 </div>
             </div>
             <div className="space-y-2">
-                <label className="text-[10px] font-bold text-silver uppercase">{language === "ar" ? "الأحجام والأسعار" : "Sizes & Prices"}</label>
+                <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الأحجام والأسعار" : "Sizes & Prices"}</label>
                 {localPrices.map((price, idx) => (
                     <div key={idx} className="flex items-center gap-2 bg-white dark:bg-black/30 p-2 rounded-lg border border-glass-border">
                         <input value={localLabels[idx] || ''} onChange={e => { const nl = [...localLabels]; nl[idx] = e.target.value; setLocalLabels(nl); }}
-                            placeholder={language === "ar" ? "الحجم" : "Size"} className="flex-1 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm font-bold" />
+                            placeholder={language === "ar" ? "الحجم" : "Size"} className="flex-1 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-base font-bold" />
                         <input type="number" value={price} onChange={e => { const np = [...localPrices]; np[idx] = parseFloat(e.target.value) || 0; setLocalPrices(np); }}
-                            className="w-24 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums text-center" dir="ltr" />
-                        <span className="text-xs text-silver">{language === "ar" ? "ج.م" : "EGP"}</span>
-                        {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); }} className="p-1 text-red-500"><X className="w-3 h-3" /></button>}
+                            className="w-24 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
+                        <span className="text-sm text-silver">{language === "ar" ? "ج.م" : "EGP"}</span>
+                        {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); }} className="p-1 text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 ))}
-                <button onClick={() => { setLocalPrices([...localPrices, 0]); setLocalLabels([...localLabels, '']); }} className="text-xs text-blue font-bold flex items-center gap-1"><Plus className="w-3 h-3" /> {language === "ar" ? "إضافة حجم" : "Add Size"}</button>
+                <button onClick={() => { setLocalPrices([...localPrices, 0]); setLocalLabels([...localLabels, '']); }} className="text-sm text-blue font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}</button>
             </div>
             <div className="flex gap-2">
                 <button type="button" onClick={() => onUpdate({ is_popular: !item.is_popular })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_popular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver'}`}>⭐ {language === "ar" ? (item.is_popular ? "إلغاء" : "مميز") : (item.is_popular ? "Remove" : "Popular")}</button>
-                <button type="button" onClick={() => onUpdate({ is_spicy: !item.is_spicy })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_spicy ? 'border-red-500 bg-red-500/10 text-red-500' : 'border-glass-border text-silver'}`}>🌶️ {language === "ar" ? (item.is_spicy ? "إلغاء" : "حار") : (item.is_spicy ? "Remove" : "Spicy")}</button>
+                <button type="button" onClick={() => onUpdate({ is_spicy: !item.is_spicy })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_spicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver'}`}>🌶️ {language === "ar" ? (item.is_spicy ? "إلغاء" : "حار") : (item.is_spicy ? "Remove" : "Spicy")}</button>
             </div>
             <div className="flex items-center gap-3">
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
-                    className="flex items-center gap-2 px-3 py-2 bg-blue/10 text-blue font-bold text-xs rounded-lg disabled:opacity-50">
-                    <Upload className="w-3 h-3" /> {uploading ? "..." : (language === "ar" ? "رفع صورة" : "Upload Image")}
+                    className="flex items-center gap-2 px-3 py-2 bg-blue/10 text-blue font-bold text-sm rounded-lg disabled:opacity-50">
+                    <Upload className="w-4 h-4" /> {uploading ? "..." : (language === "ar" ? "رفع صورة" : "Upload Image")}
                 </button>
                 {item.image_url && <img src={item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
             </div>

@@ -1,0 +1,84 @@
+[
+  {
+    "id": "66e4c91c-cbe0-4b48-a8f0-7470526da705",
+    "restaurant_id": "6cd35d66-f5e6-4add-a594-b7ec0ba8041a",
+    "name": "محمد سعيد",
+    "email": "manager@asn.com",
+    "phone": "01000000002",
+    "role": "manager",
+    "permissions": {
+      "team": false,
+      "orders": true,
+      "products": true,
+      "settings": true,
+      "customers": true
+    },
+    "is_active": true,
+    "last_active": null,
+    "created_at": "2026-02-26T12:35:41.139009+00:00",
+    "username": null,
+    "auth_id": null
+  },
+  {
+    "id": "8c7d5c6a-2faa-49c8-b392-8cee5d997aab",
+    "restaurant_id": "6cd35d66-f5e6-4add-a594-b7ec0ba8041a",
+    "name": "احمد محمد",
+    "email": "ahmed@asn.com",
+    "phone": "01092621367",
+    "role": "delivery",
+    "permissions": {
+      "team": true,
+      "orders": true,
+      "reports": false,
+      "products": false,
+      "settings": false,
+      "customers": false
+    },
+    "is_active": true,
+    "last_active": null,
+    "created_at": "2026-03-04T02:36:07.295952+00:00",
+    "username": null,
+    "auth_id": null
+  },
+  {
+    "id": "d160e47f-52f2-4a76-94ad-32c667f9e752",
+    "restaurant_id": "6cd35d66-f5e6-4add-a594-b7ec0ba8041a",
+    "name": "أحمد الشرقاوي",
+    "email": "admin@asn.com",
+    "phone": "01000000001",
+    "role": "admin",
+    "permissions": {
+      "team": true,
+      "orders": true,
+      "products": true,
+      "settings": true,
+      "customers": true
+    },
+    "is_active": true,
+    "last_active": null,
+    "created_at": "2026-02-26T12:35:41.139009+00:00",
+    "username": null,
+    "auth_id": null
+  },
+  {
+    "id": "a6be42f4-3025-4ed1-92ec-11c3730d2915",
+    "restaurant_id": "6cd35d66-f5e6-4add-a594-b7ec0ba8041a",
+    "name": "Test",
+    "email": "a@6cd35d66-f5e6-4add-a594-b7ec0ba8041a.asn",
+    "phone": "010000",
+    "role": "cashier",
+    "permissions": {
+      "team": false,
+      "orders": true,
+      "reports": false,
+      "products": false,
+      "settings": false,
+      "customers": false
+    },
+    "is_active": true,
+    "last_active": null,
+    "created_at": "2026-03-07T11:28:42.878426+00:00",
+    "username": "a",
+    "auth_id": "54dbd2be-303b-4b95-b072-e07b7d4465f9"
+  }
+]
