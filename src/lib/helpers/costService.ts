@@ -39,10 +39,9 @@ export async function calculateRecipeCost(recipeId: string): Promise<number> {
     let totalCost = 0;
     const ingList = Array.isArray(ingredients) ? ingredients : [ingredients];
     for (const ing of ingList) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const invItem = (ing as any).inventory_items;
+        const invItem = (ing as unknown as { inventory_items: { cost_per_unit: number } }).inventory_items;
         const costPerUnit = invItem?.cost_per_unit || 0;
-        totalCost += (ing as any).quantity * costPerUnit;
+        totalCost += (ing as unknown as { quantity: number }).quantity * costPerUnit;
     }
 
     // Round to 2 decimal places for storage
@@ -125,17 +124,15 @@ export async function calculateOrderCostServer(orderId: string, supabaseAdmin: a
  * Supports matching by item.id (website) OR item.title (POS).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function _calculateAndStoreOrderCost(order: any, sb: any): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const orderItems = (order.items || []) as any[];
+async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: string, total: number, items: unknown[] }, sb: { from: (table: string) => any }): Promise<void> {
+    const orderItems = (order.items || []) as { id?: string, title?: string, qty?: number }[];
     let orderCost = 0;
 
     // Fetch menu items with their linked recipes (via recipe_id) for this restaurant
     const { data: cats } = await sb.from('categories').select('id').eq('restaurant_id', order.restaurant_id);
-    const catIds = (cats || []).map((c: any) => c.id);
+    const catIds = (cats || []).map((c: { id: string }) => c.id);
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let allMenuItems: any[] = [];
+    let allMenuItems: { id: string, title_ar: string | null, title_en: string | null, recipe_id: string | null, recipes: { product_cost: number } | null }[] = [];
     if (catIds.length > 0) {
         const { data } = await sb.from('items').select('id, title_ar, title_en, recipe_id, recipes(product_cost)').in('category_id', catIds);
         allMenuItems = data || [];
@@ -151,7 +148,7 @@ async function _calculateAndStoreOrderCost(order: any, sb: any): Promise<void> {
     const titleCostMap = new Map<string, number>();
     
     if (allMenuItems) {
-        allMenuItems.forEach((mi: any) => {
+        allMenuItems.forEach((mi) => {
             const cost = mi.recipes?.product_cost || 0;
             if (mi.recipe_id && cost > 0) {
                 itemIdCostMap.set(mi.id, cost);
@@ -163,7 +160,7 @@ async function _calculateAndStoreOrderCost(order: any, sb: any): Promise<void> {
 
     // 3. recipe product_name → cost (fallback)
     if (allRecipes) {
-        allRecipes.forEach((r: any) => {
+        (allRecipes as { product_name: string | null, product_cost: number }[]).forEach((r) => {
             if (r.product_name && r.product_cost > 0) {
                 const key = r.product_name.trim().toLowerCase();
                 if (!titleCostMap.has(key)) {

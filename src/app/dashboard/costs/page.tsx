@@ -47,10 +47,18 @@ export default function CostAnalyticsPage() {
         const itemCostMap = new Map<string, number>();
         const titleCostMap = new Map<string, number>();
 
+        interface MenuItemData {
+            id: string;
+            title: string;
+            recipes: { product_cost: number } | { product_cost: number }[] | null;
+        }
+
         if (menuItems) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            menuItems.forEach((mi: any) => {
-                const cost = mi.recipes?.product_cost || 0;
+            (menuItems as unknown as MenuItemData[]).forEach((mi) => {
+                const recipes = mi.recipes;
+                const cost = Array.isArray(recipes) 
+                    ? (recipes[0]?.product_cost || 0) 
+                    : (recipes?.product_cost || 0);
                 itemCostMap.set(mi.id, cost);
                 titleCostMap.set(mi.title, cost);
             });
@@ -63,16 +71,26 @@ export default function CostAnalyticsPage() {
         if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59');
         const { data: orders } = await query;
 
+        interface OrderItem {
+            id?: string;
+            title?: string;
+            qty?: number;
+            price?: number;
+        }
+
+        interface OrderData {
+            items: OrderItem[] | null;
+            order_cost: number | null;
+        }
+
         if (orders) {
             const productMap = new Map<string, { revenue: number; cost: number; profit: number; count: number }>();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            orders.forEach((order: any) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const items = (order.items || []) as any[];
+            (orders as unknown as OrderData[]).forEach((order) => {
+                const items = order.items || [];
                 
                 // Calculate current sum of costs for these items to find the proportional ratio
                 let currTotalCost = 0;
-                items.forEach((item: any) => {
+                items.forEach((item) => {
                     const itemId = item.id;
                     const title = item.title || "Unknown";
                     let unitCost = 0;
@@ -83,10 +101,9 @@ export default function CostAnalyticsPage() {
 
                 const historicalOrderCost = order.order_cost || 0;
                 const adjustmentRatio = currTotalCost > 0 ? historicalOrderCost / currTotalCost : 0;
-                const totalItemQty = items.reduce((s: number, i: any) => s + (i.qty || 1), 0);
+                const totalItemQty = items.reduce((s: number, i) => s + (i.qty || 1), 0);
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                items.forEach((item: any) => {
+                items.forEach((item) => {
                     const title = item.title || "Unknown";
                     const itemId = item.id;
                     const qty = item.qty || 1;

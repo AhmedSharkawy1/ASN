@@ -12,8 +12,8 @@ import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/li
 import { getReceiptStyles } from "@/lib/helpers/printerSettings";
 import {
     CreditCard, Plus, Minus, Trash2, ShoppingCart, Search, Percent,
-    DollarSign, Save, Send, X, Printer, Clock, Banknote,
-    Smartphone, PauseCircle, Play, StickyNote, Users,
+    DollarSign, Save, X, Printer, Clock, Banknote,
+    PauseCircle, Play, StickyNote, Users,
     LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
     Package, Truck, Wifi, WifiOff, Maximize2, Minimize2
 } from "lucide-react";

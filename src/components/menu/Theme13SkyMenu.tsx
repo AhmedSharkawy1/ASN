@@ -103,7 +103,6 @@ export default function Theme13SkyMenu({ config, categories, restaurantId }: The
     const [selectedExtras, setSelectedExtras] = useState<{ id: number | string, name: string, price: number }[]>([]);
     const isManualScroll = useRef(false);
     const catNavRef = useRef<HTMLDivElement>(null);
-    const swiperRef = useRef<any>(null); // Kept for featured items Swiper
 
     // Checkout
     const [showCheckout, setShowCheckout] = useState(false);
