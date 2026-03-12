@@ -10,6 +10,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 type Item = {
     id: string;
@@ -124,24 +125,37 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
     })).filter(cat => cat.items.length > 0);
 
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (isManualScroll.current) return;
-                entries.forEach((e) => {
-                    if (e.isIntersecting) {
-                        const id = e.target.id.replace("t5-s-", "");
-                        setActiveSection(id);
-                        const btn = categoryNavRef.current?.querySelector(`[data-cat-id="${id}"]`);
-                        btn?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+        const observerOptions = {
+            root: null,
+            rootMargin: "-140px 0px -75% 0px",
+            threshold: 0
+        };
+
+        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id.replace("t5-s-", "");
+                    setActiveSection(id);
+                    
+                    // Center the active tab
+                    const container = categoryNavRef.current;
+                    const activeBtn = container?.querySelector(`[data-cat-id="${id}"]`) as HTMLElement;
+                    if (container && activeBtn) {
+                        const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                        container.scrollTo({ left: scrollLeft, behavior: "smooth" });
                     }
-                });
-            },
-            { rootMargin: "-140px 0px -75% 0px", threshold: 0 }
-        );
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(handleIntersect, observerOptions);
+        
         categories.forEach((cat) => {
             const el = document.getElementById(`t5-s-${cat.id}`);
             if (el) observer.observe(el);
         });
+
         return () => observer.disconnect();
     }, [categories]);
 
@@ -809,6 +823,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
             </AnimatePresence>
 
             {/* Checkout Modal */}
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

@@ -89,9 +89,7 @@ export default function KitchenPage() {
 
     const statusGroups = [
         { status: 'pending', label: isAr ? 'قيد الانتظار' : 'Pending', color: 'border-amber-500/50' },
-        { status: 'accepted', label: isAr ? 'مقبول' : 'Accepted', color: 'border-blue-500/50' },
-        { status: 'preparing', label: isAr ? 'قيد التحضير' : 'Preparing', color: 'border-violet-500/50' },
-        { status: 'ready', label: isAr ? 'جاهز' : 'Ready', color: 'border-emerald-500/50' },
+        { status: 'in_progress', label: isAr ? 'تحت التنفيذ' : 'In Progress', color: 'border-blue-500/50' },
     ];
 
     if (loading) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
@@ -112,9 +110,13 @@ export default function KitchenPage() {
             </div>
 
             {/* Status Columns */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {statusGroups.map(group => {
-                    const groupOrders = orders.filter(o => o.status === group.status);
+                    const groupOrders = orders.filter(o => 
+                        group.status === 'in_progress'
+                            ? ['in_progress', 'accepted', 'preparing', 'ready', 'out_for_delivery'].includes(o.status)
+                            : o.status === group.status
+                    );
                     return (
                         <div key={group.status} className={`bg-white dark:bg-card border-2 ${group.color} rounded-xl overflow-hidden`}>
                             <div className="px-4 py-3 border-b border-slate-200 dark:border-zinc-800/50 flex items-center justify-between">
@@ -126,34 +128,34 @@ export default function KitchenPage() {
                                     <p className="text-center py-8 text-slate-400 dark:text-zinc-600 text-xs">{isAr ? "لا يوجد طلبات" : "No orders"}</p>
                                 ) : groupOrders.map(order => {
                                     const elapsed = elapsedTime(order.created_at, isAr);
-                                    const validNext = nextStatuses(order.status);
+                                    const validNext = nextStatuses(order.status, (order as { source?: string }).source);
                                     return (
                                         <div key={order.id} className={`bg-white dark:bg-card rounded-md p-4 border-2 shadow-sm ${elapsed.isDelayed ? "border-red-500/80 shadow-red-500/20" : "border-slate-200 dark:border-zinc-800"}`}>
                                             
                                             {/* Ticket Header */}
                                             <div className="flex items-start justify-between mb-3 pb-3 border-b-2 border-dashed border-slate-300 dark:border-zinc-700">
                                                 <div>
-                                                    <span className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">#{order.order_number}</span>
-                                                    {order.customer_name && <p className="text-sm font-bold text-slate-500 dark:text-zinc-400 mt-1">{order.customer_name}</p>}
+                                                    <span className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white leading-none">#{order.order_number}</span>
+                                                    {order.customer_name && <p className="text-base font-bold text-slate-500 dark:text-zinc-400 mt-1">{order.customer_name}</p>}
                                                 </div>
                                                 <div className={`flex flex-col items-end gap-1 ${elapsed.isDelayed ? "text-red-600 dark:text-red-400" : "text-slate-600 dark:text-zinc-400"}`}>
-                                                    <span className="text-xs font-bold uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 px-2 py-1 rounded flex items-center gap-1.5 border border-slate-200 dark:border-zinc-700">
-                                                        <Clock className="w-3.5 h-3.5" /> {elapsed.text}
+                                                    <span className="text-sm font-bold uppercase tracking-wider bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 rounded flex items-center gap-1.5 border border-slate-200 dark:border-zinc-700">
+                                                        <Clock className="w-4 h-4" /> {elapsed.text}
                                                     </span>
                                                 </div>
                                             </div>
                                             
                                             {/* Order Items */}
-                                            <div className="space-y-2 mb-4">
+                                            <div className="space-y-3 mb-4">
                                                 {order.items.map((item, i) => (
-                                                    <div key={i} className="flex gap-3 text-base font-bold text-slate-800 dark:text-zinc-200 leading-tight">
-                                                        <span className="text-lg font-black text-indigo-600 dark:text-emerald-400 w-6 shrink-0">{item.qty}×</span>
+                                                    <div key={i} className="flex gap-4 text-xl font-bold text-slate-800 dark:text-zinc-200 leading-tight">
+                                                        <span className="text-2xl font-black text-indigo-600 dark:text-emerald-400 w-8 shrink-0">{item.qty}×</span>
                                                         <div className="flex-1">
-                                                            <span className="text-lg">{item.title}</span>
+                                                            <span className="text-xl">{item.title}</span>
                                                             {item.size && item.size !== 'عادي' && (
-                                                                <span className="ml-1 text-sm bg-slate-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-zinc-400">({item.size})</span>
+                                                                <span className="ml-2 text-base bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded text-slate-600 dark:text-zinc-400">({item.size})</span>
                                                             )}
-                                                            {item.category && <p className="text-[10px] text-slate-400 dark:text-zinc-500 uppercase font-bold tracking-wider mt-0.5">{item.category}</p>}
+                                                            {item.category && <p className="text-xs text-slate-400 dark:text-zinc-500 uppercase font-bold tracking-wider mt-1">{item.category}</p>}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -185,7 +187,7 @@ export default function KitchenPage() {
                                                     
                                                     return (
                                                         <button key={ns} onClick={() => updateOrderStatus(order.id, ns)}
-                                                            className={`flex-1 text-xs font-black py-2.5 rounded border transition-all shadow-sm active:scale-95 uppercase tracking-wider ${btnStyle}`}>
+                                                            className={`flex-1 text-sm font-black py-3 rounded border transition-all shadow-sm active:scale-95 uppercase tracking-wider ${btnStyle}`}>
                                                             {statusLabel(ns, isAr)}
                                                         </button>
                                                     );

@@ -6,8 +6,9 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
 import { formatCurrency, formatDate, statusLabel, statusColor, nextStatuses, elapsedTime, timeAgo } from "@/lib/helpers/formatters";
-import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff } from "lucide-react";
+import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff, Monitor, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getReceiptStyles } from "@/lib/helpers/printerSettings";
 
 type OrderItem = {
     title: string;
@@ -21,13 +22,15 @@ type Order = {
     subtotal: number; discount: number; total: number; payment_method: string;
     customer_name?: string; customer_phone?: string; table_id?: string; notes?: string;
     created_at: string; updated_at: string;
+    source?: string; // 'pos' for cashier, null/undefined for website
+    cashier_name?: string;
     _offline?: boolean; // from Dexie but not yet synced
 };
 type OrderLog = { id: string; action: string; old_status?: string; new_status?: string; performed_by?: string; created_at: string };
 
 export default function OrdersPage() {
     const { language } = useLanguage();
-    const { restaurantId } = useRestaurant();
+    const { restaurantId, restaurant } = useRestaurant();
     const isAr = language === "ar";
 
     const [orders, setOrders] = useState<Order[]>([]);
@@ -37,6 +40,7 @@ export default function OrdersPage() {
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: "", to: "" });
+    const [sourceFilter, setSourceFilter] = useState<string>("all");
 
     const fetchOrders = useCallback(async () => {
         if (!restaurantId) return;
@@ -61,6 +65,8 @@ export default function OrdersPage() {
             customer_name: o.customer_name,
             customer_phone: o.customer_phone,
             notes: o.notes,
+            source: 'pos',
+            cashier_name: o.cashier_name,
             created_at: o.created_at,
             updated_at: o.created_at,
             _offline: !!o._dirty,
@@ -87,19 +93,43 @@ export default function OrdersPage() {
         );
 
         // Apply status filter to merged list if needed
-        if (statusFilter !== "all") merged = merged.filter(o => o.status === statusFilter);
+        if (statusFilter !== "all") {
+            if (statusFilter === "in_progress") {
+                merged = merged.filter(o => ["in_progress", "accepted", "preparing", "ready", "out_for_delivery"].includes(o.status));
+            } else {
+                merged = merged.filter(o => o.status === statusFilter);
+            }
+        }
         if (dateRange.from) merged = merged.filter(o => o.created_at >= dateRange.from);
         if (dateRange.to) merged = merged.filter(o => o.created_at <= dateRange.to + "T23:59:59");
 
+        // Apply source filter
+        if (sourceFilter === 'pos') merged = merged.filter(o => o.source === 'pos');
+        if (sourceFilter === 'website') merged = merged.filter(o => !o.source || o.source !== 'pos');
+
         setOrders(merged);
         setLoading(false);
-    }, [restaurantId, statusFilter, dateRange]);
+    }, [restaurantId, statusFilter, dateRange, sourceFilter]);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
     const updateStatus = async (orderId: string, newStatus: string) => {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
+        
+        if (newStatus === 'completed') {
+            try {
+                const res = await fetch(`/api/orders/${orderId}/complete`, { method: 'POST' });
+                if (!res.ok) throw new Error("Failed to complete order via API");
+                // Optimistically update UI
+                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus, updated_at: new Date().toISOString() } : o));
+            } catch (err) {
+                console.error(err);
+                alert("تعذر إكمال الطلب السحابي. يرجى المحاولة مرة أخرى.");
+            }
+            return;
+        }
+
         await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
         await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
         setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus, updated_at: new Date().toISOString() } : o));
@@ -128,44 +158,67 @@ export default function OrdersPage() {
 
     const printOrderReceipt = (order: Order) => {
         const itemsHtml = order.items.map(item =>
-            `<tr><td style="padding:2px 0">${item.title}${item.size && item.size !== 'عادي' ? ` (${item.size})` : ''}</td><td style="text-align:center">${item.qty}</td><td style="text-align:left">${formatCurrency(item.price * item.qty)}</td></tr>`
+            `<tr>
+                <td style="padding:4px 0;font-size:14px;">
+                    ${item.category ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${item.category}<br/></span>` : ''}
+                    ${item.title}${item.size && item.size !== 'عادي' ? ` (${item.size})` : ''}
+                </td>
+                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold;direction:rtl;">${item.qty}</td>
+                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold;">${formatCurrency(item.price * item.qty)}</td>
+            </tr>`
         ).join('');
-        const discountHtml = order.discount > 0 ? `<div style="display:flex;justify-content:space-between"><span>${isAr ? 'الخصم' : 'Discount'}</span><span>-${formatCurrency(order.discount)}</span></div>` : '';
+        
+        let customerHtml = '';
+        if (order.customer_name || order.customer_phone) {
+            customerHtml = `<div class="divider"></div><div style="font-size:14px;">`;
+            if (order.customer_name) customerHtml += `<p style="margin:2px 0">العميل: <strong>${order.customer_name}</strong></p>`;
+            if (order.customer_phone) customerHtml += `<p style="margin:2px 0" dir="ltr">هاتف: <strong>${order.customer_phone}</strong></p>`;
+            customerHtml += `</div>`;
+        }
+        
+        const notesHtml = order.notes ? `<div class="divider"></div><div style="font-size:14px;"><p style="margin:2px 0">ملاحظات: <strong>${order.notes}</strong></p></div>` : '';
+        const discountHtml = order.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px;"><span>الخصم</span><span>-${formatCurrency(order.discount)}</span></div>` : '';
+        const paymentMethodLabel = order.payment_method === "cash" ? "كاش" : order.payment_method === "deposit" ? "عربون" : order.payment_method;
+
         const printWindow = window.open('', '_blank', 'width=300,height=600');
         if (!printWindow) return;
         printWindow.document.write(`
             <html><head><title>Receipt #${order.order_number}</title>
-            <style>
-                body { font-family: 'Courier New', Courier, monospace; font-size: 15px; width: 72mm; margin: 0 auto; padding: 10px; direction: rtl; color: #000; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 10px; } 
-                td { padding: 4px 0; vertical-align: top; font-size: 15px; }
-                .divider { border-top: 1.5px dashed #000; margin: 12px 0; }
-                .text-center { text-align: center; }
-                .text-left { text-align: left; }
-                .font-bold { font-weight: bold; }
-                @media print { body { width: 72mm; margin: 0; padding: 0; } }
-            </style></head><body>
+            <style>${getReceiptStyles()}</style></head><body>
+            
             <div class="text-center" style="margin-bottom: 15px;">
-                <p class="font-bold" style="font-size: 22px; margin: 0 0 5px 0;">${isAr ? 'فاتورة طلب' : 'Order Receipt'}</p>
+                <p class="font-bold" style="font-size: 22px; margin: 0 0 5px 0;">${restaurant?.name || "Restaurant"}</p>
                 <p style="font-size: 14px; margin: 0 0 5px 0;">${new Date(order.created_at).toLocaleDateString('ar-EG')} - ${new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
-                <p class="font-bold" style="font-size: 18px; margin: 0;">${isAr ? 'طلب رقم' : 'Order No'} #${order.order_number}</p>
-                ${order.customer_name ? `<p class="font-bold" style="font-size: 15px; margin: 5px 0 0 0;">👤 ${order.customer_name}</p>` : ''}
+                <p class="font-bold" style="font-size: 18px; margin: 0;">فاتورة رقم #${order.order_number}</p>
             </div>
+            
+            ${customerHtml}
+            ${notesHtml}
+            
             <div class="divider"></div>
-            <table><thead><tr>
-                <td class="font-bold" style="padding-bottom: 8px;">${isAr ? 'الصنف' : 'Item'}</td>
-                <td class="font-bold text-center" style="padding-bottom: 8px;">${isAr ? 'الكمية' : 'Qty'}</td>
-                <td class="font-bold text-left" style="padding-bottom: 8px;">${isAr ? 'المبلغ' : 'Amt'}</td>
-            </tr></thead><tbody>${itemsHtml}</tbody></table>
+            <table>
+                <thead><tr>
+                    <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px;">الصنف</td>
+                    <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px;">الكمية</td>
+                    <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px;">المبلغ</td>
+                </tr></thead>
+                <tbody>${itemsHtml}</tbody>
+            </table>
+            
             <div class="divider"></div>
             ${discountHtml}
             <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px;">
-                <span>${isAr ? 'الإجمالي' : 'Total'}</span><span>${formatCurrency(order.total)}</span>
+                <span>الإجمالي</span><span>${formatCurrency(order.total)}</span>
             </div>
+            
             <div class="divider"></div>
-            <div class="text-center" style="font-size: 14px; margin-top: 20px; font-weight: bold;">
-                <p style="margin: 0;">${isAr ? 'شكراً لزيارتكم' : 'Thank you for your visit'}</p>
+            <div class="text-center" style="font-size:13px;font-weight:bold;">
+                طريقة الدفع: <strong>${paymentMethodLabel}</strong>
             </div>
+            <div class="text-center" style="font-size:13px;margin-top:20px;font-weight:bold;">
+                <p style="margin: 0;">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p>
+            </div>
+            
             </body></html>
         `);
         printWindow.document.close();
@@ -184,7 +237,7 @@ export default function OrdersPage() {
     const statCounts = {
         total: orders.length,
         pending: orders.filter(o => o.status === "pending").length,
-        active: orders.filter(o => ["accepted", "preparing", "ready"].includes(o.status)).length,
+        in_progress: orders.filter(o => ["in_progress", "accepted", "preparing", "ready", "out_for_delivery"].includes(o.status)).length,
         completed: orders.filter(o => o.status === "completed").length,
     };
 
@@ -214,7 +267,7 @@ export default function OrdersPage() {
                 {[
                     { label: isAr ? "إجمالي الطلبات" : "Total", value: statCounts.total, color: "text-slate-700 dark:text-zinc-300" },
                     { label: isAr ? "قيد الانتظار" : "Pending", value: statCounts.pending, color: "text-amber-600 dark:text-amber-400" },
-                    { label: isAr ? "نشطة" : "Active", value: statCounts.active, color: "text-blue-600 dark:text-blue-400" },
+                    { label: isAr ? "تحت التنفيذ" : "In Progress", value: statCounts.in_progress, color: "text-blue-600 dark:text-blue-400" },
                     { label: isAr ? "مكتملة" : "Completed", value: statCounts.completed, color: "text-emerald-600 dark:text-emerald-400" },
                 ].map((s, i) => (
                     <div key={i} className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-4">
@@ -237,9 +290,17 @@ export default function OrdersPage() {
                     <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                         className="w-full sm:w-auto pe-8 ps-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-sm text-slate-900 dark:text-white outline-none -blue/50 appearance-none cursor-pointer">
                         <option value="all">{isAr ? "كل الحالات" : "All"}</option>
-                        {["pending", "accepted", "preparing", "ready", "out_for_delivery", "completed", "cancelled"].map(s => (
+                        {["pending", "in_progress", "completed", "cancelled"].map(s => (
                             <option key={s} value={s}>{statusLabel(s, isAr)}</option>
                         ))}
+                    </select>
+                </div>
+                <div className="relative w-full sm:w-auto">
+                    <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
+                        className="w-full sm:w-auto pe-8 ps-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-sm text-slate-900 dark:text-white outline-none appearance-none cursor-pointer font-bold">
+                        <option value="all">{isAr ? "كل المصادر" : "All Sources"}</option>
+                        <option value="pos">{isAr ? "🖥️ الكاشير (POS)" : "🖥️ POS (Cashier)"}</option>
+                        <option value="website">{isAr ? "🌐 الويب (المنيو)" : "🌐 Website (Menu)"}</option>
                     </select>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
@@ -261,7 +322,7 @@ export default function OrdersPage() {
                     {filteredOrders.map(order => {
                         const elapsed = elapsedTime(order.created_at, isAr);
                         const isExpanded = expandedOrder === order.id;
-                        const validNext = nextStatuses(order.status);
+                        const validNext = nextStatuses(order.status, order.source);
                         return (
                             <div key={order.id} className={`bg-white dark:bg-card border rounded-xl overflow-hidden transition-colors ${elapsed.isDelayed && !["completed", "cancelled"].includes(order.status) ? "border-red-500/40" : "border-slate-200 dark:border-zinc-800/50"}`}>
                                 {/* Order Row */}
@@ -272,6 +333,16 @@ export default function OrdersPage() {
                                             {statusLabel(order.status, isAr)}
                                         </span>
                                     </div>
+                                    {/* Source Badge */}
+                                    {order.source === 'pos' ? (
+                                        <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg border bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-500/20 flex items-center gap-1 shrink-0">
+                                            <Monitor className="w-3.5 h-3.5" /> {isAr ? "كاشير" : "POS"}
+                                        </span>
+                                    ) : (
+                                        <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg border bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-500/20 flex items-center gap-1 shrink-0">
+                                            <Globe className="w-3.5 h-3.5" /> {isAr ? "أونلاين" : "Online"}
+                                        </span>
+                                    )}
                                     <span className={`hidden sm:inline-flex text-xs font-bold px-2.5 py-1 rounded-lg border ${statusColor(order.status)} shrink-0`}>
                                         {statusLabel(order.status, isAr)}
                                     </span>
@@ -340,7 +411,7 @@ export default function OrdersPage() {
                                                         {validNext.map(ns => (
                                                             <button key={ns} onClick={(e) => { e.stopPropagation(); updateStatus(order.id, ns); }}
                                                                 className={`text-sm font-bold px-4 py-2 rounded-lg border transition-all hover:scale-105 active:scale-95 ${statusColor(ns)}`}>
-                                                                → {statusLabel(ns, isAr)}
+                                                                {ns === 'in_progress' && order.source !== 'pos' ? (isAr ? '✅ تأكيد الطلب' : '✅ Confirm') : `→ ${statusLabel(ns, isAr)}`}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -358,10 +429,17 @@ export default function OrdersPage() {
                                                     <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3">
                                                         <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 mb-2 uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> {isAr ? "سجل النشاط" : "Activity Log"}</h4>
                                                         {orderLogs[order.id].map(log => (
-                                                            <div key={log.id} className="flex items-center gap-2 text-[10px] py-1 border-b border-slate-100 dark:border-zinc-800/20 last:border-0">
-                                                                <span className="text-slate-500 dark:text-zinc-500">{timeAgo(log.created_at, isAr)}</span>
-                                                                {log.old_status && <span className={`px-1.5 py-0.5 rounded ${statusColor(log.old_status)}`}>{statusLabel(log.old_status, isAr)}</span>}
-                                                                {log.new_status && <><span className="text-slate-400 dark:text-zinc-600">→</span><span className={`px-1.5 py-0.5 rounded ${statusColor(log.new_status)}`}>{statusLabel(log.new_status, isAr)}</span></>}
+                                                            <div key={log.id} className="flex flex-col gap-1 text-[10px] py-1 border-b border-slate-100 dark:border-zinc-800/20 last:border-0">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-slate-500 dark:text-zinc-500">{timeAgo(log.created_at, isAr)}</span>
+                                                                    {log.old_status && <span className={`px-1.5 py-0.5 rounded ${statusColor(log.old_status)}`}>{statusLabel(log.old_status, isAr)}</span>}
+                                                                    {log.new_status && <><span className="text-slate-400 dark:text-zinc-600">→</span><span className={`px-1.5 py-0.5 rounded ${statusColor(log.new_status)}`}>{statusLabel(log.new_status, isAr)}</span></>}
+                                                                </div>
+                                                                {log.action && !log.action.includes('status_') && (
+                                                                    <div className="text-indigo-600 dark:text-indigo-400 font-mono mt-1 px-1 bg-indigo-50 dark:bg-indigo-900/20 rounded">
+                                                                        {log.action}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>

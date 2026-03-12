@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { appendFileSync } from "fs";
+import { processOrderInventory } from "@/lib/helpers/inventoryService";
+import { calculateOrderCostServer } from "@/lib/helpers/costService";
 
 export async function POST(request: Request) {
     try {
@@ -23,12 +25,53 @@ export async function POST(request: Request) {
         // Upsert orders
         if (orders && orders.length > 0) {
             for (const order of orders) {
+                // Check if this order was already processed for inventory
+                const { data: existingTx } = await supabaseAdmin
+                    .from('inventory_transactions')
+                    .select('id')
+                    .eq('reference_id', order.id)
+                    .limit(1);
+
+                const isAlreadyDeducted = existingTx && existingTx.length > 0;
+
                 const { error } = await supabaseAdmin.from('orders').upsert(order);
                 if (error) {
                     appendFileSync('sync_errors.log', `\nOrder Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(order)}\n`);
                     results.errors.push(`Order ${order.id}: ${error.message}`);
                 } else {
                     results.orders++;
+                    
+                    // Deduct from inventory if new POS order
+                    if (!isAlreadyDeducted && order.items && order.items.length > 0) {
+                        try {
+                            const invResult = await processOrderInventory(order.restaurant_id, order.items, order.id, supabaseAdmin);
+                            
+                            // POS orders: if all deducted, mark completed. Otherwise stay pending for factory.
+                            const finalStatus = invResult.allDeducted ? 'completed' : 'pending';
+                            
+                            await supabaseAdmin.from('orders').update({
+                                status: finalStatus,
+                                updated_at: new Date().toISOString()
+                            }).eq('id', order.id);
+
+                            await supabaseAdmin.from('order_logs').insert({
+                                order_id: order.id,
+                                action: 'status_assigned_auto_sync',
+                                old_status: 'pending',
+                                new_status: finalStatus,
+                                performed_by: 'system_sync'
+                            });
+                        } catch (invErr) {
+                            console.error(`[Sync] Inventory deduction failed for order ${order.id}:`, invErr);
+                        }
+                    }
+
+                    // Calculate order cost & profit (matches items by title for POS)
+                    try {
+                        await calculateOrderCostServer(order.id, supabaseAdmin);
+                    } catch (costErr) {
+                        console.error(`[Sync] Cost calculation failed for order ${order.id}:`, costErr);
+                    }
                 }
             }
         }

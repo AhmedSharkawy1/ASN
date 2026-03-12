@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { submitOrder, buildWhatsAppMessage, OrderItem, OrderItemExtra } from "@/lib/helpers/submitOrder";
 import { FaWhatsapp } from "react-icons/fa";
-import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Printer, Plus, Minus } from "lucide-react";
+import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus } from "lucide-react";
 
 type DeliveryZone = {
     id: string;
@@ -148,7 +148,11 @@ export default function CheckoutModal({
                     }
                 }
             });
-            return { ...item, extras };
+            return {
+                ...item,
+                id: (item as CheckoutCartItem & { item?: { id: string } }).item?.id || item.id,
+                extras 
+            };
         });
     };
 
@@ -174,7 +178,7 @@ export default function CheckoutModal({
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
     const canProceedStep3 = orderType === 'pickup' || (orderType === 'delivery' && selectedZone && address.trim().length > 0);
 
-    const handleSubmit = async (viaWhatsApp = false) => {
+    const handleSubmit = async () => {
         setLoading(true);
         const finalItems = getFinalItems();
         const result = await submitOrder({
@@ -196,30 +200,10 @@ export default function CheckoutModal({
         setLoading(false);
         if (result.success) {
             setOrderNumber(result.orderNumber || 0);
-            setStep(5);
+            setStep(hasAddons ? 5 : 4);
             onOrderSuccess?.();
-
-            // Auto send WhatsApp ONLY if channel explicitly requested it
-            if (viaWhatsApp && whatsappNumber) {
-                const msg = buildWhatsAppMessage({
-                    orderNumber: result.orderNumber || 0,
-                    restaurantName,
-                    customerName: name,
-                    customerPhone: phone,
-                    customerAddress: orderType === 'delivery' ? address : undefined,
-                    orderType,
-                    deliveryZoneName: selectedZone ? (isAr ? selectedZone.name_ar : (selectedZone.name_en || selectedZone.name_ar)) : undefined,
-                    deliveryFee,
-                    items: finalItems,
-                    subtotal: subtotal + extrasTotal,
-                    total,
-                    notes: notes || undefined,
-                    currency: currency.replace('.', ''),
-                    language,
-                });
-                // Use window.location.href to avoid mobile popup blockers after async await
-                window.location.href = `https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg)}`;
-            }
+            // We removed the auto redirect here so the user can see the success step (Step 5)
+            // The success step has a button to send the WhatsApp message manually.
         } else {
             alert(result.error || (isAr ? "حدث خطأ" : "Something went wrong"));
         }
@@ -247,82 +231,7 @@ export default function CheckoutModal({
         window.open(`https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg)}`, '_blank');
     };
 
-    const handlePrint = () => {
-        const printContent = printRef.current;
-        if (!printContent) return;
-        const printWindow = window.open('', '_blank', 'width=400,height=600');
-        if (!printWindow) return;
-        const finalItems = getFinalItems();
-
-        const itemsHtml = finalItems.map((item, idx) => {
-            const extrasHtml = (item.extras || []).map(e =>
-                `<div style="padding-right:16px;color:#666;font-size:11px;">🔹 ${e.name} ×${e.qty} = ${e.price * e.qty} ${currency}</div>`
-            ).join('');
-            const itemExtrasTotal = (item.extras || []).reduce((s, e) => s + e.price * e.qty, 0);
-            const itemTotal = (item.price * item.qty) + (itemExtrasTotal * item.qty);
-            return `
-                <div style="border-bottom:1px dashed #ddd;padding:8px 0;">
-                    <div style="display:flex;justify-content:space-between;font-weight:bold;">
-                        <span>${idx + 1}. ${item.title}</span>
-                        <span>${itemTotal} ${currency}</span>
-                    </div>
-                    ${item.category ? `<div style="color:#888;font-size:11px;">📂 ${item.category}</div>` : ''}
-                    ${item.size && item.size !== 'عادي' ? `<div style="color:#888;font-size:11px;">📏 ${item.size}</div>` : ''}
-                    <div style="color:#888;font-size:11px;">💵 ${item.price} × ${item.qty}</div>
-                    ${extrasHtml}
-                </div>`;
-        }).join('');
-
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html dir="${isAr ? 'rtl' : 'ltr'}">
-            <head>
-                <meta charset="utf-8">
-                <title>${isAr ? 'فاتورة' : 'Invoice'} #${orderNumber}</title>
-                <style>
-                    * { margin: 0; padding: 0; box-sizing: border-box; }
-                    body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; max-width: 380px; margin: 0 auto; color: #222; }
-                    .header { text-align: center; border-bottom: 2px solid #222; padding-bottom: 12px; margin-bottom: 12px; }
-                    .header h1 { font-size: 18px; margin-bottom: 4px; }
-                    .header .order-num { font-size: 24px; font-weight: 900; color: #16a34a; }
-                    .info { margin-bottom: 12px; }
-                    .info div { font-size: 13px; margin: 3px 0; }
-                    .items { margin-bottom: 12px; }
-                    .totals { border-top: 2px solid #222; padding-top: 8px; }
-                    .totals div { display: flex; justify-content: space-between; font-size: 13px; margin: 3px 0; }
-                    .totals .grand { font-size: 18px; font-weight: 900; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd; }
-                    .footer { text-align: center; margin-top: 16px; font-size: 11px; color: #888; border-top: 1px dashed #ddd; padding-top: 12px; }
-                    @media print { body { padding: 10px; } }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>🧾 ${restaurantName}</h1>
-                    <div class="order-num">#${orderNumber}</div>
-                    <div style="font-size:11px;color:#888;">${new Date().toLocaleString(isAr ? 'ar-EG' : 'en-US')}</div>
-                </div>
-                <div class="info">
-                    <div>👤 <strong>${isAr ? 'الاسم:' : 'Name:'}</strong> ${name}</div>
-                    <div>📞 <strong>${isAr ? 'الموبايل:' : 'Phone:'}</strong> ${phone}</div>
-                    ${orderType === 'delivery' && address ? `<div>📍 <strong>${isAr ? 'العنوان:' : 'Address:'}</strong> ${address}</div>` : ''}
-                    <div>${orderType === 'delivery' ? `🚚 ${isAr ? 'دليفري' : 'Delivery'}${selectedZone ? ` — ${isAr ? selectedZone.name_ar : selectedZone.name_en}` : ''}` : `🏪 ${isAr ? 'استلام من المطعم' : 'Pickup'}`}</div>
-                </div>
-                <div class="items">${itemsHtml}</div>
-                <div class="totals">
-                    <div><span>${isAr ? 'مجموع الأصناف' : 'Subtotal'}</span><span>${subtotal + extrasTotal} ${currency}</span></div>
-                    ${deliveryFee > 0 ? `<div><span>${isAr ? 'رسوم التوصيل' : 'Delivery'}</span><span>${deliveryFee} ${currency}</span></div>` : ''}
-                    <div class="grand"><span>${isAr ? 'الإجمالي' : 'Total'}</span><span>${total} ${currency}</span></div>
-                </div>
-                ${notes ? `<div style="margin-top:8px;font-size:12px;color:#666;">📝 ${notes}</div>` : ''}
-                <div class="footer">
-                    ${isAr ? 'شكراً لاختياركم' : 'Thank you for choosing'} ${restaurantName} ❤️
-                </div>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        setTimeout(() => { printWindow.print(); }, 300);
-    };
+    // Removed handlePrint here
 
     if (!isOpen) return null;
 
@@ -345,11 +254,9 @@ export default function CheckoutModal({
                     <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
                         {stepLabels[step as keyof typeof stepLabels]}
                     </h3>
-                    {effectiveStep < 5 && (
-                        <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
-                            <X className="w-5 h-5 text-zinc-500" />
-                        </button>
-                    )}
+                    <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
+                        <X className="w-5 h-5 text-zinc-500" />
+                    </button>
                 </div>
 
                 <div className="p-5 space-y-4">
@@ -668,7 +575,7 @@ export default function CheckoutModal({
                                     {(orderChannel === "website" || orderChannel === "both") && (
                                         <button
                                             disabled={loading}
-                                            onClick={() => handleSubmit(false)}
+                                            onClick={() => handleSubmit()}
                                             className="w-full py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
                                         >
                                             {loading ? (
@@ -681,7 +588,7 @@ export default function CheckoutModal({
                                     {(orderChannel === "whatsapp" || orderChannel === "both") && (
                                         <button
                                             disabled={loading}
-                                            onClick={() => handleSubmit(true)}
+                                            onClick={() => handleSubmit()}
                                             className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
                                         >
                                             {loading ? (
@@ -711,24 +618,15 @@ export default function CheckoutModal({
                             </div>
 
                             <div className="flex flex-col gap-2 pt-2">
-                                <div className="flex gap-2">
-                                    {whatsappNumber && (
-                                        <button
-                                            onClick={sendWhatsApp}
-                                            className="flex-1 py-3 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#1da851] transition text-sm flex items-center justify-center gap-2"
-                                        >
-                                            <FaWhatsapp className="w-5 h-5" />
-                                            {isAr ? "إرسال عبر واتساب" : "Send via WhatsApp"}
-                                        </button>
-                                    )}
+                                {whatsappNumber && (
                                     <button
-                                        onClick={handlePrint}
-                                        className="flex-1 py-3 rounded-xl font-bold text-white bg-blue-500 hover:bg-blue-600 transition text-sm flex items-center justify-center gap-2"
+                                        onClick={sendWhatsApp}
+                                        className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#1da851] transition text-sm flex items-center justify-center gap-2"
                                     >
-                                        <Printer className="w-4 h-4" />
-                                        {isAr ? "طباعة الفاتورة" : "Print Invoice"}
+                                        <FaWhatsapp className="w-5 h-5" />
+                                        {isAr ? "إرسال عبر واتساب" : "Send via WhatsApp"}
                                     </button>
-                                </div>
+                                )}
                                 <button
                                     onClick={onClose}
                                     className="w-full py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm"

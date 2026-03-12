@@ -197,23 +197,23 @@ export default function CustomersPage() {
             ) : (
                 <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm min-w-[700px]">
+                        <table className="w-full text-base min-w-[700px]">
                             <thead><tr className="border-b border-slate-200 dark:border-zinc-800/50">
-                                {["العميل", "الهاتف", "التصنيف", "الطلبات", "إجمالي الإنفاق", ""].map((h, i) => <th key={i} className={`text-right p-4 text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase ${h === "" ? "w-10" : ""}`}>{h}</th>)}
+                                {["العميل", "الهاتف", "التصنيف", "الطلبات", "إجمالي الإنفاق", ""].map((h, i) => <th key={i} className={`text-right p-4 text-sm text-slate-500 dark:text-zinc-500 font-bold uppercase ${h === "" ? "w-10" : ""}`}>{h}</th>)}
                             </tr></thead>
                             <tbody>
                                 {filtered.map((c, i) => (
                                     <tr key={i} className="border-b border-slate-200 dark:border-zinc-800/30 hover:bg-white/[0.02] transition">
-                                        <td className="p-4 font-bold text-slate-700 dark:text-zinc-300 text-base">{c.name}</td>
-                                        <td className="p-4 text-slate-500 dark:text-zinc-400 text-sm" dir="ltr"><Phone className="w-3 h-3 inline mr-1" />{c.phone}</td>
+                                        <td className="p-4 font-bold text-slate-700 dark:text-zinc-300 text-xl">{c.name}</td>
+                                        <td className="p-4 text-slate-500 dark:text-zinc-400 text-lg" dir="ltr"><Phone className="w-4 h-4 inline mr-1" />{c.phone}</td>
                                         <td className="p-4">
-                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold border whitespace-nowrap ${c.status === "VIP" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30" : c.status === "نشط" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-700/50"}`}>
-                                                {c.status === "VIP" && <Crown className="w-3 h-3" />} {c.status}
+                                            <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-bold border whitespace-nowrap ${c.status === "VIP" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30" : c.status === "نشط" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-700/50"}`}>
+                                                {c.status === "VIP" && <Crown className="w-4 h-4" />} {c.status}
                                             </span>
                                         </td>
-                                        <td className="p-4"><span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-lg text-xs font-bold"><ShoppingCart className="w-3 h-3" /> {c.orders}</span></td>
-                                        <td className="p-4 font-extrabold text-emerald-600 dark:text-emerald-400 text-base">{formatCurrency(c.total)}</td>
-                                        <td className="p-4"><button onClick={() => deleteCustomer(c.id)} className="p-2 text-slate-400 dark:text-zinc-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-5 h-5" /></button></td>
+                                        <td className="p-4"><span className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg text-lg font-bold"><ShoppingCart className="w-4 h-4" /> {c.orders}</span></td>
+                                        <td className="p-4 font-extrabold text-emerald-600 dark:text-emerald-400 text-xl">{formatCurrency(c.total)}</td>
+                                        <td className="p-4"><button onClick={() => deleteCustomer(c.id)} className="p-2 text-slate-400 dark:text-zinc-600 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-6 h-6" /></button></td>
                                     </tr>
                                 ))}
                             </tbody>

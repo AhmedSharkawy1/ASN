@@ -4,14 +4,17 @@ import path from 'node:path';
 process.env.DIST = path.join(__dirname, '../dist');
 process.env.VITE_PUBLIC = app.isPackaged ? process.env.DIST : path.join(process.env.DIST, '../public');
 
+// Disable hardware acceleration to ensure stability on Windows 7 systems with older GPUs
+app.disableHardwareAcceleration();
+
 let win: BrowserWindow | null;
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
 
 function createWindow() {
     win = new BrowserWindow({
-        width: 1400,
-        height: 900,
-        minWidth: 1100,
+        width: 1280,
+        height: 960,
+        minWidth: 1024,
         minHeight: 700,
         icon: path.join(process.env.VITE_PUBLIC!, 'icon.png'),
         webPreferences: {
@@ -34,6 +37,8 @@ function createWindow() {
     } else {
         win.loadFile(path.join(process.env.DIST!, 'index.html'));
     }
+
+    win.maximize();
 }
 
 app.on('window-all-closed', () => {

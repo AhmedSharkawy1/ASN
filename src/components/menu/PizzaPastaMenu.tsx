@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { ShoppingCart, MapPin } from "lucide-react";
 import { FaWhatsapp, FaFacebook } from "react-icons/fa";
@@ -12,6 +12,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
+import ASNFooter from '@/components/menu/ASNFooter';
 
 type Item = {
     id: string;
@@ -91,6 +92,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: Item; catName: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    const isManualScroll = useRef(false);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
     const [showCallMenu, setShowCallMenu] = useState(false);
@@ -98,6 +100,40 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
     const [showCheckout, setShowCheckout] = useState(false);
     const navScrollRef = useRef<HTMLDivElement>(null);
+
+    // --- Intersection Observer to Sync Category Bar ---
+    useEffect(() => {
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) setActiveSection(entry.target.id);
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, {
+            root: null,
+            rootMargin: "-100px 0px -50% 0px",
+            threshold: 0
+        });
+
+        categories.forEach((cat) => {
+            const el = document.getElementById(cat.id.toString());
+            if (el) observer.observe(el);
+        });
+        return () => observer.disconnect();
+    }, [categories]);
+
+    // --- Auto-scroll the Nav Bar when activeSection changes ---
+    useEffect(() => {
+        if (activeSection && navScrollRef.current && !isManualScroll.current) {
+            const activeBtn = navScrollRef.current.querySelector(`button[data-cat-id="${activeSection}"]`) as HTMLElement;
+            if (activeBtn) {
+                const container = navScrollRef.current;
+                const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+        }
+    }, [activeSection]);
 
     const triggerHaptic = (ms: number = 10) => {
         if (typeof window !== "undefined" && navigator.vibrate) navigator.vibrate(ms);
@@ -113,12 +149,16 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
         triggerHaptic(10);
         setShowCategoriesModal(false);
         setActiveSection(id);
-        const el = document.getElementById(`section-${id}`);
+        isManualScroll.current = true;
+        const el = document.getElementById(id);
         if (el) {
             const offset = 160;
             const pos = el.getBoundingClientRect().top + window.scrollY - offset;
             window.scrollTo({ top: pos, behavior: "smooth" });
         }
+        setTimeout(() => {
+            isManualScroll.current = false;
+        }, 800);
     };
 
     // ---- Cart Logic ----
@@ -324,6 +364,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                         {categories.map((cat) => (
                             <button
                                 key={cat.id}
+                                data-cat-id={cat.id}
                                 onClick={() => handleNavClick(cat.id)}
                                 className={`whitespace-nowrap px-4 py-2 rounded-2xl text-[12px] font-black border transition-all duration-300 ${activeSection === cat.id
                                     ? "bg-rose-600 text-white border-rose-500 scale-105 shadow-md"
@@ -368,7 +409,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
             {/* ===== MAIN CONTENT ===== */}
             <main className="max-w-2xl mx-auto px-5 py-8 pb-12">
                 {categories.map((cat) => (
-                    <section key={cat.id} id={`section-${cat.id}`} className="mb-6 scroll-mt-[170px]">
+                    <section key={cat.id} id={cat.id.toString()} className="mb-6 scroll-mt-[170px]">
 
                         {/* Section Cover Image */}
                         <div className="relative aspect-[16/10] md:aspect-[21/9] rounded-[2rem] overflow-hidden mb-4 shadow-2xl border border-zinc-200 dark:border-white/5 bg-zinc-200 dark:bg-zinc-900 group">
@@ -624,6 +665,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                 }
             </AnimatePresence >
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

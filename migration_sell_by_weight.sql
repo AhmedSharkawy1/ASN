@@ -1,0 +1,1 @@
+ALTER TABLE items ADD COLUMN IF NOT EXISTS sell_by_weight BOOLEAN DEFAULT false;

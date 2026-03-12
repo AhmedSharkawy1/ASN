@@ -22,6 +22,8 @@ type Item = {
     is_spicy: boolean;
     image_url?: string;
     is_available: boolean;
+    sell_by_weight: boolean;
+    weight_unit?: string;
 };
 
 type Category = {
@@ -437,6 +439,8 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
     const [sizeLabels, setSizeLabels] = useState<string[]>(['عادي']);
     const [isPopular, setIsPopular] = useState(false);
     const [isSpicy, setIsSpicy] = useState(false);
+    const [sellByWeight, setSellByWeight] = useState(false);
+    const [weightUnit, setWeightUnit] = useState('كجم');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
@@ -459,7 +463,9 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
                     desc_ar: descAr || undefined, desc_en: descEn || undefined,
                     price: prices[0] || 0,
                     prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0),
-                    is_popular: isPopular, is_spicy: isSpicy, is_available: true
+                    is_popular: isPopular, is_spicy: isSpicy, is_available: true,
+                    sell_by_weight: sellByWeight,
+                    weight_unit: sellByWeight ? weightUnit : null
                 }).select().single();
             if (data) {
                 let imgUrl = null;
@@ -544,6 +550,19 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
                         className={`text-xs px-3 py-2 rounded-xl border font-bold transition ${isSpicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver hover:border-red-500/50'}`}>
                         🌶️ {language === "ar" ? "حار" : "Spicy"}
                     </button>
+                    <div className="flex flex-col gap-2 relative">
+                        <button type="button" onClick={() => setSellByWeight(!sellByWeight)}
+                            className={`text-xs px-3 py-2 rounded-xl border font-bold transition ${sellByWeight ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500' : 'border-glass-border text-silver hover:border-indigo-500/50'}`}>
+                            ⚖️ {language === "ar" ? "يباع بالوزن" : "By Weight"}
+                        </button>
+                    </div>
+                    {sellByWeight && (
+                        <div className="flex flex-col gap-1 w-full mt-2 animation-fade-in">
+                            <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الوحدة (مثال: كيلو، علبة)" : "Unit"}</label>
+                            <input value={weightUnit} onChange={e => setWeightUnit(e.target.value)} 
+                                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-sm font-bold" placeholder="كجم" />
+                        </div>
+                    )}
                     <div className="flex items-center gap-2">
                         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                         <button type="button" onClick={() => fileRef.current?.click()}
@@ -584,6 +603,7 @@ function ItemRow({ item, language, onEdit, onDelete }: {
                             <h4 className="font-bold text-foreground text-xl truncate">{item.title_ar}</h4>
                             {item.is_popular && <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {language === "ar" ? "مميز" : "Popular"}</span>}
                             {item.is_spicy && <span className="text-red-500 text-base">🌶️</span>}
+                            {item.sell_by_weight && <span className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1">⚖️ {language === "ar" ? "وزن" : "Weight"} ({item.weight_unit || 'كجم'})</span>}
                         </div>
                         {item.title_en && <p className="text-sm text-silver mb-1">{item.title_en}</p>}
                         <p className="text-base text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
@@ -677,11 +697,13 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose }: {
     const [descEn, setDescEn] = useState(item.desc_en || '');
     const [localPrices, setLocalPrices] = useState([...item.prices]);
     const [localLabels, setLocalLabels] = useState([...(item.size_labels || [])]);
+    const [sellByWeight, setSellByWeight] = useState(item.sell_by_weight || false);
+    const [weightUnit, setWeightUnit] = useState(item.weight_unit || 'كجم');
     const [uploading, setUploading] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
     const handleSave = async () => {
-        await onUpdate({ title_ar: titleAr, title_en: titleEn, desc_ar: descAr, desc_en: descEn, prices: localPrices, size_labels: localLabels });
+        await onUpdate({ title_ar: titleAr, title_en: titleEn, desc_ar: descAr, desc_en: descEn, prices: localPrices, size_labels: localLabels, sell_by_weight: sellByWeight, weight_unit: sellByWeight ? weightUnit : undefined });
         onClose();
     };
 
@@ -736,7 +758,15 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose }: {
             <div className="flex gap-2">
                 <button type="button" onClick={() => onUpdate({ is_popular: !item.is_popular })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_popular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver'}`}>⭐ {language === "ar" ? (item.is_popular ? "إلغاء" : "مميز") : (item.is_popular ? "Remove" : "Popular")}</button>
                 <button type="button" onClick={() => onUpdate({ is_spicy: !item.is_spicy })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_spicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver'}`}>🌶️ {language === "ar" ? (item.is_spicy ? "إلغاء" : "حار") : (item.is_spicy ? "Remove" : "Spicy")}</button>
+                <button type="button" onClick={() => { setSellByWeight(!sellByWeight); onUpdate({ sell_by_weight: !sellByWeight, weight_unit: !sellByWeight ? weightUnit : undefined }); }} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${sellByWeight ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500' : 'border-glass-border text-silver'}`}>⚖️ {language === "ar" ? (sellByWeight ? "إلغاء الوزن" : "وزن") : (sellByWeight ? "Remove Weight" : "Weight")}</button>
             </div>
+            {sellByWeight && (
+                <div className="w-full">
+                    <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الوحدة (مثال: كيلو، جرام)" : "Unit"}</label>
+                    <input value={weightUnit} onChange={e => { setWeightUnit(e.target.value); onUpdate({ weight_unit: e.target.value }); }} 
+                        className="w-full mt-1 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" placeholder="كجم" />
+                </div>
+            )}
             <div className="flex items-center gap-3">
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}

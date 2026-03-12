@@ -16,6 +16,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 /* ───── THEME 7 CONSTANTS ───── */
 const T7_BG = '#0b1120';       // dark navy
@@ -50,6 +51,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
 
     const catNavRef = useRef<HTMLDivElement>(null);
     const subCatRef = useRef<HTMLDivElement>(null);
+    const isManualScroll = useRef(false);
 
 
 
@@ -63,20 +65,56 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
 
     /* intersection observer */
     useEffect(() => {
-        const obs = new IntersectionObserver(entries => {
-            entries.forEach(e => {
-                if (e.isIntersecting) {
-                    setActiveSubCat(e.target.id);
-                    const btn = subCatRef.current?.querySelector(`[data-id="${e.target.id}"]`);
-                    btn?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const observerOptions = {
+            root: null,
+            rootMargin: "-200px 0px -60% 0px",
+            threshold: 0
+        };
+
+        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    setActiveSubCat(entry.target.id);
+                    
+                    // Center the active tab in both bars
+                    [catNavRef, subCatRef].forEach(ref => {
+                        const container = ref.current;
+                        const activeBtn = container?.querySelector(`[data-cat-id="${entry.target.id}"]`) as HTMLElement;
+                        if (container && activeBtn) {
+                            const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                            container.scrollTo({ left: scrollLeft, behavior: "smooth" });
+                        }
+                    });
                 }
             });
-        }, { rootMargin: '-200px 0px -60% 0px', threshold: 0 });
-        categories.forEach(c => { const el = document.getElementById(c.id); if (el) obs.observe(el); });
-        return () => obs.disconnect();
+        };
+
+        const observer = new IntersectionObserver(handleIntersect, observerOptions);
+        
+        categories.forEach((cat) => {
+            const el = document.getElementById(cat.id);
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
     }, [categories]);
 
     /* helpers */
+    const scrollToSection = (id: string) => {
+        isManualScroll.current = true;
+        setActiveSubCat(id);
+        if (id === 'top' || id === '') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            const el = document.getElementById(id);
+            if (el) {
+                const y = el.getBoundingClientRect().top + window.scrollY - 180;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }
+        setTimeout(() => { isManualScroll.current = false; }, 1000);
+    };
 
     // ── Cart ──
     const openItemSelect = (item: any, catName: string, catImg?: string) => {
@@ -235,8 +273,8 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                     {categories.map((cat: any) => {
                         const isActive = activeSubCat === cat.id;
                         return (
-                            <button key={cat.id}
-                                onClick={() => document.getElementById(cat.id)?.scrollIntoView({ behavior: 'smooth' })}
+                            <button key={cat.id} data-cat-id={cat.id}
+                                onClick={() => scrollToSection(cat.id)}
                                 className="shrink-0 text-base font-bold pb-1 transition-all whitespace-nowrap"
                                 style={{
                                     color: isActive ? T7_GOLD : (isDarkMode ? '#94a3b8' : '#64748b'),
@@ -255,8 +293,8 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                     {categories.map((cat: any) => {
                         const isActive = activeSubCat === cat.id;
                         return (
-                            <button key={cat.id} data-id={cat.id}
-                                onClick={() => document.getElementById(cat.id)?.scrollIntoView({ behavior: 'smooth' })}
+                            <button key={cat.id} data-cat-id={cat.id}
+                                onClick={() => scrollToSection(cat.id)}
                                 className="flex flex-col items-center gap-2 shrink-0 min-w-[80px]">
                                 <div className={`w-20 h-20 rounded-full overflow-hidden border-2 transition-all shadow-md
                                     ${isActive ? 'border-amber-500 scale-105' : (isDarkMode ? 'border-zinc-700' : 'border-zinc-200')}`}>
@@ -353,25 +391,6 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                 ))}
             </main>
 
-            {/* ─── FOOTER ─── */}
-            <div className="mt-16 px-6 pb-8 text-center space-y-4">
-                <div className="border-t pt-6 space-y-2" style={{ borderColor: isDarkMode ? T7_BORDER : '#e2e8f0' }}>
-                    <p className="text-sm font-bold" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>
-                        {isAr ? 'جميع الأسعار تشمل الخدمة' : 'All prices include service'}
-                    </p>
-                    <p className="text-xs" style={{ color: isDarkMode ? '#64748b' : '#94a3b8' }}>
-                        {isAr ? `نشكركم على اختياركم ${config.name}` : `Thank you for choosing ${config.name}`}
-                    </p>
-                </div>
-                <button className="px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95"
-                    style={{
-                        background: isDarkMode ? 'rgba(255,255,255,0.08)' : '#fff',
-                        color: isDarkMode ? '#fff' : '#0f172a',
-                        border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : '#e2e8f0'}`,
-                    }}>
-                    {isAr ? 'الملاحظات والتقييم' : 'Feedback & Rating'}
-                </button>
-            </div>
 
             {/* ─── FLOATING WHATSAPP ─── */}
             {config.whatsapp_number && (
@@ -598,6 +617,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                 )}
             </AnimatePresence>
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

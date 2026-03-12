@@ -12,6 +12,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 // ─── Types (same as other themes) ───
 type Item = {
@@ -223,20 +224,21 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
 
     // Intersection Observer for active section
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (isManualScroll.current) return;
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        const id = entry.target.id.replace("etoile-", "");
-                        setActiveSection(id);
-                    }
-                });
-            },
-            { root: null, rootMargin: "-180px 0px -40% 0px", threshold: 0 }
-        );
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) setActiveSection(entry.target.id);
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, {
+            root: null,
+            rootMargin: "-100px 0px -50% 0px",
+            threshold: 0
+        });
+
         categories.forEach((cat) => {
-            const el = document.getElementById(`etoile-${cat.id}`);
+            const el = document.getElementById(cat.id.toString());
             if (el) observer.observe(el);
         });
         return () => observer.disconnect();
@@ -244,9 +246,13 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
 
     // Scroll active nav button into view
     useEffect(() => {
-        if (activeSection && navRef.current) {
-            const btn = navRef.current.querySelector(`[data-cat-id="${activeSection}"]`);
-            btn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        if (activeSection && navRef.current && !isManualScroll.current) {
+            const activeBtn = navRef.current.querySelector(`[data-cat-id="${activeSection}"]`) as HTMLElement;
+            if (activeBtn) {
+                const container = navRef.current;
+                const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
         }
     }, [activeSection]);
 
@@ -259,13 +265,14 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
     const handleNavClick = (id: string) => {
         haptic(10);
         setShowCategoriesMenu(false);
-        const el = document.getElementById(`etoile-${id}`);
+        const el = document.getElementById(id);
         if (el) {
             isManualScroll.current = true;
             setActiveSection(id);
-            const top = el.getBoundingClientRect().top + window.pageYOffset - 170;
-            window.scrollTo({ top, behavior: "auto" });
-            setTimeout(() => { isManualScroll.current = false; }, 150);
+            const offset = 120;
+            const pos = el.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+            setTimeout(() => { isManualScroll.current = false; }, 800);
         }
     };
 
@@ -400,7 +407,7 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
             {/* ═══════ MAIN CONTENT ═══════ */}
             <main className="max-w-4xl mx-auto px-4 py-8 pb-48">
                 {filteredCategories.map((cat) => (
-                    <section key={cat.id} id={`etoile-${cat.id}`} className="mb-12 scroll-mt-[120px]">
+                    <section key={cat.id} id={cat.id.toString()} className="mb-12 scroll-mt-[120px]">
                         {/* Section Title */}
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg md:text-xl font-bold uppercase tracking-wide relative inline-block">
@@ -846,6 +853,7 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
                 )}
             </AnimatePresence>
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

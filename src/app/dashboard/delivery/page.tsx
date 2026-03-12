@@ -195,28 +195,28 @@ export default function DeliveryPage() {
                                                 {driver.name.charAt(0)}
                                             </div>
                                             <div className="flex-1 min-w-0 flex flex-col items-center sm:items-start">
-                                                <p className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                                                    <User className="w-4 h-4 text-slate-500 dark:text-zinc-500" /> {driver.name}
+                                                <p className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                                    <User className="w-5 h-5 text-slate-500 dark:text-zinc-500" /> {driver.name}
                                                 </p>
-                                                <p className="text-[10px] text-slate-500 dark:text-zinc-500 font-bold mt-0.5">@{driver.username}</p>
+                                                <p className="text-sm text-slate-500 dark:text-zinc-500 font-bold mt-0.5">@{driver.username}</p>
                                             </div>
                                             {/* Stats chips */}
                                             <div className="flex items-center justify-center gap-4 flex-wrap w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-zinc-800/20">
                                                 <div className="text-center">
-                                                    <p className="text-[9px] text-slate-500 dark:text-zinc-500 font-bold uppercase">الطلبات</p>
-                                                    <p className="text-xl sm:text-2xl font-extrabold text-blue-600 dark:text-blue-400">{stats.count}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase">الطلبات</p>
+                                                    <p className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400">{stats.count}</p>
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-[9px] text-slate-500 dark:text-zinc-500 font-bold uppercase">الإيراد</p>
-                                                    <p className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(stats.revenue)}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase">الإيراد</p>
+                                                    <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(stats.revenue)}</p>
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-[9px] text-slate-500 dark:text-zinc-500 font-bold uppercase">حساب الدليفري</p>
-                                                    <p className="text-xl sm:text-2xl font-extrabold text-amber-600 dark:text-amber-400">{formatCurrency(stats.fees)}</p>
+                                                    <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase">حساب الدليفري</p>
+                                                    <p className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400">{formatCurrency(stats.fees)}</p>
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-center gap-2 flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
-                                                <span className={`text-[9px] font-bold px-2.5 py-1 rounded-lg border ${driver.is_active ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-red-500/15 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30"}`}>
+                                                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg border ${driver.is_active ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-red-500/15 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30"}`}>
                                                     {driver.is_active ? "نشط" : "موقوف"}
                                                 </span>
                                                 <button onClick={() => setExpandedDriver(isExpanded ? null : driver.id)}

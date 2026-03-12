@@ -64,7 +64,7 @@ export default function LoginPage() {
     };
 
     return (
-        <main className="min-h-screen bg-slate-100/80 dark:bg-background relative overflow-hidden flex items-center justify-center p-6">
+        <main className="min-h-screen bg-slate-300/80 dark:bg-background relative overflow-hidden flex items-center justify-center p-6">
             <StarsBackground />
             <LightBackgroundAnimation />
 

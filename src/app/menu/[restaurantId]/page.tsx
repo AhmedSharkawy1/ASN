@@ -30,9 +30,41 @@ import Theme10Menu from "@/components/menu/Theme10Menu";
 import Theme11Menu from "@/components/menu/Theme11Menu";
 import Theme12Menu from "@/components/Theme12Menu/Theme12Menu";
 import Theme13Menu from "@/components/menu/Theme13Menu";
-import Theme14Menu from "@/components/menu/Theme14Menu";
-import Theme15Menu from "@/components/menu/Theme15Menu";
 import Theme16Menu from "@/components/menu/Theme16Menu";
+import PizzaPastaCyanMenu from "@/components/menu/PizzaPastaCyanMenu";
+import PizzaPastaEmeraldMenu from "@/components/menu/PizzaPastaEmeraldMenu";
+import PizzaPastaSkyMenu from "@/components/menu/PizzaPastaSkyMenu";
+import AtyabOrientalCyanMenu from "@/components/menu/AtyabOrientalCyanMenu";
+import AtyabOrientalEmeraldMenu from "@/components/menu/AtyabOrientalEmeraldMenu";
+import AtyabOrientalSkyMenu from "@/components/menu/AtyabOrientalSkyMenu";
+import BabAlHaraCyanMenu from "@/components/menu/BabAlHaraCyanMenu";
+import BabAlHaraEmeraldMenu from "@/components/menu/BabAlHaraEmeraldMenu";
+import BabAlHaraSkyMenu from "@/components/menu/BabAlHaraSkyMenu";
+import AtyabEtoileCyanMenu from "@/components/menu/AtyabEtoileCyanMenu";
+import AtyabEtoileEmeraldMenu from "@/components/menu/AtyabEtoileEmeraldMenu";
+import AtyabEtoileSkyMenu from "@/components/menu/AtyabEtoileSkyMenu";
+import Theme5CyanMenu from "@/components/menu/Theme5CyanMenu";
+import Theme5EmeraldMenu from "@/components/menu/Theme5EmeraldMenu";
+import Theme5SkyMenu from "@/components/menu/Theme5SkyMenu";
+import Theme6CyanMenu from "@/components/menu/Theme6CyanMenu";
+import Theme6EmeraldMenu from "@/components/menu/Theme6EmeraldMenu";
+import Theme6SkyMenu from "@/components/menu/Theme6SkyMenu";
+import Theme7CyanMenu from "@/components/menu/Theme7CyanMenu";
+import Theme7EmeraldMenu from "@/components/menu/Theme7EmeraldMenu";
+import Theme7SkyMenu from "@/components/menu/Theme7SkyMenu";
+import Theme9CyanMenu from "@/components/menu/Theme9CyanMenu";
+import Theme9EmeraldMenu from "@/components/menu/Theme9EmeraldMenu";
+import Theme9SkyMenu from "@/components/menu/Theme9SkyMenu";
+import Theme10CyanMenu from "@/components/menu/Theme10CyanMenu";
+import Theme10EmeraldMenu from "@/components/menu/Theme10EmeraldMenu";
+import Theme10SkyMenu from "@/components/menu/Theme10SkyMenu";
+import Theme11CyanMenu from "@/components/menu/Theme11CyanMenu";
+import Theme11EmeraldMenu from "@/components/menu/Theme11EmeraldMenu";
+import Theme11SkyMenu from "@/components/menu/Theme11SkyMenu";
+import Theme13CyanMenu from "@/components/menu/Theme13CyanMenu";
+import Theme13EmeraldMenu from "@/components/menu/Theme13EmeraldMenu";
+import Theme13SkyMenu from "@/components/menu/Theme13SkyMenu";
+import Theme15SkyMenu from "@/components/menu/Theme15SkyMenu";
 import { PaymentMethodEntry } from "@/app/dashboard/settings/page";
 
 type Item = {
@@ -326,20 +358,150 @@ function SmartMenuContent({
     return <Theme13Menu config={config} categories={categories} restaurantId={config.id} />;
   }
 
-  // If Interactive Theme 14
-  if (config?.theme === "theme14") {
-    return <Theme14Menu config={config} categories={categories} restaurantId={config.id} />;
-  }
-
-  // If Seafood Theme 15
-  if (config?.theme === "theme15") {
-    return <Theme15Menu config={config} categories={categories} restaurantId={config.id} />;
-  }
-
+  // If Seafood Theme 15 (Deleted)
+  
   // If Theme 16
   if (config?.theme === "theme16") {
     return <Theme16Menu config={config} categories={categories} restaurantId={config.id} />;
   }
+  // If Theme PizzaPasta Cyan
+  if (config?.theme === "pizzapasta-cyan") {
+    return <PizzaPastaCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme PizzaPasta Emerald
+  if (config?.theme === "pizzapasta-emerald") {
+    return <PizzaPastaEmeraldMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme PizzaPasta Sky
+  if (config?.theme === "pizzapasta-sky") {
+    return <PizzaPastaSkyMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme AtyabOriental Cyan
+  if (config?.theme === "atyab-oriental-cyan") {
+    return <AtyabOrientalCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme AtyabOriental Emerald
+  if (config?.theme === "atyab-oriental-emerald") {
+    return <AtyabOrientalEmeraldMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme AtyabOriental Sky
+  if (config?.theme === "atyab-oriental-sky") {
+    return <AtyabOrientalSkyMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme BabAlHara Cyan
+  if (config?.theme === "bab-alhara-cyan") {
+    return <BabAlHaraCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme BabAlHara Emerald
+  if (config?.theme === "bab-alhara-emerald") {
+    return <BabAlHaraEmeraldMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme BabAlHara Sky
+  if (config?.theme === "bab-alhara-sky") {
+    return <BabAlHaraSkyMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme AtyabEtoile Cyan
+  if (config?.theme === "atyab-etoile-cyan") {
+    return <AtyabEtoileCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme AtyabEtoile Emerald
+  if (config?.theme === "atyab-etoile-emerald") {
+    return <AtyabEtoileEmeraldMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme AtyabEtoile Sky
+  if (config?.theme === "atyab-etoile-sky") {
+    return <AtyabEtoileSkyMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme Theme5 Cyan
+  if (config?.theme === "theme5-cyan") {
+    return <Theme5CyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme Theme5 Emerald
+  if (config?.theme === "theme5-emerald") {
+    return <Theme5EmeraldMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme Theme5 Sky
+  if (config?.theme === "theme5-sky") {
+    return <Theme5SkyMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  // If Theme Theme6 Cyan
+  if (config?.theme === "theme6-cyan") {
+    return <Theme6CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme6 Emerald
+  if (config?.theme === "theme6-emerald") {
+    return <Theme6EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme6 Sky
+  if (config?.theme === "theme6-sky") {
+    return <Theme6SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme7 Cyan
+  if (config?.theme === "theme7-cyan") {
+    return <Theme7CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme7 Emerald
+  if (config?.theme === "theme7-emerald") {
+    return <Theme7EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme7 Sky
+  if (config?.theme === "theme7-sky") {
+    return <Theme7SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme9 Cyan
+  if (config?.theme === "theme9-cyan") {
+    return <Theme9CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme9 Emerald
+  if (config?.theme === "theme9-emerald") {
+    return <Theme9EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme9 Sky
+  if (config?.theme === "theme9-sky") {
+    return <Theme9SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme10 Cyan
+  if (config?.theme === "theme10-cyan") {
+    return <Theme10CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme10 Emerald
+  if (config?.theme === "theme10-emerald") {
+    return <Theme10EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme10 Sky
+  if (config?.theme === "theme10-sky") {
+    return <Theme10SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme11 Cyan
+  if (config?.theme === "theme11-cyan") {
+    return <Theme11CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme11 Emerald
+  if (config?.theme === "theme11-emerald") {
+    return <Theme11EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme11 Sky
+  if (config?.theme === "theme11-sky") {
+    return <Theme11SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme13 Cyan
+  if (config?.theme === "theme13-cyan") {
+    return <Theme13CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme13 Emerald
+  if (config?.theme === "theme13-emerald") {
+    return <Theme13EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme13 Sky
+  if (config?.theme === "theme13-sky") {
+    return <Theme13SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme15 Sky
+  if (config?.theme === "theme15-sky") {
+    return <Theme15SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+
+
 
   // ----------------- CART LOGIC -----------------
   const openItemSelect = (item: Item, cName: string) => {

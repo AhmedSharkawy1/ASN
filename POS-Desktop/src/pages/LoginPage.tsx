@@ -1,28 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../lib/db';
 import { AppUser } from '../App';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import logoUrl from '../../logo.png';
+import type { PosUser } from '../lib/db';
 
 type Props = { onLogin: (u: AppUser) => void };
 
 export default function LoginPage({ onLogin }: Props) {
-    const [username, setUsername] = useState('');
+    const [users, setUsers] = useState<PosUser[]>([]);
+    const [selectedUserId, setSelectedUserId] = useState<number | ''>('');
     const [password, setPassword] = useState('');
-    const [showPwd, setShowPwd] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    useEffect(() => {
+        const loadUsers = async () => {
+            const allUsers = await db.pos_users.filter(u => !!u.is_active).toArray();
+            setUsers(allUsers);
+        };
+        loadUsers();
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!username.trim() || !password.trim()) { setError('ادخل اسم المستخدم وكلمة المرور'); return; }
+        if (!selectedUserId) { setError('اختر اسم المستخدم'); return; }
         setLoading(true); setError('');
         try {
-            const user = await db.pos_users
-                .where('username').equals(username.trim())
-                .first();
+            const user = await db.pos_users.get(selectedUserId);
             if (!user || user.password !== password.trim() || !user.is_active) {
-                setError('بيانات الدخول غلط أو الحساب موقوف');
+                setError('كلمة المرور غلط أو الحساب موقوف');
                 setLoading(false);
                 return;
             }
@@ -34,47 +39,107 @@ export default function LoginPage({ onLogin }: Props) {
     };
 
     return (
-        <div className="h-screen w-screen flex items-center justify-center bg-dark-900 relative overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[150px]" />
-            <form onSubmit={handleSubmit} className="relative z-10 w-full max-w-sm animate-fade-in">
-                <div className="bg-dark-700 border border-white/[0.06] rounded-2xl p-8 shadow-2xl">
-                    <div className="flex flex-col items-center mb-8">
-                        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center shadow-xl shadow-emerald-500/20 mb-4 animate-pulse-brand overflow-hidden">
-                            <img src={logoUrl} alt="ASN Logo" className="w-full h-full object-contain" />
-                        </div>
-                        <h1 className="text-2xl font-extrabold text-white">ASN POS</h1>
-                        <p className="text-xs text-zinc-500 mt-1">نظام نقاط البيع — يعمل بدون إنترنت</p>
+        <div style={{
+            height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'linear-gradient(135deg, #c06080 0%, #d070a0 25%, #a08060 50%, #806090 75%, #c06080 100%)',
+            backgroundSize: '400% 400%',
+        }}>
+            <form onSubmit={handleSubmit} style={{
+                width: 420, background: '#f0ece0', border: '2px solid #888',
+                boxShadow: '4px 4px 16px rgba(0,0,0,0.4)',
+            }} dir="rtl">
+                {/* Title bar */}
+                <div style={{
+                    background: 'linear-gradient(90deg, #405880 0%, #506890 100%)',
+                    padding: '6px 12px', color: '#fff', fontSize: 13, fontWeight: 'bold',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                    <span>شاشة الدخول</span>
+                    <div style={{ display: 'flex', gap: 2 }}>
+                        <span style={{ width: 16, height: 14, background: '#c0c0c0', border: '1px solid #999', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, cursor: 'pointer', color: '#333' }}>−</span>
+                        <span style={{ width: 16, height: 14, background: '#c0c0c0', border: '1px solid #999', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, cursor: 'pointer', color: '#333' }}>□</span>
+                        <span style={{ width: 16, height: 14, background: '#c05050', border: '1px solid #a03030', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, cursor: 'pointer', color: '#fff' }}>×</span>
                     </div>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-[11px] text-zinc-500 font-bold mb-1.5 block">اسم المستخدم</label>
-                            <input value={username} onChange={e => setUsername(e.target.value)}
-                                className="w-full px-4 py-3 bg-dark-900 border border-white/[0.06] rounded-xl text-sm text-white placeholder:text-zinc-600 focus:border-emerald-500/40 transition"
-                                placeholder="admin" autoFocus />
-                        </div>
-                        <div>
-                            <label className="text-[11px] text-zinc-500 font-bold mb-1.5 block">كلمة المرور</label>
-                            <div className="relative">
-                                <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-                                    className="w-full px-4 py-3 bg-dark-900 border border-white/[0.06] rounded-xl text-sm text-white placeholder:text-zinc-600 focus:border-emerald-500/40 transition"
-                                    placeholder="••••••" />
-                                <button type="button" onClick={() => setShowPwd(!showPwd)}
-                                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-400">
-                                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    {error && <p className="text-red-400 text-xs font-bold mt-3 text-center">{error}</p>}
-                    <button type="submit" disabled={loading}
-                        className="w-full mt-6 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl text-sm font-bold hover:from-emerald-500 hover:to-teal-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                        {loading ? 'جاري الدخول...' : 'تسجيل الدخول'}
-                    </button>
-
-
                 </div>
-                <p className="text-center text-[10px] text-zinc-700 mt-6">ASN Technology © 2026 — Offline Mode</p>
+
+                <div style={{ padding: 32 }}>
+                    {/* Header */}
+                    <div style={{
+                        textAlign: 'center', marginBottom: 28, padding: '12px 20px',
+                        border: '2px solid #999', background: '#f8f4e8',
+                    }}>
+                        <h1 style={{ fontSize: 24, fontWeight: 'bold', color: '#405880', fontFamily: "'Cairo', sans-serif" }}>
+                            شاشة دخول النظام
+                        </h1>
+                    </div>
+
+                    {/* Username dropdown */}
+                    <div style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <label style={{ fontSize: 16, fontWeight: 'bold', color: '#333', whiteSpace: 'nowrap', minWidth: 120 }}>
+                            اسم المستخدم
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                            <span style={{ fontSize: 14, color: '#333', fontWeight: 'bold' }}>اختر</span>
+                            <select
+                                value={selectedUserId}
+                                onChange={e => { setSelectedUserId(e.target.value ? Number(e.target.value) : ''); setError(''); }}
+                                style={{
+                                    flex: 1, padding: '6px 8px', border: '1px solid #999',
+                                    fontSize: 14, background: '#fff', cursor: 'pointer',
+                                }}
+                            >
+                                <option value="">▼</option>
+                                {users.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Password */}
+                    <div style={{ marginBottom: 28, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <label style={{ fontSize: 16, fontWeight: 'bold', color: '#333', whiteSpace: 'nowrap', minWidth: 120 }}>
+                            كلمة السر
+                        </label>
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={e => { setPassword(e.target.value); setError(''); }}
+                            style={{
+                                flex: 1, padding: '6px 8px', border: '1px solid #999',
+                                fontSize: 14, background: '#fff',
+                            }}
+                        />
+                    </div>
+
+                    {error && <p style={{ color: '#dc3545', fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 }}>{error}</p>}
+
+                    {/* Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 24, marginTop: 8 }}>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{
+                                padding: '10px 40px', fontSize: 16, fontWeight: 'bold',
+                                background: '#f0ece0', border: '2px solid #4080c0',
+                                color: '#333', cursor: 'pointer', minWidth: 120,
+                            }}
+                        >
+                            {loading ? 'جاري...' : 'موافق'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => window.close()}
+                            style={{
+                                padding: '10px 40px', fontSize: 16, fontWeight: 'bold',
+                                background: '#e0dcd0', border: '2px solid #80b0d0',
+                                color: '#333', cursor: 'pointer', minWidth: 120,
+                            }}
+                        >
+                            خروج
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
     );

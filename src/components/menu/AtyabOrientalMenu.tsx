@@ -12,6 +12,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
+import ASNFooter from '@/components/menu/ASNFooter';
 
 // ─── Types (same as PizzaPastaMenu) ───
 type Item = {
@@ -119,26 +120,34 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
 
     // ─── Intersection Observer for active section ───
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (isManualScroll.current) return;
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) setActiveCategory(entry.target.id);
-                });
-            },
-            { root: null, rootMargin: "-180px 0px -40% 0px", threshold: 0 }
-        );
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) setActiveCategory(entry.target.id);
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, {
+            root: null,
+            rootMargin: "-100px 0px -50% 0px",
+            threshold: 0
+        });
+
         categories.forEach((cat) => {
-            const el = document.getElementById(`atyab-${cat.id}`);
+            const el = document.getElementById(cat.id.toString());
             if (el) observer.observe(el);
         });
         return () => observer.disconnect();
     }, [categories]);
 
     useEffect(() => {
-        if (activeCategory && navRef.current) {
-            const btn = navRef.current.querySelector(`[data-cat-id="${activeCategory}"]`);
-            btn?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        if (activeCategory && navRef.current && !isManualScroll.current) {
+            const activeBtn = navRef.current.querySelector(`[data-cat-id="${activeCategory}"]`) as HTMLElement;
+            if (activeBtn) {
+                const container = navRef.current;
+                const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
         }
     }, [activeCategory]);
 
@@ -151,13 +160,14 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
     const handleNavClick = (id: string) => {
         haptic(10);
         setShowCategoriesGrid(false);
-        const el = document.getElementById(`atyab-${id}`);
+        const el = document.getElementById(id);
         if (el) {
             isManualScroll.current = true;
             setActiveCategory(id);
-            const top = el.getBoundingClientRect().top + window.pageYOffset - 170;
-            window.scrollTo({ top, behavior: "auto" });
-            setTimeout(() => { isManualScroll.current = false; }, 150);
+            const offset = 170;
+            const pos = el.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+            setTimeout(() => { isManualScroll.current = false; }, 800);
         }
     };
 
@@ -401,9 +411,8 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                     <div className="absolute -left-4 -bottom-4 text-[80px] opacity-[0.03] rotate-12 atyab-emoji">🥨</div>
                 </div>
 
-                {/* ═══════ SECTIONS ═══════ */}
                 {categories.map((cat) => (
-                    <section key={cat.id} id={`atyab-${cat.id}`} className="mb-6 scroll-mt-[170px]">
+                    <section key={cat.id} id={cat.id.toString()} className="mb-6 scroll-mt-[170px]">
                         {/* Category Image Banner */}
                         {cat.image_url && (
                             <div className="relative aspect-[16/10] md:aspect-[21/9] rounded-[2rem] overflow-hidden mb-4 shadow-2xl border border-zinc-200 dark:border-white/5 bg-zinc-200 dark:bg-zinc-900 atyab-reveal group">
@@ -623,6 +632,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                 )}
             </AnimatePresence>
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

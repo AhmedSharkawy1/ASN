@@ -20,17 +20,19 @@ export function timeAgo(date: string | Date, isAr: boolean = true): string {
     return isAr ? `منذ ${days} يوم` : `${days}d ago`;
 }
 
-// Order status labels
-export const ORDER_STATUSES = ["pending", "accepted", "preparing", "ready", "out_for_delivery", "completed", "cancelled"] as const;
+// Order status labels — Simplified 3-state system
+export const ORDER_STATUSES = ["pending", "in_progress", "completed", "cancelled"] as const;
 export type OrderStatus = typeof ORDER_STATUSES[number];
 
 export function statusLabel(status: string, isAr: boolean = true): string {
     const map: Record<string, { ar: string; en: string }> = {
         pending: { ar: "قيد الانتظار", en: "Pending" },
-        accepted: { ar: "مقبول", en: "Accepted" },
-        preparing: { ar: "قيد التحضير", en: "Preparing" },
-        ready: { ar: "جاهز", en: "Ready" },
-        out_for_delivery: { ar: "في الطريق", en: "Out for Delivery" },
+        in_progress: { ar: "تحت التنفيذ", en: "In Progress" },
+        // Backward compatibility for old statuses
+        accepted: { ar: "تحت التنفيذ", en: "In Progress" },
+        preparing: { ar: "تحت التنفيذ", en: "In Progress" },
+        ready: { ar: "تحت التنفيذ", en: "In Progress" },
+        out_for_delivery: { ar: "تحت التنفيذ", en: "In Progress" },
         completed: { ar: "مكتمل", en: "Completed" },
         cancelled: { ar: "ملغي", en: "Cancelled" },
     };
@@ -38,30 +40,31 @@ export function statusLabel(status: string, isAr: boolean = true): string {
 }
 
 export function statusColor(status: string): string {
+    // Map old statuses to new groups
+    const normalized = ["accepted", "preparing", "ready", "out_for_delivery"].includes(status) ? "in_progress" : status;
     const map: Record<string, string> = {
-        pending: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-        accepted: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-        preparing: "bg-violet-500/20 text-violet-400 border-violet-500/30",
-        ready: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-        out_for_delivery: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-        completed: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
-        cancelled: "bg-red-500/20 text-red-400 border-red-500/30",
+        pending: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
+        in_progress: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
+        completed: "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+        cancelled: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
     };
-    return map[status] || "bg-zinc-500/20 text-zinc-400";
+    return map[normalized] || "bg-zinc-500/20 text-zinc-400";
 }
 
-// Next valid statuses for transition validation
-export function nextStatuses(current: string): string[] {
+// Next valid statuses for transition — source-aware
+// Website orders: pending → in_progress (confirm) → completed
+// POS orders: pending → in_progress → completed (can also skip to completed)
+export function nextStatuses(current: string, source?: string): string[] {
+    // Normalize old statuses
+    const normalized = ["accepted", "preparing", "ready", "out_for_delivery"].includes(current) ? "in_progress" : current;
+
     const transitions: Record<string, string[]> = {
-        pending: ["accepted", "cancelled"],
-        accepted: ["preparing", "cancelled"],
-        preparing: ["ready", "cancelled"],
-        ready: ["out_for_delivery", "completed"],
-        out_for_delivery: ["completed"],
+        pending: source === "pos" ? ["in_progress", "completed", "cancelled"] : ["in_progress", "cancelled"],
+        in_progress: ["completed", "cancelled"],
         completed: [],
         cancelled: [],
     };
-    return transitions[current] || [];
+    return transitions[normalized] || [];
 }
 
 // Elapsed time display

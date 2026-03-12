@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UtensilsCrossed, AlertCircle, ShoppingCart, Plus, Minus, Trash2, X, FileText, MapPin as MapIcon, PhoneCall, Link as LinkIcon, Star, Share2 } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 type MenuItem = {
     id: string | number;
@@ -100,6 +101,9 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
     const [sizeIdx, setSizeIdx] = useState(0);
     const [notes, setNotes] = useState('');
     const [selectedExtras, setSelectedExtras] = useState<{ id: number | string, name: string, price: number }[]>([]);
+    const isManualScroll = useRef(false);
+    const catNavRef = useRef<HTMLDivElement>(null);
+    const swiperRef = useRef<any>(null); // Kept for featured items Swiper
 
     // Checkout
     const [showCheckout, setShowCheckout] = useState(false);
@@ -206,10 +210,70 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
         window.open(`https://wa.me/${tel}?text=${encodeURIComponent(txt)}`, '_blank');
     };
 
-    // Filter Logic
-    const activeCatList = activeCategory === 'all'
-        ? categories
-        : categories.filter(c => c.id.toString() === activeCategory);
+    // Filter Logic - Always show all categories for scroll-sync
+    const activeCatList = categories;
+
+    const scrollToSection = (id: string) => {
+        if (id === 'all') {
+            setActiveCategory('all');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        isManualScroll.current = true;
+        setActiveCategory(id);
+
+        const el = document.getElementById(id);
+        if (el) {
+            const offset = 100;
+            const pos = el.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+        }
+
+        setTimeout(() => {
+            isManualScroll.current = false;
+        }, 800);
+    };
+
+    // --- Interaction Observer to Sync Category Bar ---
+    useEffect(() => {
+        const observerOptions = {
+            root: null,
+            rootMargin: '-100px 0px -50% 0px',
+            threshold: 0
+        };
+
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    setActiveCategory(id);
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, observerOptions);
+        categories.forEach((cat) => {
+            const el = document.getElementById(cat.id.toString());
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [categories]);
+
+    // --- Auto-scroll the Nav Swiper when activeCategory changes ---
+    useEffect(() => {
+        if (activeCategory && catNavRef.current && !isManualScroll.current) {
+            const activeBtn = catNavRef.current.querySelector(`[data-cat-id="${activeCategory}"]`) as HTMLElement;
+            if (activeBtn) {
+                const container = catNavRef.current;
+                const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+        }
+    }, [activeCategory]);
 
     // Get all featured items (assuming items with is_featured flag or just taking the first 4 from all categories)
     const featuredItems = categories.flatMap(c => c.items || []).slice(0, 6);
@@ -326,60 +390,51 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
 
             <main className="max-w-[1200px] mx-auto w-full">
 
-                {/* Category Filter - Circular Design */}
                 <div className="px-4 mb-6">
-                    <Swiper
-                        modules={[FreeMode]}
-                        slidesPerView="auto"
-                        spaceBetween={15}
-                        freeMode={true}
-                        dir={isAr ? 'rtl' : 'ltr'}
-                        className="w-full py-2"
-                    >
-                        <SwiperSlide style={{ width: 'auto' }}>
+                    <div ref={catNavRef} className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+                        <div
+                            data-cat-id="all"
+                            onClick={() => scrollToSection('all')}
+                            className={`flex flex-col items-center cursor-pointer transition-all duration-300 min-w-[80px] md:min-w-[100px] flex-shrink-0 ${activeCategory === 'all' ? '-translate-y-1' : ''}`}
+                        >
+                            <div className="relative w-[65px] h-[65px] md:w-[80px] md:h-[80px] rounded-full overflow-hidden mb-2 mx-auto">
+                                <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
+                                    <UtensilsCrossed className="w-8 h-8 md:w-10 md:h-10 opacity-50" />
+                                </div>
+                                <div
+                                    className={`absolute inset-0 border-[3px] rounded-full transition-opacity duration-300 ${activeCategory === 'all' ? 'opacity-100 shadow-[0_5px_15px_rgba(0,0,0,0.15)]' : 'opacity-0'}`}
+                                    style={{ borderColor: primaryColor }}
+                                />
+                            </div>
+                            <span className={`text-xs md:text-sm font-semibold truncate w-full text-center ${activeCategory === 'all' ? 'text-primary' : ''}`} style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
+                                {isAr ? 'الكل' : 'All'}
+                            </span>
+                        </div>
+
+                        {categories.map((cat) => (
                             <div
-                                onClick={() => setActiveCategory('all')}
-                                className={`flex flex-col items-center cursor-pointer transition-all duration-300 w-[80px] md:w-[100px] ${activeCategory === 'all' ? '-translate-y-1' : ''}`}
+                                key={cat.id}
+                                data-cat-id={cat.id.toString()}
+                                onClick={() => scrollToSection(cat.id.toString())}
+                                className={`flex flex-col items-center cursor-pointer transition-all duration-300 min-w-[80px] md:min-w-[100px] flex-shrink-0 ${activeCategory === cat.id.toString() ? '-translate-y-1' : ''}`}
                             >
                                 <div className="relative w-[65px] h-[65px] md:w-[80px] md:h-[80px] rounded-full overflow-hidden mb-2 mx-auto">
-                                    <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-500">
-                                        <UtensilsCrossed className="w-8 h-8 md:w-10 md:h-10 opacity-50" />
-                                    </div>
+                                    <img
+                                        src={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'}
+                                        alt={catName(cat)}
+                                        className="w-full h-full object-cover"
+                                    />
                                     <div
-                                        className={`absolute inset-0 border-[3px] rounded-full transition-opacity duration-300 ${activeCategory === 'all' ? 'opacity-100 shadow-[0_5px_15px_rgba(0,0,0,0.15)]' : 'opacity-0'}`}
+                                        className={`absolute inset-0 border-[3px] rounded-full transition-opacity duration-300 ${activeCategory === cat.id.toString() ? 'opacity-100 shadow-[0_5px_15px_rgba(0,0,0,0.15)]' : 'opacity-0'}`}
                                         style={{ borderColor: primaryColor }}
                                     />
                                 </div>
-                                <span className={`text-xs md:text-sm font-semibold truncate w-full text-center ${activeCategory === 'all' ? 'text-primary' : ''}`} style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
-                                    {isAr ? 'الكل' : 'All'}
+                                <span className="text-xs md:text-sm font-semibold truncate w-full text-center" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
+                                    {catName(cat)}
                                 </span>
                             </div>
-                        </SwiperSlide>
-
-                        {categories.map((cat) => (
-                            <SwiperSlide key={cat.id} style={{ width: 'auto' }}>
-                                <div
-                                    onClick={() => setActiveCategory(cat.id.toString())}
-                                    className={`flex flex-col items-center cursor-pointer transition-all duration-300 w-[80px] md:w-[100px] ${activeCategory === cat.id.toString() ? '-translate-y-1' : ''}`}
-                                >
-                                    <div className="relative w-[65px] h-[65px] md:w-[80px] md:h-[80px] rounded-full overflow-hidden mb-2 mx-auto">
-                                        <img
-                                            src={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'}
-                                            alt={catName(cat)}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div
-                                            className={`absolute inset-0 border-[3px] rounded-full transition-opacity duration-300 ${activeCategory === cat.id.toString() ? 'opacity-100 shadow-[0_5px_15px_rgba(0,0,0,0.15)]' : 'opacity-0'}`}
-                                            style={{ borderColor: primaryColor }}
-                                        />
-                                    </div>
-                                    <span className="text-xs md:text-sm font-semibold truncate w-full text-center" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
-                                        {catName(cat)}
-                                    </span>
-                                </div>
-                            </SwiperSlide>
                         ))}
-                    </Swiper>
+                    </div>
                 </div>
 
                 {/* Featured Items Section - Only show when "All" is selected */}
@@ -456,7 +511,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                 {/* Main Menu Grid */}
                 <div className="px-4 space-y-10 min-h-[50vh]">
                     {activeCatList.map((cat) => (
-                        <div key={cat.id}>
+                        <div key={cat.id} id={cat.id.toString()} className="scroll-mt-[180px]">
                             <div className="flex items-center gap-2 mb-4 relative pb-2 border-b-[3px] border-b-transparent after:content-[''] after:absolute after:bottom-0 after:right-0 after:w-[50px] after:h-[3px] after:rounded-full after:bg-[--section-color]" style={{ '--section-color': primaryColor } as React.CSSProperties}>
                                 <span className="text-lg md:text-xl font-bold" style={{ color: textMain }}>
                                     {catName(cat)}
@@ -862,6 +917,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                 )}
             </AnimatePresence>
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

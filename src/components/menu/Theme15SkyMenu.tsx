@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
@@ -20,6 +20,11 @@ import {
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebook, FaTwitter, FaTelegram, FaSnapchatGhost, FaInstagram, FaFacebookF } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/effect-fade';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 // Local Types to avoid import issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,17 +122,18 @@ type CartItem = {
 };
 
 // Main Component
-export default function Theme15Menu({ config, categories, restaurantId }: { config: RestaurantConfig, categories: CategoryWithItemsType[], restaurantId: string }) {
+export default function Theme15SkyMenu({ config, categories, restaurantId }: { config: RestaurantConfig, categories: CategoryWithItemsType[], restaurantId: string }) {
     // --- Configuration ---
     const isRTL = config.default_language !== 'en';
     const cur = config.currency || 'ج.م';
-    const primaryColor = config.theme_colors?.primary || '#3da19b';
+    const primaryColor = config.theme_colors?.primary || '#0284c7';
     const secondaryColor = config.theme_colors?.secondary || '#298d87';
     const bgColor = config.theme_colors?.background || '#f8f9fa';
 
     // --- State ---
     const [activeCategory, setActiveCategory] = useState<string>('all');
-    const [searchQuery] = useState("");
+    const filterChipsRef = useRef<HTMLDivElement>(null);
+    const isManualScroll = useRef(false);
     const [isLoading, setIsLoading] = useState(true);
 
     // Cart State
@@ -170,6 +176,52 @@ export default function Theme15Menu({ config, categories, restaurantId }: { conf
             window.removeEventListener('scroll', handleScroll);
         };
     }, []);
+
+    // Intersection Observer for active section
+    useEffect(() => {
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) setActiveCategory(entry.target.id);
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, {
+            root: null,
+            rootMargin: "-100px 0px -50% 0px",
+            threshold: 0
+        });
+
+        categories.forEach((cat) => {
+            const el = document.getElementById(cat.id.toString());
+            if (el) observer.observe(el);
+        });
+        return () => observer.disconnect();
+    }, [categories]);
+
+    // Center active filter chip
+    useEffect(() => {
+        if (activeCategory && filterChipsRef.current && !isManualScroll.current) {
+            const activeBtn = filterChipsRef.current.querySelector(`[data-cat-id="${activeCategory}"]`) as HTMLElement;
+            if (activeBtn) {
+                const container = filterChipsRef.current;
+                const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+        }
+    }, [activeCategory]);
+
+    const scrollToSection = (id: string) => {
+        isManualScroll.current = true;
+        setActiveCategory(id);
+        const el = document.getElementById(id);
+        if (el) {
+            const offset = 120;
+            const pos = el.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+        }
+        setTimeout(() => { isManualScroll.current = false; }, 800);
+    };
 
     // --- Helpers ---
     const catName = (c: CategoryWithItemsType) => isRTL ? c.name_ar : (c.name_en || c.name_ar);
@@ -297,21 +349,8 @@ export default function Theme15Menu({ config, categories, restaurantId }: { conf
         setIsCartOpen(false);
     };
 
-    // --- Search & Filter Logic ---
-    let filteredItems: Item[] = [];
-    if (searchQuery) {
-        filteredItems = categories
-            .flatMap(c => c.items)
-            .filter(item => {
-                const q = searchQuery.toLowerCase();
-                return (item.title_ar?.toLowerCase().includes(q) || item.title_en?.toLowerCase().includes(q));
-            });
-    } else if (activeCategory === 'all') {
-        filteredItems = categories.flatMap(c => c.items);
-    } else {
-        const cat = categories.find(c => c.id.toString() === activeCategory);
-        filteredItems = cat ? cat.items : [];
-    }
+    // --- Always show all categories as sections ---
+    const activeCatList = categories;
 
     return (
         <div className="theme15-container" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -560,9 +599,25 @@ export default function Theme15Menu({ config, categories, restaurantId }: { conf
 
             {/* Hero Cover */}
             <section className="hero-section">
-                <div className="cover-image" style={{ backgroundImage: `url('${config.cover_url || ''}')` }}></div>
+                {config.cover_images && config.cover_images.length > 0 ? (
+                    <Swiper
+                        modules={[Autoplay, EffectFade]}
+                        effect="fade"
+                        autoplay={{ delay: 3000, disableOnInteraction: false }}
+                        loop={config.cover_images.length > 1}
+                        className="w-full h-full absolute inset-0 z-0"
+                    >
+                        {config.cover_images.map((img: string, idx: number) => (
+                            <SwiperSlide key={idx}>
+                                <div className="cover-image" style={{ backgroundImage: `url('${img}')` }}></div>
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+                ) : (
+                    <div className="cover-image" style={{ backgroundImage: `url('${config.cover_url || ''}')` }}></div>
+                )}
                 <div className="hero-overlay">
-                    <div>
+                    <div className="z-10 relative">
                         <h2 className="hero-title">{config.name}</h2>
                         <p className="hero-subtitle">{isRTL ? 'القائمة المتميزة' : 'Premium Menu'}</p>
                     </div>
@@ -573,16 +628,16 @@ export default function Theme15Menu({ config, categories, restaurantId }: { conf
             <section className="filter-section">
                 <div className="results-counter">
                     <span>{isRTL ? 'تم العثور على' : 'Found'}</span>
-                    <span className="results-count">{filteredItems.length}</span>
+                    <span className="results-count">{activeCatList.reduce((sum, c) => sum + (c.items?.length || 0), 0)}</span>
                     <span>{isRTL ? 'عنصر' : 'items'}</span>
                 </div>
-                <div className="filter-chips-container">
-                    <div className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`} onClick={() => setActiveCategory('all')}>
+                <div className="filter-chips-container" ref={filterChipsRef}>
+                    <div className={`filter-chip ${activeCategory === 'all' ? 'active' : ''}`} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                         {isRTL ? 'الكل' : 'All'}
                     </div>
                     {
                         categories.map(cat => (
-                            <div key={cat.id} className={`filter-chip ${activeCategory === cat.id.toString() ? 'active' : ''}`} onClick={() => setActiveCategory(cat.id.toString())}>
+                            <div key={cat.id} data-cat-id={cat.id} className={`filter-chip ${activeCategory === cat.id.toString() ? 'active' : ''}`} onClick={() => scrollToSection(cat.id.toString())}>
                                 {catName(cat)}
                             </div>
                         ))}
@@ -591,49 +646,56 @@ export default function Theme15Menu({ config, categories, restaurantId }: { conf
 
             {/* Main Menu Grid */}
             <main className="main-content">
-                <div className="menu-grid">
-                    {filteredItems.map(item => {
-                        const cArr = categories.filter(c => c.items.some(i => i.id === item.id));
-                        const cName = cArr.length > 0 ? catName(cArr[0]) : '';
-                        const cImage = cArr.length > 0 ? cArr[0].image_url : '';
-                        return (
-                            <div className="menu-item" key={item.id}>
-                                <span className="item-badge">{cName}</span>
-                                <div className="item-image" onClick={() => openModal(item, cName, cImage || '')}>
-                                    <Image src={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
-                                </div>
-                                <div className="item-content">
-                                    <div className="item-header">
-                                        <h3 className="item-title">{itemName(item)}</h3>
-                                    </div>
-                                    <p className="item-description">{isRTL ? (item.description_ar || '') : (item.description_en || item.description_ar || item.description || '')}</p>
-                                    <div className="item-footer">
-                                        <div className="flex flex-col gap-1 w-[70%] pr-1 pt-2 pb-1">
-                                            {item.prices?.map((p: number | string, pIdx: number) => (
-                                                <div key={pIdx} className="flex items-center gap-1.5 item-price-row">
-                                                    <span className="item-price text-sm whitespace-nowrap">{cur} {p}</span>
-                                                    {item.size_labels?.[pIdx] && (
-                                                        <span className="text-[9px] text-gray-400 line-clamp-1">({item.size_labels[pIdx]})</span>
+                {activeCatList.map(cat => (
+                    <div key={cat.id} id={cat.id.toString()} className="mb-8 scroll-mt-32">
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '16px 0 8px', color: 'var(--primary-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ width: 4, height: 20, borderRadius: 4, background: 'var(--primary-color)', display: 'inline-block' }}></span>
+                            {catName(cat)}
+                        </h3>
+                        <div className="menu-grid">
+                            {cat.items.filter(i => i.is_available !== false).map(item => {
+                                const cName = catName(cat);
+                                const cImage = cat.image_url;
+                                return (
+                                    <div className="menu-item" key={item.id}>
+                                        <span className="item-badge">{cName}</span>
+                                        <div className="item-image" onClick={() => openModal(item, cName, cImage || '')}>
+                                            <Image src={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
+                                        </div>
+                                        <div className="item-content">
+                                            <div className="item-header">
+                                                <h3 className="item-title">{itemName(item)}</h3>
+                                            </div>
+                                            <p className="item-description">{isRTL ? (item.description_ar || '') : (item.description_en || item.description_ar || item.description || '')}</p>
+                                            <div className="item-footer">
+                                                <div className="flex flex-col gap-1 w-[70%] pr-1 pt-2 pb-1">
+                                                    {item.prices?.map((p: number | string, pIdx: number) => (
+                                                        <div key={pIdx} className="flex items-center gap-1.5 item-price-row">
+                                                            <span className="item-price text-sm whitespace-nowrap">{cur} {p}</span>
+                                                            {item.size_labels?.[pIdx] && (
+                                                                <span className="text-[9px] text-gray-400 line-clamp-1">({item.size_labels[pIdx]})</span>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="item-actions">
+                                                    <button className="action-btn copy-btn" onClick={(e) => copyToClipboard(`${itemName(item)} - ${cur} ${item.prices[0]?.toFixed?.(0) || item.prices[0]}`, e)}>
+                                                        <Clipboard size={14} />
+                                                    </button>
+                                                    {config.orders_enabled !== false && (
+                                                        <button className="action-btn cart-btn" onClick={() => openModal(item, cName, cImage || '')}>
+                                                            <Plus size={14} />
+                                                        </button>
                                                     )}
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <div className="item-actions">
-                                            <button className="action-btn copy-btn" onClick={(e) => copyToClipboard(`${itemName(item)} - ${cur} ${item.prices[0]?.toFixed?.(0) || item.prices[0]}`, e)}>
-                                                <Clipboard size={14} />
-                                            </button>
-                                            {config.orders_enabled !== false && (
-                                                <button className="action-btn cart-btn" onClick={() => openModal(item, cName, cImage || '')}>
-                                                    <Plus size={14} />
-                                                </button>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ))}
             </main>
 
             {/* Bottom Nav */}
@@ -770,13 +832,13 @@ export default function Theme15Menu({ config, categories, restaurantId }: { conf
                             <div className="grid grid-cols-3 gap-2 text-center text-sm font-semibold">
                                 <div className={`p-3 border rounded-lg cursor-pointer ${activeCategory === 'all' ? 'bg-primary text-white' : 'bg-white'}`}
                                     style={activeCategory === 'all' ? { backgroundColor: primaryColor, color: 'white' } : {}}
-                                    onClick={() => { setActiveCategory('all'); setShowCategorySheet(false); }}>
+                                    onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setShowCategorySheet(false); }}>
                                     {isRTL ? 'الكل' : 'All'}
                                 </div>
                                 {categories.map(c => (
                                     <div key={c.id} className={`p-3 border rounded-lg cursor-pointer flex items-center justify-center`}
                                         style={activeCategory === c.id.toString() ? { backgroundColor: primaryColor, color: 'white' } : { borderColor: '#eee' }}
-                                        onClick={() => { setActiveCategory(c.id.toString()); setShowCategorySheet(false); }}>
+                                        onClick={() => { scrollToSection(c.id.toString()); setShowCategorySheet(false); }}>
                                         {catName(c)}
                                     </div>
                                 ))}
@@ -947,6 +1009,7 @@ export default function Theme15Menu({ config, categories, restaurantId }: { conf
                     </div>
                 </div>
             )}
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

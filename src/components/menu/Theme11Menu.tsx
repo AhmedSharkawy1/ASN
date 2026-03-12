@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, FileText, MapPin as MapIcon, List, Globe, PhoneCall } from 'lucide-react';
@@ -8,9 +8,9 @@ import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram } from 'react-ico
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, FreeMode } from 'swiper/modules';
+import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
-import 'swiper/css/free-mode';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 type MenuItem = {
     id: string | number;
@@ -96,6 +96,8 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
     const [sizeIdx, setSizeIdx] = useState(0);
     const [notes, setNotes] = useState('');
     const [selectedExtras, setSelectedExtras] = useState<{ id: number | string, name: string, price: number }[]>([]);
+    const isManualScroll = useRef(false);
+    const catNavRef = useRef<HTMLDivElement>(null);
 
     // Checkout
     const [showCheckout, setShowCheckout] = useState(false);
@@ -201,6 +203,66 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
     const activeCatList = activeCategory === 'all'
         ? categories
         : categories.filter(c => c.id === activeCategory);
+
+    const scrollToSection = (id: string) => {
+        if (id === 'all') {
+            setActiveCategory('all');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        // If we are currently filtering, we should switch to 'all' first to see all sections
+        // or just scroll if 'all' is already active.
+        // For this theme, we'll follow the user's sync request by scrolling.
+        isManualScroll.current = true;
+        setActiveCategory(id);
+
+        const el = document.getElementById(id);
+        if (el) {
+            const offset = 120;
+            const pos = el.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+        }
+
+        setTimeout(() => {
+            isManualScroll.current = false;
+        }, 800);
+    };
+
+    // --- Intersection Observer to Sync Category Bar ---
+    useEffect(() => {
+        const observerOptions = {
+            root: null,
+            rootMargin: '-100px 0px -50% 0px',
+            threshold: 0
+        };
+
+        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    setActiveCategory(entry.target.id);
+                    
+                    // Center the active tab
+                    const container = catNavRef.current;
+                    const activeBtn = container?.querySelector(`[data-cat-id="${entry.target.id}"]`) as HTMLElement;
+                    if (container && activeBtn) {
+                        const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                        container.scrollTo({ left: scrollLeft, behavior: "smooth" });
+                    }
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(handleIntersect, observerOptions);
+        categories.forEach((cat) => {
+            const el = document.getElementById(cat.id.toString());
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
+    }, [categories]);
 
     if (!mounted) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900" />;
 
@@ -378,54 +440,44 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                 <div className="my-6 sticky top-[65px] z-40" style={{ backgroundColor: bgBody }}>
                     {/* Shadow overlay for sticky effect */}
                     <div className="absolute -inset-x-4 inset-y-0 shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05)] pointer-events-none" />
-                    <div className="relative z-10 py-3">
-                        <Swiper
-                            modules={[FreeMode]}
-                            slidesPerView="auto"
-                            spaceBetween={10}
-                            freeMode={true}
-                            dir={isAr ? 'rtl' : 'ltr'}
-                            className="w-full pb-2 px-1"
+                    <div ref={catNavRef} className="relative z-10 py-3 flex items-center overflow-x-auto gap-3 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
+                        <button
+                            onClick={() => scrollToSection('all')}
+                            data-cat-id="all"
+                            className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all border-2 shadow-sm shrink-0 ${activeCategory === 'all' ? 'text-white' : ''}`}
+                            style={{
+                                backgroundColor: activeCategory === 'all' ? primaryColor : bgCard,
+                                borderColor: activeCategory === 'all' ? primaryColor : borderColor,
+                                color: activeCategory === 'all' ? '#fff' : textMain,
+                            }}
                         >
-                            <SwiperSlide style={{ width: 'auto' }}>
-                                <button
-                                    onClick={() => setActiveCategory('all')}
-                                    className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all border-2 shadow-sm ${activeCategory === 'all' ? 'text-white' : ''}`}
-                                    style={{
-                                        backgroundColor: activeCategory === 'all' ? primaryColor : bgCard,
-                                        borderColor: activeCategory === 'all' ? primaryColor : borderColor,
-                                        color: activeCategory === 'all' ? '#fff' : textMain,
-                                    }}
-                                >
-                                    {isAr ? 'الكل' : 'All'}
-                                </button>
-                            </SwiperSlide>
-                            {categories.map((cat) => (
-                                <SwiperSlide key={cat.id} style={{ width: 'auto' }}>
-                                    <button
-                                        onClick={() => setActiveCategory(cat.id.toString())}
-                                        className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all border-2 shadow-sm flex items-center gap-2 ${activeCategory === cat.id.toString() ? 'text-white' : ''}`}
-                                        style={{
-                                            backgroundColor: activeCategory === cat.id.toString() ? primaryColor : bgCard,
-                                            borderColor: activeCategory === cat.id.toString() ? primaryColor : borderColor,
-                                            color: activeCategory === cat.id.toString() ? '#fff' : textMain,
-                                        }}
-                                    >
-                                        {cat.image_url && (
-                                            <img src={cat.image_url} alt={catName(cat)} className="w-5 h-5 rounded-full object-cover" />
-                                        )}
-                                        {catName(cat)}
-                                    </button>
-                                </SwiperSlide>
-                            ))}
-                        </Swiper>
+                            {isAr ? 'الكل' : 'All'}
+                        </button>
+                        {categories.map((cat) => (
+                            <button
+                                key={cat.id}
+                                onClick={() => scrollToSection(cat.id.toString())}
+                                data-cat-id={cat.id}
+                                className={`px-5 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-all border-2 shadow-sm flex items-center gap-2 shrink-0 ${activeCategory === cat.id.toString() ? 'text-white' : ''}`}
+                                style={{
+                                    backgroundColor: activeCategory === cat.id.toString() ? primaryColor : bgCard,
+                                    borderColor: activeCategory === cat.id.toString() ? primaryColor : borderColor,
+                                    color: activeCategory === cat.id.toString() ? '#fff' : textMain,
+                                }}
+                            >
+                                {cat.image_url && (
+                                    <img src={cat.image_url} alt={catName(cat)} className="w-5 h-5 rounded-full object-cover" />
+                                )}
+                                {catName(cat)}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
                 {/* Menu Items */}
                 <div className="space-y-10 min-h-[50vh]">
                     {activeCatList.map((cat) => (
-                        <div key={cat.id} className="scroll-mt-32">
+                        <div key={cat.id} id={cat.id.toString()} className="scroll-mt-32">
                             <h2 className="text-2xl md:text-3xl font-black mb-6 flex items-center gap-3">
                                 <span className="w-2 h-8 rounded-full" style={{ backgroundColor: primaryColor }}></span>
                                 {catName(cat)}
@@ -722,6 +774,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                 )}
             </AnimatePresence>
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

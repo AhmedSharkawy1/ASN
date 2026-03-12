@@ -1,7 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { db, seedIfEmpty } from './lib/db';
-import Sidebar from './components/Sidebar';
+import TopBar from './components/TopBar';
 import LoginPage from './pages/LoginPage';
 import POSPage from './pages/POSPage';
 import OrdersPage from './pages/OrdersPage';
@@ -11,7 +11,7 @@ import MenuPage from './pages/MenuPage';
 import StaffPage from './pages/StaffPage';
 import DeliveryPage from './pages/DeliveryPage';
 import SettingsPage from './pages/SettingsPage';
-import { Monitor, KeyRound } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 
 export type UserRole = 'admin' | 'staff' | 'delivery';
 export type AppUser = { id: number; name: string; role: UserRole };
@@ -31,30 +31,43 @@ function ActivationPage({ onActivate }: { onActivate: () => void }) {
     };
 
     return (
-        <div className="h-screen w-screen flex items-center justify-center bg-dark-900 relative overflow-hidden">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[150px]" />
-            <form onSubmit={handleSubmit} className="relative z-10 w-full max-w-sm animate-fade-in">
-                <div className="bg-dark-700 border border-white/[0.06] rounded-2xl p-8 shadow-2xl">
-                    <div className="flex flex-col items-center mb-8">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/20 mb-4 animate-pulse-brand">
-                            <Monitor className="w-8 h-8 text-white" />
+        <div style={{
+            height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'linear-gradient(135deg, #708090 0%, #506070 50%, #405060 100%)',
+        }}>
+            <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 380 }}>
+                <div style={{
+                    background: '#f0ece0', border: '2px solid #999', padding: 32,
+                    boxShadow: '4px 4px 12px rgba(0,0,0,0.3)',
+                }}>
+                    <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                        <div style={{
+                            width: 48, height: 48, margin: '0 auto 12px', background: '#28a745',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #1e7e34',
+                        }}>
+                            <KeyRound style={{ width: 24, height: 24, color: '#fff' }} />
                         </div>
-                        <h1 className="text-2xl font-extrabold text-white">ASN POS</h1>
-                        <p className="text-xs text-zinc-500 mt-1">تفعيل البرنامج</p>
+                        <h1 style={{ fontSize: 20, fontWeight: 'bold', color: '#333' }}>ASN POS</h1>
+                        <p style={{ fontSize: 12, color: '#666', marginTop: 4 }}>تفعيل البرنامج</p>
                     </div>
                     <div>
-                        <label className="text-[11px] text-zinc-500 font-bold mb-1.5 block flex items-center gap-1"><KeyRound className="w-3 h-3" /> مفتاح التفعيل</label>
+                        <label style={{ fontSize: 12, fontWeight: 'bold', color: '#555', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                            <KeyRound style={{ width: 12, height: 12 }} /> مفتاح التفعيل
+                        </label>
                         <input value={key} onChange={e => { setKey(e.target.value); setError(''); }}
-                            className="w-full px-4 py-3 bg-dark-900 border border-white/[0.06] rounded-xl text-sm text-white text-center tracking-widest font-bold placeholder:text-zinc-600 focus:border-emerald-500/40 transition"
+                            style={{
+                                width: '100%', padding: '8px 12px', border: '1px solid #999', fontSize: 14,
+                                textAlign: 'center', letterSpacing: 4, fontWeight: 'bold', background: '#fff',
+                            }}
                             placeholder="ادخل مفتاح التفعيل" autoFocus dir="ltr" />
                     </div>
-                    {error && <p className="text-red-400 text-xs font-bold mt-3 text-center">{error}</p>}
-                    <button type="submit"
-                        className="w-full mt-6 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl text-sm font-bold hover:from-emerald-500 hover:to-teal-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
-                        <KeyRound className="w-4 h-4" /> تفعيل
+                    {error && <p style={{ color: '#dc3545', fontSize: 12, fontWeight: 'bold', marginTop: 8, textAlign: 'center' }}>{error}</p>}
+                    <button type="submit" className="classic-btn-green"
+                        style={{ width: '100%', marginTop: 16, padding: '10px', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <KeyRound style={{ width: 16, height: 16 }} /> تفعيل
                     </button>
                 </div>
-                <p className="text-center text-[10px] text-zinc-700 mt-6">ASN Technology © 2026</p>
+                <p style={{ textAlign: 'center', fontSize: 10, color: '#ccc', marginTop: 16 }}>ASN Technology © 2026</p>
             </form>
         </div>
     );
@@ -64,9 +77,9 @@ export default function App() {
     const [user, setUser] = useState<AppUser | null>(null);
     const [restaurantName, setRestaurantName] = useState('');
     const [restaurantPhone, setRestaurantPhone] = useState('');
+    const [restaurantAddress, setRestaurantAddress] = useState('');
     const [ready, setReady] = useState(false);
     const [activated, setActivated] = useState(false);
-    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
     useEffect(() => {
         const init = async () => {
@@ -77,7 +90,7 @@ export default function App() {
             if (settings) {
                 setRestaurantName(settings.restaurant_name);
                 setRestaurantPhone(settings.restaurant_phone || '');
-                if (settings.theme) setTheme(settings.theme);
+                setRestaurantAddress(settings.restaurant_address || '');
             }
             const stored = localStorage.getItem('pos_user');
             if (stored) { try { setUser(JSON.parse(stored)); } catch { /* ignore */ } }
@@ -86,18 +99,6 @@ export default function App() {
         init();
     }, []);
 
-    // Apply theme to html element
-    useEffect(() => {
-        document.documentElement.classList.remove('light', 'dark');
-        document.documentElement.classList.add(theme);
-    }, [theme]);
-
-    const handleThemeChange = async (newTheme: 'dark' | 'light') => {
-        setTheme(newTheme);
-        const settings = await db.settings.toCollection().first();
-        if (settings?.id) await db.settings.update(settings.id, { theme: newTheme });
-    };
-
     const handleLogin = async (u: AppUser) => {
         setUser(u);
         localStorage.setItem('pos_user', JSON.stringify(u));
@@ -105,6 +106,7 @@ export default function App() {
         if (settings) {
             setRestaurantName(settings.restaurant_name);
             setRestaurantPhone(settings.restaurant_phone || '');
+            setRestaurantAddress(settings.restaurant_address || '');
         }
     };
 
@@ -113,35 +115,42 @@ export default function App() {
         localStorage.removeItem('pos_user');
     };
 
-    const handleSettingsChange = (name: string, phone: string) => {
+    const handleSettingsChange = (name: string, phone: string, address: string) => {
         setRestaurantName(name);
         setRestaurantPhone(phone);
+        setRestaurantAddress(address);
     };
 
-    if (!ready) return <div className="h-screen flex items-center justify-center bg-dark-900 text-zinc-600 animate-pulse text-sm font-bold">جاري التحميل...</div>;
+    if (!ready) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#b8b8a0', color: '#666', fontSize: 14, fontWeight: 'bold' }}>جاري التحميل...</div>;
     if (!activated) return <ActivationPage onActivate={() => setActivated(true)} />;
     if (!user) return <LoginPage onLogin={handleLogin} />;
 
     return (
         <HashRouter>
-            <div className={`flex h-screen overflow-hidden ${theme === 'light' ? 'bg-zinc-100 text-zinc-900' : 'bg-dark-900 text-white'}`}>
-                <Sidebar user={user} restaurantName={restaurantName} onLogout={handleLogout} theme={theme} />
-                <main className="flex-1 overflow-hidden flex flex-col">
-                    <div className="drag-region h-9 shrink-0" />
-                    <div className="flex-1 overflow-auto p-4">
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', background: '#b8b8a0' }}>
+                <div className="drag-region" style={{ height: 30, flexShrink: 0 }} />
+                <TopBar user={user} restaurantName={restaurantName} onLogout={handleLogout} />
+                <main style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', background: '#c8c080' }}>
+                    <div style={{ flex: 1, overflow: 'auto' }}>
                         <Routes>
                             <Route path="/" element={<Navigate to="/pos" />} />
-                            <Route path="/pos" element={<POSPage user={user} restaurantName={restaurantName} restaurantPhone={restaurantPhone} />} />
+                            <Route path="/pos" element={<POSPage user={user} restaurantName={restaurantName} restaurantPhone={restaurantPhone} restaurantAddress={restaurantAddress} />} />
                             <Route path="/orders" element={<OrdersPage />} />
                             <Route path="/reports" element={user.role === 'admin' ? <ReportsPage /> : <Navigate to="/pos" />} />
                             <Route path="/customers" element={user.role !== 'delivery' ? <CustomersPage user={user} /> : <Navigate to="/pos" />} />
-                            <Route path="/menu" element={user.role === 'admin' ? <MenuPage /> : <Navigate to="/pos" />} />
+                            <Route path="/menu" element={user.role === 'admin' ? <SettingsPage onSettingsChange={handleSettingsChange} /> : <Navigate to="/pos" />} />
                             <Route path="/delivery" element={user.role === 'admin' ? <DeliveryPage /> : <Navigate to="/pos" />} />
-                            <Route path="/settings" element={user.role === 'admin' ? <SettingsPage onSettingsChange={handleSettingsChange} onThemeChange={handleThemeChange} currentTheme={theme} /> : <Navigate to="/pos" />} />
+                            <Route path="/settings" element={user.role === 'admin' ? <SettingsPage onSettingsChange={handleSettingsChange} /> : <Navigate to="/pos" />} />
                             <Route path="/staff" element={user.role === 'admin' ? <StaffPage user={user} /> : <Navigate to="/pos" />} />
                         </Routes>
                     </div>
                 </main>
+                {/* Bottom status bar */}
+                <div className="classic-statusbar no-drag" style={{ justifyContent: 'flex-end' }}>
+                    <span style={{ fontSize: 11 }}>المستخدم الحالي</span>
+                    <span style={{ fontWeight: 'bold', fontSize: 11 }}>{user.name}</span>
+                    <span style={{ border: '1px solid #999', background: '#fff', padding: '0 8px', fontSize: 11, marginRight: 8 }}>{user.id}</span>
+                </div>
             </div>
         </HashRouter>
     );

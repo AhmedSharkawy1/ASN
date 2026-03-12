@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { db } from '../lib/db';
 import type { PosUser, Order } from '../lib/db';
 import { formatCurrency } from '../lib/helpers';
-import { Truck, Package, DollarSign, Calendar, User, Wallet } from 'lucide-react';
 
 export default function DeliveryPage() {
     const [range, setRange] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('today');
@@ -11,6 +10,7 @@ export default function DeliveryPage() {
     const [drivers, setDrivers] = useState<PosUser[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -43,89 +43,94 @@ export default function DeliveryPage() {
     };
 
     const totalDeliveryOrders = orders.filter(o => o.delivery_driver_id).length;
-    const totalDeliveryRevenue = orders.filter(o => o.delivery_driver_id).reduce((s, o) => s + o.total, 0);
     const totalDeliveryFees = orders.filter(o => o.delivery_driver_id).reduce((s, o) => s + (o.delivery_fee || 0), 0);
 
     return (
-        <div className="max-w-5xl mx-auto animate-fade-in space-y-6">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-                <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-3"><Truck className="w-7 h-7 text-emerald-500" /> حسابات الدليفري</h1>
-                <div className="flex gap-2 items-center flex-wrap">
+        <div style={{ maxWidth: 900, margin: '0 auto' }} dir="rtl">
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h1 style={{ fontSize: 18, fontWeight: 'bold' }}>🚚 حسابات الدليفري</h1>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                     {range === 'custom' && (
-                        <div className="flex gap-2 items-center bg-white dark:bg-dark-700 px-2 py-1 rounded-lg border border-zinc-200 dark:border-white/[0.04]">
-                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-transparent text-xs font-bold text-zinc-900 dark:text-white" />
-                            <span className="text-zinc-500 text-xs">-</span>
-                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-transparent text-xs font-bold text-zinc-900 dark:text-white" />
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center', background: '#f0ece0', padding: '2px 8px', border: '1px solid #999' }}>
+                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                                style={{ border: '1px solid #ccc', padding: '2px 4px', fontSize: 12 }} />
+                            <span style={{ fontSize: 11 }}>-</span>
+                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                                style={{ border: '1px solid #ccc', padding: '2px 4px', fontSize: 12 }} />
                         </div>
                     )}
                     {(['today', 'week', 'month', 'all', 'custom'] as const).map(r => (
-                        <button key={r} onClick={() => setRange(r)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${range === r ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-white dark:bg-dark-700 text-zinc-500 border border-zinc-200 dark:border-white/[0.04] hover:text-zinc-900 dark:hover:text-zinc-300'}`}>
+                        <button key={r} onClick={() => setRange(r)}
+                            className={range === r ? 'classic-btn-green' : 'classic-btn'}
+                            style={{ fontSize: 11, padding: '3px 10px' }}>
                             {{ today: 'اليوم', week: 'الأسبوع', month: 'الشهر', all: 'الكل', custom: 'مخصص' }[r]}
-                        </button>))}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {loading ? <div className="text-center py-12 text-zinc-500 animate-pulse">جاري التحميل...</div> : (
+            {loading ? <p style={{ textAlign: 'center', padding: 40, color: '#999' }}>جاري التحميل...</p> : (
                 <>
-                    <div className="grid grid-cols-4 gap-4">
-                        {[
-                            { icon: Truck, color: 'text-cyan-500', bg: 'bg-cyan-500/10', label: 'السائقين', val: drivers.length },
-                            { icon: Package, color: 'text-blue-500', bg: 'bg-blue-500/10', label: 'طلبات الدليفري', val: totalDeliveryOrders },
-                            { icon: DollarSign, color: 'text-emerald-500', bg: 'bg-emerald-500/10', label: 'إيرادات الدليفري', val: formatCurrency(totalDeliveryRevenue) },
-                            { icon: Wallet, color: 'text-amber-500', bg: 'bg-amber-500/10', label: 'حساب الدليفري (إجمالي)', val: formatCurrency(totalDeliveryFees) },
-                        ].map((card, i) => (
-                            <div key={i} className="bg-white dark:bg-dark-700 border border-zinc-200 dark:border-white/[0.04] rounded-xl p-5 flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl ${card.bg} flex items-center justify-center ${card.color}`}><card.icon className="w-6 h-6" /></div>
-                                <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-1">{card.label}</p><p className={`text-xl font-extrabold ${card.color}`}>{card.val}</p></div>
-                            </div>
-                        ))}
+                    {/* Stats bar */}
+                    <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                        <div style={{ flex: 1, background: '#f0ece0', border: '1px solid #999', padding: '8px 12px', textAlign: 'center' }}>
+                            <p style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>السائقين</p>
+                            <p style={{ fontSize: 20, fontWeight: 'bold', color: '#333' }}>{drivers.length}</p>
+                        </div>
+                        <div style={{ flex: 1, background: '#f0ece0', border: '1px solid #999', padding: '8px 12px', textAlign: 'center' }}>
+                            <p style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>طلبات الدليفري</p>
+                            <p style={{ fontSize: 20, fontWeight: 'bold', color: '#4080c0' }}>{totalDeliveryOrders}</p>
+                        </div>
+                        <div style={{ flex: 1, background: '#f0ece0', border: '1px solid #999', padding: '8px 12px', textAlign: 'center' }}>
+                            <p style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>حساب الدليفري (إجمالي)</p>
+                            <p style={{ fontSize: 20, fontWeight: 'bold', color: '#28a745' }}>{formatCurrency(totalDeliveryFees)}</p>
+                        </div>
                     </div>
 
-                    <div className="space-y-4">
-                        {drivers.map(driver => {
-                            const stats = getDriverStats(driver.id!);
-                            return (
-                                <div key={driver.id} className="bg-white dark:bg-dark-700 border border-zinc-200 dark:border-white/[0.04] rounded-xl overflow-hidden">
-                                    <div className="p-5 flex items-center gap-4 border-b border-zinc-200 dark:border-white/[0.04]">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-600 to-emerald-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">{driver.name.charAt(0)}</div>
-                                        <div className="flex-1"><h3 className="text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2"><User className="w-4 h-4 text-zinc-500" /> {driver.name}</h3><p className="text-[10px] text-zinc-500" dir="ltr">@{driver.username}</p></div>
-                                        <div className="flex items-center gap-8 text-center">
-                                            <div><p className="text-[10px] text-zinc-500 font-bold">الطلبات</p><p className="text-xl font-extrabold text-blue-500">{stats.orderCount}</p></div>
-                                            <div><p className="text-[10px] text-zinc-500 font-bold">الإيراد</p><p className="text-xl font-extrabold text-emerald-500">{formatCurrency(stats.totalRevenue)}</p></div>
-                                            <div><p className="text-[10px] text-zinc-500 font-bold">حساب الدليفري</p><p className="text-xl font-extrabold text-amber-500">{formatCurrency(stats.totalFees)}</p></div>
-                                        </div>
-                                        <div className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${driver.is_active ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' : 'bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30'}`}>{driver.is_active ? 'نشط' : 'موقوف'}</div>
-                                    </div>
-                                    {stats.orders.length > 0 && (
-                                        <div className="max-h-48 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
-                                            <table className="w-full text-xs">
-                                                <thead><tr className="border-b border-zinc-200 dark:border-white/[0.04]">
-                                                    <th className="text-right p-3 text-[10px] text-zinc-500 font-bold">رقم الطلب</th>
-                                                    <th className="text-right p-3 text-[10px] text-zinc-500 font-bold">العميل</th>
-                                                    <th className="text-center p-3 text-[10px] text-zinc-500 font-bold">الأصناف</th>
-                                                    <th className="text-right p-3 text-[10px] text-zinc-500 font-bold">المبلغ</th>
-                                                    <th className="text-right p-3 text-[10px] text-zinc-500 font-bold">حساب الدليفري</th>
-                                                    <th className="text-right p-3 text-[10px] text-zinc-500 font-bold">التاريخ</th>
-                                                </tr></thead>
-                                                <tbody>{stats.orders.slice(0, 20).map(order => (
-                                                    <tr key={order.id} className="border-b border-zinc-100 dark:border-white/[0.03] hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition">
-                                                        <td className="p-3 font-bold text-zinc-400">#{order.order_number}</td>
-                                                        <td className="p-3 text-zinc-700 dark:text-zinc-300">{order.customer_name || '-'}</td>
-                                                        <td className="p-3 text-center text-zinc-500">{order.items.reduce((s, i) => s + i.qty, 0)}</td>
-                                                        <td className="p-3 font-extrabold text-emerald-500">{formatCurrency(order.total)}</td>
-                                                        <td className="p-3 font-extrabold text-amber-500">{order.delivery_fee ? formatCurrency(order.delivery_fee) : '-'}</td>
-                                                        <td className="p-3 text-zinc-500">{new Date(order.created_at).toLocaleString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
-                                                    </tr>
-                                                ))}</tbody>
-                                            </table>
-                                        </div>
-                                    )}
-                                    {stats.orders.length === 0 && <div className="p-8 text-center text-zinc-400 text-xs"><Calendar className="w-8 h-8 mx-auto mb-2 opacity-20" />لا توجد طلبات في هذه الفترة</div>}
-                                </div>
-                            );
-                        })}
+                    {/* Driver list */}
+                    <div style={{ background: '#f0ece0', border: '2px solid #999', padding: 12 }}>
+                        <div style={{ marginBottom: 8 }}>
+                            <label style={{ fontSize: 13, fontWeight: 'bold', marginLeft: 8 }}>الطيارين</label>
+                            <select value={selectedDriver || ''} onChange={e => setSelectedDriver(e.target.value ? Number(e.target.value) : null)}
+                                style={{ padding: '4px 8px', border: '1px solid #999', fontSize: 13, background: '#fff' }}>
+                                <option value="">الكل</option>
+                                {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                            </select>
+                        </div>
+
+                        {/* Orders table */}
+                        <div style={{ maxHeight: 400, overflow: 'auto' }}>
+                            <table className="classic-table">
+                                <thead>
+                                    <tr>
+                                        <th>الاسم</th>
+                                        <th style={{ textAlign: 'center' }}>الفاتورة</th>
+                                        <th style={{ textAlign: 'center' }}>الاجمالي</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {drivers.filter(d => !selectedDriver || d.id === selectedDriver).map(driver => {
+                                        const stats = getDriverStats(driver.id!);
+                                        return stats.orders.map(order => (
+                                            <tr key={order.id}>
+                                                <td style={{ fontWeight: 'bold' }}>{driver.name}</td>
+                                                <td style={{ textAlign: 'center' }}>#{order.order_number}</td>
+                                                <td style={{ textAlign: 'center', fontWeight: 'bold', color: '#28a745' }}>{formatCurrency(order.total)}</td>
+                                            </tr>
+                                        ));
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    {drivers.length === 0 && <div className="text-center py-16 text-zinc-500"><Truck className="w-16 h-16 mx-auto mb-3 opacity-30" /><p className="font-bold">لا يوجد سائقين دليفري</p><p className="text-xs mt-1">أضف سائقين من صفحة إدارة الموظفين</p></div>}
+
+                    {drivers.length === 0 && (
+                        <div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
+                            <p style={{ fontWeight: 'bold', fontSize: 14 }}>لا يوجد سائقين دليفري</p>
+                            <p style={{ fontSize: 12, marginTop: 4 }}>أضف سائقين من صفحة إدارة الموظفين</p>
+                        </div>
+                    )}
                 </>
             )}
         </div>

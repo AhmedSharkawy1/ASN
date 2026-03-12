@@ -13,6 +13,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
+import ASNFooter from '@/components/menu/ASNFooter';
 
 // ─── Types (same interface as other themes) ───
 type Item = {
@@ -117,25 +118,37 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
 
     // ─── Intersection Observer ───
     useEffect(() => {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((e) => {
-                    if (e.isIntersecting) {
-                        const id = e.target.id.replace("bab-", "");
-                        setActiveSection(id);
-                        const btn = categoryNavRef.current?.querySelector(`[data-cat-id="${id}"]`);
-                        btn?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-                    }
-                });
-            },
-            { rootMargin: "-140px 0px -75% 0px", threshold: 0 }
-        );
+        const observerCallback = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) setActiveSection(entry.target.id);
+            });
+        };
+
+        const observer = new IntersectionObserver(observerCallback, {
+            root: null,
+            rootMargin: "-100px 0px -50% 0px",
+            threshold: 0
+        });
+
         categories.forEach((cat) => {
-            const el = document.getElementById(`bab-${cat.id}`);
+            const el = document.getElementById(cat.id.toString());
             if (el) observer.observe(el);
         });
         return () => observer.disconnect();
     }, [categories]);
+
+    // Added centering effect
+    useEffect(() => {
+        if (activeSection && categoryNavRef.current && !isManualScroll.current) {
+            const activeBtn = categoryNavRef.current.querySelector(`[data-cat-id="${activeSection}"]`) as HTMLElement;
+            if (activeBtn) {
+                const container = categoryNavRef.current;
+                const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+        }
+    }, [activeSection]);
 
     // ─── Haptic ───
     const haptic = (ms: number | number[] = 10) => {
@@ -149,12 +162,14 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
 
     const scrollToSection = (id: string) => {
         haptic(10);
-        const el = document.getElementById(`bab-${id}`);
+        const el = document.getElementById(id);
         if (el) {
             isManualScroll.current = true;
             setActiveSection(id);
-            el.scrollIntoView({ behavior: "smooth" });
-            setTimeout(() => { isManualScroll.current = false; }, 200);
+            const offset = 120;
+            const pos = el.getBoundingClientRect().top + window.scrollY - offset;
+            window.scrollTo({ top: pos, behavior: 'smooth' });
+            setTimeout(() => { isManualScroll.current = false; }, 800);
         }
     };
 
@@ -313,7 +328,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
             {/* ═══════ MAIN CONTENT ═══════ */}
             <main className="mt-8 space-y-12">
                 {categories.map((cat) => (
-                    <section key={cat.id} id={`bab-${cat.id}`} className="px-4 md:px-6 bab-scroll-section">
+                    <section key={cat.id} id={cat.id.toString()} className="px-4 md:px-6 bab-scroll-section">
                         {/* Section Header */}
                         <div className="flex flex-col gap-3 mb-6">
                             <div className="flex items-center gap-2.5">
@@ -615,11 +630,13 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
             </div>
 
             {/* ═══════ CHECKOUT MODAL ═══════ */}
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}
                 cartItems={cart.map(c => ({
                     ...c,
+                    id: c.item.id,
                     title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
                     qty: c.quantity,
                     size: c.size_label !== 'عادي' ? c.size_label : undefined,

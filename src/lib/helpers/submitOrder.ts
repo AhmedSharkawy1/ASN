@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
+import { processOrderInventory } from '@/lib/helpers/inventoryService';
+import { calculateOrderCost } from '@/lib/helpers/costService';
 
 export type OrderItemExtra = {
     name: string;
@@ -333,6 +335,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 payment_method: paymentMethod || 'cash',
                 status: 'pending',
                 is_draft: false,
+                source: 'website',
             })
             .select('id, order_number')
             .single();
@@ -374,6 +377,40 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             new_status: 'pending',
             performed_by: customerName,
         });
+
+        // 6. Process inventory deduction (blocking for status determination)
+        let finalStatus = 'pending'; // Website orders stay pending until confirmed
+        try {
+            const invResult = await processOrderInventory(restaurantId, items, order.id);
+            if (!invResult.allDeducted) {
+                finalStatus = 'pending'; // Needs factory production, stay pending
+                // Add a note or handle messages if needed
+                console.log('Order deferred to factory:', invResult.messages);
+            }
+        } catch (err) {
+            console.error('[Inventory] deduction error:', err);
+            finalStatus = 'pending'; // Fallback
+        }
+
+        // 6.5 Update the order with its calculated status
+        await supabase.from('orders').update({
+            status: finalStatus,
+            updated_at: new Date().toISOString()
+        }).eq('id', order.id);
+
+        // Optional log for initial status assignment
+        await supabase.from('order_logs').insert({
+            order_id: order.id,
+            action: 'status_assigned_auto',
+            old_status: 'pending',
+            new_status: finalStatus,
+            performed_by: 'system',
+        });
+
+        // 7. Calculate order cost & profit (non-blocking)
+        calculateOrderCost(order.id).catch(err =>
+            console.error('[CostEngine] Non-blocking cost calc error:', err)
+        );
 
         return {
             success: true,

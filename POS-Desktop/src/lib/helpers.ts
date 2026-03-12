@@ -49,5 +49,49 @@ export const nextStatuses: Record<string, string[]> = {
     accepted: ['preparing', 'cancelled'],
     preparing: ['ready'],
     ready: ['out_for_delivery', 'completed'],
-    out_for_delivery: ['completed'],
 };
+
+/* ═══════════════════════════ PRINTER SETTINGS HELPER ═══════════════════════════ */
+
+const STORAGE_KEY = 'asn_desktop_printer_settings';
+
+export type PrinterSettings = {
+    paperWidth: string;   // e.g. '58mm', '72mm', '80mm', 'A4'
+    fontSize: number;     // base font size in px
+};
+
+const DEFAULT_SETTINGS: PrinterSettings = {
+    paperWidth: '72mm',
+    fontSize: 15,
+};
+
+export function getPrinterSettings(): PrinterSettings {
+    if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            return { ...DEFAULT_SETTINGS, ...parsed };
+        }
+    } catch { /* ignore */ }
+    return DEFAULT_SETTINGS;
+}
+
+export function savePrinterSettings(settings: PrinterSettings): void {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+}
+
+export function getReceiptStyles(): string {
+    const s = getPrinterSettings();
+    const width = s.paperWidth;
+    const fontSize = s.fontSize;
+    return `body{font-family:'Courier New',monospace;font-size:${fontSize}px;width:${width};margin:0 auto;padding:${width === 'A4' ? '20px' : '5px'};direction:rtl;color:#000}table{width:100%;border-collapse:collapse}td{padding:4px 0;vertical-align:top;font-size:${fontSize}px}.line{border-top:1.5px dashed #000;margin:12px 0}.divider{border-top:1.5px dashed #000;margin:12px 0}.text-center{text-align:center}.text-left{text-align:left}.font-bold{font-weight:bold}@media print{body{width:${width};margin:0;padding:0}}`;
+}
+
+export const PAPER_SIZES = [
+    { value: '58mm', label: '58mm' },
+    { value: '72mm', label: '72mm' },
+    { value: '80mm', label: '80mm' },
+    { value: 'A4', label: 'A4' },
+];

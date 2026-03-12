@@ -1,0 +1,417 @@
+"use client";
+
+import { useLanguage } from "@/lib/context/LanguageContext";
+import { useRestaurant } from "@/lib/hooks/useRestaurant";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { manualStockAdjustment } from "@/lib/helpers/inventoryService";
+import { recalculateAllRecipeCosts } from "@/lib/helpers/costService";
+import {
+    Warehouse, Plus, Search, Edit3, Trash2, AlertTriangle,
+    Package, ArrowUpCircle, ArrowDownCircle, X, Save, Filter
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+
+type InventoryItem = {
+    id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    minimum_stock: number;
+    item_type: string;
+    cost_per_unit: number;
+    currency: string;
+    supplier: string | null;
+    expiry_tracking: boolean;
+    expiry_date: string | null;
+    category: string | null;
+    is_active: boolean;
+    created_at: string;
+};
+
+const UNITS = ['كيلو', 'وحدة', 'لتر', 'باكيت', 'جرام', 'قطعة'];
+const ITEM_TYPES = ['raw_material', 'product'];
+
+const emptyForm = {
+    name: '', quantity: 0, unit: 'كيلو', minimum_stock: 0, item_type: 'raw_material',
+    cost_per_unit: 0, currency: 'EGP', supplier: '', expiry_tracking: false,
+    expiry_date: '', category: '', is_active: true
+};
+
+export default function InventoryPage() {
+    const { language } = useLanguage();
+    const { restaurantId } = useRestaurant();
+    const isAr = language === "ar";
+
+    const [items, setItems] = useState<InventoryItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [typeFilter, setTypeFilter] = useState("all");
+    const [showModal, setShowModal] = useState(false);
+    const [editId, setEditId] = useState<string | null>(null);
+    const [form, setForm] = useState(emptyForm);
+    const [adjustModal, setAdjustModal] = useState<{ id: string; name: string } | null>(null);
+    const [adjustQty, setAdjustQty] = useState(0);
+    const [adjustAction, setAdjustAction] = useState<'add' | 'deduct'>('add');
+    const [adjustNotes, setAdjustNotes] = useState('');
+
+    const fetchItems = useCallback(async () => {
+        if (!restaurantId) return;
+        setLoading(true);
+        const { data } = await supabase
+            .from('inventory_items')
+            .select('*')
+            .eq('restaurant_id', restaurantId)
+            .order('name');
+        setItems((data as InventoryItem[]) || []);
+        setLoading(false);
+    }, [restaurantId]);
+
+    useEffect(() => { fetchItems(); }, [fetchItems]);
+
+    // Realtime subscription
+    useEffect(() => {
+        if (!restaurantId) return;
+        const channel = supabase
+            .channel(`inventory-${restaurantId}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_items', filter: `restaurant_id=eq.${restaurantId}` }, () => fetchItems())
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
+    }, [restaurantId, fetchItems]);
+
+    const handleSave = async () => {
+        if (!restaurantId || !form.name.trim()) return;
+        const payload = {
+            restaurant_id: restaurantId, name: form.name.trim(), quantity: form.quantity,
+            unit: form.unit, minimum_stock: form.minimum_stock, item_type: form.item_type,
+            cost_per_unit: form.cost_per_unit, currency: form.currency,
+            supplier: form.supplier || null, expiry_tracking: form.expiry_tracking,
+            expiry_date: form.expiry_date || null, category: form.category || null,
+            is_active: form.is_active, updated_at: new Date().toISOString()
+        };
+        if (editId) {
+            await supabase.from('inventory_items').update(payload).eq('id', editId);
+            toast.success(isAr ? "تم التحديث" : "Item updated");
+        } else {
+            await supabase.from('inventory_items').insert(payload);
+            toast.success(isAr ? "تمت الإضافة" : "Item added");
+        }
+        // Recalculate all recipe costs if anything changed (especially cost)
+        await recalculateAllRecipeCosts(restaurantId);
+        setShowModal(false); setEditId(null); setForm(emptyForm); fetchItems();
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm(isAr ? "هل أنت متأكد؟" : "Are you sure?")) return;
+        await supabase.from('inventory_items').delete().eq('id', id);
+        toast.success(isAr ? "تم الحذف" : "Deleted");
+        fetchItems();
+    };
+
+    const handleAdjust = async () => {
+        if (!adjustModal || !restaurantId || adjustQty <= 0) return;
+        const result = await manualStockAdjustment(restaurantId, adjustModal.id, adjustQty, adjustAction, 'admin', adjustNotes);
+        if (result.success) {
+            toast.success(isAr ? "تم تعديل المخزون" : "Stock adjusted");
+            setAdjustModal(null); setAdjustQty(0); setAdjustNotes(''); fetchItems();
+        } else {
+            toast.error(result.error || (isAr ? "خطأ" : "Error"));
+        }
+    };
+
+    const openEdit = (item: InventoryItem) => {
+        setEditId(item.id);
+        setForm({
+            name: item.name, quantity: item.quantity, unit: item.unit,
+            minimum_stock: item.minimum_stock, item_type: item.item_type,
+            cost_per_unit: item.cost_per_unit, currency: item.currency,
+            supplier: item.supplier || '', expiry_tracking: item.expiry_tracking,
+            expiry_date: item.expiry_date || '', category: item.category || '',
+            is_active: item.is_active
+        });
+        setShowModal(true);
+    };
+
+    const filtered = useMemo(() => items.filter(i => {
+        if (typeFilter !== 'all' && i.item_type !== typeFilter) return false;
+        if (search) {
+            const q = search.toLowerCase();
+            return (i.name?.toLowerCase() || "").includes(q) || 
+                   (i.supplier?.toLowerCase() || "").includes(q) || 
+                   (i.category?.toLowerCase() || "").includes(q);
+        }
+        return true;
+    }), [items, typeFilter, search]);
+
+    const lowStockItems = useMemo(() => items.filter(i => i.quantity <= i.minimum_stock && i.is_active), [items]);
+    
+    // Memoized stats to prevent recalculation on every render (like when typing in modal)
+    const stats = useMemo(() => ({
+        total: items.length,
+        rawMaterials: items.filter((i: InventoryItem) => i.item_type === 'raw_material').length,
+        products: items.filter((i: InventoryItem) => i.item_type === 'product').length,
+        lowStock: lowStockItems.length
+    }), [items, lowStockItems]);
+
+    const displayUnit = useCallback((u: string) => {
+        if (!isAr || !u) return u || "";
+        const unitMap: Record<string, string> = {
+            'kg': 'كيلو', 'piece': 'وحدة', 'liter': 'لتر', 'pack': 'باكيت', 'gram': 'جرام', 'unit': 'وحدة', 'كيلو': 'كيلو', 'وحدة': 'وحدة', 'لتر': 'لتر', 'باكيت': 'باكيت', 'جرام': 'جرام', 'قطعة': 'قطعة'
+        };
+        return unitMap[u.toLowerCase()] || u;
+    }, [isAr]);
+
+    if (loading && items.length === 0) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
+
+    return (
+        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+                        <Warehouse className="w-8 h-8 text-indigo-600 dark:text-emerald-400" />
+                        {isAr ? "إدارة المخزون" : "Inventory Management"}
+                    </h1>
+                    <p className="text-slate-500 dark:text-zinc-400 text-base mt-1">{isAr ? "إدارة المواد الخام والمنتجات في المستودع" : "Manage raw materials and products in warehouse"}</p>
+                </div>
+                <button onClick={() => { setEditId(null); setForm(emptyForm); setShowModal(true); }}
+                    className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
+                    <Plus className="w-5 h-5" /> {isAr ? "إضافة صنف" : "Add Item"}
+                </button>
+            </div>
+
+            {/* Low Stock Alert */}
+            {lowStockItems.length > 0 && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                    className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        <span className="font-bold text-amber-800 dark:text-amber-400">{isAr ? "تنبيه مخزون منخفض" : "Low Stock Alert"}</span>
+                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-full">{lowStockItems.length}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {lowStockItems.map(i => (
+                            <span key={i.id} className="text-sm bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-lg font-medium">
+                                {i.name}: {i.quantity} {displayUnit(i.unit)} ({isAr ? "الحد الأدنى" : "min"}: {i.minimum_stock})
+                            </span>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+
+            {/* Stats */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                    { label: isAr ? "إجمالي الأصناف" : "Total Items", value: stats.total, color: "text-slate-700 dark:text-zinc-300" },
+                    { label: isAr ? "مواد خام" : "Raw Materials", value: stats.rawMaterials, color: "text-blue-600 dark:text-blue-400" },
+                    { label: isAr ? "منتجات" : "Products", value: stats.products, color: "text-emerald-600 dark:text-emerald-400" },
+                    { label: isAr ? "مخزون منخفض" : "Low Stock", value: stats.lowStock, color: "text-amber-600 dark:text-amber-400" },
+                ].map((s, i) => (
+                    <div key={i} className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-4">
+                        <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase mb-1">{s.label}</p>
+                        <p className={`text-3xl font-extrabold ${s.color}`}>{s.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                    <input value={search} onChange={e => setSearch(e.target.value)}
+                        placeholder={isAr ? "بحث بالاسم أو المورد..." : "Search by name or supplier..."}
+                        className="w-full pe-10 ps-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none" />
+                </div>
+                <div className="relative w-full sm:w-auto">
+                    <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 dark:text-zinc-500" />
+                    <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
+                        className="w-full sm:w-auto pe-8 ps-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-sm text-slate-900 dark:text-white outline-none appearance-none cursor-pointer">
+                        <option value="all">{isAr ? "كل الأنواع" : "All Types"}</option>
+                        <option value="raw_material">{isAr ? "مواد خام" : "Raw Material"}</option>
+                        <option value="product">{isAr ? "منتج" : "Product"}</option>
+                    </select>
+                </div>
+            </div>
+
+            {/* Items Table */}
+            {filtered.length === 0 ? (
+                <div className="text-center py-16 text-slate-500 dark:text-zinc-500">
+                    <Package className="w-16 h-16 mx-auto mb-3 opacity-30" />
+                    <p className="font-bold">{isAr ? "لا توجد أصناف" : "No items found"}</p>
+                </div>
+            ) : (
+                <div className="overflow-x-auto bg-white dark:bg-card rounded-xl border border-slate-200 dark:border-zinc-800/50">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-slate-200 dark:border-zinc-800/50">
+                                {[isAr ? "الصنف" : "Item", isAr ? "النوع" : "Type", isAr ? "الكمية" : "Qty", isAr ? "الوحدة" : "Unit", isAr ? "الحد الأدنى" : "Min Stock", isAr ? "التكلفة/وحدة" : "Cost/Unit", isAr ? "المورد" : "Supplier", isAr ? "إجراءات" : "Actions"]
+                                    .map((h, i) => <th key={i} className="px-4 py-3 text-start text-xs font-bold text-slate-500 dark:text-zinc-500 uppercase">{h}</th>)}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.map((item: InventoryItem) => {
+                                const isLow = item.quantity <= item.minimum_stock;
+                                return (
+                                    <tr key={item.id} className={`border-b border-slate-100 dark:border-zinc-800/30 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition ${isLow ? 'bg-amber-50/50 dark:bg-amber-500/5' : ''}`}>
+                                        <td className="px-4 py-3 font-bold text-slate-800 dark:text-zinc-200">
+                                            <div className="flex items-center gap-2">
+                                                {isLow && <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />}
+                                                {item.name}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <span className={`text-xs font-bold px-2 py-1 rounded-lg ${item.item_type === 'raw_material' ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'}`}>
+                                                {item.item_type === 'raw_material' ? (isAr ? "خام" : "Raw") : (isAr ? "منتج" : "Product")}
+                                            </span>
+                                        </td>
+                                        <td className={`px-4 py-3 font-extrabold ${isLow ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-zinc-300'}`}>{item.quantity}</td>
+                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{displayUnit(item.unit)}</td>
+                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{item.minimum_stock}</td>
+                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{item.cost_per_unit} {item.currency}</td>
+                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{item.supplier || "—"}</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-1">
+                                                <button onClick={() => setAdjustModal({ id: item.id, name: item.name })} title={isAr ? "تعديل الكمية" : "Adjust Stock"}
+                                                    className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-emerald-400 hover:bg-indigo-50 dark:hover:bg-emerald-500/10 rounded-lg transition">
+                                                    <ArrowUpCircle className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => openEdit(item)} title={isAr ? "تعديل" : "Edit"}
+                                                    className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-emerald-400 hover:bg-indigo-50 dark:hover:bg-emerald-500/10 rounded-lg transition">
+                                                    <Edit3 className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleDelete(item.id)} title={isAr ? "حذف" : "Delete"}
+                                                    className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* ===== ADD/EDIT MODAL ===== */}
+            <AnimatePresence>
+                {showModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white dark:bg-card rounded-2xl border border-slate-200 dark:border-zinc-800/50 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-800/50">
+                                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{editId ? (isAr ? "تعديل الصنف" : "Edit Item") : (isAr ? "إضافة صنف جديد" : "Add New Item")}</h2>
+                                <button onClick={() => setShowModal(false)} className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition"><X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="p-5 space-y-4">
+                                <div>
+                                    <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "اسم الصنف" : "Item Name"} *</label>
+                                    <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "الكمية" : "Quantity"}</label>
+                                        <input type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: parseFloat(e.target.value) || 0 })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "الوحدة" : "Unit"}</label>
+                                        <select value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none appearance-none">
+                                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "الحد الأدنى" : "Min Stock"}</label>
+                                        <input type="number" value={form.minimum_stock} onChange={e => setForm({ ...form, minimum_stock: parseFloat(e.target.value) || 0 })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "النوع" : "Type"}</label>
+                                        <select value={form.item_type} onChange={e => setForm({ ...form, item_type: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none appearance-none">
+                                            {ITEM_TYPES.map(t => <option key={t} value={t}>{t === 'raw_material' ? (isAr ? "مادة خام" : "Raw Material") : (isAr ? "منتج" : "Product")}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "التكلفة/وحدة" : "Cost/Unit"}</label>
+                                        <input type="number" step="0.01" value={form.cost_per_unit} onChange={e => setForm({ ...form, cost_per_unit: parseFloat(e.target.value) || 0 })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "المورد" : "Supplier"}</label>
+                                        <input value={form.supplier} onChange={e => setForm({ ...form, supplier: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "الفئة" : "Category"}</label>
+                                    <input value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" checked={form.expiry_tracking} onChange={e => setForm({ ...form, expiry_tracking: e.target.checked })}
+                                            className="w-4 h-4 rounded border-slate-300 dark:border-zinc-600" />
+                                        <span className="text-sm font-medium text-slate-600 dark:text-zinc-400">{isAr ? "تتبع الصلاحية" : "Track Expiry"}</span>
+                                    </label>
+                                </div>
+                                {form.expiry_tracking && (
+                                    <div>
+                                        <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "تاريخ الصلاحية" : "Expiry Date"}</label>
+                                        <input type="date" value={form.expiry_date} onChange={e => setForm({ ...form, expiry_date: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-5 border-t border-slate-200 dark:border-zinc-800/50 flex gap-3">
+                                <button onClick={() => setShowModal(false)} className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-400 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700/50 transition">{isAr ? "إلغاء" : "Cancel"}</button>
+                                <button onClick={handleSave} className="flex-1 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2">
+                                    <Save className="w-4 h-4" /> {editId ? (isAr ? "حفظ التعديلات" : "Save Changes") : (isAr ? "إضافة" : "Add Item")}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ===== STOCK ADJUSTMENT MODAL ===== */}
+            <AnimatePresence>
+                {adjustModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setAdjustModal(null)}>
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+                            className="bg-white dark:bg-card rounded-2xl border border-slate-200 dark:border-zinc-800/50 shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                            <div className="p-5 border-b border-slate-200 dark:border-zinc-800/50">
+                                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{isAr ? "تعديل المخزون" : "Adjust Stock"}: {adjustModal.name}</h2>
+                            </div>
+                            <div className="p-5 space-y-4">
+                                <div className="flex gap-2">
+                                    <button onClick={() => setAdjustAction('add')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition ${adjustAction === 'add' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' : 'bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border border-transparent'}`}>
+                                        <ArrowUpCircle className="w-4 h-4" /> {isAr ? "إضافة" : "Add"}
+                                    </button>
+                                    <button onClick={() => setAdjustAction('deduct')} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition ${adjustAction === 'deduct' ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-200 dark:border-red-500/20' : 'bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border border-transparent'}`}>
+                                        <ArrowDownCircle className="w-4 h-4" /> {isAr ? "خصم" : "Deduct"}
+                                    </button>
+                                </div>
+                                <input type="number" value={adjustQty} onChange={e => setAdjustQty(parseFloat(e.target.value) || 0)} placeholder={isAr ? "الكمية" : "Quantity"}
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none text-center text-2xl font-extrabold" />
+                                <input value={adjustNotes} onChange={e => setAdjustNotes(e.target.value)} placeholder={isAr ? "ملاحظات (اختياري)" : "Notes (optional)"}
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none" />
+                            </div>
+                            <div className="p-5 border-t border-slate-200 dark:border-zinc-800/50 flex gap-3">
+                                <button onClick={() => setAdjustModal(null)} className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-400 font-bold rounded-xl transition">{isAr ? "إلغاء" : "Cancel"}</button>
+                                <button onClick={handleAdjust} className="flex-1 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-bold rounded-xl shadow-lg transition">{isAr ? "تأكيد" : "Confirm"}</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}

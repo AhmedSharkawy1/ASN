@@ -9,6 +9,7 @@ import { formatCurrency } from "@/lib/helpers/formatters";
 import { posDb, generateId, getPosNextOrderNumber } from "@/lib/pos-db";
 import type { PosCategory, PosMenuItem, PosOrder, PosCustomer, PosStaffUser } from "@/lib/pos-db";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
+import { getReceiptStyles } from "@/lib/helpers/printerSettings";
 import {
     CreditCard, Plus, Minus, Trash2, ShoppingCart, Search, Percent,
     DollarSign, Save, Send, X, Printer, Clock, Banknote,
@@ -21,6 +22,7 @@ import {
 type CartItem = {
     menuItem: PosMenuItem; qty: number; selectedSizeIdx: number;
     unitPrice: number; note?: string; categoryName?: string;
+    weightUnit?: string;
 };
 
 /* ═══════════════════════════ COMPONENT ═══════════════════════════ */
@@ -46,6 +48,7 @@ export default function POSPage() {
     const [discountType, setDiscountType] = useState<"fixed" | "percent">("fixed");
     const [discountValue, setDiscountValue] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState("cash");
+    const [depositAmount, setDepositAmount] = useState(0);
     const [customerName, setCustomerName] = useState("");
     const [customerPhone, setCustomerPhone] = useState("");
     const [customerAddress, setCustomerAddress] = useState("");
@@ -64,11 +67,15 @@ export default function POSPage() {
     const [lastOrderNotes, setLastOrderNotes] = useState("");
     const [lastDeliveryFee, setLastDeliveryFee] = useState(0);
     const [lastDriverName, setLastDriverName] = useState("");
+    const [lastPaymentMethod, setLastPaymentMethod] = useState("cash");
+    const [lastDepositAmount, setLastDepositAmount] = useState(0);
     const [successFlash, setSuccessFlash] = useState(false);
     const [editNoteIdx, setEditNoteIdx] = useState<number | null>(null);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+    const [weightPrompt, setWeightPrompt] = useState<{ item: PosMenuItem, sizeIdx: number, editingIndex?: number } | null>(null);
+    const [weightInput, setWeightInput] = useState<string>("");
 
     const searchRef = useRef<HTMLInputElement>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
@@ -159,7 +166,7 @@ export default function POSPage() {
     /* ── Keyboard shortcuts ── */
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
-            if (e.key === "Escape") { setSearchQ(""); setShowReceipt(false); setEditNoteIdx(null); setShowHeld(false); setShowCustomerSuggestions(false); }
+            if (e.key === "Escape") { setSearchQ(""); setShowReceipt(false); setEditNoteIdx(null); setShowHeld(false); setShowCustomerSuggestions(false); setWeightPrompt(null); }
             if (e.key === "/" && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
                 e.preventDefault(); searchRef.current?.focus();
             }
@@ -201,14 +208,41 @@ export default function POSPage() {
     const addToCart = useCallback((item: PosMenuItem, sizeIdx: number = 0) => {
         const price = item.prices[sizeIdx] || item.prices[0];
         const catName = getCatName(item.category_id);
+        const weightUnit = item.sell_by_weight ? (item.weight_unit || (isAr ? 'كجم' : 'kg')) : undefined;
+
         setCart(prev => {
             const idx = prev.findIndex(c => c.menuItem.id === item.id && c.selectedSizeIdx === sizeIdx);
             if (idx >= 0) return prev.map((c, i) => i === idx ? { ...c, qty: c.qty + 1 } : c);
-            return [...prev, { menuItem: item, qty: 1, selectedSizeIdx: sizeIdx, unitPrice: price, categoryName: catName }];
+            return [...prev, { menuItem: item, qty: 1, selectedSizeIdx: sizeIdx, unitPrice: price, categoryName: catName, weightUnit }];
         });
         playBeep();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [playBeep, categories]);
+    }, [playBeep, categories, isAr]);
+
+    const confirmWeight = () => {
+        if (!weightPrompt) return;
+        const weight = parseFloat(weightInput);
+        if (isNaN(weight) || weight <= 0) {
+            alert(isAr ? "الرجاء إدخال وزن صحيح" : "Please enter a valid weight");
+            return;
+        }
+        const { item, sizeIdx, editingIndex } = weightPrompt;
+        const price = item.prices[sizeIdx] || item.prices[0];
+        const catName = getCatName(item.category_id);
+        const weightUnit = item.weight_unit || (isAr ? 'كجم' : 'kg');
+
+        if (editingIndex !== undefined) {
+             setCart(prev => prev.map((c, i) => i === editingIndex ? { ...c, qty: weight, weightUnit } : c));
+        } else {
+             setCart(prev => {
+                const idx = prev.findIndex(c => c.menuItem.id === item.id && c.selectedSizeIdx === sizeIdx);
+                if (idx >= 0) return prev.map((c, i) => i === idx ? { ...c, qty: c.qty + weight, weightUnit } : c);
+                return [...prev, { menuItem: item, qty: weight, selectedSizeIdx: sizeIdx, unitPrice: price, categoryName: catName, weightUnit }];
+            });
+            playBeep();
+        }
+        setWeightPrompt(null);
+    };
 
     const updateQty = (index: number, delta: number) => {
         setCart(prev => prev.map((c, i) => {
@@ -222,7 +256,7 @@ export default function POSPage() {
     const clearCart = () => {
         setCart([]); setDiscountValue(0); setCustomerName(""); setCustomerPhone("");
         setCustomerAddress(""); setOrderNotes(""); setPaymentMethod("cash");
-        setOrderType("takeaway"); setSelectedDriver(""); setDeliveryFee(0);
+        setOrderType("takeaway"); setSelectedDriver(""); setDeliveryFee(0); setDepositAmount(0);
     };
 
     const subtotal = cart.reduce((sum, c) => sum + c.unitPrice * c.qty, 0);
@@ -237,9 +271,11 @@ export default function POSPage() {
         try {
             const orderNumber = await getPosNextOrderNumber(restaurantId);
             const items = cart.map(c => ({
+                id: c.menuItem.id,
                 title: c.menuItem.title_ar, qty: c.qty, price: c.unitPrice,
                 size: c.menuItem.size_labels?.[c.selectedSizeIdx] || undefined,
                 category: c.categoryName, note: c.note,
+                weight_unit: c.weightUnit,
             }));
             const driverObj = selectedDriver ? drivers.find(d => d.id === selectedDriver) : undefined;
             const orderId = generateId();
@@ -300,22 +336,31 @@ export default function POSPage() {
                 loadData();
             } else {
                 setLastOrderNumber(orderNumber);
-                setLastOrderCart([...cart]);
+                const capturedCart = [...cart];
+                setLastOrderCart(capturedCart);
                 setLastOrderDiscount(discount);
                 setLastOrderTotal(total);
                 setLastOrderCustomer({ name: customerName, phone: customerPhone, address: customerAddress });
                 setLastOrderNotes(orderNotes || "");
                 setLastDeliveryFee(deliveryFee);
                 setLastDriverName(driverObj?.name || "");
-                setSuccessFlash(true);
-                setTimeout(() => setSuccessFlash(false), 3000);
+                setLastPaymentMethod(paymentMethod);
+                setLastDepositAmount(depositAmount);
+
+                // Auto-print directly without showing receipt modal
+                printDirectReceipt(
+                    orderNumber, capturedCart, customerName, customerPhone, customerAddress,
+                    orderNotes || '', deliveryFee, driverObj?.name || '',
+                    orderType, discount, total, paymentMethod, depositAmount
+                );
+
                 setTodayStats(p => ({ count: p.count + 1, revenue: p.revenue + total }));
             }
             clearCart();
         } catch (e) { console.error(e); }
         finally { setSubmitting(false); }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [restaurantId, cart, subtotal, discount, discountType, total, paymentMethod, customerName, customerPhone, customerAddress, selectedDriver, drivers, deliveryFee, orderNotes, submitting, loadData]);
+    }, [restaurantId, cart, subtotal, discount, discountType, total, paymentMethod, depositAmount, customerName, customerPhone, customerAddress, selectedDriver, drivers, deliveryFee, orderNotes, submitting, loadData]);
 
     const restoreHeldOrder = async (order: PosOrder) => {
         const restored: CartItem[] = order.items.map(item => {
@@ -359,8 +404,67 @@ export default function POSPage() {
         if (!receiptRef.current) return;
         const pw = window.open("", "_blank", "width=300,height=600");
         if (!pw) return;
-        pw.document.write(`<html><head><title>Receipt</title><style>body{font-family:'Courier New',monospace;font-size:15px;width:72mm;margin:0 auto;padding:10px;direction:rtl;color:#000}table{width:100%;border-collapse:collapse}td{padding:4px 0;vertical-align:top;font-size:15px}.line{border-top:1.5px dashed #000;margin:12px 0}@media print{body{width:72mm}}</style></head><body>${receiptRef.current.innerHTML}</body></html>`);
+        pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>${receiptRef.current.innerHTML}</body></html>`);
         pw.document.close(); pw.focus(); pw.print();
+    };
+
+    const printDirectReceipt = (
+        orderNum: number, cartItems: CartItem[], cName: string, cPhone: string, cAddress: string,
+        notes: string, dFee: number, dName: string, oType: string, disc: number, oTotal: number,
+        pMethod: string, deposit: number
+    ) => {
+        const restName = restaurant?.name || 'Restaurant';
+        const orderTypeLabel = oType === 'dine_in' ? 'صالة' : oType === 'delivery' ? 'دليفري' : 'تيك أواي';
+        const itemsHtml = cartItems.map(c => {
+            const title = c.menuItem.sell_by_weight
+                ? `(${c.qty} ${c.weightUnit || 'كجم'}) ${c.menuItem.title_ar}`
+                : c.menuItem.title_ar + (c.menuItem.size_labels && c.menuItem.size_labels.length > 1 ? ` (${c.menuItem.size_labels[c.selectedSizeIdx]})` : '');
+            const qtyStr = c.menuItem.sell_by_weight ? '1' : `${c.qty}`;
+            return `<tr>
+                <td style="padding:4px 0;font-size:14px">${c.categoryName ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${c.categoryName}<br/></span>` : ''}${title}</td>
+                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold">${qtyStr}</td>
+                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold">${formatCurrency(c.unitPrice * c.qty)}</td>
+            </tr>`;
+        }).join('');
+
+        const pw = window.open('', '_blank', 'width=300,height=600');
+        if (pw) {
+            pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>
+                <div style="text-align:center;margin-bottom:15px">
+                    <p style="font-weight:bold;font-size:22px;margin:0 0 5px 0">${restName}</p>
+                    <p style="font-size:14px;margin:0 0 5px 0">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p style="font-weight:bold;font-size:18px;margin:0 0 5px 0">فاتورة رقم #${orderNum}</p>
+                    <p style="font-size:16px;font-weight:bold;margin:0;display:inline-block;border:1px solid #000;padding:2px 6px;border-radius:4px">${orderTypeLabel}</p>
+                </div>
+                ${(cName || cPhone) ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px">
+                    ${cName ? `<p style="margin:2px 0">العميل: <strong>${cName}</strong></p>` : ''}
+                    ${cPhone ? `<p style="margin:2px 0" dir="ltr">هاتف: <strong>${cPhone}</strong></p>` : ''}
+                    ${cAddress ? `<p style="margin:2px 0">العنوان: <strong>${cAddress}</strong></p>` : ''}
+                </div>` : ''}
+                ${notes ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px"><p style="margin:2px 0">ملاحظات: <strong>${notes}</strong></p></div>` : ''}
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+                    <thead><tr>
+                        <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الصنف</td>
+                        <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الكمية</td>
+                        <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">المبلغ</td>
+                    </tr></thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                ${disc > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px"><span>الخصم</span><span>-${formatCurrency(disc)}</span></div>` : ''}
+                ${dFee > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#0891b2"><span>🚚 حساب الدليفري ${dName ? `(${dName})` : ''}</span><span>+${formatCurrency(dFee)}</span></div>` : ''}
+                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px"><span>الإجمالي</span><span>${formatCurrency(oTotal)}</span></div>
+                ${pMethod === 'deposit' && deposit > 0 ? `
+                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;color:#d97706;margin-top:8px"><span>المدفوع (عربون)</span><span>${formatCurrency(deposit)}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#dc2626;margin-top:4px"><span>الباقي</span><span>${formatCurrency(Math.max(0, oTotal - deposit))}</span></div>
+                ` : ''}
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                <div style="font-size:13px;font-weight:bold;text-align:center">طريقة الدفع: <strong>${pMethod === 'cash' ? 'كاش' : pMethod === 'deposit' ? 'عربون' : pMethod}</strong></div>
+                <div style="text-align:center;font-size:13px;margin-top:20px;font-weight:bold"><p style="margin:0">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
+            </body></html>`);
+            pw.document.close(); pw.focus(); pw.print();
+        }
     };
 
     /* ═══════════════════════════ RENDER ═══════════════════════════ */
@@ -513,21 +617,29 @@ export default function POSPage() {
                         {cart.length === 0 ? (
                             <div className="text-center py-12 text-slate-400 dark:text-zinc-600"><ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" /><p className="text-xs">السلة فارغة</p></div>
                         ) : cart.map((c, i) => (
-                            <div key={`${c.menuItem.id}-${c.selectedSizeIdx}-${i}`} className="bg-slate-50 dark:bg-black/20 rounded-lg p-2.5 group/item">
+                            <div key={`${c.menuItem.id}-${c.selectedSizeIdx}-${i}`} className="bg-slate-50 dark:bg-black/20 border border-black dark:border-white rounded-lg p-2.5 group/item">
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 min-w-0">
                                         <p className="text-[17px] xl:text-[20px] font-black text-slate-800 dark:text-zinc-100 truncate">
-                                            {c.menuItem.title_ar}
+                                            {c.menuItem.sell_by_weight ? `(${c.qty} ${c.weightUnit || (isAr ? 'كجم' : 'kg')}) ${c.menuItem.title_ar}` : c.menuItem.title_ar}
                                             {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 && <span className="text-slate-500 dark:text-zinc-400 text-[15px]"> ({c.menuItem.size_labels[c.selectedSizeIdx]})</span>}
                                         </p>
                                         {c.categoryName && <p className="text-[13px] text-blue-600 dark:text-blue-400 font-bold mt-1">{c.categoryName}</p>}
-                                        <p className="text-[15px] xl:text-[17px] text-emerald-600 dark:text-emerald-400 font-black mt-1">{formatCurrency(c.unitPrice)} × {c.qty}</p>
+                                        <p className="text-[15px] xl:text-[17px] text-emerald-600 dark:text-emerald-400 font-black mt-1">{formatCurrency(c.unitPrice)} × {c.menuItem.sell_by_weight ? 1 : c.qty}</p>
                                         {c.note && <p className="text-[13px] text-amber-500 mt-1 truncate font-bold">📝 {c.note}</p>}
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button onClick={() => updateQty(i, -1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Minus className="w-4 h-4" /></button>
-                                        <span className="w-8 text-center text-[18px] xl:text-[20px] font-black text-slate-900 dark:text-white tabular-nums">{c.qty}</span>
-                                        <button onClick={() => updateQty(i, 1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Plus className="w-4 h-4" /></button>
+                                        {c.menuItem.sell_by_weight ? (
+                                            <button onClick={() => { setWeightPrompt({ item: c.menuItem, sizeIdx: c.selectedSizeIdx, editingIndex: i }); setWeightInput(c.qty.toString()); }} className="px-3 min-w-[5rem] h-9 bg-indigo-100 border border-indigo-200 dark:border-indigo-500/30 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-bold rounded-lg flex items-center justify-center hover:bg-indigo-200 transition-colors">
+                                                {c.qty} {c.weightUnit || (isAr ? 'كجم' : 'kg')}
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => updateQty(i, -1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Minus className="w-4 h-4" /></button>
+                                                <span className="w-8 text-center text-[18px] xl:text-[20px] font-black text-slate-900 dark:text-white tabular-nums">{c.qty}</span>
+                                                <button onClick={() => updateQty(i, 1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Plus className="w-4 h-4" /></button>
+                                            </>
+                                        )}
                                     </div>
                                     <span className="text-[18px] xl:text-[20px] font-black text-slate-900 dark:text-white w-24 text-left tabular-nums">{formatCurrency(c.unitPrice * c.qty)}</span>
                                     <div className="flex items-center gap-1">
@@ -568,7 +680,7 @@ export default function POSPage() {
                                         onFocus={() => setShowCustomerSuggestions(true)}
                                         onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 300)}
                                         placeholder="بحث برقم العميل أو اسمه..."
-                                        className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
+                                        className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
                                     {showCustomerSuggestions && customerSuggestions.length > 0 && (
                                         <div className="absolute bottom-full mb-1 left-0 right-0 bg-white dark:bg-card border border-slate-300 dark:border-zinc-700 rounded-lg overflow-hidden z-50 shadow-xl max-h-48 overflow-y-auto">
                                             {customerSuggestions.map((c, i) => (
@@ -580,7 +692,7 @@ export default function POSPage() {
                                         </div>
                                     )}
                                 </div>
-                                <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="رقم الهاتف..." dir="ltr" className="px-2.5 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold font-mono text-right text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
+                                <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="رقم الهاتف..." dir="ltr" className="px-2.5 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold font-mono text-right text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
                             </div>
 
                             {/* Delivery Options (Only if Delivery) */}
@@ -590,12 +702,12 @@ export default function POSPage() {
                                         <div className="relative">
                                             <Truck className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
                                             <select value={selectedDriver} onChange={e => setSelectedDriver(e.target.value)}
-                                                className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white outline-none appearance-none cursor-pointer focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm">
+                                                className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold text-slate-900 dark:text-white outline-none appearance-none cursor-pointer focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm">
                                                 <option value="">اختر الطيار...</option>
                                                 {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                             </select>
                                         </div>
-                                        <div className="flex items-center gap-1.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg px-2.5 py-1 focus-within:border-black dark:focus-within:border-white focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm">
+                                        <div className="flex items-center gap-1.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg px-2.5 py-1 focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm">
                                             <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold whitespace-nowrap">حساب الدليفري</span>
                                             <input type="number" value={deliveryFee || ""} onChange={e => setDeliveryFee(Number(e.target.value))} placeholder="0" min="0" className="w-full py-1 text-[13px] text-slate-900 dark:text-white placeholder:text-slate-400 text-center font-black outline-none bg-transparent" />
                                         </div>
@@ -607,9 +719,9 @@ export default function POSPage() {
                             <div className="grid grid-cols-[2fr_1fr] gap-2">
                                 <div className="relative">
                                     <StickyNote className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
-                                    <input value={orderNotes} onChange={e => setOrderNotes(e.target.value)} placeholder="ملاحظات الطلب العام..." className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:border-black dark:focus:border-white focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
+                                    <input value={orderNotes} onChange={e => setOrderNotes(e.target.value)} placeholder="ملاحظات الطلب العام..." className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
                                 </div>
-                                <div className="flex bg-white dark:bg-black/50 border border-slate-300 dark:border-zinc-700 rounded-lg overflow-hidden focus-within:border-black dark:focus-within:border-white focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm group">
+                                <div className="flex bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm group">
                                      <button onClick={() => setDiscountType(discountType === "fixed" ? "percent" : "fixed")} className="px-2.5 flex items-center justify-center bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 transition border-l border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
                                         {discountType === "percent" ? <Percent className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
                                     </button>
@@ -619,12 +731,21 @@ export default function POSPage() {
 
                             {/* Payment */}
                             <div className="flex gap-1.5">
-                                {[{ key: "cash", icon: <Banknote className="w-3 h-3" />, label: "كاش" }, { key: "card", icon: <CreditCard className="w-3 h-3" />, label: "بطاقة" }, { key: "online", icon: <Smartphone className="w-3 h-3" />, label: "أونلاين" }].map(pm => (
-                                    <button key={pm.key} onClick={() => setPaymentMethod(pm.key)} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all ${paymentMethod === pm.key ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
+                                {[{ key: "cash", icon: <Banknote className="w-3 h-3" />, label: "كاش" }, { key: "deposit", icon: <Receipt className="w-3 h-3" />, label: "عربون" }].map(pm => (
+                                    <button key={pm.key} onClick={() => { setPaymentMethod(pm.key); if (pm.key !== 'deposit') setDepositAmount(0); }} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all ${paymentMethod === pm.key ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
                                         {pm.icon} {pm.label}
                                     </button>
                                 ))}
                             </div>
+
+                            {/* Deposit Amount Input */}
+                            {paymentMethod === "deposit" && (
+                                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 rounded-lg px-3 py-2 shadow-inner">
+                                    <span className="text-[12px] text-amber-700 dark:text-amber-400 font-extrabold whitespace-nowrap">مبلغ العربون</span>
+                                    <input type="number" value={depositAmount || ""} onChange={e => setDepositAmount(Number(e.target.value))} placeholder="0" min="0" max={total} className="w-full py-1 text-[15px] text-amber-900 dark:text-amber-300 placeholder:text-amber-400 text-center font-black outline-none bg-transparent" />
+                                    <span className="text-[11px] text-amber-600 dark:text-amber-500 font-bold">ج.م</span>
+                                </div>
+                            )}
 
                             {/* Totals */}
                             <div className="space-y-2 text-[14px] xl:text-[15px] font-bold">
@@ -632,12 +753,24 @@ export default function POSPage() {
                                 {discount > 0 && <div className="flex justify-between text-red-600 dark:text-red-400"><span>الخصم</span><span className="tabular-nums">-{formatCurrency(discount)}</span></div>}
                                 {deliveryFee > 0 && <div className="flex justify-between text-cyan-600 dark:text-cyan-400"><span>🚚 حساب الدليفري</span><span className="tabular-nums">+{formatCurrency(deliveryFee)}</span></div>}
                                 <div className="flex justify-between text-slate-900 dark:text-white font-black text-[20px] xl:text-[24px] pt-3 mt-2 border-t-2 border-slate-300 dark:border-zinc-700/50"><span>الإجمالي</span><span className="text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(total)}</span></div>
+                                {paymentMethod === "deposit" && depositAmount > 0 && (
+                                    <>
+                                        <div className="flex justify-between text-amber-600 dark:text-amber-400 font-extrabold text-[14px]">
+                                            <span>المدفوع (عربون)</span>
+                                            <span className="tabular-nums">{formatCurrency(depositAmount)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-red-600 dark:text-red-400 font-black text-[17px]">
+                                            <span>الباقي</span>
+                                            <span className="tabular-nums">{formatCurrency(Math.max(0, total - depositAmount))}</span>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Actions */}
                             <div className="flex gap-2">
                                 <button onClick={() => submitOrder(true)} disabled={submitting} className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-200 dark:bg-zinc-700/50 text-slate-700 dark:text-zinc-300 font-extrabold text-[15px] rounded-xl hover:bg-zinc-600/50 transition active:scale-95 disabled:opacity-50 border border-slate-200 dark:border-zinc-700/30"><Save className="w-5 h-5" /> تعليق</button>
-                                <button onClick={() => submitOrder(false)} disabled={submitting} className="flex-[2] flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-black text-[17px] xl:text-[19px] rounded-xl shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20 hover:shadow-emerald-500/40 transition active:scale-95 disabled:opacity-50"><Send className="w-5 h-5" /> {submitting ? "جاري..." : "إرسال الطلب"}</button>
+                                <button onClick={() => submitOrder(false)} disabled={submitting} className="flex-[2] flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-black text-[17px] xl:text-[19px] rounded-xl shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20 hover:shadow-emerald-500/40 transition active:scale-95 disabled:opacity-50"><Printer className="w-5 h-5" /> {submitting ? "جاري..." : "طباعة"}</button>
                             </div>
                         </div>
                     )}
@@ -666,8 +799,6 @@ export default function POSPage() {
                     </div>
                 )}
             </div>
-
-            {/* SIZE PICKER (Removed) */}
 
             {/* SUCCESS */}
             {successFlash && (
@@ -710,9 +841,12 @@ export default function POSPage() {
                                         <tr key={i}>
                                             <td style={{ padding: "4px 0", fontSize: "14px" }}>
                                                 {c.categoryName && <span style={{ fontSize: "12px", color: "#0284c7", fontWeight: "bold" }}>{c.categoryName}<br /></span>}
-                                                {c.menuItem.title_ar}{c.menuItem.size_labels && c.menuItem.size_labels.length > 1 ? ` (${c.menuItem.size_labels[c.selectedSizeIdx]})` : ""}
+                                                {c.menuItem.title_ar}
+                                                {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 ? ` (${c.menuItem.size_labels[c.selectedSizeIdx]})` : ""}
                                             </td>
-                                            <td style={{ textAlign: "center", padding: "4px 0", fontSize: "15px", fontWeight: "bold" }}>{c.qty}</td>
+                                            <td style={{ textAlign: "center", padding: "4px 0", fontSize: "15px", fontWeight: "bold", direction: "rtl" }}>
+                                                {c.qty} {c.menuItem.sell_by_weight ? (c.weightUnit || (isAr ? 'كجم' : 'kg')) : ""}
+                                            </td>
                                             <td style={{ textAlign: "left", padding: "4px 0", fontSize: "15px", fontWeight: "bold" }}>{formatCurrency(c.unitPrice * c.qty)}</td>
                                         </tr>
                                     ))}
@@ -722,13 +856,58 @@ export default function POSPage() {
                             {lastOrderDiscount > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: "15px" }}><span>الخصم</span><span>-{formatCurrency(lastOrderDiscount)}</span></div>}
                             {lastDeliveryFee > 0 && <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#0891b2" }}><span>🚚 حساب الدليفري {lastDriverName ? `(${lastDriverName})` : ""}</span><span>+{formatCurrency(lastDeliveryFee)}</span></div>}
                             <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", fontSize: "20px", marginTop: "10px" }}><span>الإجمالي</span><span>{formatCurrency(lastOrderTotal)}</span></div>
+                            {lastPaymentMethod === "deposit" && lastDepositAmount > 0 && (
+                                <>
+                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: "bold", color: "#d97706", marginTop: "8px" }}><span>المدفوع (عربون)</span><span>{formatCurrency(lastDepositAmount)}</span></div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "18px", fontWeight: "900", color: "#dc2626", marginTop: "4px" }}><span>الباقي</span><span>{formatCurrency(Math.max(0, lastOrderTotal - lastDepositAmount))}</span></div>
+                                </>
+                            )}
                             <div style={{ borderTop: "1.5px dashed #000", margin: "12px 0" }} />
+                            <div style={{ fontSize: "13px", fontWeight: "bold", textAlign: "center" }}>طريقة الدفع: <strong>{lastPaymentMethod === "cash" ? "كاش" : lastPaymentMethod === "deposit" ? "عربون" : lastPaymentMethod}</strong></div>
                             <div style={{ textAlign: "center", fontSize: "13px", marginTop: "20px", fontWeight: "bold" }}><p style={{ margin: 0 }}>شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
                         </div>
                         <div className="p-3 border-t flex gap-2">
                             <button onClick={() => setShowReceipt(false)} className="flex-1 py-2.5 bg-zinc-100 text-slate-400 dark:text-zinc-600 rounded-xl text-xs font-bold hover:bg-zinc-200 transition">إغلاق</button>
                             <button onClick={printReceipt} className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 hover:bg-emerald-600 transition"><Printer className="w-3.5 h-3.5" /> طباعة</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* WEIGHT MODAL */}
+            {weightPrompt && (
+                <div className="fixed inset-0 z-[250] bg-slate-300 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800 rounded-2xl w-full max-w-sm shadow-2xl p-6 relative">
+                        <button onClick={() => setWeightPrompt(null)} className="absolute top-4 left-4 p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors rounded-lg"><X className="w-5 h-5" /></button>
+                        <h3 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2 text-center flex items-center justify-center gap-2">⚖️ {isAr ? "الوزن المطلوب" : "Enter Weight"}</h3>
+                        <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-6 text-center">{isAr ? weightPrompt.item.title_ar : (weightPrompt.item.title_en || weightPrompt.item.title_ar)}</p>
+                        
+                        <div className="mb-6 relative">
+                            <input 
+                                type="number" 
+                                autoFocus
+                                value={weightInput} 
+                                onChange={e => setWeightInput(e.target.value)}
+                                onKeyDown={e => e.key === "Enter" && confirmWeight()}
+                                placeholder="0.00" 
+                                min="0" 
+                                step="0.01"
+                                className="w-full text-center text-4xl font-black py-4 bg-slate-100 dark:bg-zinc-900 border-2 border-indigo-200 dark:border-indigo-500/30 rounded-xl text-slate-900 dark:text-white outline-none focus:border-indigo-500 transition-colors tabular-nums"
+                            />
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">{weightPrompt.item.weight_unit || (isAr ? "كجم" : "kg")}</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-4 gap-2 mb-6">
+                            {[0.25, 0.5, 1, 1.5].map(w => (
+                                <button key={w} onClick={() => setWeightInput(w.toString())} className="py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-slate-700 dark:text-zinc-300 font-bold rounded-lg hover:bg-slate-200 dark:hover:bg-zinc-700 transition active:scale-95 tabular-nums text-sm">
+                                    {w}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button onClick={confirmWeight} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-lg rounded-xl shadow-lg shadow-indigo-200 dark:shadow-indigo-900/40 transition active:scale-95">
+                            {isAr ? "تأكيد وإضافة" : "Confirm"}
+                        </button>
                     </div>
                 </div>
             )}

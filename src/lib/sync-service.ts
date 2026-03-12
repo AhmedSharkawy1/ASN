@@ -143,12 +143,13 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
         const ordersToSync = dirtyOrders.map(order => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { _dirty, ...rest } = order;
+            delete (rest as PosOrder & { delivery_driver_id?: number }).delivery_driver_id;
+            delete (rest as PosOrder & { delivery_driver_name?: string }).delivery_driver_name;
+            delete (rest as PosOrder & { delivery_fee?: number }).delivery_fee;
+            
             return {
                 ...rest,
                 customer_address: rest.customer_address || null,
-                delivery_driver_id: rest.delivery_driver_id || null,
-                delivery_driver_name: rest.delivery_driver_name || null,
-                delivery_fee: rest.delivery_fee || null,
                 notes: (rest as { notes?: string }).notes || null,
                 source: (rest as { source?: string }).source || 'pos',
             };

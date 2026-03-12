@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -16,6 +16,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 /* ───────────────────── THEME 6 CONSTANTS ───────────────────── */
 const T6 = '#40a798';        // brand-primary teal
@@ -46,6 +47,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
     const [cust, setCust] = useState({ name: '', phone: '', address: '' });
 
     const catNavRef = useRef<HTMLDivElement>(null);
+    const isManualScroll = useRef(false);
 
     /* ── persist cart ── */
     useEffect(() => {
@@ -57,21 +59,56 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
 
     /* ── intersection observer for active section ── */
     useEffect(() => {
-        const obs = new IntersectionObserver(entries => {
-            entries.forEach(e => {
-                if (e.isIntersecting) {
-                    setActiveSection(e.target.id);
-                    const btn = catNavRef.current?.querySelector(`[data-id="${e.target.id}"]`);
-                    btn?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const observerOptions = {
+            root: null,
+            rootMargin: "-140px 0px -75% 0px",
+            threshold: 0
+        };
+
+        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+            if (isManualScroll.current) return;
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    setActiveSection(entry.target.id);
+                    
+                    // Center the active tab
+                    const container = catNavRef.current;
+                    const activeBtn = container?.querySelector(`[data-cat-id="${entry.target.id}"]`) as HTMLElement;
+                    if (container && activeBtn) {
+                        const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                        container.scrollTo({ left: scrollLeft, behavior: "smooth" });
+                    }
                 }
             });
-        }, { rootMargin: '-140px 0px -75% 0px', threshold: 0 });
-        categories.forEach(c => { const el = document.getElementById(c.id); if (el) obs.observe(el); });
-        return () => obs.disconnect();
+        };
+
+        const observer = new IntersectionObserver(handleIntersect, observerOptions);
+        
+        categories.forEach((cat) => {
+            const el = document.getElementById(cat.id);
+            if (el) observer.observe(el);
+        });
+
+        return () => observer.disconnect();
     }, [categories]);
 
     /* ── helpers ── */
-    const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); setActiveSection(''); };
+    const scrollToSection = (id: string) => {
+        isManualScroll.current = true;
+        setActiveSection(id);
+        if (id === 'top' || id === '') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            const el = document.getElementById(id);
+            if (el) {
+                const y = el.getBoundingClientRect().top + window.scrollY - 120;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }
+        setTimeout(() => { isManualScroll.current = false; }, 1000);
+    };
+
+    const scrollToTop = () => scrollToSection('');
 
     // ── CART HANDLERS ──
     const openItemSelect = (item: any, catName: string, catImg?: string) => {
@@ -223,7 +260,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                     className="flex items-start overflow-x-auto px-4 gap-6 scroll-smooth"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                     {/* "الكل" home button */}
-                    <button onClick={scrollToTop} data-id="top"
+                    <button onClick={scrollToTop} data-cat-id="top"
                         className="flex flex-col items-center gap-2 shrink-0 min-w-[70px]">
                         <div className={`w-16 h-16 rounded-full flex items-center justify-center text-xl shadow-sm border-2 transition-colors
                             ${activeSection === '' ? 'border-[#40a798] bg-[#e6f2fa]' : 'border-transparent bg-zinc-100 dark:bg-zinc-800'}`}>
@@ -235,8 +272,8 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                     </button>
 
                     {categories.map((s: any) => (
-                        <button key={s.id} data-id={s.id}
-                            onClick={() => document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth' })}
+                        <button key={s.id} data-cat-id={s.id}
+                            onClick={() => scrollToSection(s.id)}
                             className="flex flex-col items-center gap-2 shrink-0 min-w-[70px]">
                             <div className={`w-16 h-16 rounded-full overflow-hidden shadow-sm border-2 transition-colors
                                 ${activeSection === s.id ? 'border-[#40a798]' : 'border-transparent'}`}>
@@ -700,6 +737,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                 div[style*="scrollbar"]::-webkit-scrollbar { display: none; }
             `}</style >
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

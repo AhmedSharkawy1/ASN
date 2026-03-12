@@ -15,6 +15,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 // Import necessary types directly from where they are defined, or define locally
 type MenuItem = {
@@ -111,6 +112,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
     // Category refs for scroll spy
     const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
     const catScrollRef = useRef<HTMLDivElement>(null);
+    const isManualScroll = useRef(false);
 
     // Derived
     const filteredCategories = React.useMemo(() => {
@@ -136,44 +138,61 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
 
     // Sync scroll
+    // Sync scroll with IntersectionObserver
     useEffect(() => {
         if (searchQuery || activeCategory !== 'all') return;
-        const handleScroll = () => {
-            const scrollPos = window.scrollY + 200;
-            let currentSection = sectionRefs.current[0]?.id.replace('cat-', '') || 'all';
-            for (const section of sectionRefs.current) {
-                if (section && section.offsetTop <= scrollPos) {
-                    currentSection = section.id.replace('cat-', '');
-                }
-            }
-            // Auto scroll nav
-            if (currentSection !== activeCategory) {
-                setActiveCategory(currentSection);
-                const activeTab = catScrollRef.current?.querySelector(`[data-cat="${currentSection}"]`);
-                if (activeTab && catScrollRef.current) {
-                    const navRect = catScrollRef.current.getBoundingClientRect();
-                    const tabRect = activeTab.getBoundingClientRect();
-                    if (tabRect.left < navRect.left || tabRect.right > navRect.right) {
-                        activeTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '-100px 0px -70% 0px', // Adjust to trigger when section is at top
+            threshold: 0
+        };
+
+        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting && !isManualScroll.current) {
+                    const id = entry.target.id.replace('cat-', '');
+                    setActiveCategory(id);
+                    
+                    // Center the active tab
+                    const container = catScrollRef.current;
+                    const activeTab = container?.querySelector(`[data-cat="${id}"]`) as HTMLElement;
+                    if (container && activeTab) {
+                        const scrollLeft = activeTab.offsetLeft - container.offsetWidth / 2 + activeTab.offsetWidth / 2;
+                        container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                     }
                 }
-            }
+            });
         };
-        window.addEventListener('scroll', handleScroll, { passive: true });
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [activeCategory, searchQuery]);
+
+        const observer = new IntersectionObserver(handleIntersect, observerOptions);
+        
+        // Observe all category sections
+        sectionRefs.current.forEach((section) => {
+            if (section) observer.observe(section);
+        });
+
+        return () => observer.disconnect();
+    }, [activeCategory, searchQuery, categories]); // Re-run if categories change
 
     const scrollToSection = (id: string) => {
+        isManualScroll.current = true;
         setActiveCategory(id);
+        
         if (id === 'all') {
-            window.scrollTo({ top: 300, behavior: 'smooth' });
-            return;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            const el = document.getElementById(`cat-${id}`);
+            if (el) {
+                const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
         }
-        const el = document.getElementById(`cat-${id}`);
-        if (el) {
-            const y = el.getBoundingClientRect().top + window.scrollY - 100;
-            window.scrollTo({ top: y, behavior: 'smooth' });
-        }
+
+        // Reset manual scroll flag after animation
+        setTimeout(() => {
+            isManualScroll.current = false;
+        }, 1000);
     };
 
     // Cart Logic
@@ -876,6 +895,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
             </div>
 
             {/* Checkout Modal */}
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

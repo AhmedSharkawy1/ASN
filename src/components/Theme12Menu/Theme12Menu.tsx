@@ -11,6 +11,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
+import ASNFooter from '@/components/menu/ASNFooter';
 
 type MenuItem = {
     id: string | number;
@@ -148,6 +149,8 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
 
     const headerRef = useRef<HTMLElement>(null);
+    const catNavRef = useRef<HTMLDivElement>(null);
+    const isManualScroll = useRef(false);
     const currentLang = isAr ? 'ar' : 'en';
 
     // Handle scroll for header
@@ -165,6 +168,41 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // IntersectionObserver for active section
+    const [activeCategory, setActiveCategory] = useState<string>(categories[0]?.id?.toString() || '');
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (isManualScroll.current) return;
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const id = entry.target.id;
+                        setActiveCategory(id);
+                    }
+                });
+            },
+            { root: null, rootMargin: '-100px 0px -50% 0px', threshold: 0 }
+        );
+        categories.forEach((cat) => {
+            const el = document.getElementById(cat.id.toString());
+            if (el) observer.observe(el);
+        });
+        return () => observer.disconnect();
+    }, [categories]);
+
+    // Center active nav button
+    useEffect(() => {
+        if (activeCategory && catNavRef.current && !isManualScroll.current) {
+            const activeBtn = catNavRef.current.querySelector(`[data-cat-id="${activeCategory}"]`) as HTMLElement;
+            if (activeBtn) {
+                const container = catNavRef.current;
+                const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+        }
+    }, [activeCategory]);
+
     const toggleTheme = () => {
         setTheme(isDark ? 'light' : 'dark');
     };
@@ -175,17 +213,15 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
     };
 
     const scrollToCategory = (categoryId: string) => {
-        const element = document.getElementById(`category-${categoryId}`);
+        isManualScroll.current = true;
+        setActiveCategory(categoryId);
+        const element = document.getElementById(categoryId);
         if (element) {
-            const headerOffset = 180; // Header + Banner
-            const elementPosition = element.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-            window.scrollTo({
-                top: offsetPosition,
-                behavior: 'smooth'
-            });
+            const top = element.getBoundingClientRect().top + window.scrollY - 180;
+            window.scrollTo({ top, behavior: 'smooth' });
             setIsMobileMenuOpen(false);
         }
+        setTimeout(() => { isManualScroll.current = false; }, 800);
     };
 
     return (
@@ -400,14 +436,15 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
 
                     {/* Categories Section */}
                     <div className="bg-white dark:bg-[#16213e] rounded-[24px] shadow-[0_15px_35px_rgba(0,0,0,0.08)] dark:shadow-[0_15px_35px_rgba(0,0,0,0.3)] p-4 sm:p-6 mb-10 overflow-hidden">
-                        <div className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+                        <div ref={catNavRef} className="flex gap-4 sm:gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
                             {categories.map((cat) => (
                                 <button
                                     key={cat.id}
+                                    data-cat-id={cat.id.toString()}
                                     onClick={() => scrollToCategory(String(cat.id))}
                                     className="snap-start flex flex-col items-center gap-3 min-w-[90px] group flex-shrink-0"
                                 >
-                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 bg-gradient-to-tr from-[#6c63ff] to-[#00b894] shadow-[0_8px_15px_rgba(108,99,255,0.25)] group-hover:-translate-y-2 group-hover:shadow-[0_12px_20px_rgba(108,99,255,0.4)] transition-all duration-300">
+                                    <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 shadow-[0_8px_15px_rgba(108,99,255,0.25)] group-hover:-translate-y-2 group-hover:shadow-[0_12px_20px_rgba(108,99,255,0.4)] transition-all duration-300 ${activeCategory === String(cat.id) ? 'bg-gradient-to-tr from-[#6c63ff] to-[#00b894] -translate-y-2' : 'bg-gray-200 dark:bg-gray-700'}`}>
                                         <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800 border-[3px] border-white dark:border-[#16213e] relative">
                                             <img src={cat.image_url || '/default-category.png'} alt={cat.name_en || cat.name_ar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         </div>
@@ -457,7 +494,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                             if (categoryItems.length === 0) return null;
 
                             return (
-                                <div key={category.id} id={`category-${category.id}`} className="scroll-mt-32">
+                                <div key={category.id} id={category.id.toString()} className="scroll-mt-32">
                                     <h2 className="text-2xl md:text-3xl font-black mb-8 text-[#2d3436] dark:text-[#f5f6fa] relative inline-block">
                                         <span className="relative z-10">{catName(category)}</span>
                                         <span className="absolute bottom-1 left-0 w-full h-3 bg-[#6c63ff]/20 -rotate-1 rounded-sm -z-0"></span>
@@ -765,6 +802,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                 </div>
             </div >
 
+            <ASNFooter />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

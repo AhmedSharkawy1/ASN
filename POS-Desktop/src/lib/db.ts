@@ -19,6 +19,8 @@ export type MenuItem = {
     size_labels?: string[];
     image_data?: string;      // base64 image
     is_available: boolean;
+    sell_by_weight?: boolean;
+    weight_unit?: string;
     is_popular?: boolean;
 };
 
@@ -67,6 +69,7 @@ export type AppSettings = {
     id?: number;
     restaurant_name: string;
     restaurant_phone?: string;
+    restaurant_address?: string;
     currency: string;
     language: string;
     theme?: 'dark' | 'light';

@@ -1,0 +1,314 @@
+[
+  {
+    "id": "pizzapasta-cyan",
+    "componentName": "PizzaPastaCyanMenu",
+    "fileName": "PizzaPastaCyanMenu.tsx",
+    "originalName": "PizzaPasta",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "pizzapasta-emerald",
+    "componentName": "PizzaPastaEmeraldMenu",
+    "fileName": "PizzaPastaEmeraldMenu.tsx",
+    "originalName": "PizzaPasta",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "pizzapasta-sky",
+    "componentName": "PizzaPastaSkyMenu",
+    "fileName": "PizzaPastaSkyMenu.tsx",
+    "originalName": "PizzaPasta",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "atyab-oriental-cyan",
+    "componentName": "AtyabOrientalCyanMenu",
+    "fileName": "AtyabOrientalCyanMenu.tsx",
+    "originalName": "AtyabOriental",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "atyab-oriental-emerald",
+    "componentName": "AtyabOrientalEmeraldMenu",
+    "fileName": "AtyabOrientalEmeraldMenu.tsx",
+    "originalName": "AtyabOriental",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "atyab-oriental-sky",
+    "componentName": "AtyabOrientalSkyMenu",
+    "fileName": "AtyabOrientalSkyMenu.tsx",
+    "originalName": "AtyabOriental",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "bab-alhara-cyan",
+    "componentName": "BabAlHaraCyanMenu",
+    "fileName": "BabAlHaraCyanMenu.tsx",
+    "originalName": "BabAlHara",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "bab-alhara-emerald",
+    "componentName": "BabAlHaraEmeraldMenu",
+    "fileName": "BabAlHaraEmeraldMenu.tsx",
+    "originalName": "BabAlHara",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "bab-alhara-sky",
+    "componentName": "BabAlHaraSkyMenu",
+    "fileName": "BabAlHaraSkyMenu.tsx",
+    "originalName": "BabAlHara",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "atyab-etoile-cyan",
+    "componentName": "AtyabEtoileCyanMenu",
+    "fileName": "AtyabEtoileCyanMenu.tsx",
+    "originalName": "AtyabEtoile",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "atyab-etoile-emerald",
+    "componentName": "AtyabEtoileEmeraldMenu",
+    "fileName": "AtyabEtoileEmeraldMenu.tsx",
+    "originalName": "AtyabEtoile",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "atyab-etoile-sky",
+    "componentName": "AtyabEtoileSkyMenu",
+    "fileName": "AtyabEtoileSkyMenu.tsx",
+    "originalName": "AtyabEtoile",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme5-cyan",
+    "componentName": "Theme5CyanMenu",
+    "fileName": "Theme5CyanMenu.tsx",
+    "originalName": "Theme5",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme5-emerald",
+    "componentName": "Theme5EmeraldMenu",
+    "fileName": "Theme5EmeraldMenu.tsx",
+    "originalName": "Theme5",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme5-sky",
+    "componentName": "Theme5SkyMenu",
+    "fileName": "Theme5SkyMenu.tsx",
+    "originalName": "Theme5",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme6-cyan",
+    "componentName": "Theme6CyanMenu",
+    "fileName": "Theme6CyanMenu.tsx",
+    "originalName": "Theme6",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme6-emerald",
+    "componentName": "Theme6EmeraldMenu",
+    "fileName": "Theme6EmeraldMenu.tsx",
+    "originalName": "Theme6",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme6-sky",
+    "componentName": "Theme6SkyMenu",
+    "fileName": "Theme6SkyMenu.tsx",
+    "originalName": "Theme6",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme7-cyan",
+    "componentName": "Theme7CyanMenu",
+    "fileName": "Theme7CyanMenu.tsx",
+    "originalName": "Theme7",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme7-emerald",
+    "componentName": "Theme7EmeraldMenu",
+    "fileName": "Theme7EmeraldMenu.tsx",
+    "originalName": "Theme7",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme7-sky",
+    "componentName": "Theme7SkyMenu",
+    "fileName": "Theme7SkyMenu.tsx",
+    "originalName": "Theme7",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme9-cyan",
+    "componentName": "Theme9CyanMenu",
+    "fileName": "Theme9CyanMenu.tsx",
+    "originalName": "Theme9",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme9-emerald",
+    "componentName": "Theme9EmeraldMenu",
+    "fileName": "Theme9EmeraldMenu.tsx",
+    "originalName": "Theme9",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme9-sky",
+    "componentName": "Theme9SkyMenu",
+    "fileName": "Theme9SkyMenu.tsx",
+    "originalName": "Theme9",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme10-cyan",
+    "componentName": "Theme10CyanMenu",
+    "fileName": "Theme10CyanMenu.tsx",
+    "originalName": "Theme10",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme10-emerald",
+    "componentName": "Theme10EmeraldMenu",
+    "fileName": "Theme10EmeraldMenu.tsx",
+    "originalName": "Theme10",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme10-sky",
+    "componentName": "Theme10SkyMenu",
+    "fileName": "Theme10SkyMenu.tsx",
+    "originalName": "Theme10",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme11-cyan",
+    "componentName": "Theme11CyanMenu",
+    "fileName": "Theme11CyanMenu.tsx",
+    "originalName": "Theme11",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme11-emerald",
+    "componentName": "Theme11EmeraldMenu",
+    "fileName": "Theme11EmeraldMenu.tsx",
+    "originalName": "Theme11",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme11-sky",
+    "componentName": "Theme11SkyMenu",
+    "fileName": "Theme11SkyMenu.tsx",
+    "originalName": "Theme11",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme13-cyan",
+    "componentName": "Theme13CyanMenu",
+    "fileName": "Theme13CyanMenu.tsx",
+    "originalName": "Theme13",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme13-emerald",
+    "componentName": "Theme13EmeraldMenu",
+    "fileName": "Theme13EmeraldMenu.tsx",
+    "originalName": "Theme13",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme13-sky",
+    "componentName": "Theme13SkyMenu",
+    "fileName": "Theme13SkyMenu.tsx",
+    "originalName": "Theme13",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme14-cyan",
+    "componentName": "Theme14CyanMenu",
+    "fileName": "Theme14CyanMenu.tsx",
+    "originalName": "Theme14",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme14-emerald",
+    "componentName": "Theme14EmeraldMenu",
+    "fileName": "Theme14EmeraldMenu.tsx",
+    "originalName": "Theme14",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme14-sky",
+    "componentName": "Theme14SkyMenu",
+    "fileName": "Theme14SkyMenu.tsx",
+    "originalName": "Theme14",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  },
+  {
+    "id": "theme15-cyan",
+    "componentName": "Theme15CyanMenu",
+    "fileName": "Theme15CyanMenu.tsx",
+    "originalName": "Theme15",
+    "colorSuffix": "Cyan",
+    "primaryColor": "#0891b2"
+  },
+  {
+    "id": "theme15-emerald",
+    "componentName": "Theme15EmeraldMenu",
+    "fileName": "Theme15EmeraldMenu.tsx",
+    "originalName": "Theme15",
+    "colorSuffix": "Emerald",
+    "primaryColor": "#059669"
+  },
+  {
+    "id": "theme15-sky",
+    "componentName": "Theme15SkyMenu",
+    "fileName": "Theme15SkyMenu.tsx",
+    "originalName": "Theme15",
+    "colorSuffix": "Sky",
+    "primaryColor": "#0284c7"
+  }
+]

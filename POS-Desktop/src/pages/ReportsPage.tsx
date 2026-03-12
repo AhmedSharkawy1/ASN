@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../lib/db';
 import { formatCurrency } from '../lib/helpers';
-import { BarChart3, TrendingUp, ShoppingCart, DollarSign, Package, Calendar, Download, Users, Truck } from 'lucide-react';
 
 export default function ReportsPage() {
     const [range, setRange] = useState<'today' | 'week' | 'month' | 'all' | 'custom'>('today');
@@ -19,157 +18,61 @@ export default function ReportsPage() {
         if (range === 'today') { const ts = now.toISOString().split('T')[0]; allOrders = allOrders.filter(o => o.created_at.startsWith(ts)); }
         else if (range === 'week') { const w = new Date(now); w.setDate(w.getDate() - 7); allOrders = allOrders.filter(o => new Date(o.created_at) >= w); }
         else if (range === 'month') { const m = new Date(now); m.setMonth(m.getMonth() - 1); allOrders = allOrders.filter(o => new Date(o.created_at) >= m); }
-        else if (range === 'custom' && customStart && customEnd) {
-            const start = new Date(customStart); start.setHours(0, 0, 0, 0);
-            const end = new Date(customEnd); end.setHours(23, 59, 59, 999);
-            allOrders = allOrders.filter(o => { const d = new Date(o.created_at); return d >= start && d <= end; });
-        }
-
+        else if (range === 'custom' && customStart && customEnd) { const s = new Date(customStart); s.setHours(0, 0, 0, 0); const e = new Date(customEnd); e.setHours(23, 59, 59, 999); allOrders = allOrders.filter(o => { const d = new Date(o.created_at); return d >= s && d <= e; }); }
         const revenue = allOrders.reduce((s, o) => s + (o.total || 0), 0);
-        const avgTicket = allOrders.length > 0 ? revenue / allOrders.length : 0;
-        const deliveryFees = allOrders.reduce((s, o) => s + (o.delivery_fee || 0), 0);
-
-        // Top Items with category
         const itemMap: Record<string, { count: number; revenue: number; category?: string }> = {};
         allOrders.forEach(o => { (o.items || []).forEach(i => { if (!itemMap[i.title]) itemMap[i.title] = { count: 0, revenue: 0, category: i.category }; itemMap[i.title].count += i.qty; itemMap[i.title].revenue += i.price * i.qty; }); });
-        const topItems = Object.entries(itemMap).map(([title, v]) => ({ title, ...v })).sort((a, b) => b.revenue - a.revenue).slice(0, 15);
-
-        // Category breakdown
         const catMap: Record<string, { items: number; revenue: number }> = {};
         allOrders.forEach(o => { (o.items || []).forEach(i => { const cat = i.category || 'بدون قسم'; if (!catMap[cat]) catMap[cat] = { items: 0, revenue: 0 }; catMap[cat].items += i.qty; catMap[cat].revenue += i.price * i.qty; }); });
-        const categoryBreakdown = Object.entries(catMap).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.revenue - a.revenue);
-
-        // Staff breakdown
         const staffMap: Record<string, { orders: number; revenue: number }> = {};
-        allOrders.forEach(o => { const name = o.cashier_name || 'غير محدد'; if (!staffMap[name]) staffMap[name] = { orders: 0, revenue: 0 }; staffMap[name].orders++; staffMap[name].revenue += o.total || 0; });
-        const staffBreakdown = Object.entries(staffMap).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.revenue - a.revenue);
-
-        setStats({ revenue, orders: allOrders.length, avgTicket, deliveryFees, topItems, categoryBreakdown, staffBreakdown });
+        allOrders.forEach(o => { const n = o.cashier_name || 'غير محدد'; if (!staffMap[n]) staffMap[n] = { orders: 0, revenue: 0 }; staffMap[n].orders++; staffMap[n].revenue += o.total || 0; });
+        setStats({ revenue, orders: allOrders.length, avgTicket: allOrders.length > 0 ? revenue / allOrders.length : 0, deliveryFees: allOrders.reduce((s, o) => s + (o.delivery_fee || 0), 0), topItems: Object.entries(itemMap).map(([title, v]) => ({ title, ...v })).sort((a, b) => b.revenue - a.revenue).slice(0, 15), categoryBreakdown: Object.entries(catMap).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.revenue - a.revenue), staffBreakdown: Object.entries(staffMap).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.revenue - a.revenue) });
         setLoading(false);
     }, [range, customStart, customEnd]);
 
     useEffect(() => { fetchStats(); }, [fetchStats]);
 
     const exportCSV = () => {
-        let headers: string[], rows: (string | number)[][];
-        if (activeTab === 'items') { headers = ['الصنف', 'القسم', 'الكمية', 'الإيراد']; rows = stats.topItems.map(i => [i.title, i.category || '-', i.count, i.revenue]); }
-        else if (activeTab === 'categories') { headers = ['القسم', 'الأصناف المباعة', 'الإيراد']; rows = stats.categoryBreakdown.map(c => [c.name, c.items, c.revenue]); }
-        else { headers = ['الموظف', 'الطلبات', 'الإيراد']; rows = stats.staffBreakdown.map(s => [s.name, s.orders, s.revenue]); }
-        const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+        let h: string[], r: (string | number)[][];
+        if (activeTab === 'items') { h = ['الصنف', 'القسم', 'الكمية', 'الإيراد']; r = stats.topItems.map(i => [i.title, i.category || '-', i.count, i.revenue]); }
+        else if (activeTab === 'categories') { h = ['القسم', 'الأصناف', 'الإيراد']; r = stats.categoryBreakdown.map(c => [c.name, c.items, c.revenue]); }
+        else { h = ['الموظف', 'الطلبات', 'الإيراد']; r = stats.staffBreakdown.map(s => [s.name, s.orders, s.revenue]); }
+        const csv = [h, ...r].map(x => x.join(',')).join('\n');
         const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `report-${activeTab}-${range}.csv`; a.click();
     };
 
+    const rangeLabels: Record<string, string> = { today: 'اليوم', week: 'الأسبوع', month: 'الشهر', all: 'الكل', custom: 'مخصص' };
+    const tabLabels = [{ key: 'items' as const, label: '📦 الأصناف' }, { key: 'categories' as const, label: '📊 الأقسام' }, { key: 'staff' as const, label: '👤 الموظفين' }];
+
     return (
-        <div className="max-w-5xl mx-auto animate-fade-in space-y-6">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-                <h1 className="text-2xl font-extrabold text-zinc-900 dark:text-white flex items-center gap-3"><BarChart3 className="w-7 h-7 text-emerald-500" /> تقارير المبيعات</h1>
-                <div className="flex gap-2 items-center flex-wrap">
-                    {range === 'custom' && (
-                        <div className="flex gap-2 items-center bg-white dark:bg-dark-700 px-2 py-1 rounded-lg border border-zinc-200 dark:border-white/[0.04]">
-                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-transparent text-xs font-bold text-zinc-900 dark:text-white" />
-                            <span className="text-zinc-500 text-xs">-</span>
-                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-transparent text-xs font-bold text-zinc-900 dark:text-white" />
-                        </div>
-                    )}
-                    {(['today', 'week', 'month', 'all', 'custom'] as const).map(r => (
-                        <button key={r} onClick={() => setRange(r)} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${range === r ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-white dark:bg-dark-700 text-zinc-500 border border-zinc-200 dark:border-white/[0.04] hover:text-zinc-900 dark:hover:text-zinc-300'}`}>
-                            {{ today: 'اليوم', week: 'الأسبوع', month: 'الشهر', all: 'الكل', custom: 'مخصص' }[r]}
-                        </button>))}
+        <div style={{ maxWidth: 900, margin: '0 auto' }} dir="rtl">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h1 style={{ fontSize: 18, fontWeight: 'bold' }}>📊 تقارير المبيعات</h1>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {range === 'custom' && <div style={{ display: 'flex', gap: 4, alignItems: 'center', background: '#f0ece0', padding: '2px 8px', border: '1px solid #999' }}><input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ border: '1px solid #ccc', padding: '2px 4px', fontSize: 12 }} /><span>-</span><input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ border: '1px solid #ccc', padding: '2px 4px', fontSize: 12 }} /></div>}
+                    {(['today', 'week', 'month', 'all', 'custom'] as const).map(r => <button key={r} onClick={() => setRange(r)} className={range === r ? 'classic-btn-green' : 'classic-btn'} style={{ fontSize: 11, padding: '3px 10px' }}>{rangeLabels[r]}</button>)}
                 </div>
             </div>
-
-            {loading ? <div className="text-center py-12 text-zinc-500 animate-pulse">جاري التحميل...</div> : (
-                <>
-                    <div className="grid grid-cols-4 gap-4">
-                        {[
-                            { icon: DollarSign, label: 'الإيرادات', value: formatCurrency(stats.revenue), color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                            { icon: ShoppingCart, label: 'الطلبات', value: stats.orders.toString(), color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                            { icon: TrendingUp, label: 'متوسط الطلب', value: formatCurrency(stats.avgTicket), color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                            { icon: Truck, label: 'حساب الدليفري', value: formatCurrency(stats.deliveryFees), color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
-                        ].map((s, i) => (
-                            <div key={i} className="bg-white dark:bg-dark-700 border border-zinc-200 dark:border-white/[0.04] rounded-xl p-5 flex items-center gap-4">
-                                <div className={`w-12 h-12 rounded-xl ${s.bg} flex items-center justify-center ${s.color}`}><s.icon className="w-6 h-6" /></div>
-                                <div><p className="text-[10px] text-zinc-500 font-bold uppercase mb-1">{s.label}</p><p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p></div>
-                            </div>
-                        ))}
+            {loading ? <p style={{ textAlign: 'center', padding: 40, color: '#999' }}>جاري التحميل...</p> : (<>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 12 }}>
+                    {[{ l: 'الإيرادات', v: formatCurrency(stats.revenue), c: '#28a745' }, { l: 'الطلبات', v: String(stats.orders), c: '#4080c0' }, { l: 'متوسط الطلب', v: formatCurrency(stats.avgTicket), c: '#e0a000' }, { l: 'حساب الدليفري', v: formatCurrency(stats.deliveryFees), c: '#17a2b8' }].map((s, i) => <div key={i} style={{ background: '#f0ece0', border: '1px solid #999', padding: '10px 12px', textAlign: 'center' }}><p style={{ fontSize: 11, color: '#666', fontWeight: 'bold' }}>{s.l}</p><p style={{ fontSize: 22, fontWeight: 'bold', color: s.c, marginTop: 4 }}>{s.v}</p></div>)}
+                </div>
+                <div style={{ background: '#f0ece0', border: '2px solid #999' }}>
+                    <div style={{ display: 'flex', borderBottom: '1px solid #999', background: '#e0d8c0' }}>
+                        {tabLabels.map(t => <button key={t.key} onClick={() => setActiveTab(t.key)} className="classic-tab" style={{ background: activeTab === t.key ? '#f0ece0' : undefined, fontWeight: activeTab === t.key ? 'bold' : 'normal', padding: '6px 16px', fontSize: 12 }}>{t.label}</button>)}
+                        <div style={{ marginRight: 'auto', padding: '4px 8px' }}><button onClick={exportCSV} className="classic-btn" style={{ fontSize: 10, padding: '2px 8px' }}>📥 CSV</button></div>
                     </div>
-
-                    <div className="bg-white dark:bg-dark-700 border border-zinc-200 dark:border-white/[0.04] rounded-xl p-5">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex gap-2">
-                                {[{ key: 'items', label: 'الأصناف', icon: Package }, { key: 'categories', label: 'الأقسام', icon: BarChart3 }, { key: 'staff', label: 'الموظفين', icon: Users }].map(tab => (
-                                    <button key={tab.key} onClick={() => setActiveTab(tab.key as typeof activeTab)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition ${activeTab === tab.key ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><tab.icon className="w-3.5 h-3.5" /> {tab.label}</button>
-                                ))}
-                            </div>
-                            <button onClick={exportCSV} className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:text-emerald-500 transition flex items-center gap-1"><Download className="w-3 h-3" /> تصدير CSV</button>
-                        </div>
-
-                        {/* ITEMS TAB */}
-                        {activeTab === 'items' && (
-                            stats.topItems.length === 0 ? <p className="text-center py-8 text-zinc-400 text-sm">لا توجد بيانات</p> :
-                                <div className="space-y-1">
-                                    {stats.topItems.map((item, i) => {
-                                        const maxRev = stats.topItems[0]?.revenue || 1;
-                                        return (
-                                            <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition">
-                                                <span className="w-6 text-center text-xs font-bold text-zinc-400">{i + 1}</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2"><p className="text-sm font-bold text-zinc-800 dark:text-zinc-200 truncate">{item.title}</p>{item.category && <span className="text-[10px] bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-md font-bold border border-blue-200 dark:border-blue-500/20">{item.category}</span>}</div>
-                                                    <div className="w-full bg-zinc-100 dark:bg-dark-900 rounded-full h-1.5 mt-1"><div className="bg-emerald-500/50 h-1.5 rounded-full transition-all" style={{ width: `${(item.revenue / maxRev) * 100}%` }} /></div>
-                                                </div>
-                                                <span className="text-xs text-zinc-500 font-bold">{item.count} قطعة</span>
-                                                <span className="text-sm font-extrabold text-emerald-500">{formatCurrency(item.revenue)}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                        )}
-
-                        {/* CATEGORIES TAB */}
-                        {activeTab === 'categories' && (
-                            stats.categoryBreakdown.length === 0 ? <p className="text-center py-8 text-zinc-400 text-sm">لا توجد بيانات</p> :
-                                <div className="space-y-1">
-                                    {stats.categoryBreakdown.map((cat, i) => {
-                                        const maxRev = stats.categoryBreakdown[0]?.revenue || 1;
-                                        return (
-                                            <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition">
-                                                <span className="w-6 text-center text-xs font-bold text-zinc-400">{i + 1}</span>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{cat.name}</p>
-                                                    <div className="w-full bg-zinc-100 dark:bg-dark-900 rounded-full h-1.5 mt-1"><div className="bg-blue-500/50 h-1.5 rounded-full transition-all" style={{ width: `${(cat.revenue / maxRev) * 100}%` }} /></div>
-                                                </div>
-                                                <span className="text-xs text-zinc-500 font-bold">{cat.items} صنف</span>
-                                                <span className="text-sm font-extrabold text-blue-500">{formatCurrency(cat.revenue)}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                        )}
-
-                        {/* STAFF TAB */}
-                        {activeTab === 'staff' && (
-                            stats.staffBreakdown.length === 0 ? <p className="text-center py-8 text-zinc-400 text-sm">لا توجد بيانات</p> :
-                                <div className="space-y-1">
-                                    {stats.staffBreakdown.map((s, i) => {
-                                        const maxRev = stats.staffBreakdown[0]?.revenue || 1;
-                                        return (
-                                            <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-white/[0.02] transition">
-                                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-cyan-600 flex items-center justify-center text-white text-xs font-bold">{s.name.charAt(0)}</div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{s.name}</p>
-                                                    <div className="w-full bg-zinc-100 dark:bg-dark-900 rounded-full h-1.5 mt-1"><div className="bg-amber-500/50 h-1.5 rounded-full transition-all" style={{ width: `${(s.revenue / maxRev) * 100}%` }} /></div>
-                                                </div>
-                                                <span className="text-xs text-zinc-500 font-bold">{s.orders} طلبات</span>
-                                                <span className="text-sm font-extrabold text-amber-500">{formatCurrency(s.revenue)}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                        )}
+                    <div style={{ padding: 12 }}>
+                        {activeTab === 'items' && (stats.topItems.length === 0 ? <p style={{ textAlign: 'center', padding: 30, color: '#999' }}>لا توجد بيانات</p> :
+                            <table className="classic-table"><thead><tr><th>#</th><th>الصنف</th><th>القسم</th><th style={{ textAlign: 'center' }}>الكمية</th><th style={{ textAlign: 'center' }}>الإيراد</th></tr></thead><tbody>{stats.topItems.map((item, i) => <tr key={i}><td style={{ textAlign: 'center', color: '#999' }}>{i + 1}</td><td style={{ fontWeight: 'bold' }}>{item.title}</td><td style={{ color: '#666', fontSize: 11 }}>{item.category || '-'}</td><td style={{ textAlign: 'center' }}>{item.count}</td><td style={{ textAlign: 'center', fontWeight: 'bold', color: '#28a745' }}>{formatCurrency(item.revenue)}</td></tr>)}</tbody></table>)}
+                        {activeTab === 'categories' && (stats.categoryBreakdown.length === 0 ? <p style={{ textAlign: 'center', padding: 30, color: '#999' }}>لا توجد بيانات</p> :
+                            <table className="classic-table"><thead><tr><th>#</th><th>القسم</th><th style={{ textAlign: 'center' }}>الأصناف</th><th style={{ textAlign: 'center' }}>الإيراد</th></tr></thead><tbody>{stats.categoryBreakdown.map((c, i) => <tr key={i}><td style={{ textAlign: 'center', color: '#999' }}>{i + 1}</td><td style={{ fontWeight: 'bold' }}>{c.name}</td><td style={{ textAlign: 'center' }}>{c.items}</td><td style={{ textAlign: 'center', fontWeight: 'bold', color: '#4080c0' }}>{formatCurrency(c.revenue)}</td></tr>)}</tbody></table>)}
+                        {activeTab === 'staff' && (stats.staffBreakdown.length === 0 ? <p style={{ textAlign: 'center', padding: 30, color: '#999' }}>لا توجد بيانات</p> :
+                            <table className="classic-table"><thead><tr><th>#</th><th>الموظف</th><th style={{ textAlign: 'center' }}>الطلبات</th><th style={{ textAlign: 'center' }}>الإيراد</th></tr></thead><tbody>{stats.staffBreakdown.map((s, i) => <tr key={i}><td style={{ textAlign: 'center', color: '#999' }}>{i + 1}</td><td style={{ fontWeight: 'bold' }}>{s.name}</td><td style={{ textAlign: 'center' }}>{s.orders}</td><td style={{ textAlign: 'center', fontWeight: 'bold', color: '#e0a000' }}>{formatCurrency(s.revenue)}</td></tr>)}</tbody></table>)}
                     </div>
-                </>
-            )}
+                </div>
+            </>)}
         </div>
     );
 }

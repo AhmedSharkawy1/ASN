@@ -24,8 +24,9 @@ export type PosMenuItem = {
     prices: number[];
     size_labels?: string[];
     image_data?: string;   // base64
-    image_url?: string;    // Supabase URL
     is_available: boolean;
+    sell_by_weight?: boolean;
+    weight_unit?: string;
     is_popular?: boolean;
     is_spicy?: boolean;
     _dirty?: boolean;

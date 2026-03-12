@@ -11,7 +11,8 @@ import {
     LayoutDashboard, Utensils, QrCode, LogOut, Settings, Palette,
     Menu, X, ChevronLeft, ClipboardList, ChefHat,
     TableProperties, Truck, Users, UserCog, Bell, CreditCard,
-    Wifi, WifiOff, BarChart3, Sun, Moon, PanelLeftClose, PanelLeftOpen
+    Wifi, WifiOff, BarChart3, Sun, Moon, PanelLeftClose, PanelLeftOpen,
+    Warehouse, BookOpen, Factory, ScrollText, TrendingUp, Printer
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,7 +27,7 @@ function ASNIcon() {
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
-            <div className={`absolute inset-0 rounded-xl bg-gradient-to-br from-indigo-500 via-violet-500 to-cyan-400 dark:from-emerald-400 dark:via-cyan-400 dark:to-blue-500 opacity-20 dark:opacity-30 blur-md transition-all duration-500 ${hovered ? 'scale-150 opacity-40 dark:opacity-50' : 'scale-100'}`} />
+            <div className={`absolute inset-0 rounded-xl bg-gradient-to-br from-teal-400 via-emerald-300 to-cyan-300 dark:from-emerald-400 dark:via-cyan-400 dark:to-blue-500 opacity-15 dark:opacity-30 blur-md transition-all duration-500 ${hovered ? 'scale-150 opacity-30 dark:opacity-50' : 'scale-100'}`} />
             <div className={`relative w-full h-full transition-transform duration-500 ${hovered ? 'scale-110 rotate-[360deg]' : 'scale-100 rotate-0'}`}>
                 <Image src="/logo.png" alt="ASN" fill className="object-contain drop-shadow-lg" />
             </div>
@@ -190,7 +191,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-background flex items-center justify-center transition-colors">
+            <div className="min-h-screen bg-stone-50 dark:bg-background flex items-center justify-center transition-colors">
                 <div className="flex flex-col items-center gap-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 dark:border-glass-border"></div>
                     <span className="text-slate-500 dark:text-zinc-500 text-sm font-medium animate-pulse">{language === "ar" ? "جاري التحميل..." : "Loading..."}</span>
@@ -227,6 +228,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             ]
         },
         {
+            key: "inventory",
+            label: language === "ar" ? "المخزون والمصنع" : "Inventory & Factory",
+            items: [
+                { href: "/dashboard/inventory", icon: Warehouse, labelAr: "المخزون", labelEn: "Inventory", permKey: "inventory" },
+                { href: "/dashboard/recipes", icon: BookOpen, labelAr: "الوصفات", labelEn: "Recipes", permKey: "inventory" },
+                { href: "/dashboard/factory", icon: Factory, labelAr: "المصنع", labelEn: "Factory", permKey: "inventory" },
+                { href: "/dashboard/inventory/transactions", icon: ScrollText, labelAr: "حركات المخزون", labelEn: "Transactions", permKey: "inventory" },
+                { href: "/dashboard/costs", icon: TrendingUp, labelAr: "التكاليف والأرباح", labelEn: "Cost Analytics", permKey: "inventory" },
+            ]
+        },
+        {
             key: "admin",
             label: language === "ar" ? "المسؤول والتسويق" : "Admin",
             items: [
@@ -239,6 +251,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             key: "settings",
             label: language === "ar" ? "الأدوات" : "Tools",
             items: [
+                { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", permKey: "settings" },
                 { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", permKey: "settings" },
                 { href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", permKey: "settings" },
                 { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", permKey: "settings" },
@@ -267,7 +280,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+        <div className="min-h-screen bg-stone-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
 
             {/* Mobile overlay */}
             {sidebarOpen && (
@@ -278,23 +291,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <aside className={`fixed md:sticky top-0 h-screen z-50 flex flex-col transition-all duration-300
                 ${language === 'ar' ? 'right-0' : 'left-0'}
                 ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0')}
-                ${sidebarCollapsed ? 'w-20' : 'w-[260px]'} bg-white dark:bg-card border-slate-200 dark:border-zinc-800/50
-                shadow-xl shadow-slate-200/50 dark:shadow-none
+                ${sidebarCollapsed ? 'w-20' : 'w-[260px]'} bg-white dark:bg-card border-stone-200 dark:border-zinc-800/50
+                shadow-lg shadow-stone-100/50 dark:shadow-none
                 ${language === 'ar' ? 'border-l' : 'border-r'}
             `}>
                 {/* Logo */}
-                <div className="h-[72px] flex items-center justify-between px-4 border-b border-slate-200 dark:border-zinc-800/50 shrink-0">
+                <div className="h-[72px] flex items-center justify-between px-4 border-b border-stone-100 dark:border-zinc-800/50 shrink-0">
                     <div className="flex items-center gap-3 overflow-hidden">
                         <ASNIcon />
                         {!sidebarCollapsed && (
                             <div className="flex flex-col whitespace-nowrap">
-                                <span className="text-lg font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-emerald-400 dark:to-cyan-400" style={{ fontFamily: 'var(--font-outfit), sans-serif' }}>ASN</span>
+                                <span className="text-lg font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-500 dark:from-emerald-400 dark:to-cyan-400" style={{ fontFamily: 'var(--font-outfit), sans-serif' }}>ASN</span>
                                 <span className="text-[9px] text-slate-400 dark:text-zinc-500 font-medium -mt-1 uppercase tracking-wider">Technology</span>
                             </div>
                         )}
                     </div>
                     
-                    <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="hidden md:block p-1.5 text-slate-400 dark:text-zinc-500 hover:text-indigo-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors">
+                    <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="hidden md:block p-1.5 text-stone-400 dark:text-zinc-500 hover:text-teal-600 dark:hover:text-emerald-400 hover:bg-stone-50 dark:hover:bg-white/5 rounded-lg transition-colors">
                         {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
                     </button>
                     <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1.5 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white">
@@ -307,7 +320,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {navSections.map((section, sIdx) => (
                         <div key={sIdx}>
                             {!sidebarCollapsed && (
-                                <h3 className="text-[10px] font-bold text-slate-400 dark:text-zinc-600 uppercase tracking-widest px-3 mb-2">
+                                <h3 className="text-[13px] font-extrabold text-stone-400 dark:text-zinc-600 uppercase tracking-widest px-3 mb-2">
                                     {section.label}
                                 </h3>
                             )}
@@ -318,16 +331,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                         <Link key={item.href} href={item.href}
                                             onClick={() => setSidebarOpen(false)}
                                             title={sidebarCollapsed ? (language === "ar" ? item.labelAr : item.labelEn) : undefined}
-                                            className={`flex items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'} rounded-xl text-[15px] font-bold transition-all duration-200 group
+                                            className={`flex items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3.5'} rounded-xl text-[18px] font-extrabold transition-all duration-200 group
                                                 ${active
-                                                    ? 'bg-indigo-50 text-indigo-700 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-sm shadow-indigo-100 dark:shadow-emerald-500/5'
-                                                    : 'text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-white/5'
+                                                    ? 'bg-teal-50 text-teal-700 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-sm shadow-teal-50 dark:shadow-emerald-500/5'
+                                                    : 'text-stone-600 hover:text-teal-700 hover:bg-stone-50 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-white/5'
                                                 }`}
                                         >
-                                            <item.icon className={`w-5 h-5 transition-colors shrink-0 ${active ? 'text-indigo-600 dark:text-emerald-400' : 'text-slate-400 group-hover:text-indigo-500 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`} />
+                                            <item.icon className={`w-6 h-6 transition-colors shrink-0 ${active ? 'text-teal-600 dark:text-emerald-400' : 'text-stone-400 group-hover:text-teal-600 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`} />
                                             {!sidebarCollapsed && <span>{language === "ar" ? item.labelAr : item.labelEn}</span>}
                                             {active && !sidebarCollapsed && (
-                                                <div className={`w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-emerald-400 ${language === 'ar' ? 'mr-auto' : 'ml-auto'} animate-pulse`} />
+                                                <div className={`w-1.5 h-1.5 rounded-full bg-teal-500 dark:bg-emerald-400 ${language === 'ar' ? 'mr-auto' : 'ml-auto'} animate-pulse`} />
                                             )}
                                         </Link>
                                     );
@@ -338,25 +351,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </nav>
 
                 {/* Bottom: Restaurant Name + Logout */}
-                <div className={`border-t border-slate-200 dark:border-zinc-800/50 ${sidebarCollapsed ? 'p-2' : 'p-4'} space-y-3 shrink-0`}>
+                <div className={`border-t border-stone-100 dark:border-zinc-800/50 ${sidebarCollapsed ? 'p-2' : 'p-4'} space-y-3 shrink-0`}>
                     {restaurantName && !sidebarCollapsed && (
-                        <div className="bg-slate-50/80 hover:bg-slate-100 dark:bg-zinc-800/30 dark:hover:bg-zinc-800/50 transition-colors rounded-xl px-3 py-2.5 flex items-center gap-3 border border-slate-200/50 dark:border-zinc-800/50">
+                        <div className="bg-stone-50/60 hover:bg-stone-50 dark:bg-zinc-800/30 dark:hover:bg-zinc-800/50 transition-colors rounded-xl px-3 py-2.5 flex items-center gap-3 border border-stone-100/50 dark:border-zinc-800/50">
                             {restaurantLogo ? (
                                 <img src={restaurantLogo} alt={restaurantName} className="w-9 h-9 object-cover rounded-lg shadow-sm" />
                             ) : (
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 flex items-center justify-center text-white font-extrabold text-sm shadow-md">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 dark:from-emerald-500 dark:to-cyan-500 flex items-center justify-center text-white font-extrabold text-sm shadow-md">
                                     {restaurantName.charAt(0)}
                                 </div>
                             )}
                             <div className="flex-1 min-w-0">
-                                <p className="text-[15px] font-extrabold text-slate-800 dark:text-zinc-200 truncate">{restaurantName}</p>
-                                <p className="text-[11px] font-bold text-slate-500 dark:text-zinc-500">{language === "ar" ? "المطعم النشط" : "Active Restaurant"}</p>
+                                <p className="text-[16px] font-extrabold text-slate-800 dark:text-zinc-200 truncate">{restaurantName}</p>
+                                <p className="text-[12px] font-bold text-slate-500 dark:text-zinc-500">{language === "ar" ? "المطعم النشط" : "Active Restaurant"}</p>
                             </div>
                         </div>
                     )}
                     <button
                         onClick={async () => { await supabase.auth.signOut(); router.push("/login"); }}
-                        className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'} rounded-xl text-red-500/90 hover:text-red-600 hover:bg-red-50 dark:text-red-400/80 dark:hover:bg-red-500/10 text-[15px] font-bold transition-all`}
+                        className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'} rounded-xl text-red-500/90 hover:text-red-600 hover:bg-red-50 dark:text-red-400/80 dark:hover:bg-red-500/10 text-[16px] font-extrabold transition-all`}
                         title={sidebarCollapsed ? (language === "ar" ? "تسجيل الخروج" : "Logout") : undefined}
                     >
                         <LogOut className="w-5 h-5" />
@@ -368,7 +381,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* ====== MAIN CONTENT ====== */}
             <main className="flex-1 flex flex-col min-h-screen overflow-y-auto">
                 {/* Top Header Bar */}
-                <header className="h-[72px] border-b border-slate-200 dark:border-zinc-800/50 bg-white/80 dark:bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0 transition-colors">
+                <header className="h-[72px] border-b border-stone-100 dark:border-zinc-800/50 bg-white/80 dark:bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0 transition-colors">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition">
                             <Menu className="w-5 h-5" />
@@ -384,10 +397,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <div className="flex items-center gap-3">
                         {restaurantName && (
                             <div className="hidden sm:flex flex-col items-end">
-                                <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">
+                                <span className="text-[12px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">
                                     {language === "ar" ? `مرحباً بك` : "Welcome Back"}
                                 </span>
-                                <strong className="text-[15px] font-extrabold text-indigo-900 dark:text-emerald-400">{restaurantName}</strong>
+                                <strong className="text-[16px] font-extrabold text-teal-700 dark:text-emerald-400">{restaurantName}</strong>
                             </div>
                         )}
                         <div className="flex items-center gap-2">
@@ -395,7 +408,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             {mounted && (
                                 <button
                                     onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                                    className="relative p-2 rounded-xl bg-slate-100 dark:bg-zinc-800/50 hover:bg-slate-200 dark:hover:bg-zinc-700/50 transition-all duration-300 group overflow-hidden"
+                                    className="relative p-2 rounded-xl bg-stone-50 dark:bg-zinc-800/50 hover:bg-stone-100 dark:hover:bg-zinc-700/50 transition-all duration-300 group overflow-hidden"
                                     title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
                                 >
                                     <div className={`transition-all duration-500 ${isDark ? 'rotate-0 scale-100' : 'rotate-90 scale-0 absolute inset-0 m-auto'}`}>
@@ -407,7 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 </button>
                             )}
                             <span title={isOnline ? "Online - syncing with cloud" : "Offline - data saved locally"}
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[11px] font-extrabold transition-all shadow-sm ${isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-glass-border" : "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"}`}>
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-extrabold transition-all shadow-sm ${isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-glass-border" : "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"}`}>
                                 {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
                                 <span className="hidden sm:block uppercase tracking-wider">{isOnline ? "أونلاين" : "أوفلاين"}</span>
                             </span>
@@ -416,7 +429,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             {restaurantLogo ? (
                                 <img src={restaurantLogo} alt={restaurantName} className="w-10 h-10 object-cover rounded-xl shadow-md border-2 border-white dark:border-zinc-800" />
                             ) : (
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 flex items-center justify-center text-white font-extrabold text-base shadow-md border-2 border-white dark:border-zinc-800">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 dark:from-emerald-500 dark:to-cyan-500 flex items-center justify-center text-white font-extrabold text-base shadow-md border-2 border-white dark:border-zinc-800">
                                     {restaurantName ? restaurantName.charAt(0) : "?"}
                                 </div>
                             )}

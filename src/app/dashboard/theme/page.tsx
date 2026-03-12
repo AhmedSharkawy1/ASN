@@ -105,29 +105,52 @@ const THEMES = [
         preview_color: "#d4af37", // Gold
     },
     {
-        id: "theme14",
-        name_ar: "تفاعلي عصري (ثيم 14)",
-        name_en: "Interactive Modern (Theme 14)",
-        description_ar: "تصميم تفاعلي مع فلتر تصنيفات علوي وتمرير أفقي سلس لعرض سريع للمنتجات.",
-        description_en: "Interactive design with top category filter and smooth horizontal scrolling.",
-        preview_color: "#e67e22", // Orange
-    },
-    {
-        id: "theme15",
-        name_ar: "الشبكة السريعة (ثيم 15)",
-        name_en: "Fast Grid (Theme 15)",
-        description_ar: "تصميم شبكي مدمج بألوان هادئة وسلة تسوق سريعة مثالي للقوائم الكبيرة.",
-        description_en: "Compact grid design with calm colors and quick cart, ideal for large menus.",
-        preview_color: "#3da19b", // Teal
-    },
-    {
         id: "theme16",
         name_ar: "كلاسيك أحمر (ثيم 16)",
         name_en: "Classic Red (Theme 16)",
         description_ar: "تصميم أنيق بلون أحمر جذاب، واجهة نظيفة مع دعم ممتاز لعرض الإضافات والسلال.",
         description_en: "Elegant red design, clean interface with excellent support for extras and cart.",
         preview_color: "#af0a13", // Crimson
-    }
+    },
+    // ===== PizzaPasta Color Variations =====
+    { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#0891b2" },
+    { id: "pizzapasta-emerald", name_ar: "PizzaPasta (Emerald)", name_en: "PizzaPasta (Emerald)", description_ar: "نفس التصميم PizzaPasta بلون Emerald", description_en: "PizzaPasta design with Emerald color", preview_color: "#059669" },
+    { id: "pizzapasta-sky", name_ar: "PizzaPasta (Sky)", name_en: "PizzaPasta (Sky)", description_ar: "نفس التصميم PizzaPasta بلون Sky", description_en: "PizzaPasta design with Sky color", preview_color: "#0284c7" },
+    // ===== AtyabOriental Color Variations =====
+    { id: "atyab-oriental-cyan", name_ar: "أطياب أورينتال (Cyan)", name_en: "AtyabOriental (Cyan)", description_ar: "نفس التصميم أطياب أورينتال بلون Cyan", description_en: "AtyabOriental design with Cyan color", preview_color: "#0891b2" },
+    { id: "atyab-oriental-emerald", name_ar: "أطياب أورينتال (Emerald)", name_en: "AtyabOriental (Emerald)", description_ar: "نفس التصميم أطياب أورينتال بلون Emerald", description_en: "AtyabOriental design with Emerald color", preview_color: "#059669" },
+    { id: "atyab-oriental-sky", name_ar: "أطياب أورينتال (Sky)", name_en: "AtyabOriental (Sky)", description_ar: "نفس التصميم أطياب أورينتال بلون Sky", description_en: "AtyabOriental design with Sky color", preview_color: "#0284c7" },
+    // ===== BabAlHara Color Variations =====
+    { id: "bab-alhara-cyan", name_ar: "باب الحارة (Cyan)", name_en: "BabAlHara (Cyan)", description_ar: "نفس التصميم باب الحارة بلون Cyan", description_en: "BabAlHara design with Cyan color", preview_color: "#0891b2" },
+    { id: "bab-alhara-emerald", name_ar: "باب الحارة (Emerald)", name_en: "BabAlHara (Emerald)", description_ar: "نفس التصميم باب الحارة بلون Emerald", description_en: "BabAlHara design with Emerald color", preview_color: "#059669" },
+    { id: "bab-alhara-sky", name_ar: "باب الحارة (Sky)", name_en: "BabAlHara (Sky)", description_ar: "نفس التصميم باب الحارة بلون Sky", description_en: "BabAlHara design with Sky color", preview_color: "#0284c7" },
+    // ===== AtyabEtoile Color Variations =====
+    { id: "atyab-etoile-cyan", name_ar: "أطياب إتوال (Cyan)", name_en: "AtyabEtoile (Cyan)", description_ar: "نفس التصميم أطياب إتوال بلون Cyan", description_en: "AtyabEtoile design with Cyan color", preview_color: "#0891b2" },
+    { id: "atyab-etoile-emerald", name_ar: "أطياب إتوال (Emerald)", name_en: "AtyabEtoile (Emerald)", description_ar: "نفس التصميم أطياب إتوال بلون Emerald", description_en: "AtyabEtoile design with Emerald color", preview_color: "#059669" },
+    { id: "atyab-etoile-sky", name_ar: "أطياب إتوال (Sky)", name_en: "AtyabEtoile (Sky)", description_ar: "نفس التصميم أطياب إتوال بلون Sky", description_en: "AtyabEtoile design with Sky color", preview_color: "#0284c7" },
+    // ===== Theme 5-15 Color Variations =====
+    { id: "theme5-cyan", name_ar: "ثيم 5 (Cyan)", name_en: "Theme5 (Cyan)", description_ar: "نفس التصميم ثيم 5 بلون Cyan", description_en: "Theme5 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme5-emerald", name_ar: "ثيم 5 (Emerald)", name_en: "Theme5 (Emerald)", description_ar: "نفس التصميم ثيم 5 بلون Emerald", description_en: "Theme5 design with Emerald color", preview_color: "#059669" },
+    { id: "theme5-sky", name_ar: "ثيم 5 (Sky)", name_en: "Theme5 (Sky)", description_ar: "نفس التصميم ثيم 5 بلون Sky", description_en: "Theme5 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme6-cyan", name_ar: "ثيم 6 (Cyan)", name_en: "Theme6 (Cyan)", description_ar: "نفس التصميم ثيم 6 بلون Cyan", description_en: "Theme6 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme6-emerald", name_ar: "ثيم 6 (Emerald)", name_en: "Theme6 (Emerald)", description_ar: "نفس التصميم ثيم 6 بلون Emerald", description_en: "Theme6 design with Emerald color", preview_color: "#059669" },
+    { id: "theme6-sky", name_ar: "ثيم 6 (Sky)", name_en: "Theme6 (Sky)", description_ar: "نفس التصميم ثيم 6 بلون Sky", description_en: "Theme6 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme7-cyan", name_ar: "ثيم 7 (Cyan)", name_en: "Theme7 (Cyan)", description_ar: "نفس التصميم ثيم 7 بلون Cyan", description_en: "Theme7 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme7-emerald", name_ar: "ثيم 7 (Emerald)", name_en: "Theme7 (Emerald)", description_ar: "نفس التصميم ثيم 7 بلون Emerald", description_en: "Theme7 design with Emerald color", preview_color: "#059669" },
+    { id: "theme7-sky", name_ar: "ثيم 7 (Sky)", name_en: "Theme7 (Sky)", description_ar: "نفس التصميم ثيم 7 بلون Sky", description_en: "Theme7 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme9-cyan", name_ar: "ثيم 9 (Cyan)", name_en: "Theme9 (Cyan)", description_ar: "نفس التصميم ثيم 9 بلون Cyan", description_en: "Theme9 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme9-emerald", name_ar: "ثيم 9 (Emerald)", name_en: "Theme9 (Emerald)", description_ar: "نفس التصميم ثيم 9 بلون Emerald", description_en: "Theme9 design with Emerald color", preview_color: "#059669" },
+    { id: "theme9-sky", name_ar: "ثيم 9 (Sky)", name_en: "Theme9 (Sky)", description_ar: "نفس التصميم ثيم 9 بلون Sky", description_en: "Theme9 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme10-cyan", name_ar: "ثيم 10 (Cyan)", name_en: "Theme10 (Cyan)", description_ar: "نفس التصميم ثيم 10 بلون Cyan", description_en: "Theme10 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme10-emerald", name_ar: "ثيم 10 (Emerald)", name_en: "Theme10 (Emerald)", description_ar: "نفس التصميم ثيم 10 بلون Emerald", description_en: "Theme10 design with Emerald color", preview_color: "#059669" },
+    { id: "theme10-sky", name_ar: "ثيم 10 (Sky)", name_en: "Theme10 (Sky)", description_ar: "نفس التصميم ثيم 10 بلون Sky", description_en: "Theme10 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme11-cyan", name_ar: "ثيم 11 (Cyan)", name_en: "Theme11 (Cyan)", description_ar: "نفس التصميم ثيم 11 بلون Cyan", description_en: "Theme11 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme11-emerald", name_ar: "ثيم 11 (Emerald)", name_en: "Theme11 (Emerald)", description_ar: "نفس التصميم ثيم 11 بلون Emerald", description_en: "Theme11 design with Emerald color", preview_color: "#059669" },
+    { id: "theme11-sky", name_ar: "ثيم 11 (Sky)", name_en: "Theme11 (Sky)", description_ar: "نفس التصميم ثيم 11 بلون Sky", description_en: "Theme11 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme13-cyan", name_ar: "ثيم 13 (Cyan)", name_en: "Theme13 (Cyan)", description_ar: "نفس التصميم ثيم 13 بلون Cyan", description_en: "Theme13 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme13-emerald", name_ar: "ثيم 13 (Emerald)", name_en: "Theme13 (Emerald)", description_ar: "نفس التصميم ثيم 13 بلون Emerald", description_en: "Theme13 design with Emerald color", preview_color: "#059669" },
+    { id: "theme13-sky", name_ar: "ثيم 13 (Sky)", name_en: "Theme13 (Sky)", description_ar: "نفس التصميم ثيم 13 بلون Sky", description_en: "Theme13 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme15-sky", name_ar: "ثيم 15 (Sky)", name_en: "Theme15 (Sky)", description_ar: "نفس التصميم ثيم 15 بلون Sky", description_en: "Theme15 design with Sky color", preview_color: "#0284c7" },
 ];
 
 const DEFAULT_COLORS = {
@@ -272,44 +295,41 @@ export default function ThemePage() {
                 <div className="col-span-12 lg:col-span-7 space-y-8">
 
 
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2">
                         {THEMES.map((theme) => (
                             <div
                                 key={theme.id}
                                 onClick={() => setSelectedTheme(theme.id)}
-                                className={`relative cursor-pointer group rounded-2xl border-2 transition-all p-4 overflow-hidden
+                                className={`relative cursor-pointer group rounded-lg border transition-all p-2 overflow-hidden
                                     ${selectedTheme === theme.id
                                         ? 'border-blue bg-blue/5'
                                         : 'border-card bg-card hover:border-silver/30'}`}
                             >
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="space-y-1">
-                                        <h3 className="text-base font-bold text-foreground">
+                                <div className="flex items-start justify-between mb-1.5">
+                                    <div className="space-y-0 text-[10px]">
+                                        <h3 className="font-bold text-foreground line-clamp-1 scale-95 origin-left">
                                             {isArabic ? theme.name_ar : theme.name_en}
                                         </h3>
-                                        <p className="text-silver text-[10px] leading-tight max-w-[160px]">
-                                            {isArabic ? theme.description_ar : theme.description_en}
-                                        </p>
                                     </div>
                                     <div
-                                        className="w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ml-2 rtl:ml-0 rtl:mr-2"
+                                        className="w-4 h-4 rounded-full flex items-center justify-center transition-all shrink-0"
                                         style={{ backgroundColor: theme.preview_color + '20' }}
                                     >
                                         {selectedTheme === theme.id ? (
-                                            <Check className="w-4 h-4 text-blue" />
+                                            <Check className="w-2.5 h-2.5 text-blue" />
                                         ) : (
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: theme.preview_color }} />
+                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.preview_color }} />
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Visual Preview Placeholder */}
-                                <div className="w-full aspect-[16/9] rounded-xl bg-background/50 border border-white/5 p-3 flex flex-col gap-1.5">
-                                    <div className="w-1/3 h-2 rounded-full opacity-20" style={{ backgroundColor: theme.preview_color }} />
-                                    <div className="w-full h-8 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
-                                    <div className="grid grid-cols-2 gap-2 mt-auto">
-                                        <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
-                                        <div className="h-20 rounded-xl opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                <div className="w-full aspect-square rounded bg-background/50 border border-white/5 p-1.5 flex flex-col gap-0.5">
+                                    <div className="w-1/2 h-0.5 rounded-full opacity-20" style={{ backgroundColor: theme.preview_color }} />
+                                    <div className="w-full h-3 rounded opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                    <div className="grid grid-cols-2 gap-0.5 mt-auto">
+                                        <div className="h-8 rounded opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                        <div className="h-8 rounded opacity-10" style={{ backgroundColor: theme.preview_color }} />
                                     </div>
                                 </div>
 
@@ -361,9 +381,9 @@ export default function ThemePage() {
                                 </p>
                             </div>
 
-                            <div className="w-[380px] h-[760px] border-[10px] border-slate-900 dark:border-slate-800 rounded-[2.5rem] overflow-hidden bg-slate-50 dark:bg-slate-900 relative shadow-inner">
+                            <div className="w-[360px] h-[720px] border-[10px] border-slate-900 dark:border-slate-800 rounded-[2.5rem] overflow-hidden bg-white dark:bg-black relative shadow-2xl">
                                 {/* Phone Notch */}
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[18px] bg-slate-900 dark:bg-slate-800 rounded-b-xl z-10"></div>
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[18px] bg-slate-900 dark:border-slate-800 rounded-b-xl z-20"></div>
 
                                 {restaurantId ? (
                                     <iframe
