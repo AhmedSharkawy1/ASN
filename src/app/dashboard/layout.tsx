@@ -4,12 +4,12 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { 
-    LayoutDashboard, ClipboardList, Utensils, Warehouse, 
-    BarChart3, Settings, LogOut, Menu, X, ChevronLeft, 
-    Bell, Wifi, WifiOff, Sun, Moon, 
-    CreditCard, ChefHat, TableProperties, Truck, BookOpen, 
-    Factory, ScrollText, TrendingUp, Landmark, Users, 
+import {
+    LayoutDashboard, ClipboardList, Utensils, Warehouse,
+    BarChart3, Settings, LogOut, Menu, X, ChevronLeft,
+    Bell, Wifi, WifiOff, Sun, Moon,
+    CreditCard, ChefHat, TableProperties, Truck, BookOpen,
+    Factory, ScrollText, TrendingUp, Landmark, Users,
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
@@ -95,8 +95,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (!session) {
                 router.push("/login");
                 return;
-            } 
-            
+            }
+
             const email = session.user.email;
             let rId: string | null = null;
             let rName = "";
@@ -113,12 +113,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             // Impersonation Support
             const impersonatingTenant = sessionStorage.getItem('impersonating_tenant');
             if (impersonatingTenant) {
-               const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url').eq('id', impersonatingTenant).single();
-               if (rest) {
-                   rId = rest.id;
-                   rName = rest.name + ' (Impersonating)';
-                   rLogo = rest.logo_url;
-               }
+                const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url').eq('id', impersonatingTenant).single();
+                if (rest) {
+                    rId = rest.id;
+                    rName = rest.name + ' (Impersonating)';
+                    rLogo = rest.logo_url;
+                }
             } else if (roleData && roleData.role === 'super_admin') {
                 router.push('/super-admin');
                 return;
@@ -144,7 +144,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         rId = staff.restaurant_id;
                         rName = staff.restaurants?.name || "";
                         rLogo = staff.restaurants?.logo_url || null;
-                        
+
                         if (staff.permissions) {
                             tempPermissions = typeof staff.permissions === 'string' ? JSON.parse(staff.permissions) : staff.permissions;
                         }
@@ -166,7 +166,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (rId) {
                 const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
                 if (cpaError) console.error("Error fetching page access:", cpaError);
-                
+
                 const tenantPerms: Record<string, boolean> = {};
                 if (cpa) cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled });
 
@@ -361,7 +361,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </div>
                         )}
                     </div>
-                    
+
                     <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="hidden md:block p-1.5 text-stone-400 dark:text-zinc-500 hover:text-teal-600 dark:hover:text-emerald-400 hover:bg-stone-50 dark:hover:bg-white/5 rounded-lg transition-colors">
                         {sidebarCollapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
                     </button>
@@ -444,7 +444,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
                     <div className="flex items-center gap-3">
                         {restaurantId && branches.length > 0 && (
-                            <select 
+                            <select
                                 className="hidden md:block bg-stone-50 dark:bg-zinc-800/50 border border-stone-200 dark:border-zinc-700/50 text-slate-700 dark:text-zinc-300 text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold"
                                 value={activeBranch}
                                 onChange={(e) => setActiveBranch(e.target.value)}
@@ -467,7 +467,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
                             <span className="hidden sm:block uppercase tracking-wider">{isOnline ? "أونلاين" : "أوفلاين"}</span>
                         </span>
-                        
+
                         {restaurantLogo ? (
                             <Image src={restaurantLogo} alt={restaurantName || "Logo"} width={40} height={40} className="w-10 h-10 object-cover rounded-xl shadow-md border-2 border-white dark:border-zinc-800" />
                         ) : (
