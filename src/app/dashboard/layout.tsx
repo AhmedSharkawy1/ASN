@@ -164,18 +164,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
 
             if (rId) {
-                const { data: cpa } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
+                const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
+                if (cpaError) console.error("Error fetching page access:", cpaError);
+                
                 const tenantPerms: Record<string, boolean> = {};
                 if (cpa) cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled });
 
                 if (!isStaffFlag) {
-                    tempPermissions = tenantPerms || {};
-                    tempPermissions['_isAdmin'] = true;
+                    tempPermissions = { ...tenantPerms, _isAdmin: true };
                 } else {
-                    Object.keys(tempPermissions).forEach(key => {
-                        if (tenantPerms[key] === false) tempPermissions[key] = false;
+                    // For staff, tenant-level 'false' overrides everything.
+                    // If a page is disabled by Super Admin, staff can't see it even if they have personal permission.
+                    const merged = { ...tempPermissions };
+                    Object.keys(tenantPerms).forEach(key => {
+                        if (tenantPerms[key] === false) {
+                            merged[key] = false;
+                        }
                     });
-                    tempPermissions['_isAdmin'] = false;
+                    tempPermissions = { ...merged, _isAdmin: false };
                 }
 
                 setRestaurantName(rName);
