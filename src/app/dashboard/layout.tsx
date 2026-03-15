@@ -166,18 +166,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
 
             if (rId) {
+                console.log("ASN_LOG: Final rId for check:", rId);
                 const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
-                if (cpaError) console.error("ASN_LOG: Error fetching page access:", cpaError);
-                console.log("ASN_LOG: CPA Data:", cpa);
-
+                
+                if (cpaError) {
+                    console.error("ASN_LOG: CPA Fetch Error:", cpaError);
+                }
+                
                 const tenantPerms: Record<string, boolean> = {};
-                if (cpa) cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled });
+                if (cpa && cpa.length > 0) {
+                    console.log("ASN_LOG: Found CPA records:", cpa.length);
+                    cpa.forEach(p => { 
+                        tenantPerms[p.page_key] = p.enabled;
+                        if (p.enabled === false) console.log(`ASN_LOG: Key ${p.page_key} is DISABLED`);
+                    });
+                } else {
+                    console.warn("ASN_LOG: No CPA records found for this restaurant.");
+                }
 
                 if (!isStaffFlag) {
+                    console.log("ASN_LOG: Setting permissions for Admin/Owner");
                     tempPermissions = { ...tenantPerms, _isAdmin: true };
                 } else {
-                    // For staff, tenant-level 'false' overrides everything.
-                    // If a page is disabled by Super Admin, staff can't see it even if they have personal permission.
+                    console.log("ASN_LOG: Merging permissions for Staff member");
                     const merged = { ...tempPermissions };
                     Object.keys(tenantPerms).forEach(key => {
                         if (tenantPerms[key] === false) {
@@ -186,6 +197,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     });
                     tempPermissions = { ...merged, _isAdmin: false };
                 }
+                
+                console.log("ASN_LOG: Final Processed Permissions State:", tempPermissions);
 
                 setRestaurantName(rName);
                 setRestaurantLogo(rLogo);
