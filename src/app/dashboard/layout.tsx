@@ -104,11 +104,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             let tempPermissions: Record<string, boolean> = {};
 
             // Check super_admin status
-            const { data: roleData } = await supabase
+            const { data: roleData, error: roleError } = await supabase
                 .from('user_roles')
                 .select('role')
                 .eq('user_id', session.user.id)
-                .single();
+                .maybeSingle();
+            
+            if (roleError) console.error("ASN_LOG: User Roles Fetch Error:", roleError);
 
             // Impersonation Support
             const impersonatingTenant = sessionStorage.getItem('impersonating_tenant');
@@ -129,7 +131,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (!rId) {
                 if (email?.endsWith(".asn") || (roleData && roleData.role === 'staff')) {
                     isStaffFlag = true;
-                    const { data: staff } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', session.user.id).single();
+                    const { data: staff, error: staffError } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', session.user.id).maybeSingle();
+                    
+                    if (staffError) console.error("ASN_LOG: Staff Lookup Error:", staffError);
+
                     if (staff) {
                         if (!staff.is_active) {
                             await supabase.auth.signOut();
@@ -150,7 +155,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         }
                     }
                 } else {
-                    const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').ilike('email', email!).single();
+                    const { data: rest, error: restError } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').ilike('email', email!).maybeSingle();
+                    
+                    if (restError) console.error("ASN_LOG: Restaurant Lookup Error:", restError);
+
                     if (rest) {
                         rId = rest.id;
                         rName = rest.name;
@@ -160,7 +168,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             return;
                         }
                     } else {
-                        console.error("ASN_LOG: Restaurant not found for email:", email);
+                        console.error("ASN_LOG: Restaurant not found or multiple found for email:", email);
                     }
                 }
             }
