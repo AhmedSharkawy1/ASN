@@ -258,7 +258,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             key: "home",
             label: language === "ar" ? "الرئيسية" : "Home",
             items: [
-                { href: "/dashboard", icon: LayoutDashboard, labelAr: "الرئيسية", labelEn: "Dashboard", exact: true },
+                { href: "/dashboard", icon: LayoutDashboard, labelAr: "الرئيسية", labelEn: "Dashboard", exact: true, key: "dashboard" },
             ]
         },
         {
@@ -276,8 +276,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             label: language === "ar" ? "القائمة" : "Menu",
             items: [
                 { href: "/dashboard/menu", icon: Utensils, labelAr: "المنتجات", labelEn: "Products", key: "products" },
-                { href: "/dashboard/tables", icon: TableProperties, labelAr: "الطاولات", labelEn: "Tables", key: "settings" },
-                { href: "/dashboard/delivery", icon: Truck, labelAr: "الدليفري", labelEn: "Delivery", key: "settings" },
+                { href: "/dashboard/tables", icon: TableProperties, labelAr: "الطاولات", labelEn: "Tables", key: "tables" },
+                { href: "/dashboard/delivery", icon: Truck, labelAr: "الدليفري", labelEn: "Delivery", key: "delivery" },
             ]
         },
         {
@@ -285,19 +285,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             label: language === "ar" ? "المخزون والمصنع" : "Inventory & Factory",
             items: [
                 { href: "/dashboard/inventory", icon: Warehouse, labelAr: "المخزون", labelEn: "Inventory", key: "inventory" },
-                { href: "/dashboard/recipes", icon: BookOpen, labelAr: "الوصفات", labelEn: "Recipes", key: "inventory" },
-                { href: "/dashboard/factory", icon: Factory, labelAr: "المصنع", labelEn: "Factory", key: "inventory" },
-                { href: "/dashboard/inventory/transactions", icon: ScrollText, labelAr: "حركات المخزون", labelEn: "Transactions", key: "inventory" },
-                { href: "/dashboard/costs", icon: TrendingUp, labelAr: "التكاليف والأرباح", labelEn: "Cost Analytics", key: "inventory" },
-                { href: "/dashboard/supplies", icon: Truck, labelAr: "التوريدات", labelEn: "Supplies", key: "inventory" },
-                { href: "/dashboard/branch-supplies", icon: Warehouse, labelAr: "توريدات الفروع", labelEn: "Branch Supplies", key: "inventory" },
+                { href: "/dashboard/recipes", icon: BookOpen, labelAr: "الوصفات", labelEn: "Recipes", key: "recipes" },
+                { href: "/dashboard/factory", icon: Factory, labelAr: "المصنع", labelEn: "Factory", key: "factory" },
+                { href: "/dashboard/inventory/transactions", icon: ScrollText, labelAr: "حركات المخزون", labelEn: "Transactions", key: "transactions" },
+                { href: "/dashboard/costs", icon: TrendingUp, labelAr: "التكاليف والأرباح", labelEn: "Cost Analytics", key: "costs" },
+                { href: "/dashboard/supplies", icon: Truck, labelAr: "التوريدات", labelEn: "Supplies", key: "supplies" },
+                { href: "/dashboard/branch-supplies", icon: Warehouse, labelAr: "توريدات الفروع", labelEn: "Branch Supplies", key: "branch_supplies" },
             ]
         },
         {
             key: "finance",
             label: language === "ar" ? "المالية" : "Finance",
             items: [
-                { href: "/dashboard/accounts", icon: Landmark, labelAr: "الحسابات", labelEn: "Accounts", key: "reports" },
+                { href: "/dashboard/accounts", icon: Landmark, labelAr: "الحسابات", labelEn: "Accounts", key: "accounts" },
             ]
         },
         {
@@ -306,18 +306,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             items: [
                 { href: "/dashboard/customers", icon: Users, labelAr: "العملاء", labelEn: "Customers", key: "customers" },
                 { href: "/dashboard/staff", icon: UserCog, labelAr: "الفريق", labelEn: "Staff", key: "team" },
-                { href: "/dashboard/notifications", icon: Bell, labelAr: "إشعارات العملاء", labelEn: "Notifications", key: "customers" },
+                { href: "/dashboard/notifications", icon: Bell, labelAr: "إشعارات العملاء", labelEn: "Notifications", key: "notifications" },
             ]
         },
         {
             key: "settings",
             label: language === "ar" ? "الأدوات" : "Tools",
             items: [
-                { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", key: "settings" },
-                { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", key: "settings" },
-                { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", key: "settings" },
-                { href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "settings" },
-                { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", key: "settings" },
+                { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", key: "printer" },
+                { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", key: "branches" },
+                { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", key: "theme" },
+                { href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "qr" },
+                { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "settings_page" },
             ]
         }
     ];

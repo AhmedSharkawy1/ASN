@@ -33,19 +33,69 @@ export default function SuperAdminClientsPage() {
     const [clientPermissions, setClientPermissions] = useState<Record<string, boolean>>({});
     const [savingAccess, setSavingAccess] = useState(false);
 
-    const AVAILABLE_PAGES = [
-        { key: 'pos', nameEn: 'POS', nameAr: 'نقطة البيع' },
-        { key: 'orders', nameEn: 'Orders', nameAr: 'الطلبات' },
-        { key: 'kitchen', nameEn: 'Kitchen', nameAr: 'المطبخ' },
-        { key: 'products', nameEn: 'Products & Categories', nameAr: 'المنتجات والأقسام' },
-        { key: 'materials', nameEn: 'Materials & Recipes', nameAr: 'المواد والوصفات' },
-        { key: 'factory', nameEn: 'Factory & Production', nameAr: 'المصنع والإنتاج' },
-        { key: 'expenses', nameEn: 'Expenses', nameAr: 'المصروفات' },
-        { key: 'reports', nameEn: 'Reports & Accounts', nameAr: 'التقارير والحسابات' },
-        { key: 'customers', nameEn: 'Customers', nameAr: 'العملاء' },
-        { key: 'team', nameEn: 'Team & Staff', nameAr: 'الفريق والموظفين' },
-        { key: 'settings', nameEn: 'Settings & Printers', nameAr: 'الإعدادات والطابعات' },
+    const PAGE_GROUPS = [
+        {
+            titleEn: 'Main', titleAr: 'الرئيسية',
+            pages: [
+                { key: 'dashboard', nameEn: 'Main Dashboard', nameAr: 'الرئيسية' },
+            ]
+        },
+        {
+            titleEn: 'Orders', titleAr: 'الطلبات',
+            pages: [
+                { key: 'orders', nameEn: 'Orders Management', nameAr: 'نظام الطلبيات' },
+                { key: 'pos', nameEn: 'POS System', nameAr: 'نقطة البيع (POS)' },
+                { key: 'kitchen', nameEn: 'Kitchen Display', nameAr: 'شاشة المطبخ' },
+                { key: 'reports', nameEn: 'Statistics & Reports', nameAr: 'التقارير والإحصائيات' },
+            ]
+        },
+        {
+            titleEn: 'Menu', titleAr: 'القائمة',
+            pages: [
+                { key: 'products', nameEn: 'Products & Categories', nameAr: 'المنتجات والأقسام' },
+                { key: 'tables', nameEn: 'Tables Management', nameAr: 'إدارة الطاولات' },
+                { key: 'delivery', nameEn: 'Delivery Setup', nameAr: 'إعدادات الدليفري' },
+            ]
+        },
+        {
+            titleEn: 'Inventory & Factory', titleAr: 'المخزون والمصنع',
+            pages: [
+                { key: 'inventory', nameEn: 'Inventory Management', nameAr: 'المخزون' },
+                { key: 'recipes', nameEn: 'Recipes & Formulas', nameAr: 'الوصفات' },
+                { key: 'factory', nameEn: 'Factory Management', nameAr: 'المصنع' },
+                { key: 'transactions', nameEn: 'Stock Transactions', nameAr: 'حركات المخزون' },
+                { key: 'costs', nameEn: 'Cost Analytics', nameAr: 'التكاليف والأرباح' },
+                { key: 'supplies', nameEn: 'Purchase Supplies', nameAr: 'التوريدات' },
+                { key: 'branch_supplies', nameEn: 'Branch Supplies', nameAr: 'توريدات الفروع' },
+            ]
+        },
+        {
+            titleEn: 'Finance', titleAr: 'المالية',
+            pages: [
+                { key: 'accounts', nameEn: 'Financial Accounts', nameAr: 'الحسابات المالية' },
+            ]
+        },
+        {
+            titleEn: 'Admin & Team', titleAr: 'المسؤول والتسويق',
+            pages: [
+                { key: 'customers', nameEn: 'Customers database', nameAr: 'قاعدة بيانات العملاء' },
+                { key: 'team', nameEn: 'Staff & Roles', nameAr: 'إدارة الفريق' },
+                { key: 'notifications', nameEn: 'Client Notifications', nameAr: 'إشعارات العملاء' },
+            ]
+        },
+        {
+            titleEn: 'Tools & Settings', titleAr: 'الأدوات والإعدادات',
+            pages: [
+                { key: 'printer', nameEn: 'Printer Settings', nameAr: 'إعدادات الطابعة' },
+                { key: 'branches', nameEn: 'Branches Management', nameAr: 'إدارة الفروع' },
+                { key: 'theme', nameEn: 'Appearance Customization', nameAr: 'تخصيص المظهر' },
+                { key: 'qr', nameEn: 'QR Code Generator', nameAr: 'مولد QR' },
+                { key: 'settings_page', nameEn: 'Restaurant Settings', nameAr: 'الإعدادات' },
+            ]
+        }
     ];
+
+    const ALL_PAGE_KEYS = PAGE_GROUPS.flatMap(g => g.pages.map(p => p.key));
 
     const fetchClients = useCallback(async () => {
         setLoading(true);
@@ -93,7 +143,7 @@ export default function SuperAdminClientsPage() {
             if (data && data.length > 0) {
                 (data as PageAccess[]).forEach(p => { perms[p.page_key] = p.enabled });
             } else {
-                AVAILABLE_PAGES.forEach(pg => { perms[pg.key] = true });
+                ALL_PAGE_KEYS.forEach(k => { perms[k] = true });
             }
             setClientPermissions(perms);
         } catch (err: unknown) {
@@ -260,20 +310,43 @@ export default function SuperAdminClientsPage() {
                             </button>
                         </div>
 
-                        <div className="p-6 overflow-y-auto space-y-4">
-                            <p className="text-sm text-slate-600 dark:text-zinc-300 mb-2">Select which dashboard pages this client is permitted to access.</p>
-                            {AVAILABLE_PAGES.map(page => (
-                                <div key={page.key} className="flex items-center justify-between p-3 rounded-xl border border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-[#0a0f16]">
-                                    <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{language === 'ar' ? page.nameAr : page.nameEn}</span>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input 
-                                            type="checkbox" 
-                                            className="sr-only peer" 
-                                            checked={clientPermissions[page.key] ?? false}
-                                            onChange={(e) => setClientPermissions({...clientPermissions, [page.key]: e.target.checked})}
-                                        />
-                                        <div className="w-11 h-6 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-                                    </label>
+                        <div className="p-6 overflow-y-auto space-y-8">
+                            <p className="text-sm text-slate-600 dark:text-zinc-300">Select which dashboard pages this client is permitted to access. Permission is applied to both Admin and Staff users.</p>
+                            
+                            {PAGE_GROUPS.map(group => (
+                                <div key={group.titleEn} className="space-y-3">
+                                    <div className="flex items-center justify-between px-1">
+                                        <h4 className="text-xs font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+                                            {language === 'ar' ? group.titleAr : group.titleEn}
+                                        </h4>
+                                        <button 
+                                            onClick={() => {
+                                                const allEnabled = group.pages.every(p => clientPermissions[p.key]);
+                                                const newPerms = {...clientPermissions};
+                                                group.pages.forEach(p => newPerms[p.key] = !allEnabled);
+                                                setClientPermissions(newPerms);
+                                            }}
+                                            className="text-[10px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight"
+                                        >
+                                            {group.pages.every(p => clientPermissions[p.key]) ? (language === 'ar' ? 'إلغاء الكل' : 'Disable All') : (language === 'ar' ? 'تفعيل الكل' : 'Enable All')}
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {group.pages.map(page => (
+                                            <div key={page.key} className="flex items-center justify-between p-3 rounded-xl border border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-[#0a0f16] group/item hover:border-blue-500/30 transition-colors">
+                                                <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{language === 'ar' ? page.nameAr : page.nameEn}</span>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={clientPermissions[page.key] ?? false}
+                                                        onChange={(e) => setClientPermissions({...clientPermissions, [page.key]: e.target.checked})}
+                                                    />
+                                                    <div className="w-11 h-6 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                                </label>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             ))}
                         </div>
