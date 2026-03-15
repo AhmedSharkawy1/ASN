@@ -14,7 +14,7 @@ import {
 type DateRange = "today" | "week" | "month" | "all" | "custom";
 
 type Stats = {
-    revenue: number; orders: number; avgTicket: number;
+    revenue: number; collectedCash: number; orders: number; avgTicket: number;
     deliveryFees: number; discounts: number;
     topItems: { title: string; count: number; revenue: number; category?: string }[];
     categoryBreakdown: { name: string; items: number; revenue: number }[];
@@ -41,7 +41,7 @@ export default function ReportsPage() {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<"items" | "categories" | "staff" | "payments" | "hourly">("items");
     const [stats, setStats] = useState<Stats>({
-        revenue: 0, orders: 0, avgTicket: 0, deliveryFees: 0, discounts: 0,
+        revenue: 0, collectedCash: 0, orders: 0, avgTicket: 0, deliveryFees: 0, discounts: 0,
         topItems: [], categoryBreakdown: [], staffBreakdown: [],
         paymentBreakdown: [], hourlyBreakdown: [],
     });
@@ -70,6 +70,7 @@ export default function ReportsPage() {
         }
 
         const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);
+        const collectedCash = orders.reduce((s, o) => s + (o.deposit_amount || 0), 0);
         const avgTicket = orders.length > 0 ? revenue / orders.length : 0;
         const deliveryFees = orders.reduce((s, o) => s + (o.delivery_fee || 0), 0);
         const discounts = orders.reduce((s, o) => s + (o.discount || 0), 0);
@@ -128,7 +129,7 @@ export default function ReportsPage() {
         const hourlyBreakdown = Object.entries(hourMap)
             .map(([hour, v]) => ({ hour: +hour, ...v })).filter(h => h.count > 0);
 
-        setStats({ revenue, orders: orders.length, avgTicket, deliveryFees, discounts, topItems, categoryBreakdown, staffBreakdown, paymentBreakdown, hourlyBreakdown });
+        setStats({ revenue, collectedCash, orders: orders.length, avgTicket, deliveryFees, discounts, topItems, categoryBreakdown, staffBreakdown, paymentBreakdown, hourlyBreakdown });
         setLoading(false);
     }, [restaurantId, range, customStart, customEnd]);
 
@@ -188,13 +189,12 @@ export default function ReportsPage() {
             ) : (
                 <>
                     {/* KPI Cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                         {[
-                            { icon: DollarSign, label: "الإيرادات", val: formatCurrency(stats.revenue), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-glass-border" },
-                            { icon: ShoppingCart, label: "الطلبات", val: stats.orders.toString(), color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20" },
-                            { icon: TrendingUp, label: "متوسط الطلب", val: formatCurrency(stats.avgTicket), color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20" },
-                            { icon: Truck, label: "رسوم الدليفري", val: formatCurrency(stats.deliveryFees), color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200 dark:border-cyan-500/20" },
-                            { icon: ArrowUpRight, label: "الخصومات", val: formatCurrency(stats.discounts), color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20" },
+                            { icon: DollarSign, label: isAr ? "إجمالي المبيعات" : "Total Revenue", val: formatCurrency(stats.revenue), color: "text-slate-600 dark:text-zinc-400", bg: "bg-slate-50 dark:bg-zinc-800/20 border-slate-200 dark:border-zinc-700/30" },
+                            { icon: Banknote, label: isAr ? "المحصلة النقدية" : "Cash Collected", val: formatCurrency(stats.collectedCash), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-glass-border" },
+                            { icon: ShoppingCart, label: isAr ? "الطلبات" : "Orders", val: stats.orders.toString(), color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20" },
+                            { icon: ArrowUpRight, label: isAr ? "الخصومات" : "Discounts", val: formatCurrency(stats.discounts), color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20" },
                         ].map((card, i) => (
                             <div key={i} className={`bg-white dark:bg-card border ${card.bg} rounded-xl p-4 flex items-center gap-3`}>
                                 <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center ${card.color} flex-shrink-0`}>

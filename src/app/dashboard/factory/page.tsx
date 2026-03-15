@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { formatQuantity } from "@/lib/helpers/formatters";
 
 type RecipeIngredient = { inventory_item_id: string; quantity: number; unit: string; inventory_items?: { name: string; quantity: number; unit: string } };
 type ProductionRequest = {
@@ -143,27 +144,9 @@ export default function FactoryPage() {
         return isAr ? labels[s]?.[0] || s : labels[s]?.[1] || s;
     };
 
-    const displayUnit = (u: string, req?: ProductionRequest) => {
-        // Priority: stored unit > provided string
-        const rawUnit = req?.unit || u;
-        if (!rawUnit || rawUnit === 'unit') return isAr ? 'وحدة' : 'unit';
-        const unitMap: Record<string, [string, string]> = {
-            'kg': ['كيلو', 'kg'], 'كيلو': ['كيلو', 'kg'],
-            'g': ['جرام', 'g'], 'جرام': ['جرام', 'g'],
-            'box': ['علبة', 'box'], 'علبة': ['علبة', 'box'],
-            'piece': ['وحدة', 'piece'], 'قطعة': ['وحدة', 'piece'], 'وحدة': ['وحدة', 'piece'],
-            'liter': ['لتر', 'liter'], 'لتر': ['لتر', 'liter'],
-            'ml': ['مل', 'ml'], 'مل': ['مل', 'ml'],
-            'pack': ['باكيت', 'pack'], 'باكيت': ['باكيت', 'pack'],
-            'dozen': ['دستة', 'dozen'], 'دستة': ['دستة', 'dozen'],
-            'bag': ['كيس', 'bag'], 'كيس': ['كيس', 'bag'],
-            'plate': ['طبق', 'plate'], 'طبق': ['طبق', 'plate'],
-            'cup': ['كوب', 'cup'], 'كوب': ['كوب', 'cup'],
-            'bottle': ['زجاجة', 'bottle'], 'زجاجة': ['زجاجة', 'bottle'],
-        };
-        const mapped = unitMap[rawUnit.toLowerCase()];
-        if (mapped) return isAr ? mapped[0] : mapped[1];
-        return rawUnit; // Return as-is if it's already a custom unit name
+    const displayQty = (qty: number, unit: string) => {
+        const fmt = formatQuantity(qty, unit, isAr);
+        return `${fmt.qty} ${fmt.unit}`;
     };
 
     // Filter by date
@@ -271,7 +254,7 @@ export default function FactoryPage() {
             if (group.notes) orderSectionsHtml += `<p style="font-size:13px;color:#d97706;font-weight:bold;margin:0 0 10px 0;background:#fffbeb;padding:6px 10px;border-radius:6px;border:1px solid #fde68a">📝 ${group.notes}</p>`;
             orderSectionsHtml += `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px 12px;background:#f8fafc;text-align:${isAr ? 'right' : 'left'};font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الصنف' : 'Product'}</th><th style="padding:8px 12px;background:#f8fafc;text-align:center;font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الكمية' : 'Qty'}</th></tr></thead><tbody>`;
             group.items.forEach(r => {
-                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:15px;font-weight:bold">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:900;font-size:16px">${r.quantity} ${displayUnit(r.unit, r)}</td></tr>`;
+                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:15px;font-weight:bold">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:900;font-size:16px">${displayQty(r.quantity, r.unit)}</td></tr>`;
             });
             orderSectionsHtml += `</tbody></table></div>`;
         });
@@ -282,12 +265,43 @@ export default function FactoryPage() {
             orderSectionsHtml += `<div style="font-size:18px;font-weight:900;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed #cbd5e1">${isAr ? 'بدون أوردر محدد' : 'No Specific Order'}</div>`;
             orderSectionsHtml += `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px 12px;background:#f8fafc;text-align:${isAr ? 'right' : 'left'};font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الصنف' : 'Product'}</th><th style="padding:8px 12px;background:#f8fafc;text-align:center;font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الكمية' : 'Qty'}</th></tr></thead><tbody>`;
             noOrderItems.forEach(r => {
-                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:15px;font-weight:bold">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:900;font-size:16px">${r.quantity} ${displayUnit(r.unit, r)}</td></tr>`;
+                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:15px;font-weight:bold">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:900;font-size:16px">${displayQty(r.quantity, r.unit)}</td></tr>`;
             });
             orderSectionsHtml += `</tbody></table></div>`;
         }
 
-        const ingRows = Array.from(batchIngredients.values()).map(i => `<tr><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${i.name}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:bold">${i.qty} ${i.unit}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center;${i.available < i.qty ? 'color:red;font-weight:bold' : ''}">${i.available} ${i.unit}</td></tr>`).join('');
+        // Build summary of total production needed for each product
+        const productTotals = new Map<string, { qty: number; unit: string }>();
+        active.forEach(r => {
+            const key = r.product_name;
+            const current = productTotals.get(key);
+            if (current) {
+                current.qty += r.quantity;
+            } else {
+                productTotals.set(key, { qty: r.quantity, unit: r.unit });
+            }
+        });
+
+        let summaryHtml = `<div style="margin-bottom:25px;border:2px solid #0f172a;border-radius:12px;padding:16px;background:#f8fafc">
+            <h2 style="margin-top:0;color:#0f172a;border-bottom:2px solid #0f172a;padding-bottom:8px">📦 ${isAr ? 'إجمالي مطلوب تصنيعه' : 'Total Production Summary'}</h2>
+            <table style="width:100%;border-collapse:collapse">
+                <thead>
+                    <tr>
+                        <th style="padding:10px;text-align:${isAr ? 'right' : 'left'};border-bottom:2px solid #e2e8f0;font-size:14px">${isAr ? 'الصنف' : 'Product'}</th>
+                        <th style="padding:10px;text-align:center;border-bottom:2px solid #e2e8f0;font-size:14px">${isAr ? 'إجمالي الكمية' : 'Total Qty'}</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+        productTotals.forEach((data, name) => {
+            summaryHtml += `<tr>
+                <td style="padding:10px;border-bottom:1px solid #e2e8f0;font-size:16px;font-weight:bold">${name}</td>
+                <td style="padding:10px;border-bottom:1px solid #e2e8f0;text-align:center;font-size:18px;font-weight:900;color:#0f172a">${displayQty(data.qty, data.unit)}</td>
+            </tr>`;
+        });
+        summaryHtml += `</tbody></table></div>`;
+
+        const ingRows = Array.from(batchIngredients.values()).map(i => `<tr><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${i.name}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:bold">${displayQty(i.qty, i.unit)}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center;${i.available < i.qty ? 'color:red;font-weight:bold' : ''}">${displayQty(i.available, i.unit)}</td></tr>`).join('');
         const today = new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         
         const titleText = isAr 
@@ -303,6 +317,7 @@ export default function FactoryPage() {
                 <div><h1>🏭 ${isAr ? 'ورقة الإنتاج' : 'Production Sheet'}</h1><p class="date">${today}</p></div>
                 <div style="text-align:left;font-size:13px;color:#64748b">${isAr ? 'عدد الطلبات' : 'Orders'}: <strong>${orderGroups.size}</strong><br>${isAr ? 'عدد الأصناف' : 'Items'}: <strong>${active.length}</strong></div>
             </div>
+            ${summaryHtml}
             <h2>📋 ${isAr ? 'الأصناف حسب الأوردر' : 'Items by Order'}</h2>
             ${orderSectionsHtml}
             <h2>🧪 ${isAr ? 'المواد المطلوبة' : 'Ingredients Needed'}</h2>
@@ -418,8 +433,8 @@ export default function FactoryPage() {
                             return (
                                 <div key={idx} className={`p-3 rounded-lg border ${isLow ? 'bg-red-50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20' : 'bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-zinc-700/50'}`}>
                                     <p className="font-bold text-slate-700 dark:text-zinc-300 text-sm flex items-center gap-1">{isLow && <AlertTriangle className="w-3 h-3 text-red-500" />} {i.name}</p>
-                                    <p className="text-xs text-slate-500 dark:text-zinc-500 mt-1">{isAr ? "مطلوب" : "Need"}: <span className="font-bold">{i.qty} {i.unit}</span></p>
-                                    <p className={`text-xs mt-0.5 ${isLow ? 'text-red-600 dark:text-red-400 font-bold' : 'text-slate-500 dark:text-zinc-500'}`}>{isAr ? "متوفر" : "Available"}: {i.available} {i.unit}</p>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-500 mt-1">{isAr ? "مطلوب" : "Need"}: <span className="font-bold">{displayQty(i.qty, i.unit)}</span></p>
+                                    <p className={`text-xs mt-0.5 ${isLow ? 'text-red-600 dark:text-red-400 font-bold' : 'text-slate-500 dark:text-zinc-500'}`}>{isAr ? "متوفر" : "Available"}: {displayQty(i.available, i.unit)}</p>
                                 </div>
                             );
                         })}
@@ -481,7 +496,7 @@ export default function FactoryPage() {
                                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
                                                 <div className="flex items-center gap-3">
                                                     <h4 className="text-base font-extrabold text-slate-900 dark:text-white">{req.product_name}</h4>
-                                                    <span className="text-lg font-black text-slate-700 dark:text-zinc-300">{req.quantity} {displayUnit(req.unit, req)}</span>
+                                                    <span className="text-lg font-black text-slate-700 dark:text-zinc-300">{displayQty(req.quantity, req.unit)}</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${statusColor(req.status)}`}>{statusLabel(req.status)}</span>
@@ -516,8 +531,8 @@ export default function FactoryPage() {
                                                             <div key={i} className="flex items-center justify-between text-sm py-1">
                                                                 <span className="text-slate-600 dark:text-zinc-400">{ing.inventory_items?.name || "?"}</span>
                                                                 <div className="flex items-center gap-3">
-                                                                    <span className="font-bold text-slate-700 dark:text-zinc-300">{needed} {ing.unit}</span>
-                                                                    <span className={`text-xs ${avail < needed ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400'}`}>({isAr ? "متوفر" : "avail"}: {avail})</span>
+                                                                    <span className="font-bold text-slate-700 dark:text-zinc-300">{displayQty(needed, ing.unit)}</span>
+                                                                    <span className={`text-xs ${avail < needed ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400'}`}>({isAr ? "متوفر" : "avail"}: {displayQty(avail, ing.unit)})</span>
                                                                 </div>
                                                             </div>
                                                         );
@@ -542,7 +557,7 @@ export default function FactoryPage() {
                                         <div key={req.id} className="px-5 py-4 flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <h4 className="text-base font-extrabold text-slate-900 dark:text-white">{req.product_name}</h4>
-                                                <span className="text-lg font-black text-slate-700 dark:text-zinc-300">{req.quantity} {displayUnit(req.unit, req)}</span>
+                                                <span className="text-lg font-black text-slate-700 dark:text-zinc-300">{displayQty(req.quantity, req.unit)}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${statusColor(req.status)}`}>{statusLabel(req.status)}</span>
@@ -583,7 +598,7 @@ export default function FactoryPage() {
                                 {batches.slice(0, 10).map(b => (
                                     <tr key={b.id} className="border-b border-slate-100 dark:border-zinc-800/30">
                                         <td className="px-4 py-3 font-bold text-slate-800 dark:text-zinc-200">{b.product_name}</td>
-                                        <td className="px-4 py-3 font-bold text-emerald-600 dark:text-emerald-400">{b.quantity} {displayUnit(b.unit)}</td>
+                                        <td className="px-4 py-3 font-bold text-emerald-600 dark:text-emerald-400">{displayQty(b.quantity, b.unit)}</td>
                                         <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{b.produced_by || "—"}</td>
                                         <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{new Date(b.produced_at).toLocaleDateString()}</td>
                                     </tr>

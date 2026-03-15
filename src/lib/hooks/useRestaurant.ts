@@ -9,6 +9,12 @@ type RestaurantData = {
     currency: string;
     subscription_plan: string;
     subscription_expires_at: string | null;
+    logo_url?: string;
+    phone?: string;
+    whatsapp_number?: string;
+    phone_numbers?: { label: string; number: string }[];
+    address?: string;
+    receipt_logo_url?: string;
 };
 
 export function useRestaurant() {
@@ -35,13 +41,24 @@ export function useRestaurant() {
                 }
 
                 if (rId) {
-                    const { data } = await supabase
+                    // Try fetching with all fields
+                    const { data: d1, error: e1 } = await supabase
                         .from('restaurants')
-                        .select('id, name, email, currency, subscription_plan, subscription_expires_at')
+                        .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, receipt_logo_url')
                         .eq('id', rId)
                         .single();
 
-                    if (data) setRestaurant(data as RestaurantData);
+                    if (!e1 && d1) {
+                        setRestaurant(d1 as RestaurantData);
+                    } else {
+                        // Fallback: omit 'receipt_logo_url' if it doesn't exist
+                        const { data: d2 } = await supabase
+                            .from('restaurants')
+                            .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address')
+                            .eq('id', rId)
+                            .single();
+                        if (d2) setRestaurant(d2 as RestaurantData);
+                    }
                 }
             } catch (e) { console.error(e); }
             finally { setLoading(false); }

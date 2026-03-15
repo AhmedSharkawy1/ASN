@@ -43,7 +43,7 @@ export default function LoginPage() {
                 loginEmail = data.email;
             }
 
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data: authData, error } = await supabase.auth.signInWithPassword({
                 email: loginEmail,
                 password,
             });
@@ -52,8 +52,18 @@ export default function LoginPage() {
                 throw error;
             }
 
-            // Route user based on successful login (for now, generically to dashboard)
-            router.push("/dashboard");
+            // Check if user is a super admin
+            const { data: roleData } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', authData.user.id)
+                .single();
+
+            if (roleData && roleData.role === 'super_admin') {
+                router.push('/super-admin');
+            } else {
+                router.push('/dashboard');
+            }
 
         } catch (err: unknown) {
             console.error("Login attempt failed:", err);

@@ -39,6 +39,7 @@ export async function processOrderInventory(
     let allDeducted = true;
     const messages: string[] = [];
 
+
     for (const item of orderItems) {
         try {
             const result = await processOneOrderItem(restaurantId, item, orderId, sb);
@@ -67,21 +68,28 @@ async function processOneOrderItem(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sb: any
 ): Promise<boolean> {
-    // 1. Look up the menu item to get inventory_item_id and recipe_id
+    // 1. Look up the menu item to get inventory_item_id, recipe_id and item_type
     const { data: menuItem, error: menuErr } = await sb
         .from('items')
-        .select('id, inventory_item_id, recipe_id')
+        .select(`
+            id, inventory_item_id, recipe_id,
+            inventory_items(item_type, name)
+        `)
         .eq('id', item.id)
         .single();
 
     if (menuErr || !menuItem) {
-        await sb.from('order_logs').insert({ order_id: orderId, action: `Debug: !menuItem for ${item.title}. Err: ${menuErr?.message || 'null'}`, performed_by: 'system' });
-        return true; // Item not linked to inventory system, no need to flag as missing
+        return true; 
+        return true; 
     }
 
     const needed = item.qty;
+    // Handle potential array or object from join (PostgREST standard is an object for single FK)
+    const invData = Array.isArray(menuItem.inventory_items) ? menuItem.inventory_items[0] : menuItem.inventory_items;
+    const isProduct = invData?.item_type === 'product';
 
-    // 2. Try direct inventory deduction if item is stored as a product (pre-made in display)
+
+    // 2. Try direct inventory deduction if item is linked to inventory
     if (menuItem.inventory_item_id) {
         const deducted = await tryDeductInventory(
             restaurantId,
@@ -93,31 +101,36 @@ async function processOneOrderItem(
             sb
         );
         
-        await sb.from('order_logs').insert({ order_id: orderId, action: `Debug: tryDeduct for ${item.title} returned ${deducted}`, performed_by: 'system' });
-        if (deducted) return true; // Success — stock was sufficient
+        if (deducted) {
+            return true; // Success — stock was sufficient
+        }
+        
     }
 
-    // 3. Fallback: If not in stock (or no inventory link), but has a recipe -> send to Factory to be made
-    if (menuItem.recipe_id) {
-        const prodReq = await upsertProductionRequest(
+    // 3. Fallback: If not in stock (or no inventory link), but should be produced
+    // Trigger factory if: it has a recipe OR it's a 'product' type item in inventory
+    if (menuItem.recipe_id || isProduct) {
+        // Map common Arabic units to standard if needed to avoid constraint errors
+        let unit = item.weight_unit || 'unit';
+        if (unit === 'كجم') unit = 'kg';
+        if (unit === 'قطعة') unit = 'piece';
+
+        const res = await upsertProductionRequest(
             restaurantId,
-            menuItem.recipe_id,
+            menuItem.recipe_id || null,
             item.title,
             needed,
             orderId,
             sb,
-            item.weight_unit || 'unit'
+            unit
         );
-        if (!prodReq.success) {
-            await sb.from('order_logs').insert({ order_id: orderId, action: `Debug: Factory req fail for ${item.title} - Error: ${prodReq.error}`, performed_by: 'system' });
-        } else {
-            await sb.from('order_logs').insert({ order_id: orderId, action: `Debug: Created factory request for ${item.title}`, performed_by: 'system' });
-        }
+        
+        
         return false; // Item deferred for factory production
     }
 
-    await sb.from('order_logs').insert({ order_id: orderId, action: `Debug: Item ${item.title} has no recipe/inventory fallbacks`, performed_by: 'system' });
-    return false; // Could not deduct and no recipe exists
+
+    return false; // Could not deduct and not produceable
 }
 
 /**
@@ -144,12 +157,12 @@ async function tryDeductInventory(
         .single();
 
     if (invErr || !inv) {
-        if (source === 'order') await sb.from('order_logs').insert({ order_id: referenceId, action: `tryDeduct: missing inv ${inventoryItemId}. Err: ${invErr?.message}`, performed_by: 'system' });
+        return false;
         return false;
     }
 
     if (inv.quantity < quantity) {
-        if (source === 'order') await sb.from('order_logs').insert({ order_id: referenceId, action: `tryDeduct: Insufficient stock for ${inv.name}. Has ${inv.quantity}, needs ${quantity}. Skipping to factory.`, performed_by: 'system' });
+        return false;
         return false;
     }
 
@@ -165,17 +178,17 @@ async function tryDeductInventory(
         .select('*');
 
     if (error) {
-        if (source === 'order') await sb.from('order_logs').insert({ order_id: referenceId, action: `tryDeduct: db ERROR: ${error.message}`, performed_by: 'system' });
+        return false;
         return false;
     }
     
     // Fix for silent failure in postgrest
     if (!data || data.length === 0) {
-        if (source === 'order') await sb.from('order_logs').insert({ order_id: referenceId, action: `tryDeduct: Silent db fail for ${inv.name}. Row not updated (likely out of stock race condition).`, performed_by: 'system' });
+        return false;
         return false;
     }
 
-    if (source === 'order') await sb.from('order_logs').insert({ order_id: referenceId, action: `tryDeduct: SUCCESS. Deducted ${quantity} from ${inv.name}.`, performed_by: 'system' });
+    // if (source === 'order') await sb.from('order_logs').insert({ order_id: referenceId, action: `tryDeduct: SUCCESS. Deducted ${quantity} from ${inv.name}.`, performed_by: 'system' });
 
     // Log transaction
     await sb.from('inventory_transactions').insert({
@@ -201,7 +214,7 @@ async function tryDeductInventory(
  */
 async function upsertProductionRequest(
     restaurantId: string,
-    recipeId: string,
+    recipeId: string | null,
     productName: string,
     quantity: number,
     orderId: string,
@@ -554,6 +567,83 @@ export async function finalizeDeferredInventory(
                     item.title,
                     sb
                 );
+            }
+        }
+    }
+}
+
+/**
+ * Revert all inventory changes for an order.
+ * Used when an order is edited or cancelled.
+ */
+export async function revertOrderInventory(
+    restaurantId: string,
+    orderId: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    supabaseClient?: any
+): Promise<void> {
+    const sb = supabaseClient || supabase;
+
+    // 1. Find all deductions made for this order in transactions
+    const { data: txs, error: txError } = await sb
+        .from('inventory_transactions')
+        .select('*')
+        .eq('reference_id', orderId)
+        .eq('action', 'deduct')
+        .eq('source', 'order');
+
+    if (txError) {
+        console.error("[Inventory] Error fetching transactions to revert:", txError);
+    } else if (txs && txs.length > 0) {
+        for (const tx of txs) {
+            // Restore stock
+            const { data: inv } = await sb
+                .from('inventory_items')
+                .select('id, quantity, name')
+                .eq('id', tx.inventory_item_id)
+                .single();
+
+            if (inv) {
+                await sb.from('inventory_items')
+                    .update({
+                        quantity: inv.quantity + tx.quantity,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', inv.id);
+
+                // Log the restoration
+                await sb.from('inventory_transactions').insert({
+                    restaurant_id: restaurantId,
+                    inventory_item_id: inv.id,
+                    item_name: inv.name,
+                    quantity: tx.quantity,
+                    action: 'add',
+                    source: 'order_revert',
+                    reference_id: orderId,
+                    performed_by: 'system',
+                    notes: `Restored stock due to order edit/cancellation: ${orderId}`
+                });
+            }
+        }
+        
+        // Delete the old deductions so they don't get double-reverted if edited again
+        await sb.from('inventory_transactions').delete().eq('reference_id', orderId).eq('action', 'deduct').eq('source', 'order');
+    }
+
+    // 2. Cancel any pending production requests for this order
+    const { data: reqs } = await sb
+        .from('production_requests')
+        .select('id, status')
+        .eq('order_id', orderId)
+        .neq('status', 'cancelled');
+
+    if (reqs && reqs.length > 0) {
+        for (const req of reqs) {
+            if (req.status === 'pending') {
+                await sb.from('production_requests').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('id', req.id);
+            } else if (req.status === 'in_progress') {
+                // If in progress, use existing cancelProduction to refund ingredients
+                await cancelProduction(restaurantId, req.id, 'system');
             }
         }
     }

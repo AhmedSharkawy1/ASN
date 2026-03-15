@@ -12,11 +12,13 @@ import {
     Menu, X, ChevronLeft, ClipboardList, ChefHat,
     TableProperties, Truck, Users, UserCog, Bell, CreditCard,
     Wifi, WifiOff, BarChart3, Sun, Moon, PanelLeftClose, PanelLeftOpen,
-    Warehouse, BookOpen, Factory, ScrollText, TrendingUp, Printer
+    Warehouse, BookOpen, Factory, ScrollText, TrendingUp, Printer, Landmark, Store,
+    Laptop, ShoppingBag, Box, Hammer, Wallet, UserCheck, Cog, Package
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Toaster, toast } from "sonner";
+import { BranchProvider, useBranch } from "@/lib/context/BranchContext";
 
 /* ── Interactive ASN Logo Icon ── */
 function ASNIcon() {
@@ -52,6 +54,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const restaurantIdRef = useRef<string | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
 
+    // Multi-branch state
+    const [branches, setBranches] = useState<any[]>([]);
+    const [activeBranch, setActiveBranch] = useState<string>('all');
+
     useEffect(() => setMounted(true), []);
 
     useEffect(() => {
@@ -68,36 +74,117 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             let rLogo = null;
             let userPerms = null;
 
-            if (email?.endsWith(".asn")) {
+            // First check if this user is a super_admin
+            const { data: roleData } = await supabase
+                .from('user_roles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .single();
+
+            // If super admin and not impersonating (we'll add impersonation later), block access.
+            if (roleData && roleData.role === 'super_admin' && !sessionStorage.getItem('impersonating_tenant')) {
+                router.push('/super-admin');
+                return;
+            }
+
+            let isStaffFlag = false;
+            let finalPerms: Record<string, boolean> = {};
+
+            // Impersonation Support
+            const impersonatingTenant = sessionStorage.getItem('impersonating_tenant');
+            if (impersonatingTenant) {
+               const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url').eq('id', impersonatingTenant).single();
+               if (rest) {
+                   rId = rest.id;
+                   rName = rest.name + ' (Impersonating)';
+                   rLogo = rest.logo_url;
+               }
+            }
+            else if (email?.endsWith(".asn") || (roleData && roleData.role === 'staff')) {
                 // It's a staff member
-                const { data: staff } = await supabase.from('team_members').select('*, restaurants(name, logo_url)').eq('auth_id', session.user.id).single();
+                isStaffFlag = true;
+                const { data: staff } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', session.user.id).single();
                 if (staff) {
                     if (!staff.is_active) {
                         await supabase.auth.signOut();
                         router.push("/login");
                         return;
                     }
+                    if (staff.restaurants?.subscription_expires_at && new Date(staff.restaurants.subscription_expires_at) < new Date()) {
+                        router.push('/subscription-expired'); // Hard block
+                        return;
+                    }
+
                     rId = staff.restaurant_id;
                     rName = staff.restaurants?.name || "";
                     rLogo = staff.restaurants?.logo_url || null;
-                    userPerms = staff.permissions;
+                    
+                    // Fetch staff specific permissions
+                    const { data: pp } = await supabase.from('page_permissions').select('page_key, can_view').eq('user_id', staff.id);
+                    if (pp && pp.length > 0) {
+                        pp.forEach(p => { finalPerms[p.page_key] = p.can_view });
+                    } else if (staff.permissions) {
+                        finalPerms = staff.permissions;
+                    }
                 }
             } else {
-                // It's the admin/owner
-                const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url').eq('email', email).single();
+                // It's the admin/owner (or a regular team member without .asn if they signed up locally)
+                const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').eq('email', email).single();
+                
                 if (rest) {
                     rId = rest.id;
                     rName = rest.name;
                     rLogo = rest.logo_url;
+                    
+                    // Basic subscription check
+                    if (rest.subscription_expires_at && new Date(rest.subscription_expires_at) < new Date()) {
+                        router.push('/subscription-expired'); // Hard block
+                        return;
+                    }
                 }
             }
 
             if (rId) {
+                // Fetch tenant level client_page_access
+                const { data: cpa } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
+                const tenantPerms: Record<string, boolean> = {};
+                // If we want to safely fallback to true if not specified, we only override when explicitly false.
+                // But let's build an explicit map
+                if (cpa && cpa.length > 0) {
+                    cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled });
+                }
+
+                if (!isStaffFlag) {
+                    // Admin: Use tenant access
+                    finalPerms = tenantPerms;
+                    // We need a way to tell the layout this is an Admin (owner has all permissions except what's explicitly disabled).
+                    // We'll set a special key _isAdmin to true inside finalPerms just to flag it easily without state change.
+                    finalPerms['_isAdmin'] = true;
+                } else {
+                    // Staff: Intersect staff perms with tenant perms. 
+                    Object.keys(finalPerms).forEach(key => {
+                        if (tenantPerms[key] === false) {
+                            finalPerms[key] = false;
+                        }
+                    });
+                    finalPerms['_isAdmin'] = false;
+                }
+
                 setRestaurantName(rName);
                 setRestaurantLogo(rLogo);
                 restaurantIdRef.current = rId;
                 setRestaurantId(rId);
-                setPermissions(userPerms);
+                setPermissions(finalPerms);
+
+                // Fetch Branches if restaurant exists
+                if (rId) {
+                    const { data: bData } = await supabase.from('branches').select('id, branch_name').eq('tenant_id', rId).eq('is_active', true);
+                    if (bData) setBranches(bData);
+                }
+            } else if (!roleData || roleData.role !== 'super_admin') {
+               // If not a super admin and no restaurant found, sign out to be safe
+               setLoading(false);
+               return;
             }
             setLoading(false);
         };
@@ -236,6 +323,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/factory", icon: Factory, labelAr: "المصنع", labelEn: "Factory", permKey: "inventory" },
                 { href: "/dashboard/inventory/transactions", icon: ScrollText, labelAr: "حركات المخزون", labelEn: "Transactions", permKey: "inventory" },
                 { href: "/dashboard/costs", icon: TrendingUp, labelAr: "التكاليف والأرباح", labelEn: "Cost Analytics", permKey: "inventory" },
+                { href: "/dashboard/supplies", icon: Truck, labelAr: "التوريدات", labelEn: "Supplies", permKey: "inventory" },
+                { href: "/dashboard/branch-supplies", icon: Warehouse, labelAr: "توريدات الفروع", labelEn: "Branch Supplies", permKey: "inventory" },
+            ]
+        },
+        {
+            key: "finance",
+            label: language === "ar" ? "المالية" : "Finance",
+            items: [
+                { href: "/dashboard/accounts", icon: Landmark, labelAr: "الحسابات", labelEn: "Accounts", permKey: "reports" },
             ]
         },
         {
@@ -252,36 +348,69 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             label: language === "ar" ? "الأدوات" : "Tools",
             items: [
                 { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", permKey: "settings" },
+                { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", permKey: "settings" },
                 { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", permKey: "settings" },
                 { href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", permKey: "settings" },
                 { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", permKey: "settings" },
             ]
         }
     ].map(section => {
-        // Filter items based on permissions
         const p = permissions as Record<string, boolean> | null;
-        if (!p) return section; // Owner has all permissions
+        if (!p) return section;
 
-        // If the entire section is blocked by a global nav key
+        const isAdmin = p['_isAdmin'] === true;
+
+        // If the entire section is explicitly blocked
         if (p[section.key] === false) return { ...section, items: [] };
 
         // Otherwise filter sub-items
         const filteredItems = section.items.filter((item: { href: string; permKey?: string; [key: string]: unknown }) => {
-            if (!item.permKey) return true; // If no specific perm key, it relies on section key (which passed)
-            return p[item.permKey] === true;
-        });
-
-        return { ...section, items: filteredItems };
-    }).filter(section => section.items.length > 0);
+            if (!item.permKey) return true;
+            
+            if (isAdmin) {
+               const { activeBranch, setActiveBranch } = useBranch();
+    const router = useRouter();
 
     const isActive = (href: string, exact?: boolean) => {
         if (exact) return pathname === href;
         return pathname === href || pathname.startsWith(href + '/');
     };
 
+    const navSections = [
+        {
+            label: language === 'ar' ? 'القائمة الرئيسية' : 'Primary Menu',
+            items: [
+                { href: "/dashboard", icon: LayoutDashboard, labelEn: "Dashboard", labelAr: "الرئيسية", exact: true },
+                { href: "/dashboard/pos", icon: Laptop, labelEn: "POS System", labelAr: "نقطة البيع", key: 'pos' },
+                { href: "/dashboard/orders", icon: ShoppingBag, labelEn: "Order Management", labelAr: "الطلبات", key: 'orders' },
+                { href: "/dashboard/kitchen", icon: Utensils, labelEn: "Kitchen Display", labelAr: "المطبخ", key: 'kitchen' },
+            ]
+        },
+        {
+            label: language === 'ar' ? 'الإدارة والمنتجات' : 'Management & Gear',
+            items: [
+                { href: "/dashboard/products", icon: Package, labelEn: "Inventory & Menu", labelAr: "الأصناف والقائمة", key: 'menu' },
+                { href: "/dashboard/inventory", icon: Box, labelEn: "Stock Control", labelAr: "المخزن", key: 'inventory' },
+                { href: "/dashboard/factory", icon: Hammer, labelEn: "Production Line", labelAr: "الإنتاج والمصنع", key: 'factory' },
+            ]
+        },
+        {
+            label: language === 'ar' ? 'البيانات والموظفين' : 'Data & People',
+            items: [
+                { href: "/dashboard/accounts", icon: Wallet, labelEn: "Finance & Reports", labelAr: "الحسابات", key: 'reports' },
+                { href: "/dashboard/customers", icon: Users, labelEn: "Clients & CRM", labelAr: "العملاء", key: 'customers' },
+                { href: "/dashboard/staff", icon: UserCheck, labelEn: "Team & Access", labelAr: "الموظفين", adminOnly: true },
+                { href: "/dashboard/branches", icon: Store, labelEn: "Physical Branches", labelAr: "الفروع", adminOnly: true },
+                { href: "/dashboard/settings", icon: Cog, labelEn: "Global Settings", labelAr: "الإعدادات", adminOnly: true },
+            ]
+        }
+    ];
+
+    const isDark = resolvedTheme === 'dark';
+
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-
+            
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
@@ -291,7 +420,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <aside className={`fixed md:sticky top-0 h-screen z-50 flex flex-col transition-all duration-300
                 ${language === 'ar' ? 'right-0' : 'left-0'}
                 ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0')}
-                ${sidebarCollapsed ? 'w-20' : 'w-[260px]'} bg-white dark:bg-card border-stone-200 dark:border-zinc-800/50
+                ${sidebarCollapsed ? 'w-20' : 'w-[280px]'} bg-white dark:bg-card border-stone-200 dark:border-zinc-800/50
                 shadow-lg shadow-stone-100/50 dark:shadow-none
                 ${language === 'ar' ? 'border-l' : 'border-r'}
             `}>
@@ -325,8 +454,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 </h3>
                             )}
                             <div className="space-y-1">
-                                {section.items.map((item) => {
+                                {section.items.map((item: any) => {
                                     const active = isActive(item.href, 'exact' in item ? item.exact : undefined);
+                                    if (item.key && permissions?.[item.key] === false) return null;
                                     return (
                                         <Link key={item.href} href={item.href}
                                             onClick={() => setSidebarOpen(false)}
@@ -404,6 +534,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             </div>
                         )}
                         <div className="flex items-center gap-2">
+                            {/* Branch Selector */}
+                            {restaurantId && branches.length > 0 && (
+                                <select 
+                                    className="hidden md:block bg-stone-50 dark:bg-zinc-800/50 border border-stone-200 dark:border-zinc-700/50 text-slate-700 dark:text-zinc-300 text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold"
+                                    value={activeBranch}
+                                    onChange={(e) => setActiveBranch(e.target.value)}
+                                    title="Active Branch"
+                                >
+                                    <option value="all">{language === "ar" ? "كل الفروع" : "All Branches"}</option>
+                                    {branches.map((b: any) => (
+                                        <option key={b.id} value={b.id}>{b.branch_name}</option>
+                                    ))}
+                                </select>
+                            )}
+
                             {/* Theme Toggle */}
                             {mounted && (
                                 <button

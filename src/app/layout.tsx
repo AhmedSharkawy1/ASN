@@ -27,6 +27,8 @@ export const metadata: Metadata = {
 
 import { LanguageProvider } from "@/lib/context/LanguageContext";
 import { ThemeProvider } from "@/lib/context/ThemeProvider";
+import { BranchProvider } from "@/lib/context/BranchContext";
+import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
@@ -60,9 +62,12 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <LanguageProvider>
-            <CustomCursor />
-            {!isRestaurantSubdomain && <Navbar />}
-            {children}
+            <BranchProvider>
+              <CustomCursor />
+              {!isRestaurantSubdomain && <Navbar />}
+              {children}
+              <Toaster position="top-center" expand={true} richColors />
+            </BranchProvider>
           </LanguageProvider>
         </ThemeProvider>
       </body>

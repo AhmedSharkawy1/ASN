@@ -83,6 +83,7 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
                         delivery_driver_id: order.delivery_driver_id || undefined,
                         delivery_driver_name: order.delivery_driver_name || undefined,
                         delivery_fee: order.delivery_fee || undefined,
+                        deposit_amount: order.deposit_amount || 0,
                     } as PosOrder);
                 }
             }
@@ -151,6 +152,7 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
                 ...rest,
                 customer_address: rest.customer_address || null,
                 notes: (rest as { notes?: string }).notes || null,
+                deposit_amount: (rest as { deposit_amount?: number }).deposit_amount || 0,
                 source: (rest as { source?: string }).source || 'pos',
             };
         });

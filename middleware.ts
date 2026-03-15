@@ -66,5 +66,18 @@ export default function middleware(req: NextRequest) {
         }
     }
 
+    // 4. Protect /super-admin route
+    if (url.pathname.startsWith('/super-admin')) {
+        // To enforce strictly, we really should verify a session cookie or token.
+        // For Next.js middleware with Supabase, we need to check the auth cookie.
+        // We will just return Next anyway to be parsed by the page/layout, 
+        // because running full DB queries in middleware edge runtime is not ideal for Supabase standard client unless using @supabase/ssr.
+        // Let's rely on the layout.tsx to do the heavy lifting of role auth, but we can prevent simple access here:
+        const nextAuthCookie = req.cookies.get('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1].split('.')[0] + '-auth-token');
+        if (!nextAuthCookie) {
+           return NextResponse.redirect(new URL('/login', req.url));
+        }
+    }
+
     return NextResponse.next();
 }

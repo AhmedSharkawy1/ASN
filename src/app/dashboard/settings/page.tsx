@@ -8,6 +8,7 @@ import { uploadImage } from "@/lib/uploadImage";
 import { posDb } from "@/lib/pos-db";
 import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle, Send } from "lucide-react";
 import { FaTiktok, FaTelegramPlane } from "react-icons/fa";
+import { toast } from "sonner";
 
 export type PhoneEntry = { label: string; number: string };
 
@@ -34,6 +35,8 @@ type RestaurantProfile = {
     cover_url?: string;
     cover_images?: string[];
     working_hours?: string;
+    address?: string; // New field
+    receipt_logo_url?: string; // Specific for receipts
     phone_numbers?: PhoneEntry[];
     payment_methods?: PaymentMethodEntry[];
     marquee_enabled?: boolean;
@@ -60,9 +63,11 @@ export default function SettingsPage() {
     const [phoneNumbers, setPhoneNumbers] = useState<PhoneEntry[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodEntry[]>([]);
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingReceiptLogo, setUploadingReceiptLogo] = useState(false);
     const [uploadingCover, setUploadingCover] = useState(false);
     const [coverImages, setCoverImages] = useState<string[]>([]);
     const logoInputRef = useRef<HTMLInputElement>(null);
+    const receiptLogoInputRef = useRef<HTMLInputElement>(null);
     const coverInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -73,18 +78,18 @@ export default function SettingsPage() {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             let finalData: any = null;
 
-            // Try fetching with all new columns first
+            // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id')
+                .select('id, name, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id')
                 .eq('email', user.email)
                 .single();
 
             if (e1) {
-                // Fallback: omit new columns if they don't exist
+                // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id')
+                    .select('id, name, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id')
                     .eq('email', user.email)
                     .single();
                 finalData = d2;
@@ -118,6 +123,8 @@ export default function SettingsPage() {
                     name: profile.name,
                     phone: profile.phone,
                     whatsapp_number: profile.whatsapp_number,
+                    address: profile.address,
+                    receipt_logo_url: profile.receipt_logo_url,
                     facebook_url: profile.facebook_url,
                     instagram_url: profile.instagram_url,
                     tiktok_url: profile.tiktok_url,
@@ -145,6 +152,8 @@ export default function SettingsPage() {
                         name: profile.name,
                         phone: profile.phone,
                         whatsapp_number: profile.whatsapp_number,
+                        address: profile.address,
+                        receipt_logo_url: profile.receipt_logo_url,
                         facebook_url: profile.facebook_url,
                         instagram_url: profile.instagram_url,
                         tiktok_url: profile.tiktok_url,
@@ -179,12 +188,40 @@ export default function SettingsPage() {
         const file = e.target.files?.[0];
         if (!file || !profile) return;
         setUploadingLogo(true);
-        const url = await uploadImage(file, `logos/${profile.id}`);
-        if (url) {
-            await supabase.from('restaurants').update({ logo_url: url }).eq('id', profile.id);
-            setProfile({ ...profile, logo_url: url });
+        try {
+            const url = await uploadImage(file, `logos/${profile.id}`);
+            if (url) {
+                const { error } = await supabase.from('restaurants').update({ logo_url: url }).eq('id', profile.id);
+                if (error) throw error;
+                setProfile({ ...profile, logo_url: url });
+                toast.success(language === "ar" ? "تم تحديث اللوجو بنجاح!" : "Logo updated successfully!");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error(language === "ar" ? "فشل حفظ اللوجو في قاعدة البيانات" : "Failed to save logo to database");
+        } finally {
+            setUploadingLogo(false);
         }
-        setUploadingLogo(false);
+    };
+
+    const handleReceiptLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !profile) return;
+        setUploadingReceiptLogo(true);
+        try {
+            const url = await uploadImage(file, `receipt_logos/${profile.id}`);
+            if (url) {
+                const { error } = await supabase.from('restaurants').update({ receipt_logo_url: url }).eq('id', profile.id);
+                if (error) throw error;
+                setProfile({ ...profile, receipt_logo_url: url });
+                toast.success(language === "ar" ? "تم تحديث لوجو الفاتورة بنجاح!" : "Receipt logo updated successfully!");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error(language === "ar" ? "فشل حفظ لوجو الفاتورة في قاعدة البيانات (تأكد من تطبيق كود SQL)" : "Failed to save receipt logo to database (Make sure SQL is applied)");
+        } finally {
+            setUploadingReceiptLogo(false);
+        }
     };
 
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +285,7 @@ export default function SettingsPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Logo */}
                         <div className="space-y-3">
-                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "لوجو المطعم" : "Restaurant Logo"}</label>
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "لوجو المطعم (للمنيو)" : "Restaurant Logo (Menu)"}</label>
                             <div className="flex items-center gap-4">
                                 <div className="w-20 h-20 rounded-full border-2 border-glass-border flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-black/20 flex-shrink-0">
                                     {profile.logo_url ? (
@@ -263,6 +300,27 @@ export default function SettingsPage() {
                                         className="flex items-center gap-2 px-4 py-2 bg-blue/10 text-blue font-bold text-base rounded-xl hover:bg-blue/20 transition-colors disabled:opacity-50">
                                         <Upload className="w-5 h-5" />
                                         {uploadingLogo ? (language === "ar" ? "جاري الرفع..." : "Uploading...") : (language === "ar" ? "رفع لوجو" : "Upload Logo")}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Receipt Logo */}
+                        <div className="space-y-3">
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "لوجو الفاتورة (للطباعة)" : "Receipt Logo (Printing)"}</label>
+                            <div className="flex items-center gap-4">
+                                <div className="w-20 h-20 rounded-xl border-2 border-glass-border flex items-center justify-center overflow-hidden bg-white dark:bg-black/20 flex-shrink-0">
+                                    {profile.receipt_logo_url ? (
+                                        <img src={profile.receipt_logo_url} alt="Receipt Logo" className="w-full h-full object-contain" />
+                                    ) : (
+                                        <ImageIcon className="w-8 h-8 text-silver/40" />
+                                    )}
+                                </div>
+                                <div>
+                                    <input ref={receiptLogoInputRef} type="file" accept="image/*" className="hidden" onChange={handleReceiptLogoUpload} />
+                                    <button type="button" onClick={() => receiptLogoInputRef.current?.click()} disabled={uploadingReceiptLogo}
+                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-base rounded-xl hover:bg-emerald-500/20 transition-colors disabled:opacity-50">
+                                        <Upload className="w-5 h-5" />
+                                        {uploadingReceiptLogo ? (language === "ar" ? "جاري الرفع..." : "Uploading...") : (language === "ar" ? "رفع لوجو الفاتورة" : "Upload Receipt Logo")}
                                     </button>
                                 </div>
                             </div>
@@ -352,6 +410,11 @@ export default function SettingsPage() {
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "أوقات العمل" : "Working Hours"}</label>
                             <input type="text" value={profile.working_hours || ''} onChange={e => setProfile({ ...profile, working_hours: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: من 10 صباحاً إلى 2 صباحاً" : "e.g., 10 AM to 2 AM"} />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "عنوان المكان" : "Restaurant Address"}</label>
+                            <input type="text" value={profile.address || ''} onChange={e => setProfile({ ...profile, address: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: شارع النيل، المعادي، القاهرة" : "e.g., El Nile St, Maadi, Cairo"} />
                         </div>
                     </div>
                 </div>

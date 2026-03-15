@@ -5,10 +5,11 @@ import { useRestaurant } from "@/lib/hooks/useRestaurant";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
-import { formatCurrency, formatDate, statusLabel, statusColor, nextStatuses, elapsedTime, timeAgo } from "@/lib/helpers/formatters";
-import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff, Monitor, Globe } from "lucide-react";
+import { formatCurrency, formatQuantity, formatDate, statusLabel, statusColor, nextStatuses, elapsedTime, timeAgo } from "@/lib/helpers/formatters";
+import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff, Monitor, Globe, Edit2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getReceiptStyles } from "@/lib/helpers/printerSettings";
+import { useRouter } from "next/navigation";
 
 type OrderItem = {
     title: string;
@@ -16,11 +17,14 @@ type OrderItem = {
     price: number;
     size?: string;
     category?: string;
+    weight_unit?: string;
 };
 type Order = {
     id: string; order_number: number; status: string; items: OrderItem[];
-    subtotal: number; discount: number; total: number; payment_method: string;
-    customer_name?: string; customer_phone?: string; table_id?: string; notes?: string;
+    subtotal: number; discount: number; total: number; deposit_amount: number; payment_method: string;
+    customer_name?: string; customer_phone?: string; customer_address?: string; table_id?: string; notes?: string;
+    delivery_driver_id?: string; delivery_driver_name?: string; delivery_fee?: number;
+    order_type?: string;
     created_at: string; updated_at: string;
     source?: string; // 'pos' for cashier, null/undefined for website
     cashier_name?: string;
@@ -29,6 +33,7 @@ type Order = {
 type OrderLog = { id: string; action: string; old_status?: string; new_status?: string; performed_by?: string; created_at: string };
 
 export default function OrdersPage() {
+    const router = useRouter();
     const { language } = useLanguage();
     const { restaurantId, restaurant } = useRestaurant();
     const isAr = language === "ar";
@@ -61,9 +66,15 @@ export default function OrdersPage() {
             subtotal: o.subtotal || 0,
             discount: o.discount || 0,
             total: o.total || 0,
+            deposit_amount: o.deposit_amount || 0,
             payment_method: o.payment_method || "cash",
             customer_name: o.customer_name,
             customer_phone: o.customer_phone,
+            customer_address: o.customer_address,
+            delivery_driver_id: o.delivery_driver_id,
+            delivery_driver_name: o.delivery_driver_name,
+            delivery_fee: o.delivery_fee,
+            order_type: o.order_type,
             notes: o.notes,
             source: 'pos',
             cashier_name: o.cashier_name,
@@ -157,73 +168,84 @@ export default function OrdersPage() {
     };
 
     const printOrderReceipt = (order: Order) => {
-        const itemsHtml = order.items.map(item =>
-            `<tr>
-                <td style="padding:4px 0;font-size:14px;">
-                    ${item.category ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${item.category}<br/></span>` : ''}
-                    ${item.title}${item.size && item.size !== 'عادي' ? ` (${item.size})` : ''}
-                </td>
-                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold;direction:rtl;">${item.qty}</td>
-                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold;">${formatCurrency(item.price * item.qty)}</td>
-            </tr>`
-        ).join('');
+        const restName = restaurant?.name || 'Restaurant';
+        const orderTypeLabel = order.order_type === 'dine_in' ? 'صالة' : order.order_type === 'delivery' ? 'دليفري' : 'تيك أواي';
         
-        let customerHtml = '';
-        if (order.customer_name || order.customer_phone) {
-            customerHtml = `<div class="divider"></div><div style="font-size:14px;">`;
-            if (order.customer_name) customerHtml += `<p style="margin:2px 0">العميل: <strong>${order.customer_name}</strong></p>`;
-            if (order.customer_phone) customerHtml += `<p style="margin:2px 0" dir="ltr">هاتف: <strong>${order.customer_phone}</strong></p>`;
-            customerHtml += `</div>`;
-        }
-        
-        const notesHtml = order.notes ? `<div class="divider"></div><div style="font-size:14px;"><p style="margin:2px 0">ملاحظات: <strong>${order.notes}</strong></p></div>` : '';
-        const discountHtml = order.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px;"><span>الخصم</span><span>-${formatCurrency(order.discount)}</span></div>` : '';
-        const paymentMethodLabel = order.payment_method === "cash" ? "كاش" : order.payment_method === "deposit" ? "عربون" : order.payment_method;
+        const itemsHtml = order.items.map(item => {
+            const fmt = formatQuantity(item.qty, item.weight_unit || (isAr ? 'قطعة' : 'unit'), isAr);
+            const title = item.weight_unit
+                ? `(${fmt.qty} ${fmt.unit}) ${item.title}`
+                : item.title + (item.size && item.size !== 'عادي' ? ` (${item.size})` : '');
+            const qtyStr = item.weight_unit ? '1' : `${fmt.qty}`;
+            return `<tr>
+                <td style="padding:4px 0;font-size:14px">${item.category ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${item.category}<br/></span>` : ''}${title}</td>
+                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold">${qtyStr}</td>
+                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold">${formatCurrency(item.price * item.qty)}</td>
+            </tr>`;
+        }).join('');
 
-        const printWindow = window.open('', '_blank', 'width=300,height=600');
-        if (!printWindow) return;
-        printWindow.document.write(`
-            <html><head><title>Receipt #${order.order_number}</title>
-            <style>${getReceiptStyles()}</style></head><body>
-            
-            <div class="text-center" style="margin-bottom: 15px;">
-                <p class="font-bold" style="font-size: 22px; margin: 0 0 5px 0;">${restaurant?.name || "Restaurant"}</p>
-                <p style="font-size: 14px; margin: 0 0 5px 0;">${new Date(order.created_at).toLocaleDateString('ar-EG')} - ${new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
-                <p class="font-bold" style="font-size: 18px; margin: 0;">فاتورة رقم #${order.order_number}</p>
-            </div>
-            
-            ${customerHtml}
-            ${notesHtml}
-            
-            <div class="divider"></div>
-            <table>
-                <thead><tr>
-                    <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px;">الصنف</td>
-                    <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px;">الكمية</td>
-                    <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px;">المبلغ</td>
-                </tr></thead>
-                <tbody>${itemsHtml}</tbody>
-            </table>
-            
-            <div class="divider"></div>
-            ${discountHtml}
-            <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px;">
-                <span>الإجمالي</span><span>${formatCurrency(order.total)}</span>
-            </div>
-            
-            <div class="divider"></div>
-            <div class="text-center" style="font-size:13px;font-weight:bold;">
-                طريقة الدفع: <strong>${paymentMethodLabel}</strong>
-            </div>
-            <div class="text-center" style="font-size:13px;margin-top:20px;font-weight:bold;">
-                <p style="margin: 0;">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p>
-            </div>
-            
-            </body></html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
+        const pw = window.open('', '_blank', 'width=300,height=600');
+        if (pw) {
+            pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>
+                <div style="text-align:center;margin-bottom:15px">
+                    ${(restaurant?.receipt_logo_url || restaurant?.logo_url) ? `<img src="${restaurant.receipt_logo_url || restaurant.logo_url}" alt="Logo" style="width:80px;height:80px;object-fit:contain;margin-bottom:10px;margin-left:auto;margin-right:auto;display:block" />` : ''}
+                    <p style="font-weight:bold;font-size:22px;margin:0 0 5px 0">${restaurant?.name || 'Restaurant'}</p>
+                    ${restaurant?.phone ? `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${restaurant.phone}</p>` : ''}
+                    ${restaurant?.phone_numbers?.map(p => `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${p.number}</p>`).join('') || ''}
+                    ${restaurant?.address ? `<p style="font-size:14px;margin:0 0 5px 0">${restaurant.address}</p>` : ''}
+                    <p style="font-size:14px;margin:0 0 5px 0">${new Date(order.created_at).toLocaleDateString('ar-EG')} - ${new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p style="font-weight:bold;font-size:18px;margin:0 0 5px 0">فاتورة رقم #${order.order_number}</p>
+                    <p style="font-size:16px;font-weight:bold;margin:0;display:inline-block;border:1px solid #000;padding:2px 6px;border-radius:4px">${orderTypeLabel}</p>
+                </div>
+                ${(order.customer_name || order.customer_phone) ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px">
+                    ${order.customer_name ? `<p style="margin:2px 0">العميل: ${order.customer_name}</p>` : ''}
+                    ${order.customer_phone ? `<p style="margin:2px 0" dir="ltr">${order.customer_phone}</p>` : ''}
+                    ${order.customer_address ? `<p style="margin:2px 0">العنوان: ${order.customer_address}</p>` : ''}
+                </div>` : ''}
+                ${order.notes ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px"><p style="margin:2px 0">ملاحظات: <strong>${order.notes}</strong></p></div>` : ''}
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+                    <thead><tr>
+                        <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الصنف</td>
+                        <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الكمية</td>
+                        <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">المبلغ</td>
+                    </tr></thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                ${order.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px"><span>الخصم</span><span>-${formatCurrency(order.discount)}</span></div>` : ''}
+                ${(order.delivery_fee || 0) > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#0891b2"><span>🚚 حساب الدليفري ${order.delivery_driver_name ? `(${order.delivery_driver_name})` : ''}</span><span>+${formatCurrency(order.delivery_fee || 0)}</span></div>` : ''}
+                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px"><span>الإجمالي</span><span>${formatCurrency(order.total)}</span></div>
+                ${order.payment_method === 'deposit' && order.deposit_amount > 0 ? `
+                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;color:#d97706;margin-top:8px"><span>المدفوع (عربون)</span><span>${formatCurrency(order.deposit_amount)}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#dc2626;margin-top:4px"><span>الباقي</span><span>${formatCurrency(Math.max(0, order.total - order.deposit_amount))}</span></div>
+                ` : ''}
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                <div style="font-size:13px;font-weight:bold;text-align:center">طريقة الدفع: <strong>${order.payment_method === 'cash' ? 'كاش' : order.payment_method === 'deposit' ? 'عربون' : order.payment_method}</strong></div>
+                <div style="text-align:center;font-size:13px;margin-top:20px;font-weight:bold"><p style="margin:0">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
+                <script>
+                    window.onload = function() {
+                        const imgs = document.getElementsByTagName('img');
+                        if (imgs.length === 0) {
+                            window.print();
+                        } else {
+                            let loaded = 0;
+                            const finish = () => {
+                                loaded++;
+                                if (loaded >= imgs.length) {
+                                    window.print();
+                                }
+                            };
+                            for (let img of imgs) {
+                                if (img.complete) finish();
+                                else { img.onload = finish; img.onerror = finish; }
+                            }
+                        }
+                    };
+                </script>
+            </body></html>`);
+            pw.document.close(); pw.focus();
+        }
     };
 
     const filteredOrders = orders.filter(o => {
@@ -362,12 +384,29 @@ export default function OrdersPage() {
                                     </div>
                                     
                                     <div className="flex items-center justify-between sm:justify-end gap-4 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-zinc-800/20">
-                                        <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(order.total)}</span>
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(order.total)}</span>
+                                            {order.total - order.deposit_amount > 0 ? (
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-[10px] font-bold text-emerald-600">{isAr ? "عربون: " : "Dep: "}{formatCurrency(order.deposit_amount)}</span>
+                                                    <span className="text-[10px] font-bold text-red-500">{isAr ? "متبقي: " : "Rem: "}{formatCurrency(order.total - order.deposit_amount)}</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] font-bold text-emerald-500 opacity-60">
+                                                    {isAr ? "تم استلام المبلغ" : "Amount Received"}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
                                                 title={isAr ? "طباعة الفاتورة" : "Print Receipt"}
                                                 className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition">
                                                 <Printer className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/pos?edit=${order.id}`); }}
+                                                title={isAr ? "تعديل الطلب" : "Edit Order"}
+                                                className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition">
+                                                <Edit2 className="w-4 h-4" />
                                             </button>
                                             {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-500 dark:text-zinc-500" /> : <ChevronDown className="w-5 h-5 text-slate-500 dark:text-zinc-500" />}
                                         </div>
@@ -385,7 +424,17 @@ export default function OrdersPage() {
                                                     {order.items.map((item, i) => (
                                                         <div key={i} className="flex items-center justify-between py-1.5 border-b border-slate-200 dark:border-zinc-800/30 last:border-0 text-base">
                                                             <div className="flex flex-col gap-0.5">
-                                                                <span className="text-slate-700 dark:text-zinc-300">{item.title} {item.size && item.size !== 'عادي' ? `(${item.size})` : ""} × {item.qty}</span>
+                                                                <span className="text-slate-700 dark:text-zinc-300">
+                                                                    {(() => {
+                                                                        const fmt = formatQuantity(item.qty, item.weight_unit || (isAr ? 'قطعة' : 'unit'), isAr);
+                                                                        return (
+                                                                            <>
+                                                                                {item.title} {item.size && item.size !== 'عادي' ? `(${item.size})` : ""} 
+                                                                                {item.weight_unit ? ` (${fmt.qty} ${fmt.unit})` : ""} × {item.weight_unit ? '1' : fmt.qty}
+                                                                            </>
+                                                                        );
+                                                                    })()}
+                                                                </span>
                                                                 {item.category && <span className="text-xs text-slate-500 dark:text-zinc-500">🗂️ {item.category}</span>}
                                                             </div>
                                                             <span className="text-slate-500 dark:text-zinc-400 font-bold">{formatCurrency(item.price * item.qty)}</span>
@@ -395,12 +444,30 @@ export default function OrdersPage() {
                                                         <span className="text-slate-500 dark:text-zinc-400">{isAr ? "الإجمالي" : "Total"}</span>
                                                         <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(order.total)}</span>
                                                     </div>
+                                                    <div className="flex justify-between text-xs font-bold mt-1">
+                                                        <span className="text-slate-500 dark:text-zinc-400">{isAr ? "المدفوع (العربون)" : "Paid (Deposit)"}</span>
+                                                        <span className="text-blue-500">{formatCurrency(order.deposit_amount)}</span>
+                                                    </div>
+                                                    {order.total - order.deposit_amount > 0 && (
+                                                        <div className="flex justify-between text-xs font-bold mt-0.5">
+                                                            <span className="text-slate-500 dark:text-zinc-400">{isAr ? "المتبقي" : "Remaining"}</span>
+                                                            <span className="text-red-500">{formatCurrency(order.total - order.deposit_amount)}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Info Grid */}
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                                                     {order.customer_phone && <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "الهاتف" : "Phone"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold" dir="ltr">{order.customer_phone}</span></div>}
-                                                    <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "الدفع" : "Payment"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold">{order.payment_method}</span></div>
+                                                    <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg">
+                                                        <span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "الدفع" : "Payment"}</span>
+                                                        <span className="text-slate-700 dark:text-zinc-300 font-bold">
+                                                            {((order.total - order.deposit_amount) <= 0 || order.payment_method === 'cash') 
+                                                                ? (isAr ? "تم استلام المبلغ" : "Amount Received")
+                                                                : (isAr ? `عربون: ${order.deposit_amount} - متبقي: ${order.total - order.deposit_amount}` : `Dep: ${order.deposit_amount} - Rem: ${order.total - order.deposit_amount}`)
+                                                            }
+                                                        </span>
+                                                    </div>
                                                     <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "التاريخ" : "Date"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold">{formatDate(order.created_at)}</span></div>
                                                     {order.notes && <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg col-span-2"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "ملاحظات" : "Notes"}</span><span className="text-slate-700 dark:text-zinc-300">{order.notes}</span></div>}
                                                 </div>
@@ -418,28 +485,30 @@ export default function OrdersPage() {
                                                 )}
 
                                                 {/* Print Receipt Button */}
-                                                <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
-                                                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all active:scale-95 border border-emerald-200 dark:border-glass-border">
-                                                    <Printer className="w-4 h-4" />
-                                                    {isAr ? "طباعة الفاتورة" : "Print Receipt"}
-                                                </button>
+                                                <div className="flex gap-2">
+                                                    <button onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
+                                                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all active:scale-95 border border-emerald-200 dark:border-glass-border">
+                                                        <Printer className="w-4 h-4" />
+                                                        {isAr ? "طباعة الفاتورة" : "Print Receipt"}
+                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/pos?edit=${order.id}`); }}
+                                                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all active:scale-95 border border-blue-200 dark:border-zinc-800/20">
+                                                        <Edit2 className="w-4 h-4" />
+                                                        {isAr ? "تعديل الطلب" : "Edit Order"}
+                                                    </button>
+                                                </div>
 
                                                 {/* Activity Log */}
-                                                {orderLogs[order.id] && orderLogs[order.id].length > 0 && (
+                                                {orderLogs[order.id] && orderLogs[order.id].filter(l => l.action === 'status_change').length > 0 && (
                                                     <div className="bg-slate-50 dark:bg-black/20 rounded-xl p-3">
                                                         <h4 className="text-xs font-bold text-slate-500 dark:text-zinc-400 mb-2 uppercase flex items-center gap-1"><FileText className="w-3 h-3" /> {isAr ? "سجل النشاط" : "Activity Log"}</h4>
-                                                        {orderLogs[order.id].map(log => (
+                                                        {orderLogs[order.id].filter(l => l.action === 'status_change').map(log => (
                                                             <div key={log.id} className="flex flex-col gap-1 text-[10px] py-1 border-b border-slate-100 dark:border-zinc-800/20 last:border-0">
                                                                 <div className="flex items-center gap-2">
                                                                     <span className="text-slate-500 dark:text-zinc-500">{timeAgo(log.created_at, isAr)}</span>
                                                                     {log.old_status && <span className={`px-1.5 py-0.5 rounded ${statusColor(log.old_status)}`}>{statusLabel(log.old_status, isAr)}</span>}
                                                                     {log.new_status && <><span className="text-slate-400 dark:text-zinc-600">→</span><span className={`px-1.5 py-0.5 rounded ${statusColor(log.new_status)}`}>{statusLabel(log.new_status, isAr)}</span></>}
                                                                 </div>
-                                                                {log.action && !log.action.includes('status_') && (
-                                                                    <div className="text-indigo-600 dark:text-indigo-400 font-mono mt-1 px-1 bg-indigo-50 dark:bg-indigo-900/20 rounded">
-                                                                        {log.action}
-                                                                    </div>
-                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>

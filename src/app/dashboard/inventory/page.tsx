@@ -6,12 +6,14 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { manualStockAdjustment } from "@/lib/helpers/inventoryService";
 import { recalculateAllRecipeCosts } from "@/lib/helpers/costService";
+import { formatQuantity } from "@/lib/helpers/formatters";
 import {
     Warehouse, Plus, Search, Edit3, Trash2, AlertTriangle,
-    Package, ArrowUpCircle, ArrowDownCircle, X, Save, Filter
+    Package, ArrowUpCircle, ArrowDownCircle, X, Save, Filter, Printer
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { getFactoryPrintStyles } from "@/lib/helpers/printerSettings";
 
 type InventoryItem = {
     id: string;
@@ -30,18 +32,25 @@ type InventoryItem = {
     created_at: string;
 };
 
-const UNITS = ['كيلو', 'وحدة', 'لتر', 'باكيت', 'جرام', 'قطعة'];
+const UNITS = [
+    { key: 'kg', label: 'كيلو' },
+    { key: 'piece', label: 'قطعة' },
+    { key: 'liter', label: 'لتر' },
+    { key: 'pack', label: 'باكيت' },
+    { key: 'gram', label: 'جرام' },
+    { key: 'unit', label: 'وحدة' }
+];
 const ITEM_TYPES = ['raw_material', 'product'];
 
 const emptyForm = {
-    name: '', quantity: 0, unit: 'كيلو', minimum_stock: 0, item_type: 'raw_material',
+    name: '', quantity: 0, unit: 'kg', minimum_stock: 0, item_type: 'raw_material',
     cost_per_unit: 0, currency: 'EGP', supplier: '', expiry_tracking: false,
     expiry_date: '', category: '', is_active: true
 };
 
 export default function InventoryPage() {
     const { language } = useLanguage();
-    const { restaurantId } = useRestaurant();
+    const { restaurantId, restaurant } = useRestaurant();
     const isAr = language === "ar";
 
     const [items, setItems] = useState<InventoryItem[]>([]);
@@ -82,24 +91,40 @@ export default function InventoryPage() {
 
     const handleSave = async () => {
         if (!restaurantId || !form.name.trim()) return;
-        const payload = {
-            restaurant_id: restaurantId, name: form.name.trim(), quantity: form.quantity,
-            unit: form.unit, minimum_stock: form.minimum_stock, item_type: form.item_type,
-            cost_per_unit: form.cost_per_unit, currency: form.currency,
-            supplier: form.supplier || null, expiry_tracking: form.expiry_tracking,
-            expiry_date: form.expiry_date || null, category: form.category || null,
-            is_active: form.is_active, updated_at: new Date().toISOString()
-        };
-        if (editId) {
-            await supabase.from('inventory_items').update(payload).eq('id', editId);
-            toast.success(isAr ? "تم التحديث" : "Item updated");
-        } else {
-            await supabase.from('inventory_items').insert(payload);
-            toast.success(isAr ? "تمت الإضافة" : "Item added");
+        setLoading(true);
+        try {
+            const payload = {
+                restaurant_id: restaurantId, name: form.name.trim(), quantity: form.quantity,
+                unit: form.unit, minimum_stock: form.minimum_stock, item_type: form.item_type,
+                cost_per_unit: form.cost_per_unit, currency: form.currency,
+                supplier: form.supplier || null, expiry_tracking: form.expiry_tracking,
+                expiry_date: form.expiry_date || null, category: form.category || null,
+                is_active: form.is_active, updated_at: new Date().toISOString()
+            };
+            
+            if (editId) {
+                const { error } = await supabase.from('inventory_items').update(payload).eq('id', editId);
+                if (error) throw error;
+                toast.success(isAr ? "تم التحديث" : "Item updated");
+            } else {
+                const { error } = await supabase.from('inventory_items').insert(payload);
+                if (error) throw error;
+                toast.success(isAr ? "تمت الإضافة" : "Item added");
+            }
+
+            // Recalculate all recipe costs if anything changed (especially cost)
+            await recalculateAllRecipeCosts(restaurantId);
+            
+            setShowModal(false); 
+            setEditId(null); 
+            setForm(emptyForm); 
+            await fetchItems();
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error(isAr ? "حدث خطأ أثناء الحفظ" : "Error saving item");
+        } finally {
+            setLoading(false);
         }
-        // Recalculate all recipe costs if anything changed (especially cost)
-        await recalculateAllRecipeCosts(restaurantId);
-        setShowModal(false); setEditId(null); setForm(emptyForm); fetchItems();
     };
 
     const handleDelete = async (id: string) => {
@@ -118,6 +143,71 @@ export default function InventoryPage() {
         } else {
             toast.error(result.error || (isAr ? "خطأ" : "Error"));
         }
+    };
+
+    const handlePrint = () => {
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (!printWindow) return;
+
+        const tableRows = filtered.map(item => {
+            const qtyInfo = displayQtyInfo(item.quantity, item.unit);
+            return `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.name}</td>
+                    <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.item_type === 'raw_material' ? (isAr ? 'مواد خام' : 'Raw Material') : (isAr ? 'منتج' : 'Product')}</td>
+                    <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">${qtyInfo.qty} ${qtyInfo.unit}</td>
+                    <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.cost_per_unit} ${item.currency}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const html = `
+            <!DOCTYPE html>
+            <html lang="${isAr ? 'ar' : 'en'}" dir="${isAr ? 'rtl' : 'ltr'}">
+            <head>
+                <title>${isAr ? 'تقرير المخزون' : 'Inventory Report'}</title>
+                <style>
+                    ${getFactoryPrintStyles(isAr ? 'rtl' : 'ltr')}
+                    table { border: 1px solid #e2e8f0; margin-top: 20px; }
+                    th { border: 1px solid #e2e8f0; background: #f8fafc; }
+                    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #0f172a; padding-bottom: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="header-top">
+                    <div>
+                        <h1 style="margin: 0;">${isAr ? 'تقرير جرد المخزون' : 'Inventory Stock Report'}</h1>
+                        <p style="margin: 5px 0 0 0; color: #64748b;">${restaurant?.name || ''}</p>
+                    </div>
+                    <div style="text-align: ${isAr ? 'left' : 'right'};">
+                        <p style="margin: 0; font-weight: bold;">${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</p>
+                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">${isAr ? 'عدد الأصناف: ' : 'Total Items: '}${filtered.length}</p>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'الصنف' : 'Item'}</th>
+                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'النوع' : 'Type'}</th>
+                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'الكمية' : 'Qty'}</th>
+                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'التكلفة' : 'Cost'}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+                <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; pt-10; font-size: 12px; color: #94a3b8; text-align: center;">
+                    ${isAr ? 'تم إنشاء التقرير آلياً بواسطة نظام ASN' : 'Report generated automatically by ASN System'}
+                </div>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 500);
     };
 
     const openEdit = (item: InventoryItem) => {
@@ -154,12 +244,9 @@ export default function InventoryPage() {
         lowStock: lowStockItems.length
     }), [items, lowStockItems]);
 
-    const displayUnit = useCallback((u: string) => {
-        if (!isAr || !u) return u || "";
-        const unitMap: Record<string, string> = {
-            'kg': 'كيلو', 'piece': 'وحدة', 'liter': 'لتر', 'pack': 'باكيت', 'gram': 'جرام', 'unit': 'وحدة', 'كيلو': 'كيلو', 'وحدة': 'وحدة', 'لتر': 'لتر', 'باكيت': 'باكيت', 'جرام': 'جرام', 'قطعة': 'قطعة'
-        };
-        return unitMap[u.toLowerCase()] || u;
+    const displayQtyInfo = useCallback((qty: number, unit: string) => {
+        const fmt = formatQuantity(qty, unit, isAr);
+        return { qty: fmt.qty, unit: fmt.unit };
     }, [isAr]);
 
     if (loading && items.length === 0) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
@@ -175,10 +262,16 @@ export default function InventoryPage() {
                     </h1>
                     <p className="text-slate-500 dark:text-zinc-400 text-base mt-1">{isAr ? "إدارة المواد الخام والمنتجات في المستودع" : "Manage raw materials and products in warehouse"}</p>
                 </div>
-                <button onClick={() => { setEditId(null); setForm(emptyForm); setShowModal(true); }}
-                    className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
-                    <Plus className="w-5 h-5" /> {isAr ? "إضافة صنف" : "Add Item"}
-                </button>
+                <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto">
+                    <button onClick={handlePrint}
+                        className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm hover:bg-slate-50 transition-all active:scale-95">
+                        <Printer className="w-5 h-5" /> {isAr ? "طباعة الجرد" : "Print Inventory"}
+                    </button>
+                    <button onClick={() => { setEditId(null); setForm(emptyForm); setShowModal(true); }}
+                        className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
+                        <Plus className="w-5 h-5" /> {isAr ? "إضافة صنف" : "Add Item"}
+                    </button>
+                </div>
             </div>
 
             {/* Low Stock Alert */}
@@ -191,11 +284,15 @@ export default function InventoryPage() {
                         <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-500/20 px-2 py-0.5 rounded-full">{lowStockItems.length}</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {lowStockItems.map(i => (
-                            <span key={i.id} className="text-sm bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-lg font-medium">
-                                {i.name}: {i.quantity} {displayUnit(i.unit)} ({isAr ? "الحد الأدنى" : "min"}: {i.minimum_stock})
-                            </span>
-                        ))}
+                        {lowStockItems.map(i => {
+                            const fmt = displayQtyInfo(i.quantity, i.unit);
+                            const minFmt = displayQtyInfo(i.minimum_stock, i.unit);
+                            return (
+                                <span key={i.id} className="text-sm bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-lg font-medium">
+                                    {i.name}: {fmt.qty} {fmt.unit} ({isAr ? "الحد الأدنى" : "min"}: {minFmt.qty} {minFmt.unit})
+                                </span>
+                            );
+                        })}
                     </div>
                 </motion.div>
             )}
@@ -265,9 +362,11 @@ export default function InventoryPage() {
                                                 {item.item_type === 'raw_material' ? (isAr ? "خام" : "Raw") : (isAr ? "منتج" : "Product")}
                                             </span>
                                         </td>
-                                        <td className={`px-4 py-3 font-extrabold ${isLow ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-zinc-300'}`}>{item.quantity}</td>
-                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{displayUnit(item.unit)}</td>
-                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{item.minimum_stock}</td>
+                                        <td className={`px-4 py-3 font-extrabold ${isLow ? 'text-amber-600 dark:text-amber-400' : 'text-slate-700 dark:text-zinc-300'}`}>
+                                            {displayQtyInfo(item.quantity, item.unit).qty}
+                                        </td>
+                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{displayQtyInfo(item.quantity, item.unit).unit}</td>
+                                        <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{displayQtyInfo(item.minimum_stock, item.unit).qty}</td>
                                         <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{item.cost_per_unit} {item.currency}</td>
                                         <td className="px-4 py-3 text-slate-500 dark:text-zinc-500">{item.supplier || "—"}</td>
                                         <td className="px-4 py-3">
@@ -320,7 +419,7 @@ export default function InventoryPage() {
                                         <label className="text-sm font-bold text-slate-600 dark:text-zinc-400 mb-1 block">{isAr ? "الوحدة" : "Unit"}</label>
                                         <select value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })}
                                             className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-zinc-700/50 rounded-xl text-slate-900 dark:text-white outline-none appearance-none">
-                                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                            {UNITS.map(u => <option key={u.key} value={u.key}>{isAr ? u.label : u.key}</option>)}
                                         </select>
                                     </div>
                                 </div>

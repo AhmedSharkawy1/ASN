@@ -33,12 +33,14 @@ export type PosMenuItem = {
 };
 
 export type PosOrderItem = {
+    id?: string;
     title: string;
     qty: number;
     price: number;
     size?: string;
     category?: string;
     note?: string;
+    weight_unit?: string;
 };
 
 export type PosOrder = {
@@ -61,6 +63,8 @@ export type PosOrder = {
     cashier_id?: string;
     cashier_name?: string;
     notes?: string;
+    deposit_amount?: number;
+    order_type?: string;
     status: string;
     is_draft?: boolean;
     created_at: string;

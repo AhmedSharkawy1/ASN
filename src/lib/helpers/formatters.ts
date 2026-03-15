@@ -77,3 +77,37 @@ export function elapsedTime(createdAt: string | Date, isAr: boolean = true): { t
     const rem = mins % 60;
     return { text: isAr ? `${hrs} ساعة ${rem} دقيقة` : `${hrs}h ${rem}m`, isDelayed };
 }
+
+// Quantity and Unit Formatter
+export function formatQuantity(qty: number, unit: string, isAr: boolean = true): { qty: string; unit: string } {
+    let finalQty = Number(qty.toFixed(3));
+    let finalUnit = unit;
+
+    const kgUnits = ['kg', 'kilogram', 'كيلو', 'كجم'];
+    const isKg = kgUnits.includes(unit.toLowerCase());
+
+    if (isKg && finalQty < 1 && finalQty > 0) {
+        finalQty = Number((finalQty * 1000).toFixed(0));
+        finalUnit = isAr ? 'جرام' : 'gram';
+    } else {
+        // Just clean up trailing zeros from toFixed(3)
+        finalQty = Number(finalQty.toFixed(3));
+    }
+
+    // Map units for display labels if needed
+    const unitMap: Record<string, { ar: string, en: string }> = {
+        kg: { ar: 'كيلو', en: 'kg' },
+        gram: { ar: 'جرام', en: 'gram' },
+        piece: { ar: 'قطعة', en: 'piece' },
+        liter: { ar: 'لتر', en: 'liter' },
+        pack: { ar: 'باكيت', en: 'pack' },
+        unit: { ar: 'وحدة', en: 'unit' }
+    };
+
+    const label = unitMap[finalUnit.toLowerCase()]?.[isAr ? 'ar' : 'en'] || finalUnit;
+
+    return { 
+        qty: finalQty.toString(), 
+        unit: label 
+    };
+}

@@ -5,17 +5,20 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { formatCurrency } from "@/lib/helpers/formatters";
+import { formatCurrency, formatQuantity } from "@/lib/helpers/formatters";
 import { posDb, generateId, getPosNextOrderNumber } from "@/lib/pos-db";
 import type { PosCategory, PosMenuItem, PosOrder, PosCustomer, PosStaffUser } from "@/lib/pos-db";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
 import { getReceiptStyles } from "@/lib/helpers/printerSettings";
+import { useSearchParams, useRouter } from "next/navigation";
+import { revertOrderInventory } from "@/lib/helpers/inventoryService";
+import { toast } from "sonner";
 import {
-    CreditCard, Plus, Minus, Trash2, ShoppingCart, Search, Percent,
+    Plus, Minus, Trash2, ShoppingCart, Search, Percent,
     DollarSign, Save, X, Printer, Clock, Banknote,
-    PauseCircle, Play, StickyNote, Users,
+    PauseCircle, Play, StickyNote, Users, MapPin,
     LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
-    Package, Truck, Wifi, WifiOff, Maximize2, Minimize2
+    Package, Truck, Wifi, WifiOff, Monitor
 } from "lucide-react";
 
 /* ═══════════════════════════ TYPES ═══════════════════════════ */
@@ -27,8 +30,11 @@ type CartItem = {
 
 /* ═══════════════════════════ COMPONENT ═══════════════════════════ */
 export default function POSPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const editId = searchParams.get("edit");
     const { language } = useLanguage();
-    const { restaurantId } = useRestaurant();
+    const { restaurantId, restaurant } = useRestaurant();
     const isAr = language === "ar";
 
     /* ── Data state ── */
@@ -41,7 +47,6 @@ export default function POSPage() {
     const [isOnline, setIsOnline] = useState(true);
 
     /* ── UI state ── */
-    const [isCartCompact, setIsCartCompact] = useState(false);
     const [activeCategory, setActiveCategory] = useState<string>("");
     const [searchQ, setSearchQ] = useState("");
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -76,6 +81,8 @@ export default function POSPage() {
     const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
     const [weightPrompt, setWeightPrompt] = useState<{ item: PosMenuItem, sizeIdx: number, editingIndex?: number } | null>(null);
     const [weightInput, setWeightInput] = useState<string>("");
+    const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+    const [originalOrderNumber, setOriginalOrderNumber] = useState<number | null>(null);
 
     const searchRef = useRef<HTMLInputElement>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
@@ -162,6 +169,76 @@ export default function POSPage() {
         if (!restaurantId) return;
         pullFromSupabase(restaurantId).then(() => loadData());
     }, [restaurantId, loadData]);
+
+    /* ── Load existing order for editing ── */
+    useEffect(() => {
+        const loadOrderToEdit = async () => {
+            if (!editId || !restaurantId || menuItems.length === 0) return;
+            
+            // Avoid reloading same order
+            if (editingOrderId === editId) return;
+
+            try {
+                // Try Dexie first
+                let order = await posDb.orders.get(editId);
+                
+                // Fallback to Supabase if not in Dexie
+                if (!order) {
+                    const { data } = await supabase.from('orders').select('*').eq('id', editId).single();
+                    if (data) order = data as PosOrder;
+                }
+
+                if (order) {
+                    setEditingOrderId(order.id);
+                    setOriginalOrderNumber(order.order_number);
+                    
+                    // Map items back to CartItems
+                    const restoredCart: CartItem[] = order.items.map(item => {
+                        const m = menuItems.find(mm => mm.id === item.id || mm.title_ar === item.title);
+                        return {
+                            menuItem: m || { 
+                                id: item.id || "manual", 
+                                title_ar: item.title, 
+                                prices: [item.price], 
+                                category_id: "", 
+                                restaurant_id: restaurantId, 
+                                is_available: true 
+                            } as PosMenuItem,
+                            qty: item.qty,
+                            selectedSizeIdx: m?.size_labels?.indexOf(item.size || "") ?? 0,
+                            unitPrice: item.price,
+                            categoryName: item.category,
+                            weightUnit: item.weight_unit
+                        };
+                    });
+
+                    setCart(restoredCart);
+                    setCustomerName(order.customer_name || "");
+                    setCustomerPhone(order.customer_phone || "");
+                    setCustomerAddress(order.customer_address || "");
+                    setOrderNotes(order.notes || "");
+                    setPaymentMethod(order.payment_method || "cash");
+                    setDepositAmount(order.deposit_amount || 0);
+                    setSelectedDriver(order.delivery_driver_id || "");
+                    setDeliveryFee(order.delivery_fee || 0);
+                    
+                    if (order.discount) {
+                        setDiscountValue(order.discount_type === 'percent' 
+                            ? (order.discount / (order.subtotal || 1)) * 100 
+                            : order.discount
+                        );
+                        setDiscountType(order.discount_type || "fixed");
+                    }
+
+                    toast.success(isAr ? "تم تحميل الطلب للتعديل" : "Order loaded for editing");
+                }
+            } catch (err) {
+                console.error("Error loading order for edit:", err);
+            }
+        };
+
+        loadOrderToEdit();
+    }, [editId, restaurantId, menuItems, editingOrderId, isAr]);
 
     /* ── Keyboard shortcuts ── */
     useEffect(() => {
@@ -256,7 +333,7 @@ export default function POSPage() {
     const clearCart = () => {
         setCart([]); setDiscountValue(0); setCustomerName(""); setCustomerPhone("");
         setCustomerAddress(""); setOrderNotes(""); setPaymentMethod("cash");
-        setOrderType("takeaway"); setSelectedDriver(""); setDeliveryFee(0); setDepositAmount(0);
+        setOrderType("takeaway"); setSelectedDriver(""); setDepositAmount(0);
     };
 
     const subtotal = cart.reduce((sum, c) => sum + c.unitPrice * c.qty, 0);
@@ -264,12 +341,112 @@ export default function POSPage() {
     const total = Math.max(0, subtotal - discount + deliveryFee);
     const cartCount = cart.reduce((s, c) => s + c.qty, 0);
 
+    const printReceipt = () => {
+        if (!receiptRef.current) return;
+        const pw = window.open("", "_blank", "width=300,height=600");
+        if (!pw) return;
+        pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>${receiptRef.current.innerHTML}</body></html>`);
+        pw.document.close(); pw.focus(); pw.print();
+    };
+
+    const printDirectReceipt = useCallback((
+        orderNum: number, cartItems: CartItem[], cName: string, cPhone: string, cAddress: string,
+        notes: string, dFee: number, dName: string, oType: string, disc: number, oTotal: number,
+        pMethod: string, deposit: number
+    ) => {
+        const restName = restaurant?.name || 'Restaurant';
+        const orderTypeLabel = oType === 'dine_in' ? 'صالة' : oType === 'delivery' ? 'دليفري' : 'تيك أواي';
+        const itemsHtml = cartItems.map(c => {
+            const fmt = formatQuantity(c.qty, c.weightUnit || (isAr ? 'قطعة' : 'unit'), isAr);
+            const title = c.menuItem.sell_by_weight
+                ? `(${fmt.qty} ${fmt.unit}) ${c.menuItem.title_ar}`
+                : c.menuItem.title_ar + (c.menuItem.size_labels && c.menuItem.size_labels.length > 1 ? ` (${c.menuItem.size_labels[c.selectedSizeIdx]})` : '');
+            const qtyStr = c.menuItem.sell_by_weight ? '1' : `${fmt.qty}`;
+            return `<tr>
+                <td style="padding:4px 0;font-size:14px">${c.categoryName ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${c.categoryName}<br/></span>` : ''}${title}</td>
+                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold">${qtyStr}</td>
+                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold">${formatCurrency(c.unitPrice * c.qty)}</td>
+            </tr>`;
+        }).join('');
+
+        const pw = window.open('', '_blank', 'width=300,height=600');
+        if (pw) {
+            pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>
+                <div style="text-align:center;margin-bottom:15px">
+                    ${(restaurant?.receipt_logo_url || restaurant?.logo_url) ? `<img src="${restaurant.receipt_logo_url || restaurant.logo_url}" alt="Logo" style="width:80px;height:80px;object-fit:contain;margin-bottom:10px;margin-left:auto;margin-right:auto;display:block" />` : ''}
+                    <p style="font-weight:bold;font-size:22px;margin:0 0 5px 0">${restName}</p>
+                    ${restaurant?.phone ? `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${restaurant.phone}</p>` : ''}
+                    ${restaurant?.phone_numbers?.map(p => `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${p.number}</p>`).join('') || ''}
+                    ${restaurant?.address ? `<p style="font-size:14px;margin:0 0 5px 0">${restaurant.address}</p>` : ''}
+                    <p style="font-size:14px;margin:0 0 5px 0">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p style="font-weight:bold;font-size:18px;margin:0 0 5px 0">فاتورة رقم #${orderNum}</p>
+                    <p style="font-size:16px;font-weight:bold;margin:0;display:inline-block;border:1px solid #000;padding:2px 6px;border-radius:4px">${orderTypeLabel}</p>
+                </div>
+                ${(cName || cPhone) ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px">
+                    ${cName ? `<p style="margin:2px 0">العميل: <strong>${cName}</strong></p>` : ''}
+                    ${cPhone ? `<p style="margin:2px 0" dir="ltr">هاتف: <strong>${cPhone}</strong></p>` : ''}
+                    ${cAddress ? `<p style="margin:2px 0">العنوان: <strong>${cAddress}</strong></p>` : ''}
+                </div>` : ''}
+                ${notes ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px"><p style="margin:2px 0">ملاحظات: <strong>${notes}</strong></p></div>` : ''}
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+                    <thead><tr>
+                        <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الصنف</td>
+                        <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الكمية</td>
+                        <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">المبلغ</td>
+                    </tr></thead>
+                    <tbody>${itemsHtml}</tbody>
+                </table>
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                ${disc > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px"><span>الخصم</span><span>-${formatCurrency(disc)}</span></div>` : ''}
+                ${dFee > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#0891b2"><span>🚚 حساب الدليفري ${dName ? `(${dName})` : ''}</span><span>+${formatCurrency(dFee)}</span></div>` : ''}
+                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px"><span>الإجمالي</span><span>${formatCurrency(oTotal)}</span></div>
+                ${pMethod === 'deposit' && deposit > 0 ? `
+                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;color:#d97706;margin-top:8px"><span>المدفوع (عربون)</span><span>${formatCurrency(deposit)}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#dc2626;margin-top:4px"><span>الباقي</span><span>${formatCurrency(Math.max(0, oTotal - deposit))}</span></div>
+                ` : ''}
+                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
+                <div style="font-size:13px;font-weight:bold;text-align:center">طريقة الدفع: <strong>${pMethod === 'cash' ? 'كاش' : pMethod === 'deposit' ? 'عربون' : pMethod}</strong></div>
+                <div style="text-align:center;font-size:13px;margin-top:20px;font-weight:bold"><p style="margin:0">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
+                <script>
+                    window.onload = function() {
+                        const imgs = document.getElementsByTagName('img');
+                        if (imgs.length === 0) {
+                            window.print();
+                        } else {
+                            let loaded = 0;
+                            const finish = () => {
+                                loaded++;
+                                if (loaded >= imgs.length) {
+                                    window.print();
+                                }
+                            };
+                            for (let img of imgs) {
+                                if (img.complete) finish();
+                                else { img.onload = finish; img.onerror = finish; }
+                            }
+                        }
+                    };
+                </script>
+            </body></html>`);
+            pw.document.close(); pw.focus();
+        }
+    }, [restaurant, isAr]);
+
     /* ── Submit Order ── */
     const submitOrder = useCallback(async (isHold = false) => {
         if (!restaurantId || cart.length === 0 || submitting) return;
         setSubmitting(true);
         try {
-            const orderNumber = await getPosNextOrderNumber(restaurantId);
+            // If editing, use the same order number and ID
+            const orderId = editingOrderId || generateId();
+            const orderNumber = originalOrderNumber || await getPosNextOrderNumber(restaurantId);
+
+            // 1. If editing, revert previous inventory deductions first
+            if (editingOrderId) {
+                await revertOrderInventory(restaurantId, editingOrderId);
+            }
+
             const items = cart.map(c => ({
                 id: c.menuItem.id,
                 title: c.menuItem.title_ar, qty: c.qty, price: c.unitPrice,
@@ -278,7 +455,6 @@ export default function POSPage() {
                 weight_unit: c.weightUnit,
             }));
             const driverObj = selectedDriver ? drivers.find(d => d.id === selectedDriver) : undefined;
-            const orderId = generateId();
 
             const orderRecord: PosOrder = {
                 id: orderId,
@@ -293,6 +469,7 @@ export default function POSPage() {
                 delivery_driver_name: driverObj?.name,
                 delivery_fee: deliveryFee || undefined,
                 notes: orderNotes || undefined,
+                deposit_amount: depositAmount || 0,
                 status: "pending",
                 is_draft: isHold,
                 created_at: new Date().toISOString(),
@@ -354,13 +531,18 @@ export default function POSPage() {
                     orderType, discount, total, paymentMethod, depositAmount
                 );
 
-                setTodayStats(p => ({ count: p.count + 1, revenue: p.revenue + total }));
+                setTodayStats(p => ({ count: editingOrderId ? p.count : p.count + 1, revenue: editingOrderId ? p.revenue : p.revenue + total }));
             }
             clearCart();
+            setEditingOrderId(null);
+            setOriginalOrderNumber(null);
+            if (editId) {
+                router.replace('/dashboard/pos'); // Clean URL
+            }
         } catch (e) { console.error(e); }
         finally { setSubmitting(false); }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [restaurantId, cart, subtotal, discount, discountType, total, paymentMethod, depositAmount, customerName, customerPhone, customerAddress, selectedDriver, drivers, deliveryFee, orderNotes, submitting, loadData]);
+    }, [restaurantId, restaurant, cart, subtotal, discount, discountType, total, paymentMethod, depositAmount, customerName, customerPhone, customerAddress, selectedDriver, drivers, deliveryFee, orderNotes, submitting, loadData, editingOrderId, originalOrderNumber, editId, router, isAr, categories, printDirectReceipt]);
 
     const restoreHeldOrder = async (order: PosOrder) => {
         const restored: CartItem[] = order.items.map(item => {
@@ -398,75 +580,6 @@ export default function POSPage() {
 
     const handleItemClick = (item: PosMenuItem, sizeIdx: number) => { addToCart(item, sizeIdx); };
 
-    const { restaurant } = useRestaurant();
-
-    const printReceipt = () => {
-        if (!receiptRef.current) return;
-        const pw = window.open("", "_blank", "width=300,height=600");
-        if (!pw) return;
-        pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>${receiptRef.current.innerHTML}</body></html>`);
-        pw.document.close(); pw.focus(); pw.print();
-    };
-
-    const printDirectReceipt = (
-        orderNum: number, cartItems: CartItem[], cName: string, cPhone: string, cAddress: string,
-        notes: string, dFee: number, dName: string, oType: string, disc: number, oTotal: number,
-        pMethod: string, deposit: number
-    ) => {
-        const restName = restaurant?.name || 'Restaurant';
-        const orderTypeLabel = oType === 'dine_in' ? 'صالة' : oType === 'delivery' ? 'دليفري' : 'تيك أواي';
-        const itemsHtml = cartItems.map(c => {
-            const title = c.menuItem.sell_by_weight
-                ? `(${c.qty} ${c.weightUnit || 'كجم'}) ${c.menuItem.title_ar}`
-                : c.menuItem.title_ar + (c.menuItem.size_labels && c.menuItem.size_labels.length > 1 ? ` (${c.menuItem.size_labels[c.selectedSizeIdx]})` : '');
-            const qtyStr = c.menuItem.sell_by_weight ? '1' : `${c.qty}`;
-            return `<tr>
-                <td style="padding:4px 0;font-size:14px">${c.categoryName ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${c.categoryName}<br/></span>` : ''}${title}</td>
-                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold">${qtyStr}</td>
-                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold">${formatCurrency(c.unitPrice * c.qty)}</td>
-            </tr>`;
-        }).join('');
-
-        const pw = window.open('', '_blank', 'width=300,height=600');
-        if (pw) {
-            pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>
-                <div style="text-align:center;margin-bottom:15px">
-                    <p style="font-weight:bold;font-size:22px;margin:0 0 5px 0">${restName}</p>
-                    <p style="font-size:14px;margin:0 0 5px 0">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
-                    <p style="font-weight:bold;font-size:18px;margin:0 0 5px 0">فاتورة رقم #${orderNum}</p>
-                    <p style="font-size:16px;font-weight:bold;margin:0;display:inline-block;border:1px solid #000;padding:2px 6px;border-radius:4px">${orderTypeLabel}</p>
-                </div>
-                ${(cName || cPhone) ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px">
-                    ${cName ? `<p style="margin:2px 0">العميل: <strong>${cName}</strong></p>` : ''}
-                    ${cPhone ? `<p style="margin:2px 0" dir="ltr">هاتف: <strong>${cPhone}</strong></p>` : ''}
-                    ${cAddress ? `<p style="margin:2px 0">العنوان: <strong>${cAddress}</strong></p>` : ''}
-                </div>` : ''}
-                ${notes ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px"><p style="margin:2px 0">ملاحظات: <strong>${notes}</strong></p></div>` : ''}
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-                    <thead><tr>
-                        <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الصنف</td>
-                        <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الكمية</td>
-                        <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">المبلغ</td>
-                    </tr></thead>
-                    <tbody>${itemsHtml}</tbody>
-                </table>
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                ${disc > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px"><span>الخصم</span><span>-${formatCurrency(disc)}</span></div>` : ''}
-                ${dFee > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#0891b2"><span>🚚 حساب الدليفري ${dName ? `(${dName})` : ''}</span><span>+${formatCurrency(dFee)}</span></div>` : ''}
-                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px"><span>الإجمالي</span><span>${formatCurrency(oTotal)}</span></div>
-                ${pMethod === 'deposit' && deposit > 0 ? `
-                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;color:#d97706;margin-top:8px"><span>المدفوع (عربون)</span><span>${formatCurrency(deposit)}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#dc2626;margin-top:4px"><span>الباقي</span><span>${formatCurrency(Math.max(0, oTotal - deposit))}</span></div>
-                ` : ''}
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                <div style="font-size:13px;font-weight:bold;text-align:center">طريقة الدفع: <strong>${pMethod === 'cash' ? 'كاش' : pMethod === 'deposit' ? 'عربون' : pMethod}</strong></div>
-                <div style="text-align:center;font-size:13px;margin-top:20px;font-weight:bold"><p style="margin:0">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
-            </body></html>`);
-            pw.document.close(); pw.focus(); pw.print();
-        }
-    };
-
     /* ═══════════════════════════ RENDER ═══════════════════════════ */
     return (
         <div className="flex flex-col h-[calc(100vh-88px)] relative" dir={isAr ? "rtl" : "ltr"}>
@@ -474,7 +587,7 @@ export default function POSPage() {
             <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
                 <div className="flex items-center gap-4">
                     <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                        <CreditCard className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /> POS
+                        <Monitor className="w-6 h-6 text-emerald-600 dark:text-emerald-400" /> POS
                         <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ml-2 ${isOnline ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-500/15 text-red-600 dark:text-red-400"}`}>
                             {isOnline ? <><Wifi className="w-3 h-3" /> أونلاين</> : <><WifiOff className="w-3 h-3" /> أوفلاين</>}
                         </span>
@@ -596,61 +709,69 @@ export default function POSPage() {
                 </div>
 
                 {/* RIGHT: CART */}
-                <div className={`w-full transition-all duration-300 ease-in-out bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl flex flex-col min-h-0 shrink-0 ${isCartCompact ? "lg:w-[260px]" : "lg:w-[480px] xl:w-[520px]"}`}>
+                <div className="w-full lg:w-[480px] xl:w-[520px] transition-all duration-300 ease-in-out bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl flex flex-col min-h-0 shrink-0">
                     <div className="p-4 border-b border-slate-200 dark:border-zinc-800/50 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setIsCartCompact(!isCartCompact)} className="p-1 rounded-md text-slate-400 hover:bg-slate-100 dark:hover:bg-zinc-800 hover:text-slate-900 dark:hover:text-white transition-colors" title={isCartCompact ? "توسيع السلة" : "تصغير السلة"}>
-                                {isCartCompact ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
-                            </button>
                             <h2 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                                <ShoppingCart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> <span className={isCartCompact ? "hidden" : "inline"}>السلة</span> <span className="text-emerald-600 dark:text-emerald-400 text-sm">({cartCount})</span>
+                                <ShoppingCart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> 
+                                <span>السلة</span> 
+                                <span className="text-emerald-600 dark:text-emerald-400 text-sm">({cartCount})</span>
                             </h2>
                         </div>
                         <div className="flex items-center gap-2">
-                            {lastOrderNumber && !isCartCompact && <button onClick={() => setShowReceipt(true)} className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg text-[10px] font-bold transition"><Printer className="w-3.5 h-3.5" /> #{lastOrderNumber}</button>}
+                            {lastOrderNumber && <button onClick={() => setShowReceipt(true)} className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 rounded-lg text-[10px] font-bold transition"><Printer className="w-3.5 h-3.5" /> #{lastOrderNumber}</button>}
                             {cart.length > 0 && <button onClick={clearCart} className="text-[10px] text-red-600 dark:text-red-400 hover:text-red-300 font-bold">مسح</button>}
                         </div>
                     </div>
 
                     {/* Cart Items */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-2" style={{ scrollbarWidth: "none" }}>
+                    <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5" style={{ scrollbarWidth: "none" }}>
                         {cart.length === 0 ? (
                             <div className="text-center py-12 text-slate-400 dark:text-zinc-600"><ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-20" /><p className="text-xs">السلة فارغة</p></div>
                         ) : cart.map((c, i) => (
-                            <div key={`${c.menuItem.id}-${c.selectedSizeIdx}-${i}`} className="bg-slate-50 dark:bg-black/20 border border-black dark:border-white rounded-lg p-2.5 group/item">
+                            <div key={`${c.menuItem.id}-${c.selectedSizeIdx}-${i}`} className="bg-slate-50 dark:bg-black/10 border border-slate-200 dark:border-zinc-800 rounded-lg p-2 group/item">
                                 <div className="flex items-center gap-2">
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-[17px] xl:text-[20px] font-black text-slate-800 dark:text-zinc-100 truncate">
-                                            {c.menuItem.sell_by_weight ? `(${c.qty} ${c.weightUnit || (isAr ? 'كجم' : 'kg')}) ${c.menuItem.title_ar}` : c.menuItem.title_ar}
-                                            {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 && <span className="text-slate-500 dark:text-zinc-400 text-[15px]"> ({c.menuItem.size_labels[c.selectedSizeIdx]})</span>}
+                                        <p className="text-[15px] xl:text-[17px] font-black text-slate-800 dark:text-zinc-100 truncate">
+                                            {(() => {
+                                                const fmt = formatQuantity(c.qty, c.weightUnit || (isAr ? 'قطعة' : 'unit'), isAr);
+                                                return c.menuItem.sell_by_weight 
+                                                    ? `(${fmt.qty} ${fmt.unit}) ${c.menuItem.title_ar}` 
+                                                    : c.menuItem.title_ar;
+                                            })()}
+                                            {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 && <span className="text-slate-500 dark:text-zinc-500 text-[13px]"> ({c.menuItem.size_labels[c.selectedSizeIdx]})</span>}
                                         </p>
-                                        {c.categoryName && <p className="text-[13px] text-blue-600 dark:text-blue-400 font-bold mt-1">{c.categoryName}</p>}
-                                        <p className="text-[15px] xl:text-[17px] text-emerald-600 dark:text-emerald-400 font-black mt-1">{formatCurrency(c.unitPrice)} × {c.menuItem.sell_by_weight ? 1 : c.qty}</p>
-                                        {c.note && <p className="text-[13px] text-amber-500 mt-1 truncate font-bold">📝 {c.note}</p>}
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            {c.categoryName && <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold">🗂️ {c.categoryName}</span>}
+                                            <span className="text-[13px] text-emerald-600 dark:text-emerald-400 font-black">{formatCurrency(c.unitPrice)} × {c.menuItem.sell_by_weight ? 1 : c.qty}</span>
+                                        </div>
+                                        {c.note && <p className="text-[11px] text-amber-500 mt-0.5 truncate font-bold">📝 {c.note}</p>}
                                     </div>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5">
                                         {c.menuItem.sell_by_weight ? (
-                                            <button onClick={() => { setWeightPrompt({ item: c.menuItem, sizeIdx: c.selectedSizeIdx, editingIndex: i }); setWeightInput(c.qty.toString()); }} className="px-3 min-w-[5rem] h-9 bg-indigo-100 border border-indigo-200 dark:border-indigo-500/30 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 font-bold rounded-lg flex items-center justify-center hover:bg-indigo-200 transition-colors">
-                                                {c.qty} {c.weightUnit || (isAr ? 'كجم' : 'kg')}
+                                            <button onClick={() => { setWeightPrompt({ item: c.menuItem, sizeIdx: c.selectedSizeIdx, editingIndex: i }); setWeightInput(c.qty.toString()); }} className="px-2 h-8 bg-indigo-50 border border-indigo-100 dark:border-indigo-500/20 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-bold rounded text-[12px] flex items-center justify-center hover:bg-indigo-100 transition-colors">
+                                                {c.qty} {c.weightUnit}
                                             </button>
                                         ) : (
                                             <>
-                                                <button onClick={() => updateQty(i, -1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Minus className="w-4 h-4" /></button>
-                                                <span className="w-8 text-center text-[18px] xl:text-[20px] font-black text-slate-900 dark:text-white tabular-nums">{c.qty}</span>
-                                                <button onClick={() => updateQty(i, 1)} className="w-9 h-9 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-lg flex items-center justify-center hover:bg-zinc-600"><Plus className="w-4 h-4" /></button>
+                                                <button onClick={() => updateQty(i, -1)} className="w-8 h-8 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-md flex items-center justify-center hover:bg-zinc-600 transition-colors"><Minus className="w-3 h-3" /></button>
+                                                <span className="w-6 text-center text-[15px] font-black text-slate-900 dark:text-white tabular-nums">
+                                                    {formatQuantity(c.qty, c.weightUnit || (isAr ? 'قطعة' : 'piece'), isAr).qty}
+                                                </span>
+                                                <button onClick={() => updateQty(i, 1)} className="w-8 h-8 bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-300 rounded-md flex items-center justify-center hover:bg-zinc-600 transition-colors"><Plus className="w-3 h-3" /></button>
                                             </>
                                         )}
                                     </div>
-                                    <span className="text-[18px] xl:text-[20px] font-black text-slate-900 dark:text-white w-24 text-left tabular-nums">{formatCurrency(c.unitPrice * c.qty)}</span>
+                                    <span className="text-[15px] xl:text-[17px] font-black text-slate-900 dark:text-white w-20 text-left tabular-nums">{formatCurrency(c.unitPrice * c.qty)}</span>
                                     <div className="flex items-center gap-1">
                                         <button onClick={() => setEditNoteIdx(editNoteIdx === i ? null : i)} className={`${c.note ? "text-amber-600 dark:text-amber-400" : "text-slate-400 dark:text-zinc-600"} hover:text-amber-400 opacity-0 group-hover/item:opacity-100 transition-opacity`}><StickyNote className="w-3 h-3" /></button>
                                         <button onClick={() => removeFromCart(i)} className="text-red-400/60 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-opacity"><Trash2 className="w-3 h-3" /></button>
                                     </div>
                                 </div>
                                 {editNoteIdx === i && (
-                                    <div className="mt-2 flex gap-1">
-                                        <input value={c.note || ""} onChange={e => setItemNote(i, e.target.value)} placeholder="ملاحظة..." className="flex-1 px-2 py-1 bg-slate-100 dark:bg-zinc-800/50 border border-slate-300 dark:border-zinc-700/50 rounded text-[10px] text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none" autoFocus onKeyDown={e => e.key === "Enter" && setEditNoteIdx(null)} />
-                                        <button onClick={() => setEditNoteIdx(null)} className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold px-1">✓</button>
+                                    <div className="mt-1.5 flex gap-1">
+                                        <input value={c.note || ""} onChange={e => setItemNote(i, e.target.value)} placeholder="أضف ملاحظة..." className="flex-1 px-2 py-1 bg-white dark:bg-zinc-900/50 border border-slate-300 dark:border-zinc-700 rounded text-[11px] text-slate-900 dark:text-white placeholder:text-slate-400 outline-none" autoFocus onKeyDown={e => e.key === "Enter" && setEditNoteIdx(null)} />
+                                        <button onClick={() => setEditNoteIdx(null)} className="text-emerald-600 dark:text-emerald-400 text-[11px] font-bold px-1.5">✓</button>
                                     </div>
                                 )}
                             </div>
@@ -659,118 +780,130 @@ export default function POSPage() {
 
                     {/* Cart Footer */}
                     {cart.length > 0 && (
-                        <div className="border-t border-slate-200 dark:border-zinc-800/50 p-4 space-y-3">
+                        <div className="border-t border-slate-200 dark:border-zinc-800/50 p-2.5 space-y-2 bg-slate-50/30 dark:bg-transparent">
                             {/* Order Type Toggle */}
-                            <div className="flex gap-1.5 p-1 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg">
+                            <div className="flex gap-1 p-0.5 bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-zinc-800 rounded-lg">
                                 {[{ key: "dine_in", icon: <LayoutGrid className="w-3.5 h-3.5" />, label: "صالة" },
                                   { key: "takeaway", icon: <Package className="w-3.5 h-3.5" />, label: "تيك أواي" },
                                   { key: "delivery", icon: <Truck className="w-3.5 h-3.5" />, label: "دليفري" }].map(t => (
-                                    <button key={t.key} onClick={() => setOrderType(t.key as "dine_in" | "takeaway" | "delivery")} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-bold transition-all ${orderType === t.key ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-sm" : "text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300"}`}>
+                                    <button key={t.key} onClick={() => setOrderType(t.key as "dine_in" | "takeaway" | "delivery")} className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-[11px] font-extrabold transition-all ${orderType === t.key ? "bg-white dark:bg-zinc-800 text-slate-900 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-zinc-700" : "text-slate-500 dark:text-zinc-400 hover:text-slate-700 dark:hover:text-zinc-300"}`}>
                                         {t.icon} {t.label}
                                     </button>
                                 ))}
                             </div>
                             
-                            {/* Customer Search / Input */}
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="relative">
-                                    <Users className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
-                                    <input value={customerName}
-                                        onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
-                                        onFocus={() => setShowCustomerSuggestions(true)}
-                                        onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 300)}
-                                        placeholder="بحث برقم العميل أو اسمه..."
-                                        className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
-                                    {showCustomerSuggestions && customerSuggestions.length > 0 && (
-                                        <div className="absolute bottom-full mb-1 left-0 right-0 bg-white dark:bg-card border border-slate-300 dark:border-zinc-700 rounded-lg overflow-hidden z-50 shadow-xl max-h-48 overflow-y-auto">
-                                            {customerSuggestions.map((c, i) => (
-                                                <button key={i} onClick={() => selectCustomer(c)} className="w-full text-right px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition flex items-center justify-between">
-                                                    <span className="text-[13px] font-bold text-slate-800 dark:text-zinc-200">{c.name}</span>
-                                                    <span className="text-[11px] text-slate-500 dark:text-zinc-500 font-mono" dir="ltr">{c.phone}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
+                            {/* Customer Info Section */}
+                            <div className="space-y-1.5 p-2.5 bg-white dark:bg-black/20 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-sm">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="relative">
+                                        <Users className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+                                        <input value={customerName}
+                                            onChange={e => { setCustomerName(e.target.value); setShowCustomerSuggestions(true); }}
+                                            onFocus={() => setShowCustomerSuggestions(true)}
+                                            onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 300)}
+                                            placeholder="اسم العميل..."
+                                            className="w-full pr-8 pl-2 py-2 bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-emerald-500/50 transition" />
+                                        {showCustomerSuggestions && customerSuggestions.length > 0 && (
+                                            <div className="absolute bottom-full mb-1 left-0 right-0 bg-white dark:bg-card border border-slate-300 dark:border-zinc-700 rounded-lg overflow-hidden z-50 shadow-xl max-h-48 overflow-y-auto">
+                                                {customerSuggestions.map((c, i) => (
+                                                    <button key={i} onClick={() => selectCustomer(c)} className="w-full text-right px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition flex items-center justify-between border-b last:border-0 border-slate-100 dark:border-zinc-800">
+                                                        <span className="text-[13px] font-bold text-slate-800 dark:text-zinc-200">{c.name}</span>
+                                                        <span className="text-[11px] text-slate-500 dark:text-zinc-500 font-mono" dir="ltr">{c.phone}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="رقم الهاتف..." dir="ltr" className="px-2.5 py-2 bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-zinc-700 rounded-lg text-[13px] font-bold font-mono text-right text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-emerald-500/50 transition" />
                                 </div>
-                                <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="رقم الهاتف..." dir="ltr" className="px-2.5 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold font-mono text-right text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
+                                <div className="relative">
+                                    <MapPin className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                                    <input value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="العنوان بالتفصيل..." className="w-full pr-8 pl-2 py-2 bg-slate-50 dark:bg-black/50 border border-slate-200 dark:border-zinc-700 rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-1 focus:ring-blue-500/50 transition" />
+                                </div>
                             </div>
 
                             {/* Delivery Options (Only if Delivery) */}
                             {orderType === "delivery" && (
-                                <div className="space-y-2 p-2.5 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-lg shadow-inner">
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <div className="relative">
-                                            <Truck className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
-                                            <select value={selectedDriver} onChange={e => setSelectedDriver(e.target.value)}
-                                                className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold text-slate-900 dark:text-white outline-none appearance-none cursor-pointer focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm">
-                                                <option value="">اختر الطيار...</option>
-                                                {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg px-2.5 py-1 focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm">
-                                            <span className="text-[11px] text-slate-500 dark:text-zinc-400 font-bold whitespace-nowrap">حساب الدليفري</span>
-                                            <input type="number" value={deliveryFee || ""} onChange={e => setDeliveryFee(Number(e.target.value))} placeholder="0" min="0" className="w-full py-1 text-[13px] text-slate-900 dark:text-white placeholder:text-slate-400 text-center font-black outline-none bg-transparent" />
-                                        </div>
+                                <div className="grid grid-cols-2 gap-2 p-2 bg-blue-50/30 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20 rounded-xl shadow-sm">
+                                    <div className="relative">
+                                        <Truck className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" />
+                                        <select value={selectedDriver} onChange={e => setSelectedDriver(e.target.value)}
+                                            className="w-full pr-8 pl-2 py-2 bg-white dark:bg-black/50 border border-slate-200 dark:border-zinc-700 rounded-lg text-[12px] font-bold text-slate-900 dark:text-white outline-none appearance-none cursor-pointer focus:ring-1 focus:ring-blue-500/30 transition">
+                                            <option value="">الطيار...</option>
+                                            {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-white dark:bg-black/50 border border-slate-200 dark:border-zinc-700 rounded-lg px-2.5 shadow-sm">
+                                        <span className="text-[10px] text-slate-500 font-bold whitespace-nowrap">التوصيل</span>
+                                        <input type="number" value={deliveryFee || ""} onChange={e => setDeliveryFee(Number(e.target.value))} placeholder="0" min="0" className="w-full py-2 text-[13px] text-blue-600 dark:text-blue-400 placeholder:text-slate-400 text-center font-black outline-none bg-transparent" />
                                     </div>
                                 </div>
                             )}
 
-                            {/* Notes + Discount (Compacted) */}
-                            <div className="grid grid-cols-[2fr_1fr] gap-2">
-                                <div className="relative">
-                                    <StickyNote className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-zinc-400" />
-                                    <input value={orderNotes} onChange={e => setOrderNotes(e.target.value)} placeholder="ملاحظات الطلب العام..." className="w-full pr-8 pl-2 py-2.5 bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg text-[13px] font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-1 focus:ring-black/10 dark:focus:ring-white/10 transition shadow-sm" />
+                            {/* Calculations Grid */}
+                            <div className="grid grid-cols-2 gap-2 p-2.5 bg-white/50 dark:bg-black/10 border border-slate-200 dark:border-zinc-800 rounded-xl">
+                                {/* Left Col: Notes + Payment */}
+                                <div className="space-y-1.5">
+                                    <div className="relative">
+                                        <StickyNote className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                                        <input value={orderNotes} onChange={e => setOrderNotes(e.target.value)} placeholder="ملاحظات..." className="w-full pr-7 pl-2 py-1.5 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-zinc-700 rounded-lg text-[11px] font-bold text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-slate-300" />
+                                    </div>
+                                    <div className="flex gap-1">
+                                        {[{ key: "cash", icon: <Banknote className="w-3 h-3" />, label: "كاش" }, { key: "deposit", icon: <Receipt className="w-3 h-3" />, label: "عربون" }].map(pm => (
+                                            <button key={pm.key} onClick={() => { setPaymentMethod(pm.key); if (pm.key !== 'deposit') setDepositAmount(0); }} className={`flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${paymentMethod === pm.key ? "bg-emerald-500 text-white shadow-sm" : "bg-slate-100 dark:bg-zinc-800/80 text-slate-500 border border-slate-200 dark:border-zinc-700 hover:text-slate-900 dark:hover:text-white"}`}>
+                                                {pm.icon} {pm.label}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="flex bg-white dark:bg-black/50 border border-black dark:border-white rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-black/10 dark:focus-within:ring-white/10 transition shadow-sm group">
-                                     <button onClick={() => setDiscountType(discountType === "fixed" ? "percent" : "fixed")} className="px-2.5 flex items-center justify-center bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 transition border-l border-slate-300 dark:border-zinc-700 text-slate-700 dark:text-zinc-300">
-                                        {discountType === "percent" ? <Percent className="w-4 h-4" /> : <DollarSign className="w-4 h-4" />}
-                                    </button>
-                                    <input type="number" value={discountValue || ""} onChange={e => setDiscountValue(Number(e.target.value))} placeholder="خصم..." min="0" className="w-full px-2 py-2.5 text-[13px] font-black text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none bg-transparent" />
+                                
+                                {/* Right Col: Discount + Deposit */}
+                                <div className="space-y-1.5">
+                                    <div className="flex bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-zinc-700 rounded-lg overflow-hidden focus-within:ring-1 focus-within:ring-slate-300 shadow-sm">
+                                        <button onClick={() => setDiscountType(discountType === "fixed" ? "percent" : "fixed")} className="px-2 bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-l border-slate-200 dark:border-zinc-700 hover:bg-slate-300 transition">
+                                            {discountType === "percent" ? <Percent className="w-3 h-3" /> : <DollarSign className="w-3 h-3" />}
+                                        </button>
+                                        <input type="number" value={discountValue || ""} onChange={e => setDiscountValue(Number(e.target.value))} placeholder="خصم..." className="w-full px-2 py-1.5 text-[11px] font-black text-slate-900 dark:text-white placeholder:text-slate-400 outline-none bg-transparent" />
+                                    </div>
+                                    {paymentMethod === "deposit" && (
+                                        <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-lg px-2 py-1 shadow-sm">
+                                            <span className="text-[9px] text-amber-700 dark:text-amber-500 font-black">عربون</span>
+                                            <input type="number" value={depositAmount || ""} onChange={e => setDepositAmount(Number(e.target.value))} placeholder="0" className="w-full py-0.5 text-[11px] text-amber-900 dark:text-amber-300 text-center font-black outline-none bg-transparent" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Payment */}
-                            <div className="flex gap-1.5">
-                                {[{ key: "cash", icon: <Banknote className="w-3 h-3" />, label: "كاش" }, { key: "deposit", icon: <Receipt className="w-3 h-3" />, label: "عربون" }].map(pm => (
-                                    <button key={pm.key} onClick={() => { setPaymentMethod(pm.key); if (pm.key !== 'deposit') setDepositAmount(0); }} className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-[10px] font-bold transition-all ${paymentMethod === pm.key ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-400 border border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
-                                        {pm.icon} {pm.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Deposit Amount Input */}
-                            {paymentMethod === "deposit" && (
-                                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-700/30 rounded-lg px-3 py-2 shadow-inner">
-                                    <span className="text-[12px] text-amber-700 dark:text-amber-400 font-extrabold whitespace-nowrap">مبلغ العربون</span>
-                                    <input type="number" value={depositAmount || ""} onChange={e => setDepositAmount(Number(e.target.value))} placeholder="0" min="0" max={total} className="w-full py-1 text-[15px] text-amber-900 dark:text-amber-300 placeholder:text-amber-400 text-center font-black outline-none bg-transparent" />
-                                    <span className="text-[11px] text-amber-600 dark:text-amber-500 font-bold">ج.م</span>
+                            {/* Totals Summary */}
+                            <div className="px-1 space-y-0.5 text-[13px] font-bold">
+                                <div className="flex justify-between items-center text-slate-500 dark:text-zinc-500">
+                                    <span>المجموع</span>
+                                    <span className="tabular-nums">{formatCurrency(subtotal)}</span>
                                 </div>
-                            )}
-
-                            {/* Totals */}
-                            <div className="space-y-2 text-[14px] xl:text-[15px] font-bold">
-                                <div className="flex justify-between text-slate-500 dark:text-zinc-400"><span>المجموع الفرعي</span><span className="tabular-nums">{formatCurrency(subtotal)}</span></div>
-                                {discount > 0 && <div className="flex justify-between text-red-600 dark:text-red-400"><span>الخصم</span><span className="tabular-nums">-{formatCurrency(discount)}</span></div>}
-                                {deliveryFee > 0 && <div className="flex justify-between text-cyan-600 dark:text-cyan-400"><span>🚚 حساب الدليفري</span><span className="tabular-nums">+{formatCurrency(deliveryFee)}</span></div>}
-                                <div className="flex justify-between text-slate-900 dark:text-white font-black text-[20px] xl:text-[24px] pt-3 mt-2 border-t-2 border-slate-300 dark:border-zinc-700/50"><span>الإجمالي</span><span className="text-emerald-600 dark:text-emerald-400 tabular-nums">{formatCurrency(total)}</span></div>
-                                {paymentMethod === "deposit" && depositAmount > 0 && (
-                                    <>
-                                        <div className="flex justify-between text-amber-600 dark:text-amber-400 font-extrabold text-[14px]">
-                                            <span>المدفوع (عربون)</span>
-                                            <span className="tabular-nums">{formatCurrency(depositAmount)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-red-600 dark:text-red-400 font-black text-[17px]">
-                                            <span>الباقي</span>
-                                            <span className="tabular-nums">{formatCurrency(Math.max(0, total - depositAmount))}</span>
-                                        </div>
-                                    </>
+                                {discount > 0 && <div className="flex justify-between items-center text-red-500">
+                                    <span>الخصم</span>
+                                    <span className="tabular-nums">-{formatCurrency(discount)}</span>
+                                </div>}
+                                {deliveryFee > 0 && <div className="flex justify-between items-center text-blue-500">
+                                    <span>🚚 التوصيل</span>
+                                    <span className="tabular-nums">+{formatCurrency(deliveryFee)}</span>
+                                </div>}
+                                <div className="flex justify-between items-center text-slate-900 dark:text-white text-[20px] xl:text-[24px] font-black pt-1 border-t border-slate-200 dark:border-zinc-800">
+                                    <span>الإجمالي</span>
+                                    <span className="text-emerald-500 tabular-nums">{formatCurrency(total)}</span>
+                                </div>
+                                {paymentMethod === "deposit" && (
+                                    <div className="flex justify-between items-center text-red-600 dark:text-red-400 text-[15px] font-black">
+                                        <span>الباقي مطلوب</span>
+                                        <span className="tabular-nums">{formatCurrency(Math.max(0, total - depositAmount))}</span>
+                                    </div>
                                 )}
                             </div>
 
-                            {/* Actions */}
+                            {/* Action Buttons */}
                             <div className="flex gap-2">
-                                <button onClick={() => submitOrder(true)} disabled={submitting} className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-200 dark:bg-zinc-700/50 text-slate-700 dark:text-zinc-300 font-extrabold text-[15px] rounded-xl hover:bg-zinc-600/50 transition active:scale-95 disabled:opacity-50 border border-slate-200 dark:border-zinc-700/30"><Save className="w-5 h-5" /> تعليق</button>
-                                <button onClick={() => submitOrder(false)} disabled={submitting} className="flex-[2] flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-black text-[17px] xl:text-[19px] rounded-xl shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20 hover:shadow-emerald-500/40 transition active:scale-95 disabled:opacity-50"><Printer className="w-5 h-5" /> {submitting ? "جاري..." : "طباعة"}</button>
+                                <button onClick={() => submitOrder(true)} disabled={submitting} className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-extrabold text-[13px] rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition active:scale-95 disabled:opacity-50 border border-slate-200 dark:border-zinc-700 shadow-sm"><Save className="w-4 h-4" /> تعليق</button>
+                                <button onClick={() => submitOrder(false)} disabled={submitting} className="flex-[2] flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-black text-[17px] xl:text-[19px] rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition active:scale-95 disabled:opacity-50"><Printer className="w-5 h-5" /> {submitting ? "جاري..." : "طباعة " + (editingOrderId ? "(تعديل)" : "")}</button>
                             </div>
                         </div>
                     )}
@@ -817,7 +950,15 @@ export default function POSPage() {
                     <div className="bg-white rounded-2xl w-full max-w-xs shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div ref={receiptRef} className="p-4 text-sm text-black bg-white" dir="rtl" style={{ fontFamily: "'Courier New', monospace" }}>
                             <div style={{ textAlign: "center", marginBottom: "15px" }}>
+                                {(restaurant?.receipt_logo_url || restaurant?.logo_url) && (
+                                    <img src={restaurant.receipt_logo_url || restaurant.logo_url} alt="Logo" style={{ width: "80px", height: "80px", objectFit: "contain", marginBottom: "10px", marginLeft: "auto", marginRight: "auto", display: "block" }} />
+                                )}
                                 <p style={{ fontWeight: "bold", fontSize: "22px", margin: "0 0 5px 0" }}>{restaurant?.name || "Restaurant"}</p>
+                                {restaurant?.phone && <p style={{ fontSize: "14px", margin: "0 0 5px 0" }} dir="ltr">{restaurant.phone}</p>}
+                                {restaurant?.phone_numbers?.map((p, idx) => (
+                                    <p key={idx} style={{ fontSize: "14px", margin: "0 0 5px 0" }} dir="ltr">{p.number}</p>
+                                ))}
+                                {restaurant?.address && <p style={{ fontSize: "14px", margin: "0 0 5px 0" }}>{restaurant.address}</p>}
                                 <p style={{ fontSize: "14px", margin: "0 0 5px 0" }}>{new Date().toLocaleDateString("ar-EG")} - {new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" })}</p>
                                 <p style={{ fontWeight: "bold", fontSize: "18px", margin: "0" }}>فاتورة رقم #{lastOrderNumber}</p>
                             </div>
