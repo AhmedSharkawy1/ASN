@@ -165,7 +165,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             if (rId) {
                 const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
-                if (cpaError) console.error("Error fetching page access:", cpaError);
+                if (cpaError) console.error("ASN_LOG: Error fetching page access:", cpaError);
+                console.log("ASN_LOG: CPA Data:", cpa);
 
                 const tenantPerms: Record<string, boolean> = {};
                 if (cpa) cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled });
