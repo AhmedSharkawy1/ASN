@@ -115,7 +115,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             // Impersonation Support
             const impersonatingTenant = sessionStorage.getItem('impersonating_tenant');
             if (impersonatingTenant) {
-                const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url').eq('id', impersonatingTenant).single();
+                const { data: rest, error: impError } = await supabase.from('restaurants').select('id,name,logo_url').eq('id', impersonatingTenant).maybeSingle();
+                if (impError) console.error("ASN_LOG: Impersonation Lookup Error:", impError);
                 if (rest) {
                     rId = rest.id;
                     rName = rest.name + ' (Impersonating)';
