@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Cost Engine Service — auto-calculates recipe cost, order cost, and profit.
@@ -102,8 +103,7 @@ export async function calculateOrderCost(orderId: string): Promise<void> {
 /**
  * Server-side variant that accepts a supabaseAdmin client (for use in API routes).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function calculateOrderCostServer(orderId: string, supabaseAdmin: any): Promise<void> {
+export async function calculateOrderCostServer(orderId: string, supabaseAdmin: SupabaseClient): Promise<void> {
     try {
         const { data: order } = await supabaseAdmin
             .from('orders')
@@ -123,8 +123,7 @@ export async function calculateOrderCostServer(orderId: string, supabaseAdmin: a
  * Internal: calculate cost for an order and store it.
  * Supports matching by item.id (website) OR item.title (POS).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: string, total: number, items: unknown[] }, sb: { from: (table: string) => any }): Promise<void> {
+async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: string, total: number, items: unknown[] }, sb: SupabaseClient): Promise<void> {
     const orderItems = (order.items || []) as { id?: string, title?: string, qty?: number }[];
     let orderCost = 0;
 
@@ -132,7 +131,15 @@ async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: s
     const { data: cats } = await sb.from('categories').select('id').eq('restaurant_id', order.restaurant_id);
     const catIds = (cats || []).map((c: { id: string }) => c.id);
     
-    let allMenuItems: { id: string, title_ar: string | null, title_en: string | null, recipe_id: string | null, recipes: { product_cost: number } | null }[] = [];
+    interface MenuItemWithRecipe {
+        id: string;
+        title_ar: string | null;
+        title_en: string | null;
+        recipe_id: string | null;
+        recipes: { product_cost: number } | { product_cost: number }[] | null;
+    }
+
+    let allMenuItems: MenuItemWithRecipe[] = [];
     if (catIds.length > 0) {
         const { data } = await sb.from('items').select('id, title_ar, title_en, recipe_id, recipes(product_cost)').in('category_id', catIds);
         allMenuItems = data || [];
@@ -148,8 +155,10 @@ async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: s
     const titleCostMap = new Map<string, number>();
     
     if (allMenuItems) {
-        allMenuItems.forEach((mi) => {
-            const cost = mi.recipes?.product_cost || 0;
+        allMenuItems.forEach((mi: MenuItemWithRecipe) => {
+            // mi.recipes could be an object or an array depending on Supabase version/config
+            const recipeData = Array.isArray(mi.recipes) ? mi.recipes[0] : mi.recipes;
+            const cost = recipeData?.product_cost || 0;
             if (mi.recipe_id && cost > 0) {
                 itemIdCostMap.set(mi.id, cost);
                 if (mi.title_ar) titleCostMap.set(mi.title_ar.trim().toLowerCase(), cost);

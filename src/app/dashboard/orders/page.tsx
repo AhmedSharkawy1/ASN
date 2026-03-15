@@ -168,7 +168,7 @@ export default function OrdersPage() {
     };
 
     const printOrderReceipt = (order: Order) => {
-        const restName = restaurant?.name || 'Restaurant';
+
         const orderTypeLabel = order.order_type === 'dine_in' ? 'صالة' : order.order_type === 'delivery' ? 'دليفري' : 'تيك أواي';
         
         const itemsHtml = order.items.map(item => {

@@ -1,22 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Layers, Plus, Edit, Trash2, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
 
+interface SubscriptionPlan {
+    id: string;
+    plan_name: string;
+    price: number;
+    billing_cycle: string;
+    max_branches: number;
+    max_users: number;
+    max_products: number;
+}
+
 export default function SuperAdminPlansPage() {
     const { language } = useLanguage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [plans, setPlans] = useState<any[]>([]);
+    const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchPlans();
-    }, []);
-
-    const fetchPlans = async () => {
+    const fetchPlans = useCallback(async () => {
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -26,13 +31,18 @@ export default function SuperAdminPlansPage() {
 
             if (error) throw error;
             setPlans(data || []);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            toast.error(language === "ar" ? `خطأ: ${err?.message || 'تعذر جلب الباقات'}` : `Error: ${err?.message || 'Failed to load plans'}`);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            toast.error(language === "ar" ? `خطأ: ${message}` : `Error: ${message}`);
         } finally {
             setLoading(false);
         }
-    };
+    }, [language]);
+
+    useEffect(() => {
+        fetchPlans();
+    }, [fetchPlans]);
 
     const handleCreateDefaultPlans = async () => {
         try {
@@ -47,11 +57,12 @@ export default function SuperAdminPlansPage() {
             
             toast.success(language === "ar" ? "تم إنشاء الباقات الافتراضية" : "Default plans created");
             fetchPlans();
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            toast.error(err.message || 'Failed to create plans');
+            const message = err instanceof Error ? err.message : 'Failed to create plans';
+            toast.error(message);
         }
-    }
+    };
 
     return (
         <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto w-full">

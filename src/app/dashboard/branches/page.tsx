@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, Plus, MapPin, Store, Settings, MoreVertical } from "lucide-react";
+import { Search, Plus, MapPin, Store, Settings, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
 

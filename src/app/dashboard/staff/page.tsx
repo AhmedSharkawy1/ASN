@@ -1,29 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Users, Search, Plus, Shield, CheckCircle2, UserCog, KeySquare } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { X, Check, LayoutGrid, Building } from "lucide-react";
 
+interface StaffMember {
+    id: string;
+    name: string;
+    email: string | null;
+    phone?: string;
+    role: string;
+    is_active: boolean;
+}
+
+interface Branch {
+    id: string;
+    branch_name: string;
+}
+
 export default function StaffPage() {
     const { language } = useLanguage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [staffList, setStaffList] = useState<any[]>([]);
+    const [staffList, setStaffList] = useState<StaffMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
     // Modal States
     const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
-    const [selectedStaff, setSelectedStaff] = useState<any>(null);
-    const [branches, setBranches] = useState<any[]>([]);
+    const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
+    const [branches, setBranches] = useState<Branch[]>([]);
     const [saving, setSaving] = useState(false);
 
     // Form States
     const [permissions, setPermissions] = useState<Record<string, boolean>>({});
     const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
+
+    const fetchBranches = useCallback(async (tId: string) => {
+        const { data } = await supabase.from('branches').select('*').eq('tenant_id', tId);
+        if (data) setBranches(data as Branch[]);
+    }, []);
+
+    const fetchStaff = useCallback(async (tId: string) => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('team_members')
+                .select('*')
+                .eq('restaurant_id', tId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setStaffList((data as StaffMember[]) || []);
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error(language === "ar" ? "فشل في تحميل الموظفين" : "Failed to load staff");
+        } finally {
+            setLoading(false);
+        }
+    }, [language]);
 
     useEffect(() => {
         const init = async () => {
@@ -44,32 +81,7 @@ export default function StaffPage() {
             }
         };
         init();
-    }, []);
-
-    const fetchBranches = async (tId: string) => {
-        const { data } = await supabase.from('branches').select('*').eq('tenant_id', tId);
-        if (data) setBranches(data);
-    };
-
-    const fetchStaff = async (tId: string) => {
-        setLoading(true);
-        try {
-            // Re-using team_members for backward compatibility, but enhanced for the scoped dashboard system
-            const { data, error } = await supabase
-                .from('team_members')
-                .select('*')
-                .eq('restaurant_id', tId)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setStaffList(data || []);
-        } catch (err: unknown) {
-            console.error(err);
-            toast.error(language === "ar" ? "فشل في تحميل الموظفين" : "Failed to load staff");
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [fetchStaff, fetchBranches]);
 
     // Modal States
     const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
@@ -103,7 +115,7 @@ export default function StaffPage() {
         }
     };
 
-    const openPermissionsModal = async (staff: any) => {
+    const openPermissionsModal = async (staff: StaffMember) => {
         setSelectedStaff(staff);
         
         // Fetch current permissions
@@ -375,7 +387,7 @@ export default function StaffPage() {
             {/* Add Staff Modal */}
             {isAddStaffModalOpen && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-[#131b26] w-full max-w-md rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white dark:bg-[#131b26] w-full max-md:max-w-md rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-800 overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="px-6 py-4 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
                             <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">
                                 {language === "ar" ? "إضافة موظف جديد" : "Add New Staff"}

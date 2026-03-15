@@ -1,23 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Activity, Clock, Search, AlertCircle, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
 
+interface ActivityLog {
+    id: string;
+    action: string;
+    target_id: string;
+    details: string;
+    created_at: string;
+}
+
 export default function SuperAdminLogsPage() {
     const { language } = useLanguage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [logs, setLogs] = useState<any[]>([]);
+    const [logs, setLogs] = useState<ActivityLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
-    useEffect(() => {
-        fetchLogs();
-    }, []);
-
-    const fetchLogs = async () => {
+    const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -28,13 +31,18 @@ export default function SuperAdminLogsPage() {
 
             if (error) throw error;
             setLogs(data || []);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            toast.error(language === "ar" ? `خطأ: ${err?.message || 'تعذر جلب السجلات'}` : `Error: ${err?.message || 'Failed to load logs'}`);
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            toast.error(language === "ar" ? `خطأ: ${message}` : `Error: ${message}`);
         } finally {
             setLoading(false);
         }
-    };
+    }, [language]);
+
+    useEffect(() => {
+        fetchLogs();
+    }, [fetchLogs]);
 
     const filteredLogs = logs.filter(l => 
         l.action?.toLowerCase().includes(searchQuery.toLowerCase()) || 

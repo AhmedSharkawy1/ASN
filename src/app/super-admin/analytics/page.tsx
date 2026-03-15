@@ -3,10 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { LineChart, BarChart3, TrendingUp, Users } from "lucide-react";
-import { useLanguage } from "@/lib/context/LanguageContext";
-
 export default function SuperAdminAnalyticsPage() {
-    const { language } = useLanguage();
     const [stats, setStats] = useState({ clients: 0, branches: 0, subscriptions: 0 });
     const [loading, setLoading] = useState(true);
 

@@ -1,24 +1,51 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 
-import { useLanguage } from "@/lib/context/LanguageContext";
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import { 
+    LayoutDashboard, ClipboardList, Utensils, Warehouse, 
+    BarChart3, Settings, LogOut, Menu, X, ChevronLeft, 
+    Bell, Wifi, WifiOff, Sun, Moon, 
+    CreditCard, ChefHat, TableProperties, Truck, BookOpen, 
+    Factory, ScrollText, TrendingUp, Landmark, Users, 
+    UserCog, Printer, Store, Palette, QrCode,
+    PanelLeftClose, PanelLeftOpen
+} from "lucide-react";
+import { useTheme } from "next-themes";
+import { useLanguage } from "@/lib/context/LanguageContext";
 import { supabase } from "@/lib/supabase/client";
 import { subscribeSyncStatus } from "@/lib/sync-service";
-import { useTheme } from "next-themes";
-import {
-    LayoutDashboard, Utensils, QrCode, LogOut, Settings, Palette,
-    Menu, X, ChevronLeft, ClipboardList, ChefHat,
-    TableProperties, Truck, Users, UserCog, Bell, CreditCard,
-    Wifi, WifiOff, BarChart3, Sun, Moon, PanelLeftClose, PanelLeftOpen,
-    Warehouse, BookOpen, Factory, ScrollText, TrendingUp, Printer, Landmark, Store,
-    Laptop, ShoppingBag, Box, Hammer, Wallet, UserCheck, Cog, Package
-} from "lucide-react";
-import Link from "next/link";
-import Image from "next/image";
 import { Toaster, toast } from "sonner";
-import { BranchProvider, useBranch } from "@/lib/context/BranchContext";
+import { useBranch } from "@/lib/context/BranchContext";
+
+interface Branch {
+    id: string;
+    branch_name: string;
+}
+
+interface NavItem {
+    href: string;
+    icon: React.ElementType;
+    labelAr: string;
+    labelEn: string;
+    exact?: boolean;
+    key?: string;
+}
+
+interface NavSection {
+    key: string;
+    label: string;
+    items: NavItem[];
+}
+
+interface OrderPayload {
+    id: string;
+    is_draft: boolean;
+    source: string;
+    customer_name?: string;
+}
 
 /* ── Interactive ASN Logo Icon ── */
 function ASNIcon() {
@@ -42,7 +69,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const router = useRouter();
     const pathname = usePathname();
     const { setTheme, resolvedTheme } = useTheme();
-    const [mounted, setMounted] = useState(false);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -55,10 +81,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const audioCtxRef = useRef<AudioContext | null>(null);
 
     // Multi-branch state
-    const [branches, setBranches] = useState<any[]>([]);
-    const [activeBranch, setActiveBranch] = useState<string>('all');
+    const [branches, setBranches] = useState<Branch[]>([]);
+    const { activeBranch, setActiveBranch } = useBranch();
 
-    useEffect(() => setMounted(true), []);
+    const isActive = (href: string, exact?: boolean) => {
+        if (exact) return pathname === href;
+        return pathname === href || pathname.startsWith(href + '/');
+    };
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -69,26 +98,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             } 
             
             const email = session.user.email;
-            let rId = null;
+            let rId: string | null = null;
             let rName = "";
             let rLogo = null;
-            let userPerms = null;
+            let tempPermissions: Record<string, boolean> = {};
 
-            // First check if this user is a super_admin
+            // Check super_admin status
             const { data: roleData } = await supabase
                 .from('user_roles')
                 .select('role')
                 .eq('user_id', session.user.id)
                 .single();
-
-            // If super admin and not impersonating (we'll add impersonation later), block access.
-            if (roleData && roleData.role === 'super_admin' && !sessionStorage.getItem('impersonating_tenant')) {
-                router.push('/super-admin');
-                return;
-            }
-
-            let isStaffFlag = false;
-            let finalPerms: Record<string, boolean> = {};
 
             // Impersonation Support
             const impersonatingTenant = sessionStorage.getItem('impersonating_tenant');
@@ -99,178 +119,124 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                    rName = rest.name + ' (Impersonating)';
                    rLogo = rest.logo_url;
                }
+            } else if (roleData && roleData.role === 'super_admin') {
+                router.push('/super-admin');
+                return;
             }
-            else if (email?.endsWith(".asn") || (roleData && roleData.role === 'staff')) {
-                // It's a staff member
-                isStaffFlag = true;
-                const { data: staff } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', session.user.id).single();
-                if (staff) {
-                    if (!staff.is_active) {
-                        await supabase.auth.signOut();
-                        router.push("/login");
-                        return;
-                    }
-                    if (staff.restaurants?.subscription_expires_at && new Date(staff.restaurants.subscription_expires_at) < new Date()) {
-                        router.push('/subscription-expired'); // Hard block
-                        return;
-                    }
 
-                    rId = staff.restaurant_id;
-                    rName = staff.restaurants?.name || "";
-                    rLogo = staff.restaurants?.logo_url || null;
-                    
-                    // Fetch staff specific permissions
-                    const { data: pp } = await supabase.from('page_permissions').select('page_key, can_view').eq('user_id', staff.id);
-                    if (pp && pp.length > 0) {
-                        pp.forEach(p => { finalPerms[p.page_key] = p.can_view });
-                    } else if (staff.permissions) {
-                        finalPerms = staff.permissions;
+            let isStaffFlag = false;
+
+            if (!rId) {
+                if (email?.endsWith(".asn") || (roleData && roleData.role === 'staff')) {
+                    isStaffFlag = true;
+                    const { data: staff } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', session.user.id).single();
+                    if (staff) {
+                        if (!staff.is_active) {
+                            await supabase.auth.signOut();
+                            router.push("/login");
+                            return;
+                        }
+                        if (staff.restaurants?.subscription_expires_at && new Date(staff.restaurants.subscription_expires_at) < new Date()) {
+                            router.push('/subscription-expired');
+                            return;
+                        }
+
+                        rId = staff.restaurant_id;
+                        rName = staff.restaurants?.name || "";
+                        rLogo = staff.restaurants?.logo_url || null;
+                        
+                        if (staff.permissions) {
+                            tempPermissions = typeof staff.permissions === 'string' ? JSON.parse(staff.permissions) : staff.permissions;
+                        }
                     }
-                }
-            } else {
-                // It's the admin/owner (or a regular team member without .asn if they signed up locally)
-                const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').eq('email', email).single();
-                
-                if (rest) {
-                    rId = rest.id;
-                    rName = rest.name;
-                    rLogo = rest.logo_url;
-                    
-                    // Basic subscription check
-                    if (rest.subscription_expires_at && new Date(rest.subscription_expires_at) < new Date()) {
-                        router.push('/subscription-expired'); // Hard block
-                        return;
+                } else {
+                    const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').eq('email', email).single();
+                    if (rest) {
+                        rId = rest.id;
+                        rName = rest.name;
+                        rLogo = rest.logo_url;
+                        if (rest.subscription_expires_at && new Date(rest.subscription_expires_at) < new Date()) {
+                            router.push('/subscription-expired');
+                            return;
+                        }
                     }
                 }
             }
 
             if (rId) {
-                // Fetch tenant level client_page_access
                 const { data: cpa } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
                 const tenantPerms: Record<string, boolean> = {};
-                // If we want to safely fallback to true if not specified, we only override when explicitly false.
-                // But let's build an explicit map
-                if (cpa && cpa.length > 0) {
-                    cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled });
-                }
+                if (cpa) cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled });
 
                 if (!isStaffFlag) {
-                    // Admin: Use tenant access
-                    finalPerms = tenantPerms;
-                    // We need a way to tell the layout this is an Admin (owner has all permissions except what's explicitly disabled).
-                    // We'll set a special key _isAdmin to true inside finalPerms just to flag it easily without state change.
-                    finalPerms['_isAdmin'] = true;
+                    tempPermissions = tenantPerms || {};
+                    tempPermissions['_isAdmin'] = true;
                 } else {
-                    // Staff: Intersect staff perms with tenant perms. 
-                    Object.keys(finalPerms).forEach(key => {
-                        if (tenantPerms[key] === false) {
-                            finalPerms[key] = false;
-                        }
+                    Object.keys(tempPermissions).forEach(key => {
+                        if (tenantPerms[key] === false) tempPermissions[key] = false;
                     });
-                    finalPerms['_isAdmin'] = false;
+                    tempPermissions['_isAdmin'] = false;
                 }
 
                 setRestaurantName(rName);
                 setRestaurantLogo(rLogo);
                 restaurantIdRef.current = rId;
                 setRestaurantId(rId);
-                setPermissions(finalPerms);
+                setPermissions(tempPermissions);
 
-                // Fetch Branches if restaurant exists
-                if (rId) {
-                    const { data: bData } = await supabase.from('branches').select('id, branch_name').eq('tenant_id', rId).eq('is_active', true);
-                    if (bData) setBranches(bData);
-                }
+                const { data: bData } = await supabase.from('branches').select('id, branch_name').eq('tenant_id', rId).eq('is_active', true);
+                if (bData) setBranches(bData as Branch[]);
             } else if (!roleData || roleData.role !== 'super_admin') {
-               // If not a super admin and no restaurant found, sign out to be safe
-               setLoading(false);
-               return;
+                router.push('/login');
+                return;
             }
             setLoading(false);
         };
         checkAuth();
 
-        // Subscribe to online/offline status
         const unsub = subscribeSyncStatus(s => setIsOnline(s.isOnline));
         return () => unsub();
     }, [router]);
 
-    /* ── Play chime sound ── */
     const playChime = useCallback(() => {
         try {
             if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
             const ctx = audioCtxRef.current;
-            // Play 3 ascending beeps
             [0, 0.18, 0.36].forEach((delay, i) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.connect(gain); gain.connect(ctx.destination);
                 osc.type = "sine";
-                osc.frequency.value = 520 + i * 120; // 520, 640, 760 Hz
+                osc.frequency.value = 520 + i * 120;
                 gain.gain.setValueAtTime(0, ctx.currentTime + delay);
                 gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + delay + 0.04);
                 gain.gain.linearRampToValueAtTime(0, ctx.currentTime + delay + 0.22);
                 osc.start(ctx.currentTime + delay);
                 osc.stop(ctx.currentTime + delay + 0.25);
             });
-        } catch { /* browser may block autoplay */ }
+        } catch { /* ignored */ }
     }, []);
 
-    /* ── Realtime: watch for new orders from online menu ── */
     useEffect(() => {
         if (!restaurantId) return;
-
-        // Request browser notification permission once
         if (typeof Notification !== "undefined" && Notification.permission === "default") {
             Notification.requestPermission();
         }
-
         const channel = supabase
             .channel(`new-orders-${restaurantId}`)
-            .on(
-                "postgres_changes",
-                { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` },
-                (payload) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const order = payload.new as any;
-
-                    // Skip POS hold orders (drafts) or orders explicitly marked as POS source
-                    if (order.is_draft || order.source === "pos") return;
-
-                    playChime();
-
-                    const shortId = order.id ? order.id.split('-')[0].toUpperCase() : 'جديد';
-                    const title = language === "ar" ? "🛍️ طلب جديد!" : "🛍️ New Order!";
-                    const body = language === "ar"
-                        ? `طلب #${shortId} ${order.customer_name ? `لـ ${order.customer_name}` : ""}`
-                        : `Order #${shortId} ${order.customer_name ? `for ${order.customer_name}` : ""}`;
-
-                    // Native browser notification
-                    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-                        const notif = new Notification(title, {
-                            body: body + `\nالإجمالي: ${order.total || 0} ج`,
-                            icon: "/icon-192x192.png", // using standard PWA icon name if logo missing
-                            tag: `order-${order.id}`,
-                            requireInteraction: true // Keeps the notification on screen until clicked
-                        });
-                        notif.onclick = () => window.focus();
-                    }
-
-                    // In-app Sonner Toast
-                    toast.success(
-                        <div className="flex flex-col gap-1 w-full text-right" dir={language === "ar" ? "rtl" : "ltr"}>
-                            <p className="font-extrabold text-white text-base">🛍️ {language === "ar" ? "طلب جديد!" : "New Order!"}</p>
-                            <p className="font-medium text-emerald-400">#{shortId} {order.customer_name ? `— ${order.customer_name}` : ""}</p>
-                        </div>,
-                        {
-                            duration: 10000,
-                            className: "bg-[#0d1117] border-emerald-500/40 text-white shadow-2xl shadow-emerald-500/20",
-                        }
-                    );
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `restaurant_id=eq.${restaurantId}` }, (payload) => {
+                const order = payload.new as OrderPayload;
+                if (order.is_draft || order.source === "pos") return;
+                playChime();
+                const shortId = order.id ? order.id.split('-')[0].toUpperCase() : 'NEW';
+                const titleText = language === "ar" ? "🛍️ طلب جديد!" : "🛍️ New Order!";
+                const bodyText = language === "ar" ? `طلب #${shortId}` : `Order #${shortId}`;
+                if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                    new Notification(titleText, { body: bodyText, icon: "/logo.png", tag: `order-${order.id}` }).onclick = () => window.focus();
                 }
-            )
+                toast.success(titleText, { description: bodyText });
+            })
             .subscribe();
-
         return () => { supabase.removeChannel(channel); };
     }, [restaurantId, playChime, language]);
 
@@ -280,14 +246,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return (
             <div className="min-h-screen bg-stone-50 dark:bg-background flex items-center justify-center transition-colors">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 dark:border-glass-border"></div>
-                    <span className="text-slate-500 dark:text-zinc-500 text-sm font-medium animate-pulse">{language === "ar" ? "جاري التحميل..." : "Loading..."}</span>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+                    <span className="text-slate-500 text-sm font-medium">{language === "ar" ? "جاري التحميل..." : "Loading..."}</span>
                 </div>
             </div>
         );
     }
 
-    const navSections = [
+    const navSections: NavSection[] = [
         {
             key: "home",
             label: language === "ar" ? "الرئيسية" : "Home",
@@ -299,124 +265,81 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             key: "orders",
             label: language === "ar" ? "الطلبات" : "Orders",
             items: [
-                { href: "/dashboard/orders", icon: ClipboardList, labelAr: "نظام الطلبيات", labelEn: "Orders" },
-                { href: "/dashboard/pos", icon: CreditCard, labelAr: "POS", labelEn: "POS" },
-                { href: "/dashboard/kitchen", icon: ChefHat, labelAr: "شاشة المطبخ", labelEn: "Kitchen Display" },
-                { href: "/dashboard/reports", icon: BarChart3, labelAr: "التقارير", labelEn: "Reports", permKey: "reports" },
+                { href: "/dashboard/orders", icon: ClipboardList, labelAr: "نظام الطلبيات", labelEn: "Orders", key: "orders" },
+                { href: "/dashboard/pos", icon: CreditCard, labelAr: "POS", labelEn: "POS", key: "pos" },
+                { href: "/dashboard/kitchen", icon: ChefHat, labelAr: "شاشة المطبخ", labelEn: "Kitchen Display", key: "kitchen" },
+                { href: "/dashboard/reports", icon: BarChart3, labelAr: "التقارير", labelEn: "Reports", key: "reports" },
             ]
         },
         {
             key: "products",
             label: language === "ar" ? "القائمة" : "Menu",
             items: [
-                { href: "/dashboard/menu", icon: Utensils, labelAr: "المنتجات", labelEn: "Products", permKey: "products" },
-                { href: "/dashboard/tables", icon: TableProperties, labelAr: "الطاولات", labelEn: "Tables", permKey: "settings" },
-                { href: "/dashboard/delivery", icon: Truck, labelAr: "الدليفري", labelEn: "Delivery", permKey: "settings" },
+                { href: "/dashboard/menu", icon: Utensils, labelAr: "المنتجات", labelEn: "Products", key: "products" },
+                { href: "/dashboard/tables", icon: TableProperties, labelAr: "الطاولات", labelEn: "Tables", key: "settings" },
+                { href: "/dashboard/delivery", icon: Truck, labelAr: "الدليفري", labelEn: "Delivery", key: "settings" },
             ]
         },
         {
             key: "inventory",
             label: language === "ar" ? "المخزون والمصنع" : "Inventory & Factory",
             items: [
-                { href: "/dashboard/inventory", icon: Warehouse, labelAr: "المخزون", labelEn: "Inventory", permKey: "inventory" },
-                { href: "/dashboard/recipes", icon: BookOpen, labelAr: "الوصفات", labelEn: "Recipes", permKey: "inventory" },
-                { href: "/dashboard/factory", icon: Factory, labelAr: "المصنع", labelEn: "Factory", permKey: "inventory" },
-                { href: "/dashboard/inventory/transactions", icon: ScrollText, labelAr: "حركات المخزون", labelEn: "Transactions", permKey: "inventory" },
-                { href: "/dashboard/costs", icon: TrendingUp, labelAr: "التكاليف والأرباح", labelEn: "Cost Analytics", permKey: "inventory" },
-                { href: "/dashboard/supplies", icon: Truck, labelAr: "التوريدات", labelEn: "Supplies", permKey: "inventory" },
-                { href: "/dashboard/branch-supplies", icon: Warehouse, labelAr: "توريدات الفروع", labelEn: "Branch Supplies", permKey: "inventory" },
+                { href: "/dashboard/inventory", icon: Warehouse, labelAr: "المخزون", labelEn: "Inventory", key: "inventory" },
+                { href: "/dashboard/recipes", icon: BookOpen, labelAr: "الوصفات", labelEn: "Recipes", key: "inventory" },
+                { href: "/dashboard/factory", icon: Factory, labelAr: "المصنع", labelEn: "Factory", key: "inventory" },
+                { href: "/dashboard/inventory/transactions", icon: ScrollText, labelAr: "حركات المخزون", labelEn: "Transactions", key: "inventory" },
+                { href: "/dashboard/costs", icon: TrendingUp, labelAr: "التكاليف والأرباح", labelEn: "Cost Analytics", key: "inventory" },
+                { href: "/dashboard/supplies", icon: Truck, labelAr: "التوريدات", labelEn: "Supplies", key: "inventory" },
+                { href: "/dashboard/branch-supplies", icon: Warehouse, labelAr: "توريدات الفروع", labelEn: "Branch Supplies", key: "inventory" },
             ]
         },
         {
             key: "finance",
             label: language === "ar" ? "المالية" : "Finance",
             items: [
-                { href: "/dashboard/accounts", icon: Landmark, labelAr: "الحسابات", labelEn: "Accounts", permKey: "reports" },
+                { href: "/dashboard/accounts", icon: Landmark, labelAr: "الحسابات", labelEn: "Accounts", key: "reports" },
             ]
         },
         {
             key: "admin",
             label: language === "ar" ? "المسؤول والتسويق" : "Admin",
             items: [
-                { href: "/dashboard/customers", icon: Users, labelAr: "العملاء", labelEn: "Customers", permKey: "customers" },
-                { href: "/dashboard/team", icon: UserCog, labelAr: "الفريق", labelEn: "Team", permKey: "team" },
-                { href: "/dashboard/notifications", icon: Bell, labelAr: "إشعارات العملاء", labelEn: "Notifications", permKey: "customers" },
+                { href: "/dashboard/customers", icon: Users, labelAr: "العملاء", labelEn: "Customers", key: "customers" },
+                { href: "/dashboard/staff", icon: UserCog, labelAr: "الفريق", labelEn: "Staff", key: "team" },
+                { href: "/dashboard/notifications", icon: Bell, labelAr: "إشعارات العملاء", labelEn: "Notifications", key: "customers" },
             ]
         },
         {
             key: "settings",
             label: language === "ar" ? "الأدوات" : "Tools",
             items: [
-                { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", permKey: "settings" },
-                { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", permKey: "settings" },
-                { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", permKey: "settings" },
-                { href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", permKey: "settings" },
-                { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", permKey: "settings" },
-            ]
-        }
-    ].map(section => {
-        const p = permissions as Record<string, boolean> | null;
-        if (!p) return section;
-
-        const isAdmin = p['_isAdmin'] === true;
-
-        // If the entire section is explicitly blocked
-        if (p[section.key] === false) return { ...section, items: [] };
-
-        // Otherwise filter sub-items
-        const filteredItems = section.items.filter((item: { href: string; permKey?: string; [key: string]: unknown }) => {
-            if (!item.permKey) return true;
-            
-            if (isAdmin) {
-               const { activeBranch, setActiveBranch } = useBranch();
-    const router = useRouter();
-
-    const isActive = (href: string, exact?: boolean) => {
-        if (exact) return pathname === href;
-        return pathname === href || pathname.startsWith(href + '/');
-    };
-
-    const navSections = [
-        {
-            label: language === 'ar' ? 'القائمة الرئيسية' : 'Primary Menu',
-            items: [
-                { href: "/dashboard", icon: LayoutDashboard, labelEn: "Dashboard", labelAr: "الرئيسية", exact: true },
-                { href: "/dashboard/pos", icon: Laptop, labelEn: "POS System", labelAr: "نقطة البيع", key: 'pos' },
-                { href: "/dashboard/orders", icon: ShoppingBag, labelEn: "Order Management", labelAr: "الطلبات", key: 'orders' },
-                { href: "/dashboard/kitchen", icon: Utensils, labelEn: "Kitchen Display", labelAr: "المطبخ", key: 'kitchen' },
-            ]
-        },
-        {
-            label: language === 'ar' ? 'الإدارة والمنتجات' : 'Management & Gear',
-            items: [
-                { href: "/dashboard/products", icon: Package, labelEn: "Inventory & Menu", labelAr: "الأصناف والقائمة", key: 'menu' },
-                { href: "/dashboard/inventory", icon: Box, labelEn: "Stock Control", labelAr: "المخزن", key: 'inventory' },
-                { href: "/dashboard/factory", icon: Hammer, labelEn: "Production Line", labelAr: "الإنتاج والمصنع", key: 'factory' },
-            ]
-        },
-        {
-            label: language === 'ar' ? 'البيانات والموظفين' : 'Data & People',
-            items: [
-                { href: "/dashboard/accounts", icon: Wallet, labelEn: "Finance & Reports", labelAr: "الحسابات", key: 'reports' },
-                { href: "/dashboard/customers", icon: Users, labelEn: "Clients & CRM", labelAr: "العملاء", key: 'customers' },
-                { href: "/dashboard/staff", icon: UserCheck, labelEn: "Team & Access", labelAr: "الموظفين", adminOnly: true },
-                { href: "/dashboard/branches", icon: Store, labelEn: "Physical Branches", labelAr: "الفروع", adminOnly: true },
-                { href: "/dashboard/settings", icon: Cog, labelEn: "Global Settings", labelAr: "الإعدادات", adminOnly: true },
+                { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", key: "settings" },
+                { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", key: "settings" },
+                { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", key: "settings" },
+                { href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "settings" },
+                { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", key: "settings" },
             ]
         }
     ];
 
-    const isDark = resolvedTheme === 'dark';
+    const filteredNavSections = navSections.map(section => {
+        const p = permissions as Record<string, boolean> | null;
+        if (!p) return section;
+        const isAdmin = p['_isAdmin'] === true;
+        const filteredItems = section.items.filter((item: NavItem) => {
+            if (isAdmin) return true;
+            if (item.key && p[item.key] === false) return false;
+            return true;
+        });
+        return { ...section, items: filteredItems };
+    }).filter(section => section.items.length > 0);
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-            
-            {/* Mobile overlay */}
             {sidebarOpen && (
                 <div className="fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
             )}
 
-            {/* ====== SIDEBAR ====== */}
             <aside className={`fixed md:sticky top-0 h-screen z-50 flex flex-col transition-all duration-300
                 ${language === 'ar' ? 'right-0' : 'left-0'}
                 ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0')}
@@ -424,14 +347,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 shadow-lg shadow-stone-100/50 dark:shadow-none
                 ${language === 'ar' ? 'border-l' : 'border-r'}
             `}>
-                {/* Logo */}
                 <div className="h-[72px] flex items-center justify-between px-4 border-b border-stone-100 dark:border-zinc-800/50 shrink-0">
                     <div className="flex items-center gap-3 overflow-hidden">
                         <ASNIcon />
                         {!sidebarCollapsed && (
                             <div className="flex flex-col whitespace-nowrap">
-                                <span className="text-lg font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-500 dark:from-emerald-400 dark:to-cyan-400" style={{ fontFamily: 'var(--font-outfit), sans-serif' }}>ASN</span>
-                                <span className="text-[9px] text-slate-400 dark:text-zinc-500 font-medium -mt-1 uppercase tracking-wider">Technology</span>
+                                <strong className="text-xl font-black bg-gradient-to-r from-teal-600 to-emerald-500 dark:from-emerald-400 dark:to-teal-400 bg-clip-text text-transparent">ASN</strong>
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 dark:text-zinc-500">Technology</span>
                             </div>
                         )}
                     </div>
@@ -444,33 +366,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </button>
                 </div>
 
-                {/* Navigation */}
                 <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6" style={{ scrollbarWidth: 'none' }}>
-                    {navSections.map((section, sIdx) => (
+                    {filteredNavSections.map((section, sIdx) => (
                         <div key={sIdx}>
                             {!sidebarCollapsed && (
-                                <h3 className="text-[13px] font-extrabold text-stone-400 dark:text-zinc-600 uppercase tracking-widest px-3 mb-2">
+                                <h3 className="px-4 text-[11px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase tracking-[0.15em] mb-2">
                                     {section.label}
                                 </h3>
                             )}
                             <div className="space-y-1">
-                                {section.items.map((item: any) => {
-                                    const active = isActive(item.href, 'exact' in item ? item.exact : undefined);
-                                    if (item.key && permissions?.[item.key] === false) return null;
+                                {section.items.map((item: NavItem) => {
+                                    const active = isActive(item.href, item.exact);
                                     return (
                                         <Link key={item.href} href={item.href}
                                             onClick={() => setSidebarOpen(false)}
-                                            title={sidebarCollapsed ? (language === "ar" ? item.labelAr : item.labelEn) : undefined}
-                                            className={`flex items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3.5'} rounded-xl text-[18px] font-extrabold transition-all duration-200 group
+                                            className={`flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 group
                                                 ${active
-                                                    ? 'bg-teal-50 text-teal-700 dark:bg-emerald-500/10 dark:text-emerald-400 shadow-sm shadow-teal-50 dark:shadow-emerald-500/5'
-                                                    : 'text-stone-600 hover:text-teal-700 hover:bg-stone-50 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-white/5'
+                                                    ? 'bg-teal-50 dark:bg-emerald-500/10 text-teal-700 dark:text-emerald-400 shadow-sm shadow-teal-500/10'
+                                                    : 'text-slate-500 dark:text-zinc-400 hover:bg-stone-50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-zinc-100'
                                                 }`}
                                         >
-                                            <item.icon className={`w-6 h-6 transition-colors shrink-0 ${active ? 'text-teal-600 dark:text-emerald-400' : 'text-stone-400 group-hover:text-teal-600 dark:text-zinc-500 dark:group-hover:text-zinc-300'}`} />
-                                            {!sidebarCollapsed && <span>{language === "ar" ? item.labelAr : item.labelEn}</span>}
-                                            {active && !sidebarCollapsed && (
-                                                <div className={`w-1.5 h-1.5 rounded-full bg-teal-500 dark:bg-emerald-400 ${language === 'ar' ? 'mr-auto' : 'ml-auto'} animate-pulse`} />
+                                            <item.icon className={`w-5 h-5 shrink-0 transition-transform duration-300 group-hover:scale-110 ${active ? 'text-teal-600 dark:text-emerald-400' : 'text-slate-400 dark:text-zinc-500 group-hover:text-teal-500 dark:group-hover:text-emerald-500'}`} />
+                                            {!sidebarCollapsed && (
+                                                <span className={`text-[15px] font-bold tracking-tight whitespace-nowrap transition-colors ${active ? 'font-extrabold' : ''}`}>
+                                                    {language === "ar" ? item.labelAr : item.labelEn}
+                                                </span>
                                             )}
                                         </Link>
                                     );
@@ -480,27 +400,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     ))}
                 </nav>
 
-                {/* Bottom: Restaurant Name + Logout */}
                 <div className={`border-t border-stone-100 dark:border-zinc-800/50 ${sidebarCollapsed ? 'p-2' : 'p-4'} space-y-3 shrink-0`}>
                     {restaurantName && !sidebarCollapsed && (
                         <div className="bg-stone-50/60 hover:bg-stone-50 dark:bg-zinc-800/30 dark:hover:bg-zinc-800/50 transition-colors rounded-xl px-3 py-2.5 flex items-center gap-3 border border-stone-100/50 dark:border-zinc-800/50">
                             {restaurantLogo ? (
-                                <img src={restaurantLogo} alt={restaurantName} className="w-9 h-9 object-cover rounded-lg shadow-sm" />
+                                <Image src={restaurantLogo} alt={restaurantName} width={36} height={36} className="w-9 h-9 object-cover rounded-lg shadow-sm" />
                             ) : (
                                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-500 to-emerald-500 dark:from-emerald-500 dark:to-cyan-500 flex items-center justify-center text-white font-extrabold text-sm shadow-md">
                                     {restaurantName.charAt(0)}
                                 </div>
                             )}
-                            <div className="flex-1 min-w-0">
-                                <p className="text-[16px] font-extrabold text-slate-800 dark:text-zinc-200 truncate">{restaurantName}</p>
-                                <p className="text-[12px] font-bold text-slate-500 dark:text-zinc-500">{language === "ar" ? "المطعم النشط" : "Active Restaurant"}</p>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-xs font-extrabold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">{language === "ar" ? "المتجر" : "RESTAURANT"}</span>
+                                <span className="text-[14px] font-extrabold text-slate-700 dark:text-zinc-200 truncate">{restaurantName}</span>
                             </div>
                         </div>
                     )}
                     <button
                         onClick={async () => { await supabase.auth.signOut(); router.push("/login"); }}
                         className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'} rounded-xl text-red-500/90 hover:text-red-600 hover:bg-red-50 dark:text-red-400/80 dark:hover:bg-red-500/10 text-[16px] font-extrabold transition-all`}
-                        title={sidebarCollapsed ? (language === "ar" ? "تسجيل الخروج" : "Logout") : undefined}
                     >
                         <LogOut className="w-5 h-5" />
                         {!sidebarCollapsed && (language === "ar" ? "تسجيل الخروج" : "Logout")}
@@ -508,9 +426,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
             </aside>
 
-            {/* ====== MAIN CONTENT ====== */}
             <main className="flex-1 flex flex-col min-h-screen overflow-y-auto">
-                {/* Top Header Bar */}
                 <header className="h-[72px] border-b border-stone-100 dark:border-zinc-800/50 bg-white/80 dark:bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0 transition-colors">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition">
@@ -518,71 +434,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </button>
                         <div className="hidden md:flex items-center gap-2 text-slate-400 dark:text-zinc-500 text-sm">
                             <ChevronLeft className={`w-4 h-4 ${language === 'ar' ? 'rotate-180' : ''}`} />
-                            <span className="font-medium">
-                                {language === "ar" ? "لوحة التحكم" : "Dashboard"}
-                            </span>
+                            <span className="font-medium">{language === "ar" ? "لوحة التحكم" : "Dashboard"}</span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {restaurantName && (
-                            <div className="hidden sm:flex flex-col items-end">
-                                <span className="text-[12px] font-extrabold text-slate-400 dark:text-zinc-500 uppercase tracking-wide">
-                                    {language === "ar" ? `مرحباً بك` : "Welcome Back"}
-                                </span>
-                                <strong className="text-[16px] font-extrabold text-teal-700 dark:text-emerald-400">{restaurantName}</strong>
+                        {restaurantId && branches.length > 0 && (
+                            <select 
+                                className="hidden md:block bg-stone-50 dark:bg-zinc-800/50 border border-stone-200 dark:border-zinc-700/50 text-slate-700 dark:text-zinc-300 text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold"
+                                value={activeBranch}
+                                onChange={(e) => setActiveBranch(e.target.value)}
+                            >
+                                <option value="all">{language === "ar" ? "كل الفروع" : "All Branches"}</option>
+                                {branches.map((b: Branch) => (
+                                    <option key={b.id} value={b.id}>{b.branch_name}</option>
+                                ))}
+                            </select>
+                        )}
+
+                        <button
+                            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                            className="p-2 rounded-xl bg-stone-50 dark:bg-zinc-800/50 hover:bg-stone-100 dark:hover:bg-zinc-700/50 transition-all font-bold"
+                        >
+                            {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-400" />}
+                        </button>
+
+                        <span className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-extrabold transition-all shadow-sm ${isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" : "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"}`}>
+                            {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+                            <span className="hidden sm:block uppercase tracking-wider">{isOnline ? "أونلاين" : "أوفلاين"}</span>
+                        </span>
+                        
+                        {restaurantLogo ? (
+                            <Image src={restaurantLogo} alt={restaurantName || "Logo"} width={40} height={40} className="w-10 h-10 object-cover rounded-xl shadow-md border-2 border-white dark:border-zinc-800" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 dark:from-emerald-500 dark:to-cyan-500 flex items-center justify-center text-white font-extrabold text-base shadow-md border-2 border-white dark:border-zinc-800">
+                                {restaurantName ? restaurantName.charAt(0) : "?"}
                             </div>
                         )}
-                        <div className="flex items-center gap-2">
-                            {/* Branch Selector */}
-                            {restaurantId && branches.length > 0 && (
-                                <select 
-                                    className="hidden md:block bg-stone-50 dark:bg-zinc-800/50 border border-stone-200 dark:border-zinc-700/50 text-slate-700 dark:text-zinc-300 text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold"
-                                    value={activeBranch}
-                                    onChange={(e) => setActiveBranch(e.target.value)}
-                                    title="Active Branch"
-                                >
-                                    <option value="all">{language === "ar" ? "كل الفروع" : "All Branches"}</option>
-                                    {branches.map((b: any) => (
-                                        <option key={b.id} value={b.id}>{b.branch_name}</option>
-                                    ))}
-                                </select>
-                            )}
-
-                            {/* Theme Toggle */}
-                            {mounted && (
-                                <button
-                                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                                    className="relative p-2 rounded-xl bg-stone-50 dark:bg-zinc-800/50 hover:bg-stone-100 dark:hover:bg-zinc-700/50 transition-all duration-300 group overflow-hidden"
-                                    title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-                                >
-                                    <div className={`transition-all duration-500 ${isDark ? 'rotate-0 scale-100' : 'rotate-90 scale-0 absolute inset-0 m-auto'}`}>
-                                        <Moon className="w-4 h-4 text-yellow-400" />
-                                    </div>
-                                    <div className={`transition-all duration-500 ${!isDark ? 'rotate-0 scale-100' : '-rotate-90 scale-0 absolute inset-0 m-auto'}`}>
-                                        <Sun className="w-4 h-4 text-amber-500" />
-                                    </div>
-                                </button>
-                            )}
-                            <span title={isOnline ? "Online - syncing with cloud" : "Offline - data saved locally"}
-                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-extrabold transition-all shadow-sm ${isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-glass-border" : "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"}`}>
-                                {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-                                <span className="hidden sm:block uppercase tracking-wider">{isOnline ? "أونلاين" : "أوفلاين"}</span>
-                            </span>
-                            
-                            {/* Top Right Avatar */}
-                            {restaurantLogo ? (
-                                <img src={restaurantLogo} alt={restaurantName} className="w-10 h-10 object-cover rounded-xl shadow-md border-2 border-white dark:border-zinc-800" />
-                            ) : (
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 dark:from-emerald-500 dark:to-cyan-500 flex items-center justify-center text-white font-extrabold text-base shadow-md border-2 border-white dark:border-zinc-800">
-                                    {restaurantName ? restaurantName.charAt(0) : "?"}
-                                </div>
-                            )}
-                        </div>
                     </div>
                 </header>
 
-                {/* Page Content */}
                 <div className={`${pathname.includes('/pos') ? 'p-2 md:p-4 pt-1' : 'p-4 md:p-8'} flex-1 flex flex-col min-h-0`}>
                     {children}
                 </div>

@@ -10,7 +10,6 @@ import {
     LogOut, Menu, X, ChevronLeft, Sun, Moon, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { Toaster } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
 

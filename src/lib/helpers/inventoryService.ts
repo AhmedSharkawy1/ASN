@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 /**
  * Inventory Service — ID-based inventory deduction with safe stock updates.
@@ -27,13 +28,11 @@ type OrderItemForInventory = {
  * Called non-blocking from submitOrder.
  * Returns an object indicating if ALL items were successfully deducted instantly.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function processOrderInventory(
     restaurantId: string,
     orderItems: OrderItemForInventory[],
     orderId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabaseClient?: any
+    supabaseClient?: SupabaseClient
 ): Promise<{ allDeducted: boolean; messages: string[] }> {
     const sb = supabaseClient || supabase;
     let allDeducted = true;
@@ -60,13 +59,11 @@ export async function processOrderInventory(
  * Process a single order item through the inventory deduction pipeline.
  * Returns true if fully deducted, false if deferred (needs production).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function processOneOrderItem(
     restaurantId: string,
     item: OrderItemForInventory,
     orderId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sb: any
+    sb: SupabaseClient
 ): Promise<boolean> {
     // 1. Look up the menu item to get inventory_item_id, recipe_id and item_type
     const { data: menuItem, error: menuErr } = await sb
@@ -79,7 +76,6 @@ async function processOneOrderItem(
         .single();
 
     if (menuErr || !menuItem) {
-        return true; 
         return true; 
     }
 
@@ -115,7 +111,7 @@ async function processOneOrderItem(
         if (unit === 'كجم') unit = 'kg';
         if (unit === 'قطعة') unit = 'piece';
 
-        const res = await upsertProductionRequest(
+        await upsertProductionRequest(
             restaurantId,
             menuItem.recipe_id || null,
             item.title,
@@ -138,7 +134,6 @@ async function processOneOrderItem(
  * Uses a safe UPDATE with quantity check to prevent negative stock.
  * Returns true if deduction succeeded.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function tryDeductInventory(
     restaurantId: string,
     inventoryItemId: string,
@@ -146,8 +141,7 @@ async function tryDeductInventory(
     source: 'order' | 'production' | 'manual' | 'production_consume',
     referenceId: string,
     itemName: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sb: any = supabase
+    sb: SupabaseClient = supabase
 ): Promise<boolean> {
     // Fetch current stock
     const { data: inv, error: invErr } = await sb
@@ -158,11 +152,9 @@ async function tryDeductInventory(
 
     if (invErr || !inv) {
         return false;
-        return false;
     }
 
     if (inv.quantity < quantity) {
-        return false;
         return false;
     }
 
@@ -179,12 +171,10 @@ async function tryDeductInventory(
 
     if (error) {
         return false;
-        return false;
     }
     
     // Fix for silent failure in postgrest
     if (!data || data.length === 0) {
-        return false;
         return false;
     }
 
@@ -218,8 +208,7 @@ async function upsertProductionRequest(
     productName: string,
     quantity: number,
     orderId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    sb: any = supabase,
+    sb: SupabaseClient = supabase,
     unit: string = 'unit'
 ): Promise<{ success: boolean; error?: string }> {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -524,8 +513,7 @@ export async function finalizeDeferredInventory(
     restaurantId: string,
     orderId: string,
     orderItems: OrderItemForInventory[],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabaseClient?: any 
+    supabaseClient?: SupabaseClient 
 ): Promise<void> {
     const sb = supabaseClient || supabase;
 
@@ -579,8 +567,7 @@ export async function finalizeDeferredInventory(
 export async function revertOrderInventory(
     restaurantId: string,
     orderId: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabaseClient?: any
+    supabaseClient?: SupabaseClient
 ): Promise<void> {
     const sb = supabaseClient || supabase;
 

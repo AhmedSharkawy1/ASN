@@ -6,8 +6,8 @@ import { useState, useEffect, useCallback } from "react";
 import { posDb } from "@/lib/pos-db";
 import { formatCurrency } from "@/lib/helpers/formatters";
 import {
-    BarChart3, TrendingUp, ShoppingCart, DollarSign,
-    Package, Download, Users, Truck, CreditCard,
+    BarChart3, ShoppingCart, DollarSign,
+    Package, Download, Users, CreditCard,
     Banknote, Smartphone, Calendar, ArrowUpRight
 } from "lucide-react";
 

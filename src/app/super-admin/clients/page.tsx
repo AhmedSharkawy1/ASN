@@ -1,22 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
 
+interface Client {
+    id: string;
+    name: string;
+    email: string | null;
+    subscription_plan: string | null;
+    subscription_expires_at: string | null;
+    created_at: string;
+}
+
+interface PageAccess {
+    page_key: string;
+    enabled: boolean;
+}
+
 export default function SuperAdminClientsPage() {
     const { language } = useLanguage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [clients, setClients] = useState<any[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const router = useRouter();
 
     const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
-    const [selectedClient, setSelectedClient] = useState<any>(null);
+    const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [clientPermissions, setClientPermissions] = useState<Record<string, boolean>>({});
     const [savingAccess, setSavingAccess] = useState(false);
 
@@ -34,28 +47,28 @@ export default function SuperAdminClientsPage() {
         { key: 'settings', nameEn: 'Settings & Printers', nameAr: 'الإعدادات والطابعات' },
     ];
 
-    useEffect(() => {
-        fetchClients();
-    }, []);
-
-    const fetchClients = async () => {
+    const fetchClients = useCallback(async () => {
         setLoading(true);
         try {
-            // Fetch restaurants and cross-reference with subscriptions if needed
             const { data, error } = await supabase
                 .from('restaurants')
                 .select('id, name, email, subscription_plan, subscription_expires_at, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setClients(data || []);
-        } catch (err: any) {
+            setClients((data as Client[]) || []);
+        } catch (err: unknown) {
             console.error("Fetch clients error:", err);
-            toast.error(language === "ar" ? `خطأ: ${err?.message || 'تعذر جلب البيانات'}` : `Error: ${err?.message || 'Failed to load clients'}`);
+            const message = err instanceof Error ? err.message : 'Failed to load clients';
+            toast.error(language === "ar" ? `خطأ: ${message}` : `Error: ${message}`);
         } finally {
             setLoading(false);
         }
-    };
+    }, [language]);
+
+    useEffect(() => {
+        fetchClients();
+    }, [fetchClients]);
 
     const handleImpersonate = async (tenantId: string) => {
         sessionStorage.setItem('impersonating_tenant', tenantId);
@@ -63,7 +76,7 @@ export default function SuperAdminClientsPage() {
         router.push('/dashboard');
     };
 
-    const handleOpenAccess = async (client: any) => {
+    const handleOpenAccess = async (client: Client) => {
         setSelectedClient(client);
         setClientPermissions({});
         setIsAccessModalOpen(true);
@@ -78,13 +91,12 @@ export default function SuperAdminClientsPage() {
             
             const perms: Record<string, boolean> = {};
             if (data && data.length > 0) {
-                data.forEach(p => { perms[p.page_key] = p.enabled });
+                (data as PageAccess[]).forEach(p => { perms[p.page_key] = p.enabled });
             } else {
-                // If completely new, assume everything is true initially for backwards compatibility
                 AVAILABLE_PAGES.forEach(pg => { perms[pg.key] = true });
             }
             setClientPermissions(perms);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to load permissions");
         }
@@ -107,9 +119,10 @@ export default function SuperAdminClientsPage() {
             
             toast.success(language === "ar" ? "تم حفظ صلاحيات الصفحات" : "Page access updated successfully");
             setIsAccessModalOpen(false);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
-            toast.error(err.message || "Failed to save");
+            const message = err instanceof Error ? err.message : 'Failed to save';
+            toast.error(message);
         } finally {
             setSavingAccess(false);
         }
@@ -127,7 +140,6 @@ export default function SuperAdminClientsPage() {
                     <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Clients & Tenants</h1>
                     <p className="text-slate-500 dark:text-zinc-400 mt-1">Manage platform accounts and businesses</p>
                 </div>
-                {/* Could add a "Create New Client" button here if required, though usually they sign up */}
             </div>
 
             <div className="bg-white dark:bg-[#131b26] rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm overflow-hidden flex flex-col">
@@ -163,7 +175,9 @@ export default function SuperAdminClientsPage() {
                                 </tr>
                             ) : filtered.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">No clients found matching "{searchQuery}"</td>
+                                    <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
+                                        No clients found matching &quot;{searchQuery}&quot;
+                                    </td>
                                 </tr>
                             ) : (
                                 filtered.map((client) => {
@@ -247,7 +261,7 @@ export default function SuperAdminClientsPage() {
                         </div>
 
                         <div className="p-6 overflow-y-auto space-y-4">
-                            <p className="text-sm text-slate-600 dark:text-zinc-300 mb-2">Select which dashboard pages this client is allowed to access and see.</p>
+                            <p className="text-sm text-slate-600 dark:text-zinc-300 mb-2">Select which dashboard pages this client is permitted to access.</p>
                             {AVAILABLE_PAGES.map(page => (
                                 <div key={page.key} className="flex items-center justify-between p-3 rounded-xl border border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-[#0a0f16]">
                                     <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">{language === 'ar' ? page.nameAr : page.nameEn}</span>

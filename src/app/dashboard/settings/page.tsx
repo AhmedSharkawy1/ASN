@@ -75,8 +75,7 @@ export default function SettingsPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let finalData: any = null;
+            let finalData: RestaurantProfile | null = null;
 
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
