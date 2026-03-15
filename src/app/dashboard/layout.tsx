@@ -327,7 +327,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (!p) return section;
         const isAdmin = p['_isAdmin'] === true;
         const filteredItems = section.items.filter((item: NavItem) => {
-            if (isAdmin) return true;
             if (item.key && p[item.key] === false) return false;
             return true;
         });
