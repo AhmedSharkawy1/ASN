@@ -331,7 +331,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const filteredNavSections = navSections.map(section => {
         const p = permissions as Record<string, boolean> | null;
         if (!p) return section;
-        const isAdmin = p['_isAdmin'] === true;
         const filteredItems = section.items.filter((item: NavItem) => {
             if (item.key && p[item.key] === false) return false;
             return true;

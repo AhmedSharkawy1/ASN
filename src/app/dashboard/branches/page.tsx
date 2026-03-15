@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { Search, Plus, MapPin, Store, Settings, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,25 @@ export default function BranchesPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
+
+    const fetchBranches = useCallback(async (tId: string) => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('branches')
+                .select('*')
+                .eq('tenant_id', tId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setBranches(data || []);
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error(language === "ar" ? "فشل في تحميل الفروع" : "Failed to load branches");
+        } finally {
+            setLoading(false);
+        }
+    }, [language]);
 
     useEffect(() => {
         const init = async () => {
@@ -39,26 +58,7 @@ export default function BranchesPage() {
             }
         };
         init();
-    }, []);
-
-    const fetchBranches = async (tId: string) => {
-        setLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('branches')
-                .select('*')
-                .eq('tenant_id', tId)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setBranches(data || []);
-        } catch (err: unknown) {
-            console.error(err);
-            toast.error(language === "ar" ? "فشل في تحميل الفروع" : "Failed to load branches");
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [fetchBranches]);
 
     const handleCreateBranch = async () => {
         if (!restaurantId) return;
