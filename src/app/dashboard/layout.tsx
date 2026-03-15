@@ -150,7 +150,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         }
                     }
                 } else {
-                    const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').eq('email', email).single();
+                    const { data: rest } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').ilike('email', email!).single();
                     if (rest) {
                         rId = rest.id;
                         rName = rest.name;
@@ -159,6 +159,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             router.push('/subscription-expired');
                             return;
                         }
+                    } else {
+                        console.error("ASN_LOG: Restaurant not found for email:", email);
                     }
                 }
             }
