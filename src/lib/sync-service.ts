@@ -10,10 +10,15 @@ export interface SyncStatus {
     isOnline: boolean;
     isSyncing: boolean;
     lastSynced?: string;
+    pendingCount: number;
+    deviceId?: string;
 }
 
-let _syncStatus: SyncStatus = { isOnline: true, isSyncing: false };
+let _syncStatus: SyncStatus = { isOnline: true, isSyncing: false, pendingCount: 0 };
 const _listeners = new Set<(s: SyncStatus) => void>();
+
+// Helper to check for Electron
+const isElectron = () => typeof window !== 'undefined' && 'electronAPI' in window;
 
 function notify(update: Partial<SyncStatus>) {
     _syncStatus = { ..._syncStatus, ...update };
@@ -28,6 +33,23 @@ export function subscribeSyncStatus(cb: (s: SyncStatus) => void): () => void {
 
 export function getSyncStatus(): SyncStatus {
     return _syncStatus;
+}
+
+// Poll Electron for detailed sync status if applicable
+if (isElectron()) {
+    setInterval(async () => {
+        try {
+            const status = await (window as any).electronAPI.getSyncStatus();
+            notify({
+                isSyncing: status.isSyncing,
+                pendingCount: status.pending,
+                lastSynced: status.lastSync,
+                deviceId: status.deviceId
+            });
+        } catch (err) {
+            console.error('[SyncService] Failed to get sync status:', err);
+        }
+    }, 5000);
 }
 
 /* ── Pull: Supabase → Dexie ── */
@@ -122,6 +144,35 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
             }
         }
 
+        // Pull inventory items
+        const { data: inv } = await supabase.from('inventory_items').select('*')
+            .eq('restaurant_id', restaurantId);
+        if (inv) {
+            await posDb.inventory_items.where('restaurant_id').equals(restaurantId).delete();
+            await posDb.inventory_items.bulkPut(
+                inv.map(i => ({ ...i, _dirty: false }))
+            );
+        }
+
+        // Pull delivery zones
+        const { data: zones } = await supabase.from('delivery_zones').select('*')
+            .eq('restaurant_id', restaurantId).eq('is_active', true);
+        if (zones) {
+            await posDb.delivery_zones.where('restaurant_id').equals(restaurantId).delete();
+            await posDb.delivery_zones.bulkPut(
+                zones.map(z => ({ ...z }))
+            );
+        }
+
+        // Pull branches
+        const { data: bData } = await supabase.from('branches').select('id, branch_name').eq('tenant_id', restaurantId).eq('is_active', true);
+        if (bData) {
+            await posDb.branches.where('restaurant_id').equals(restaurantId).delete();
+            await posDb.branches.bulkPut(
+                bData.map(b => ({ ...b, restaurant_id: restaurantId, is_active: true } as any))
+            );
+        }
+
         notify({ lastSynced: new Date().toISOString() });
     } catch (err) {
         console.error('[Sync] Pull failed', err);
@@ -132,6 +183,39 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
 
 /* ── Push: Dexie dirty records → Server API → Supabase ── */
 export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
+    if (isElectron()) {
+        // In Electron, we follow the "Enqeue First" rule.
+        // We'll gather dirty items and send them to the Electron Action Queue.
+        try {
+            const dirtyOrders = await posDb.orders.where('restaurant_id').equals(restaurantId).and(o => !!o._dirty).toArray();
+            const dirtyCusts = await posDb.customers.where('restaurant_id').equals(restaurantId).and(c => !!c._dirty).toArray();
+
+            for (const order of dirtyOrders) {
+                await (window as any).electronAPI.enqueueAction({
+                    action_type: 'upsert',
+                    table_name: 'orders',
+                    record_id: order.id,
+                    payload: order
+                });
+                await posDb.orders.update(order.id, { _dirty: false });
+            }
+
+            for (const cust of dirtyCusts) {
+                await (window as any).electronAPI.enqueueAction({
+                    action_type: 'upsert',
+                    table_name: 'customers',
+                    record_id: cust.id,
+                    payload: cust
+                });
+                await posDb.customers.update(cust.id, { _dirty: false });
+            }
+            
+            return;
+        } catch (err) {
+            console.error('[Sync] Electron Enqueue failed', err);
+        }
+    }
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
     notify({ isSyncing: true });
 
@@ -212,12 +296,18 @@ export function initSyncService(restaurantId: string): () => void {
 
     const handleOnline = async () => {
         notify({ isOnline: true });
+        if (isElectron()) {
+            (window as any).electronAPI.onlineStatusChanged(true);
+        }
         await pushDirtyToSupabase(restaurantId);
         await pullFromSupabase(restaurantId);
     };
 
     const handleOffline = () => {
         notify({ isOnline: false });
+        if (isElectron()) {
+            (window as any).electronAPI.onlineStatusChanged(false);
+        }
     };
 
     window.addEventListener('online', handleOnline);

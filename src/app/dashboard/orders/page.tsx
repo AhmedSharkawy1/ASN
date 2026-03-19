@@ -8,7 +8,9 @@ import { posDb } from "@/lib/pos-db";
 import { formatCurrency, formatQuantity, formatDate, statusLabel, statusColor, nextStatuses, elapsedTime, timeAgo } from "@/lib/helpers/formatters";
 import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff, Monitor, Globe, Edit2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getReceiptStyles } from "@/lib/helpers/printerSettings";
+import { getPrinterSettings } from "@/lib/helpers/printerSettings";
+import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
+import { executePrint } from "@/lib/helpers/printEngine";
 import { useRouter } from "next/navigation";
 
 type OrderItem = {
@@ -167,85 +169,11 @@ export default function OrdersPage() {
         const a = document.createElement("a"); a.href = url; a.download = "orders.csv"; a.click();
     };
 
-    const printOrderReceipt = (order: Order) => {
-
-        const orderTypeLabel = order.order_type === 'dine_in' ? 'صالة' : order.order_type === 'delivery' ? 'دليفري' : 'تيك أواي';
-        
-        const itemsHtml = order.items.map(item => {
-            const fmt = formatQuantity(item.qty, item.weight_unit || (isAr ? 'قطعة' : 'unit'), isAr);
-            const title = item.weight_unit
-                ? `(${fmt.qty} ${fmt.unit}) ${item.title}`
-                : item.title + (item.size && item.size !== 'عادي' ? ` (${item.size})` : '');
-            const qtyStr = item.weight_unit ? '1' : `${fmt.qty}`;
-            return `<tr>
-                <td style="padding:4px 0;font-size:14px">${item.category ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${item.category}<br/></span>` : ''}${title}</td>
-                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold">${qtyStr}</td>
-                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold">${formatCurrency(item.price * item.qty)}</td>
-            </tr>`;
-        }).join('');
-
-        const pw = window.open('', '_blank', 'width=300,height=600');
-        if (pw) {
-            pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>
-                <div style="text-align:center;margin-bottom:15px">
-                    ${(restaurant?.receipt_logo_url || restaurant?.logo_url) ? `<img src="${restaurant.receipt_logo_url || restaurant.logo_url}" alt="Logo" style="width:80px;height:80px;object-fit:contain;margin-bottom:10px;margin-left:auto;margin-right:auto;display:block" />` : ''}
-                    <p style="font-weight:bold;font-size:22px;margin:0 0 5px 0">${restaurant?.name || 'Restaurant'}</p>
-                    ${restaurant?.phone ? `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${restaurant.phone}</p>` : ''}
-                    ${restaurant?.phone_numbers?.map(p => `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${p.number}</p>`).join('') || ''}
-                    ${restaurant?.address ? `<p style="font-size:14px;margin:0 0 5px 0">${restaurant.address}</p>` : ''}
-                    <p style="font-size:14px;margin:0 0 5px 0">${new Date(order.created_at).toLocaleDateString('ar-EG')} - ${new Date(order.created_at).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
-                    <p style="font-weight:bold;font-size:18px;margin:0 0 5px 0">فاتورة رقم #${order.order_number}</p>
-                    <p style="font-size:16px;font-weight:bold;margin:0;display:inline-block;border:1px solid #000;padding:2px 6px;border-radius:4px">${orderTypeLabel}</p>
-                </div>
-                ${(order.customer_name || order.customer_phone) ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px">
-                    ${order.customer_name ? `<p style="margin:2px 0">العميل: ${order.customer_name}</p>` : ''}
-                    ${order.customer_phone ? `<p style="margin:2px 0" dir="ltr">${order.customer_phone}</p>` : ''}
-                    ${order.customer_address ? `<p style="margin:2px 0">العنوان: ${order.customer_address}</p>` : ''}
-                </div>` : ''}
-                ${order.notes ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px"><p style="margin:2px 0">ملاحظات: <strong>${order.notes}</strong></p></div>` : ''}
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-                    <thead><tr>
-                        <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الصنف</td>
-                        <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الكمية</td>
-                        <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">المبلغ</td>
-                    </tr></thead>
-                    <tbody>${itemsHtml}</tbody>
-                </table>
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                ${order.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px"><span>الخصم</span><span>-${formatCurrency(order.discount)}</span></div>` : ''}
-                ${(order.delivery_fee || 0) > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#0891b2"><span>🚚 حساب الدليفري ${order.delivery_driver_name ? `(${order.delivery_driver_name})` : ''}</span><span>+${formatCurrency(order.delivery_fee || 0)}</span></div>` : ''}
-                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px"><span>الإجمالي</span><span>${formatCurrency(order.total)}</span></div>
-                ${order.payment_method === 'deposit' && order.deposit_amount > 0 ? `
-                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;color:#d97706;margin-top:8px"><span>المدفوع (عربون)</span><span>${formatCurrency(order.deposit_amount)}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#dc2626;margin-top:4px"><span>الباقي</span><span>${formatCurrency(Math.max(0, order.total - order.deposit_amount))}</span></div>
-                ` : ''}
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                <div style="font-size:13px;font-weight:bold;text-align:center">طريقة الدفع: <strong>${order.payment_method === 'cash' ? 'كاش' : order.payment_method === 'deposit' ? 'عربون' : order.payment_method}</strong></div>
-                <div style="text-align:center;font-size:13px;margin-top:20px;font-weight:bold"><p style="margin:0">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
-                <script>
-                    window.onload = function() {
-                        const imgs = document.getElementsByTagName('img');
-                        if (imgs.length === 0) {
-                            window.print();
-                        } else {
-                            let loaded = 0;
-                            const finish = () => {
-                                loaded++;
-                                if (loaded >= imgs.length) {
-                                    window.print();
-                                }
-                            };
-                            for (let img of imgs) {
-                                if (img.complete) finish();
-                                else { img.onload = finish; img.onerror = finish; }
-                            }
-                        }
-                    };
-                </script>
-            </body></html>`);
-            pw.document.close(); pw.focus();
-        }
+    const printOrderReceipt = async (order: Order) => {
+        if (!restaurantId) return;
+        const html = renderReceiptHtml(order, restaurant, isAr);
+        const settings = getPrinterSettings();
+        executePrint(html, settings);
     };
 
     const filteredOrders = orders.filter(o => {

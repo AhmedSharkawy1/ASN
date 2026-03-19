@@ -38,3 +38,8 @@ tsc_output*.txt
 tsc_check*.txt
 *.log
 check.txt
+
+# desktop app
+/saas-desktop-app/node_modules
+/saas-desktop-app/data.db
+*.db

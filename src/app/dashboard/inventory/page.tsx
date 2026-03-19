@@ -64,6 +64,9 @@ export default function InventoryPage() {
     const [adjustQty, setAdjustQty] = useState(0);
     const [adjustAction, setAdjustAction] = useState<'add' | 'deduct'>('add');
     const [adjustNotes, setAdjustNotes] = useState('');
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [showPrintModal, setShowPrintModal] = useState(false);
+    const [printSearch, setPrintSearch] = useState("");
 
     const fetchItems = useCallback(async () => {
         if (!restaurantId) return;
@@ -145,18 +148,34 @@ export default function InventoryPage() {
         }
     };
 
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filtered.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filtered.map(i => i.id));
+        }
+    };
+
     const handlePrint = () => {
         const printWindow = window.open('', '_blank', 'width=800,height=600');
         if (!printWindow) return;
 
-        const tableRows = filtered.map(item => {
+        const itemsToPrint = selectedIds.length > 0 
+            ? items.filter(i => selectedIds.includes(i.id))
+            : filtered;
+
+        const tableRows = itemsToPrint.map(item => {
             const qtyInfo = displayQtyInfo(item.quantity, item.unit);
             return `
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.name}</td>
-                    <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.item_type === 'raw_material' ? (isAr ? 'مواد خام' : 'Raw Material') : (isAr ? 'منتج' : 'Product')}</td>
-                    <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">${qtyInfo.qty} ${qtyInfo.unit}</td>
-                    <td style="padding: 8px; border: 1px solid #e2e8f0;">${item.cost_per_unit} ${item.currency}</td>
+                <tr style="border-bottom: 2px solid #000;">
+                    <td style="padding: 8px; border: 1.5px solid #000; font-weight: 900;">${item.name}</td>
+                    <td style="padding: 8px; border: 1.5px solid #000; font-weight: 900;">${item.item_type === 'raw_material' ? (isAr ? 'مواد خام' : 'Raw Material') : (isAr ? 'منتج' : 'Product')}</td>
+                    <td style="padding: 8px; border: 1.5px solid #000; font-weight: 900; text-align: center;">${qtyInfo.qty} ${qtyInfo.unit}</td>
+                    <td style="padding: 8px; border: 1.5px solid #000; font-weight: 900; text-align: center;">${item.cost_per_unit} ${item.currency}</td>
                 </tr>
             `;
         }).join('');
@@ -168,36 +187,36 @@ export default function InventoryPage() {
                 <title>${isAr ? 'تقرير المخزون' : 'Inventory Report'}</title>
                 <style>
                     ${getFactoryPrintStyles(isAr ? 'rtl' : 'ltr')}
-                    table { border: 1px solid #e2e8f0; margin-top: 20px; }
-                    th { border: 1px solid #e2e8f0; background: #f8fafc; }
-                    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #0f172a; padding-bottom: 10px; }
+                    table { border: 2px solid #000; margin-top: 20px; width: 100%; border-collapse: collapse; }
+                    th { border: 2px solid #000; background: transparent; color: #000; font-weight: 900; }
+                    .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 4px solid #000; padding-bottom: 10px; }
                 </style>
             </head>
-            <body>
+            <body style="margin: 0; padding: 4px; color: #000; font-weight: 900;">
                 <div class="header-top">
                     <div>
-                        <h1 style="margin: 0;">${isAr ? 'تقرير جرد المخزون' : 'Inventory Stock Report'}</h1>
-                        <p style="margin: 5px 0 0 0; color: #64748b;">${restaurant?.name || ''}</p>
+                        <h1 style="margin: 0; font-weight: 900;">${isAr ? 'تقرير جرد المخزون' : 'Inventory Stock Report'}</h1>
+                        <p style="margin: 5px 0 0 0; color: #000; font-weight: 900;">${restaurant?.name || ''}</p>
                     </div>
                     <div style="text-align: ${isAr ? 'left' : 'right'};">
-                        <p style="margin: 0; font-weight: bold;">${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</p>
-                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">${isAr ? 'عدد الأصناف: ' : 'Total Items: '}${filtered.length}</p>
+                        <p style="margin: 0; font-weight: 900;">${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</p>
+                        <p style="margin: 5px 0 0 0; font-size: 13px; color: #000; font-weight: 900;">${isAr ? 'عدد الأصناف: ' : 'Total Items: '}${itemsToPrint.length}</p>
                     </div>
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'الصنف' : 'Item'}</th>
-                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'النوع' : 'Type'}</th>
-                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'الكمية' : 'Qty'}</th>
-                            <th style="padding: 8px; border: 1px solid #e2e8f0;">${isAr ? 'التكلفة' : 'Cost'}</th>
+                            <th style="padding: 8px; border: 2px solid #000; font-weight: 900;">${isAr ? 'الصنف' : 'Item'}</th>
+                            <th style="padding: 8px; border: 2px solid #000; font-weight: 900;">${isAr ? 'النوع' : 'Type'}</th>
+                            <th style="padding: 8px; border: 2px solid #000; font-weight: 900;">${isAr ? 'الكمية' : 'Qty'}</th>
+                            <th style="padding: 8px; border: 2px solid #000; font-weight: 900;">${isAr ? 'التكلفة' : 'Cost'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${tableRows}
                     </tbody>
                 </table>
-                <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; pt-10; font-size: 12px; color: #94a3b8; text-align: center;">
+                <div style="margin-top: 30px; border-top: 2px solid #000; padding-top: 10px; font-size: 13px; color: #000; text-align: center; font-weight: 900;">
                     ${isAr ? 'تم إنشاء التقرير آلياً بواسطة نظام ASN' : 'Report generated automatically by ASN System'}
                 </div>
             </body>
@@ -263,9 +282,9 @@ export default function InventoryPage() {
                     <p className="text-slate-500 dark:text-zinc-400 text-base mt-1">{isAr ? "إدارة المواد الخام والمنتجات في المستودع" : "Manage raw materials and products in warehouse"}</p>
                 </div>
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto">
-                    <button onClick={handlePrint}
+                    <button onClick={() => setShowPrintModal(true)}
                         className="flex items-center gap-2 px-4 py-3 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm hover:bg-slate-50 transition-all active:scale-95">
-                        <Printer className="w-5 h-5" /> {isAr ? "طباعة الجرد" : "Print Inventory"}
+                        <Printer className="w-5 h-5 text-indigo-500" /> {isAr ? "خيارات الطباعة" : "Print Options"}
                     </button>
                     <button onClick={() => { setEditId(null); setForm(emptyForm); setShowModal(true); }}
                         className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all active:scale-95">
@@ -320,6 +339,7 @@ export default function InventoryPage() {
                         placeholder={isAr ? "بحث بالاسم أو المورد..." : "Search by name or supplier..."}
                         className="w-full pe-10 ps-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none" />
                 </div>
+
                 <div className="relative w-full sm:w-auto">
                     <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 dark:text-zinc-500" />
                     <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
@@ -487,7 +507,7 @@ export default function InventoryPage() {
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
                             className="bg-white dark:bg-card rounded-2xl border border-slate-200 dark:border-zinc-800/50 shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
                             <div className="p-5 border-b border-slate-200 dark:border-zinc-800/50">
-                                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{isAr ? "تعديل المخزون" : "Adjust Stock"}: {adjustModal.name}</h2>
+                                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{isAr ? "تعديل المخزون" : "Adjust Stock"}: {adjustModal?.name}</h2>
                             </div>
                             <div className="p-5 space-y-4">
                                 <div className="flex gap-2">
@@ -506,6 +526,100 @@ export default function InventoryPage() {
                             <div className="p-5 border-t border-slate-200 dark:border-zinc-800/50 flex gap-3">
                                 <button onClick={() => setAdjustModal(null)} className="flex-1 py-2.5 bg-slate-100 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-400 font-bold rounded-xl transition">{isAr ? "إلغاء" : "Cancel"}</button>
                                 <button onClick={handleAdjust} className="flex-1 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-bold rounded-xl shadow-lg transition">{isAr ? "تأكيد" : "Confirm"}</button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ===== PRINT SETTINGS MODAL ===== */}
+            <AnimatePresence>
+                {showPrintModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4 scrollbar-hide" onClick={() => setShowPrintModal(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-white dark:bg-card rounded-2xl border border-slate-200 dark:border-zinc-800/50 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                            
+                            {/* Modal Header */}
+                            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-zinc-800/50 bg-slate-50 dark:bg-white/5">
+                                <div>
+                                    <h2 className="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <Printer className="w-6 h-6 text-indigo-600 dark:text-emerald-400" />
+                                        {isAr ? "إعدادات طباعة الجرد" : "Stocktake Print Settings"}
+                                    </h2>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-500 mt-1">{isAr ? "حدد الأصناف التي ترغب في تضمينها في التقرير" : "Select items to include in the report"}</p>
+                                </div>
+                                <button onClick={() => setShowPrintModal(false)} className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition"><X className="w-5 h-5" /></button>
+                            </div>
+
+                            {/* Modal Search & Quick Selection */}
+                            <div className="p-4 border-b border-slate-100 dark:border-zinc-800/30 space-y-3">
+                                <div className="relative">
+                                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                                    <input value={printSearch} onChange={e => setPrintSearch(e.target.value)}
+                                        placeholder={isAr ? "بحث سريع..." : "Quick search..."}
+                                        className="w-full pe-10 ps-4 py-2 bg-slate-100 dark:bg-black/20 border border-transparent focus:border-indigo-500/50 rounded-xl text-sm outline-none" />
+                                </div>
+                                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                                    <button onClick={() => setSelectedIds(items.filter(i => i.item_type === 'raw_material').map(i => i.id))}
+                                        className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold border border-blue-100 dark:border-blue-500/20 whitespace-nowrap">
+                                        {isAr ? "📦 كل الخامات" : "All Raw Materials"}
+                                    </button>
+                                    <button onClick={() => setSelectedIds(items.filter(i => i.item_type === 'product').map(i => i.id))}
+                                        className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold border border-emerald-100 dark:border-emerald-500/20 whitespace-nowrap">
+                                        {isAr ? "🍔 كل المنتجات" : "All Products"}
+                                    </button>
+                                    <button onClick={() => setSelectedIds(items.filter(i => i.quantity <= i.minimum_stock).map(i => i.id))}
+                                        className="px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-bold border border-amber-100 dark:border-amber-500/20 whitespace-nowrap">
+                                        {isAr ? "⚠️ نواقص" : "Low Stock"}
+                                    </button>
+                                    <div className="flex-1" />
+                                    <button onClick={toggleSelectAll} className="px-3 py-1.5 bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-lg text-xs font-extrabold whitespace-nowrap">
+                                        {selectedIds.length === filtered.length ? (isAr ? "إلغاء الكل" : "Deselect All") : (isAr ? "تحديد الكل" : "Select All")}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Modal Item List */}
+                            <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-slate-50/50 dark:bg-black/10">
+                                {items.filter(i => {
+                                    if (!printSearch) return true;
+                                    const q = printSearch.toLowerCase();
+                                    return i.name.toLowerCase().includes(q) || 
+                                           (i.category?.toLowerCase() || "").includes(q);
+                                }).map(item => {
+                                    const isSelected = selectedIds.includes(item.id);
+                                    return (
+                                        <div key={item.id} onClick={() => toggleSelect(item.id)}
+                                            className={`flex items-center gap-3 p-3 rounded-xl border transition cursor-pointer ${isSelected ? 'bg-indigo-50 dark:bg-emerald-500/10 border-indigo-200 dark:border-emerald-500/30' : 'bg-white dark:bg-card border-slate-200 dark:border-zinc-800/50 hover:border-slate-300 dark:hover:border-zinc-700'}`}>
+                                            <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${isSelected ? 'bg-indigo-600 border-indigo-600 dark:bg-emerald-500 dark:border-emerald-500' : 'border-slate-300 dark:border-zinc-600'}`}>
+                                                {isSelected && <Save className="w-3 h-3 text-white" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`font-bold text-sm ${isSelected ? 'text-indigo-900 dark:text-emerald-300' : 'text-slate-700 dark:text-zinc-300'}`}>{item.name}</p>
+                                                <p className="text-[10px] text-slate-500 dark:text-zinc-500 font-bold uppercase">{item.item_type === 'raw_material' ? (isAr ? "مادة خام" : "Raw Material") : (isAr ? "منتج" : "Product")} {item.category ? `· ${item.category}` : ''}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs font-extrabold text-slate-900 dark:text-white">{displayQtyInfo(item.quantity, item.unit).qty} {displayQtyInfo(item.quantity, item.unit).unit}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-5 border-t border-slate-200 dark:border-zinc-800/50 flex items-center justify-between gap-4 bg-white dark:bg-card">
+                                <div className="text-sm">
+                                    <span className="text-slate-500 dark:text-zinc-500 font-bold">{isAr ? "تم تحديد: " : "Selected: "}</span>
+                                    <span className="font-black text-indigo-600 dark:text-emerald-400 text-lg">{selectedIds.length}</span>
+                                    <span className="text-slate-400 dark:text-zinc-600 ml-1"> / {items.length}</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowPrintModal(false)} className="px-6 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-bold rounded-xl transition">{isAr ? "إلغاء" : "Cancel"}</button>
+                                    <button onClick={handlePrint}
+                                        className="px-10 py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 dark:from-emerald-500 dark:to-cyan-500 text-white font-black rounded-xl shadow-lg hover:shadow-xl transition active:scale-95 flex items-center gap-2">
+                                        <Printer className="w-5 h-5" /> {isAr ? "بدء الطباعة" : "Start Printing"}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </motion.div>

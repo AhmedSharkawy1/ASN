@@ -11,6 +11,7 @@ export type PosCategory = {
     image_url?: string;    // Supabase storage URL
     sort_order: number;
     _dirty?: boolean;       // needs sync to Supabase
+    deleted_at?: string;    // soft delete
 };
 
 export type PosMenuItem = {
@@ -29,7 +30,10 @@ export type PosMenuItem = {
     weight_unit?: string;
     is_popular?: boolean;
     is_spicy?: boolean;
+    inventory_item_id?: string;
+    recipe_id?: string;
     _dirty?: boolean;
+    deleted_at?: string;
 };
 
 export type PosOrderItem = {
@@ -70,6 +74,7 @@ export type PosOrder = {
     created_at: string;
     updated_at?: string;
     _dirty?: boolean;
+    deleted_at?: string;
 };
 
 export type PosCustomer = {
@@ -81,6 +86,7 @@ export type PosCustomer = {
     notes?: string;
     created_at: string;
     _dirty?: boolean;
+    deleted_at?: string;
 };
 
 export type PosStaffUser = {
@@ -98,10 +104,41 @@ export type PosSettings = {
     id: string;
     restaurant_id: string;
     restaurant_name: string;
+    restaurant_logo?: string | null;
     restaurant_phone?: string;
     currency: string;
     language: string;
     theme?: 'dark' | 'light';
+    permissions_json?: string; // Cached JSON permissions
+};
+
+export type PosInventoryItem = {
+    id: string;
+    restaurant_id: string;
+    name: string;
+    quantity: number;
+    unit: string;
+    min_quantity?: number;
+    item_type: 'ingredient' | 'product';
+    _dirty?: boolean;
+    updated_at: string;
+};
+
+export type PosDeliveryZone = {
+    id: string;
+    restaurant_id: string;
+    name_ar: string;
+    name_en?: string;
+    fee: number;
+    estimated_time?: string;
+    is_active: boolean;
+};
+
+export type PosBranch = {
+    id: string;
+    restaurant_id: string;
+    branch_name: string;
+    is_active: boolean;
 };
 
 /* ── Database ── */
@@ -112,17 +149,23 @@ class PosOfflineDB extends Dexie {
     customers!: Table<PosCustomer>;
     pos_users!: Table<PosStaffUser>;
     settings!: Table<PosSettings>;
+    inventory_items!: Table<PosInventoryItem>;
+    delivery_zones!: Table<PosDeliveryZone>;
+    branches!: Table<PosBranch>;
 
     constructor() {
         super('asn_pos_offline_db');
 
-        this.version(1).stores({
-            categories: 'id, restaurant_id, sort_order, _dirty',
-            menu_items: 'id, restaurant_id, category_id, is_available, _dirty',
-            orders: 'id, restaurant_id, order_number, status, customer_name, delivery_driver_id, created_at, is_draft, _dirty',
-            customers: 'id, restaurant_id, name, phone, created_at, _dirty',
-            pos_users: 'id, restaurant_id, username, role, is_active, _dirty',
+        this.version(5).stores({
+            categories: 'id, restaurant_id, sort_order, _dirty, deleted_at',
+            menu_items: 'id, restaurant_id, category_id, is_available, _dirty, deleted_at',
+            orders: 'id, restaurant_id, order_number, status, customer_name, delivery_driver_id, created_at, is_draft, _dirty, deleted_at',
+            customers: 'id, restaurant_id, name, phone, created_at, _dirty, deleted_at',
+            pos_users: 'id, restaurant_id, username, role, is_active, _dirty, deleted_at',
             settings: 'id, restaurant_id',
+            inventory_items: 'id, restaurant_id, name, item_type, _dirty',
+            delivery_zones: 'id, restaurant_id, name_ar, is_active',
+            branches: 'id, restaurant_id, is_active',
         });
     }
 }
@@ -154,4 +197,16 @@ export function generateId(): string {
         const r = Math.random() * 16 | 0;
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
+}
+
+/** Helper for offline stock deduction */
+export async function decrementPosStock(restaurantId: string, itemId: string, qty: number): Promise<void> {
+    const item = await posDb.inventory_items.get(itemId);
+    if (item) {
+        await posDb.inventory_items.update(itemId, {
+            quantity: Math.max(0, item.quantity - qty),
+            _dirty: true,
+            updated_at: new Date().toISOString()
+        });
+    }
 }

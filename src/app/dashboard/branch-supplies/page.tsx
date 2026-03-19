@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { getFactoryPrintStyles } from "@/lib/helpers/printerSettings";
+import { getFactoryPrintStyles, getReceiptStyles, getPrinterSettings } from "@/lib/helpers/printerSettings";
+import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
+import { executePrint } from "@/lib/helpers/printEngine";
 
 /* ── Types ── */
 type BranchSupplyItem = {
@@ -216,19 +218,69 @@ export default function BranchSuppliesPage() {
     };
 
     const handlePrint = () => {
-        const printWindow = window.open('', '_blank', 'width=1000,height=700');
+        const s = getPrinterSettings();
+        const isSmall = s.paperWidth !== 'A4';
+        const printWindow = window.open('', '_blank', isSmall ? `width=400,height=800` : 'width=1000,height=700');
         if (!printWindow) return;
 
-        const tableRows = filtered.map(s => {
-            const remaining = Math.max(0, s.total - s.deposit_amount);
-            return `
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 10px; border: 1px solid #e2e8f0;">${s.customer_name || '—'}</td>
-                    <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold;">${formatCurrency(s.total)}</td>
-                    <td style="padding: 10px; border: 1px solid #e2e8f0; color: #059669;">${formatCurrency(s.deposit_amount)}</td>
-                    <td style="padding: 10px; border: 1px solid #e2e8f0; color: #dc2626;">${formatCurrency(remaining)}</td>
-                    <td style="padding: 10px; border: 1px solid #e2e8f0;">${formatDate(s.created_at)}</td>
+        const recordsHtml = filtered.map((sup, idx) => {
+            const remaining = Math.max(0, sup.total - sup.deposit_amount);
+            const itemsHtml = (sup.items || []).map(item => `
+                <tr style="border-bottom: 1px dotted #e2e8f0; font-size: 11px;">
+                    <td style="padding: 4px 0; text-align: ${isAr ? 'right' : 'left'}; font-weight: 900;">${item.title}</td>
+                    <td style="padding: 4px 0; text-align: center;">${item.qty} <small>${item.unit || ''}</small></td>
+                    <td style="padding: 4px 0; text-align: ${isAr ? 'left' : 'right'}; font-weight: 900;">${(item.price * item.qty).toLocaleString()}</td>
                 </tr>
+            `).join('');
+
+            return `
+                <div style="margin-bottom: 25px; border: 2px solid #000; padding: 12px; border-radius: 8px; page-break-inside: avoid; background: #fff; color: #000;">
+                    <!-- Record Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 900;">${sup.customer_name || '—'}</div>
+                            ${sup.customer_phone ? `<div style="font-size: 13px; font-weight: 900;">${sup.customer_phone}</div>` : ''}
+                        </div>
+                        <div style="text-align: ${isAr ? 'left' : 'right'};">
+                            <div style="font-size: 14px; font-weight: 900;">${formatDate(sup.created_at)}</div>
+                            <div style="font-size: 11px; font-weight: 900;">#${idx + 1} | ${sup.id.split('-')[0].toUpperCase()}</div>
+                        </div>
+                    </div>
+
+                    <!-- Items Table -->
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+                        <thead>
+                            <tr style="border-bottom: 2px dashed #000; font-size: 12px; font-weight: 900;">
+                                <th style="padding-bottom: 6px; text-align: ${isAr ? 'right' : 'left'};">${isAr ? 'الصنف' : 'Item'}</th>
+                                <th style="padding-bottom: 6px; text-align: center;">${isAr ? 'الكمية' : 'Qty'}</th>
+                                <th style="padding-bottom: 6px; text-align: ${isAr ? 'left' : 'right'};">${isAr ? 'الإجمالي' : 'Total'}</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsHtml}</tbody>
+                    </table>
+
+                    <!-- Totals -->
+                    <div style="display: flex; flex-direction: column; gap: 4px; border-top: 2px dashed #000; padding-top: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 14px;">
+                            <span>${isAr ? 'القيمة الإجمالية:' : 'Total Value:'}</span>
+                            <span>${sup.total.toLocaleString()} ج.م</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 14px;">
+                            <span>${isAr ? 'المدفوع:' : 'Paid:'}</span>
+                            <span>${sup.deposit_amount.toLocaleString()} ج.م</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;">
+                            <span>${isAr ? 'المتبقي:' : 'Remaining:'}</span>
+                            <span>${remaining.toLocaleString()} ج.م</span>
+                        </div>
+                    </div>
+
+                    ${sup.notes ? `
+                        <div style="margin-top: 12px; padding: 8px; border: 1px dashed #000; border-radius: 6px; font-size: 12px; font-weight: 900;">
+                            ${isAr ? 'ملاحظات: ' : 'Notes: '}${sup.notes}
+                        </div>
+                    ` : ''}
+                </div>
             `;
         }).join('');
 
@@ -239,39 +291,58 @@ export default function BranchSuppliesPage() {
                 <title>${isAr ? 'تقرير توريدات الفروع' : 'Branch Supplies Report'}</title>
                 <style>
                     ${getFactoryPrintStyles(isAr ? 'rtl' : 'ltr')}
-                    table { border: 1px solid #e2e8f0; margin-top: 20px; }
-                    th { border: 1px solid #e2e8f0; background: #f8fafc; }
+                    body { background: #fff; padding: 20px; color: #000; }
+                    @media print { 
+                        body { padding: 0.5cm; } 
+                        .no-print { display: none; }
+                    }
+                    * { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; color: #000 !important; }
                 </style>
             </head>
             <body>
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 3px solid #0f172a; padding-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 4px solid #000; padding-bottom: 15px;">
                     <div>
-                        <h1 style="margin: 0;">${isAr ? 'تقرير توريدات الفروع' : 'Branch Supplies Report'}</h1>
-                        <p style="margin: 5px 0 0 0; color: #64748b; font-weight: bold;">${isAr ? 'إجمالي الدين (الآجل): ' : 'Total Remaining Credit: '}${formatCurrency(stats.totalRemaining)}</p>
+                        <h1 style="margin: 0; font-size: 26px; font-weight: 900;">${isAr ? 'تقرير توريدات الفروع' : 'Branch Supplies Report'}</h1>
+                        <div style="margin-top: 12px; border: 2px solid #000; padding: 8px 15px; border-radius: 8px; display: inline-block;">
+                            <span style="font-size: 13px; font-weight: 900;">${isAr ? 'إجمالي الدين:' : 'Total Debt:'}</span>
+                            <span style="font-size: 20px; font-weight: 900; margin-right: 10px;">${stats.totalRemaining.toLocaleString()} ج.م</span>
+                        </div>
                     </div>
                     <div style="text-align: ${isAr ? 'left' : 'right'};">
-                        <p style="margin: 0; font-weight: bold;">${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</p>
-                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">${isAr ? 'عدد العمليات: ' : 'Total Issues: '}${filtered.length}</p>
+                        <div style="font-size: 16px; font-weight: 900;">${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</div>
+                        <div style="font-size: 14px; font-weight: 900; margin-top: 5px;">${isAr ? 'عدد العمليات: ' : 'Total Records: '}${filtered.length}</div>
                     </div>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="padding: 10px;">${isAr ? 'الفرع / العميل' : 'Branch/Customer'}</th>
-                            <th style="padding: 10px;">${isAr ? 'القيمة الإجمالية' : 'Total Value'}</th>
-                            <th style="padding: 10px;">${isAr ? 'المدفوع نقداً' : 'Paid Cash'}</th>
-                            <th style="padding: 10px;">${isAr ? 'المتبقي (آجل)' : 'Remaining (Credit)'}</th>
-                            <th style="padding: 10px;">${isAr ? 'التاريخ' : 'Date'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>${tableRows}</tbody>
-                </table>
+                
+                <div style="display: flex; flex-direction: column;">
+                    ${recordsHtml}
+                </div>
             </body>
             </html>
         `;
         printWindow.document.write(html);
         printWindow.document.close();
         setTimeout(() => printWindow.print(), 500);
+    };
+
+    const handlePrintInvoice = async (supply: OrderRecord) => {
+        if (!restaurantId) return;
+
+        const { data: rest } = await supabase.from('restaurants').select('*').eq('id', restaurantId).single();
+
+        const orderObj = {
+            ...supply,
+            source: 'branch_supply',
+            order_number: (supply as any).order_number || 0,
+            total: supply.total,
+            discount: 0,
+            payment_method: supply.total - supply.deposit_amount > 0 ? 'deposit' : 'cash',
+            items: supply.items || []
+        };
+
+        const html = renderReceiptHtml(orderObj, rest, isAr);
+        const settings = getPrinterSettings();
+        executePrint(html, settings);
     };
 
     const handleExportExcel = () => {
@@ -400,6 +471,10 @@ export default function BranchSuppliesPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-1">
+                                                <button onClick={() => handlePrintInvoice(supply)}
+                                                    className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition" title={isAr ? "طباعة الفاتورة الكبيرة" : "Print Receipt"}>
+                                                    <Printer className="w-4 h-4" />
+                                                </button>
                                                 <Link href={`/dashboard/branch-supplies/${supply.id}`}
                                                     className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition" title={isAr ? "تفاصيل" : "Details"}>
                                                     <Eye className="w-4 h-4" />

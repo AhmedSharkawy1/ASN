@@ -19,6 +19,8 @@ import { supabase } from "@/lib/supabase/client";
 import { subscribeSyncStatus } from "@/lib/sync-service";
 import { Toaster, toast } from "sonner";
 import { useBranch } from "@/lib/context/BranchContext";
+import { posDb } from "@/lib/pos-db";
+import { SyncStatus } from "@/components/SyncStatus";
 
 interface Branch {
     id: string;
@@ -77,10 +79,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [isOnline, setIsOnline] = useState(true);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [permissions, setPermissions] = useState<Record<string, boolean> | null>(null);
+    const [isDesktopApp, setIsDesktopApp] = useState(false);
+    const [syncStatus, setSyncStatus] = useState({ pending: 0, lastSync: null, deviceId: null });
     const restaurantIdRef = useRef<string | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
 
     // Multi-branch state
+
     const [branches, setBranches] = useState<Branch[]>([]);
     const { activeBranch, setActiveBranch } = useBranch();
 
@@ -90,14 +95,56 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('desktop') === 'true') {
+                setIsDesktopApp(true);
+                localStorage.setItem('desktop_mode', 'true');
+            } else if (localStorage.getItem('desktop_mode') === 'true') {
+                setIsDesktopApp(true);
+            }
+        }
+
+        const loadFromCache = async () => {
+            const cached = await posDb.settings.get('current_config');
+            if (cached) {
+                setRestaurantName(cached.restaurant_name);
+                setRestaurantLogo(cached.restaurant_logo || null);
+                setRestaurantId(cached.restaurant_id);
+                restaurantIdRef.current = cached.restaurant_id;
+                if (cached.permissions_json) {
+                    setPermissions(JSON.parse(cached.permissions_json));
+                }
+                
+                const cachedBranches = await posDb.branches.where('restaurant_id').equals(cached.restaurant_id).toArray();
+                if (cachedBranches.length > 0) {
+                    setBranches(cachedBranches as any);
+                }
+                
+                setLoading(false);
+                return true;
+            }
+            return false;
+        };
+
         const checkAuth = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                router.push("/login");
-                return;
+            let finalSession = session;
+
+            if (!finalSession) {
+                const offline = localStorage.getItem('offline_session');
+                if (offline) {
+                    finalSession = JSON.parse(offline);
+                } else {
+                    router.push("/login");
+                    return;
+                }
             }
 
-            const email = session.user.email;
+            if (!finalSession) return;
+
+            const email = finalSession.user.email;
+            const userId = finalSession.user.id;
             let rId: string | null = null;
             let rName = "";
             let rLogo = null;
@@ -107,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const { data: roleData, error: roleError } = await supabase
                 .from('user_roles')
                 .select('role')
-                .eq('user_id', session.user.id)
+                .eq('user_id', userId)
                 .maybeSingle();
             
             if (roleError) console.error("ASN_LOG: User Roles Fetch Error:", roleError);
@@ -132,7 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (!rId) {
                 if (email?.endsWith(".asn") || (roleData && roleData.role === 'staff')) {
                     isStaffFlag = true;
-                    const { data: staff, error: staffError } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', session.user.id).maybeSingle();
+                    const { data: staff, error: staffError } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', userId).maybeSingle();
                     
                     if (staffError) console.error("ASN_LOG: Staff Lookup Error:", staffError);
 
@@ -178,36 +225,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 console.log("ASN_LOG: Final rId for check:", rId);
                 const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
                 
-                if (cpaError) {
-                    console.error("ASN_LOG: CPA Fetch Error:", cpaError);
-                }
-                
                 const tenantPerms: Record<string, boolean> = {};
                 if (cpa && cpa.length > 0) {
-                    console.log("ASN_LOG: Found CPA records:", cpa.length);
-                    cpa.forEach(p => { 
-                        tenantPerms[p.page_key] = p.enabled;
-                        if (p.enabled === false) console.log(`ASN_LOG: Key ${p.page_key} is DISABLED`);
-                    });
-                } else {
-                    console.warn("ASN_LOG: No CPA records found for this restaurant.");
+                    cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled; });
                 }
 
                 if (!isStaffFlag) {
-                    console.log("ASN_LOG: Setting permissions for Admin/Owner");
                     tempPermissions = { ...tenantPerms, _isAdmin: true };
                 } else {
-                    console.log("ASN_LOG: Merging permissions for Staff member");
                     const merged = { ...tempPermissions };
                     Object.keys(tenantPerms).forEach(key => {
-                        if (tenantPerms[key] === false) {
-                            merged[key] = false;
-                        }
+                        if (tenantPerms[key] === false) merged[key] = false;
                     });
                     tempPermissions = { ...merged, _isAdmin: false };
                 }
                 
-                console.log("ASN_LOG: Final Processed Permissions State:", tempPermissions);
+                // Update local cache (Requirement #5)
+                await posDb.settings.put({
+                    id: 'current_config',
+                    restaurant_id: rId,
+                    restaurant_name: rName,
+                    restaurant_logo: rLogo,
+                    currency: 'EGP', // Default
+                    language: language,
+                    permissions_json: JSON.stringify(tempPermissions)
+                });
 
                 setRestaurantName(rName);
                 setRestaurantLogo(rLogo);
@@ -223,10 +265,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
             setLoading(false);
         };
-        checkAuth();
+
+        const checkAuthWithFallback = async () => {
+            // Priority 1: Load from local cache for instant UI
+            const hasCache = await loadFromCache();
+            
+            try {
+                // Priority 2: Update if online
+                if (navigator.onLine) {
+                    await checkAuth();
+                } else if (!hasCache) {
+                    // No cache and offline?
+                    toast.error(language === "ar" ? "أنت أوفلاين ولا يوجد بيانات مخزنة" : "You are offline and no cached data found");
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.log("ASN_LOG: Auth fallback triggered", err);
+                if (!hasCache) {
+                    router.push('/login');
+                }
+            }
+        }
+
+        checkAuthWithFallback();
 
         const unsub = subscribeSyncStatus(s => setIsOnline(s.isOnline));
-        return () => unsub();
+
+        if (typeof window !== 'undefined' && 'electronAPI' in (window as any)) {
+            setIsDesktopApp(true);
+        }
+
+        return () => {
+            unsub();
+        };
     }, [router]);
 
     const playChime = useCallback(() => {
@@ -369,6 +440,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
             )}
 
+            {!isDesktopApp && (
             <aside className={`fixed md:sticky top-0 h-screen z-50 flex flex-col transition-all duration-300
                 ${language === 'ar' ? 'right-0' : 'left-0'}
                 ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0')}
@@ -454,8 +526,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </button>
                 </div>
             </aside>
+            )}
 
             <main className="flex-1 flex flex-col min-h-screen overflow-y-auto">
+                {!isDesktopApp && (
                 <header className="h-[72px] border-b border-stone-100 dark:border-zinc-800/50 bg-white/80 dark:bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0 transition-colors">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition">
@@ -488,10 +562,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-400" />}
                         </button>
 
-                        <span className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-extrabold transition-all shadow-sm ${isOnline ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" : "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"}`}>
-                            {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-                            <span className="hidden sm:block uppercase tracking-wider">{isOnline ? "أونلاين" : "أوفلاين"}</span>
-                        </span>
+                        <SyncStatus />
 
                         {restaurantLogo ? (
                             <Image src={restaurantLogo} alt={restaurantName || "Logo"} width={40} height={40} className="w-10 h-10 object-cover rounded-xl shadow-md border-2 border-white dark:border-zinc-800" />
@@ -502,6 +573,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         )}
                     </div>
                 </header>
+                )}
 
                 <div className={`${pathname.includes('/pos') ? 'p-2 md:p-4 pt-1' : 'p-4 md:p-8'} flex-1 flex flex-col min-h-0`}>
                     {children}

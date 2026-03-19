@@ -9,16 +9,40 @@ import Image from "next/image";
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { posDb } from "@/lib/pos-db";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function LoginPage() {
+function LoginContent() {
     const { language } = useLanguage();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const rid = searchParams.get("r");
+
     const [usernameOrEmail, setUsernameOrEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isHovered, setIsHovered] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [resData, setResData] = useState<{ name: string; logo: string } | null>(null);
+
+    useState(() => {
+        if (rid) {
+            supabase
+                .from('restaurants')
+                .select('name, logo_url, receipt_logo_url')
+                .eq('id', rid)
+                .single()
+                .then(({ data }) => {
+                    if (data) {
+                        setResData({
+                            name: data.name,
+                            logo: data.receipt_logo_url || data.logo_url
+                        });
+                    }
+                });
+        }
+    });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -43,30 +67,51 @@ export default function LoginPage() {
                 loginEmail = data.email;
             }
 
-            const { data: authData, error } = await supabase.auth.signInWithPassword({
-                email: loginEmail,
-                password,
-            });
+            if (navigator.onLine) {
+                const { data: authData, error } = await supabase.auth.signInWithPassword({
+                    email: loginEmail,
+                    password,
+                });
 
-            if (error) {
-                throw error;
-            }
+                if (error) {
+                    throw error;
+                }
 
-            // Check if user is a super admin
-            const { data: roleData } = await supabase
-                .from('user_roles')
-                .select('role')
-                .eq('user_id', authData.user.id)
-                .single();
+                // Check if user is a super admin
+                const { data: roleData } = await supabase
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', authData.user.id)
+                    .single();
 
-            if (roleData && roleData.role === 'super_admin') {
-                router.push('/super-admin');
+                if (roleData && roleData.role === 'super_admin') {
+                    router.push('/super-admin');
+                } else {
+                    router.push('/dashboard');
+                }
             } else {
-                router.push('/dashboard');
+                throw new Error("Offline");
             }
 
         } catch (err: unknown) {
             console.error("Login attempt failed:", err);
+            
+            // Try offline fallback
+            const isOffline = !navigator.onLine || (err as any).message?.includes("fetch");
+            if (isOffline) {
+                const staff = await posDb.pos_users.where('username').equals(usernameOrEmail.trim()).first();
+                if (staff && staff.password === password) {
+                    // Success! Store offline session
+                    localStorage.setItem('offline_session', JSON.stringify({
+                        user: { id: staff.id, email: staff.username, role: staff.role },
+                        restaurant_id: staff.restaurant_id,
+                        logged_at: new Date().toISOString()
+                    }));
+                    router.push('/dashboard');
+                    return;
+                }
+            }
+            
             setError(err instanceof Error ? err.message : "Failed to login. Please check your credentials.");
         } finally {
             setLoading(false);
@@ -101,16 +146,20 @@ export default function LoginPage() {
                             whileHover={{ scale: 1.05 }}
                             transition={{ type: "spring", stiffness: 400, damping: 10 }}
                         >
-                            <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                                <Image
-                                    src="/logo.png"
-                                    alt="ASN Technology Logo"
-                                    fill
-                                    className="object-cover"
-                                />
+                            <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/10 flex items-center justify-center">
+                                {resData?.logo ? (
+                                    <img src={resData.logo} alt={resData.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <Image
+                                        src="/logo.png"
+                                        alt="ASN Technology Logo"
+                                        fill
+                                        className="object-cover"
+                                    />
+                                )}
                             </div>
                             <span className="text-2xl font-bold tracking-tighter text-white drop-shadow-md">
-                                ASN Technology
+                                {resData?.name || "ASN Technology"}
                             </span>
                         </motion.div>
                     </Link>
@@ -124,9 +173,19 @@ export default function LoginPage() {
                             className="text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6 drop-shadow-lg"
                         >
                             {language === "ar" ? (
-                                <span dir="rtl" className="block text-right">مرحباً بك مجدداً في <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-light drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]">نظامك الرقمي</span></span>
+                                <span dir="rtl" className="block text-right">
+                                    مرحباً بك مجدداً في <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-light drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]">
+                                        {resData?.name || "نظامك الرقمي"}
+                                    </span>
+                                </span>
                             ) : (
-                                <span>Welcome back to your <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-light drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]">Digital Hub</span></span>
+                                <span>
+                                    Welcome back to <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-light drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]">
+                                        {resData?.name || "your Digital Hub"}
+                                    </span>
+                                </span>
                             )}
                         </motion.h1>
                         <motion.p
@@ -155,9 +214,13 @@ export default function LoginPage() {
 
                     {/* Mobile Logo & Back Link */}
                     <div className="md:hidden flex justify-between items-center mb-8">
-                        <Link href="/" className="relative w-10 h-10 rounded-full overflow-hidden border border-blue/30 shadow-[0_0_15px_rgba(46,163,255,0.3)]">
-                            <Image src="/logo.png" alt="Logo" fill className="object-cover" />
-                        </Link>
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden border border-blue/30 shadow-[0_0_15px_rgba(46,163,255,0.3)] bg-white/10 flex items-center justify-center">
+                            {resData?.logo ? (
+                                <img src={resData.logo} alt={resData.name} className="w-full h-full object-cover" />
+                            ) : (
+                                <Image src="/logo.png" alt="Logo" fill className="object-cover" />
+                            )}
+                        </div>
                         <Link href="/" className="text-sm font-medium text-silver hover:text-foreground flex items-center gap-1">
                             <ArrowLeft className="w-4 h-4" />
                             {language === "ar" ? "العودة" : "Back"}
@@ -280,5 +343,13 @@ export default function LoginPage() {
 
             </div>
         </main>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>}>
+            <LoginContent />
+        </Suspense>
     );
 }

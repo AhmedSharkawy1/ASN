@@ -244,28 +244,28 @@ export default function FactoryPage() {
         let orderSectionsHtml = '';
         orderGroups.forEach(group => {
             const typeLabel = group.orderType === 'takeaway' ? (isAr ? 'تيك أواي' : 'Takeaway') : group.orderType === 'delivery' ? (isAr ? 'دليفري' : 'Delivery') : (isAr ? 'صالة' : 'Dine-in');
-            orderSectionsHtml += `<div style="margin-bottom:25px;border:2px solid #e2e8f0;border-radius:12px;padding:16px;page-break-inside:avoid">`;
-            orderSectionsHtml += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed #cbd5e1">`;
+            orderSectionsHtml += `<div style="margin-bottom:25px;border:2px solid #000;border-radius:12px;padding:16px;page-break-inside:avoid;color:#000;font-weight:900">`;
+            orderSectionsHtml += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed #000">`;
             orderSectionsHtml += `<div><span style="font-size:22px;font-weight:900">#${group.orderNumber}</span>`;
-            if (group.customerName) orderSectionsHtml += ` <span style="font-size:14px;color:#64748b;margin-right:8px">👤 ${group.customerName}</span>`;
+            if (group.customerName) orderSectionsHtml += ` <span style="font-size:14px;color:#000;margin-right:8px;font-weight:900">👤 ${group.customerName}</span>`;
             orderSectionsHtml += `</div>`;
-            orderSectionsHtml += `<span style="font-size:13px;padding:4px 12px;background:#f1f5f9;border-radius:8px;font-weight:bold;border:1px solid #e2e8f0">${typeLabel}</span>`;
+            orderSectionsHtml += `<span style="font-size:13px;padding:4px 12px;background:transparent;border-radius:8px;font-weight:900;border:2px solid #000">${typeLabel}</span>`;
             orderSectionsHtml += `</div>`;
-            if (group.notes) orderSectionsHtml += `<p style="font-size:13px;color:#d97706;font-weight:bold;margin:0 0 10px 0;background:#fffbeb;padding:6px 10px;border-radius:6px;border:1px solid #fde68a">📝 ${group.notes}</p>`;
-            orderSectionsHtml += `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px 12px;background:#f8fafc;text-align:${isAr ? 'right' : 'left'};font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الصنف' : 'Product'}</th><th style="padding:8px 12px;background:#f8fafc;text-align:center;font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الكمية' : 'Qty'}</th></tr></thead><tbody>`;
+            if (group.notes) orderSectionsHtml += `<p style="font-size:13px;color:#000;font-weight:900;margin:0 0 10px 0;background:transparent;padding:6px 10px;border-radius:6px;border:2px solid #000">📝 ${group.notes}</p>`;
+            orderSectionsHtml += `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px 12px;background:transparent;text-align:${isAr ? 'right' : 'left'};font-size:13px;border-bottom:2px solid #000;color:#000;font-weight:900">${isAr ? 'الصنف' : 'Product'}</th><th style="padding:8px 12px;background:transparent;text-align:center;font-size:13px;border-bottom:2px solid #000;color:#000;font-weight:900">${isAr ? 'الكمية' : 'Qty'}</th></tr></thead><tbody>`;
             group.items.forEach(r => {
-                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:15px;font-weight:bold">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:900;font-size:16px">${displayQty(r.quantity, r.unit)}</td></tr>`;
+                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1.5px solid #000;font-size:15px;font-weight:900;color:#000">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1.5px solid #000;text-align:center;font-weight:900;font-size:16px;color:#000">${displayQty(r.quantity, r.unit)}</td></tr>`;
             });
             orderSectionsHtml += `</tbody></table></div>`;
         });
 
         // Add items without orders
         if (noOrderItems.length > 0) {
-            orderSectionsHtml += `<div style="margin-bottom:25px;border:2px solid #e2e8f0;border-radius:12px;padding:16px">`;
-            orderSectionsHtml += `<div style="font-size:18px;font-weight:900;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed #cbd5e1">${isAr ? 'بدون أوردر محدد' : 'No Specific Order'}</div>`;
-            orderSectionsHtml += `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px 12px;background:#f8fafc;text-align:${isAr ? 'right' : 'left'};font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الصنف' : 'Product'}</th><th style="padding:8px 12px;background:#f8fafc;text-align:center;font-size:13px;border-bottom:2px solid #e2e8f0">${isAr ? 'الكمية' : 'Qty'}</th></tr></thead><tbody>`;
+            orderSectionsHtml += `<div style="margin-bottom:25px;border:2px solid #000;border-radius:12px;padding:16px;color:#000;font-weight:900">`;
+            orderSectionsHtml += `<div style="font-size:18px;font-weight:900;margin-bottom:12px;padding-bottom:10px;border-bottom:2px dashed #000">${isAr ? 'بدون أوردر محدد' : 'No Specific Order'}</div>`;
+            orderSectionsHtml += `<table style="width:100%;border-collapse:collapse"><thead><tr><th style="padding:8px 12px;background:transparent;text-align:${isAr ? 'right' : 'left'};font-size:13px;border-bottom:2px solid #000;color:#000;font-weight:900">${isAr ? 'الصنف' : 'Product'}</th><th style="padding:8px 12px;background:transparent;text-align:center;font-size:13px;border-bottom:2px solid #000;color:#000;font-weight:900">${isAr ? 'الكمية' : 'Qty'}</th></tr></thead><tbody>`;
             noOrderItems.forEach(r => {
-                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;font-size:15px;font-weight:bold">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:900;font-size:16px">${displayQty(r.quantity, r.unit)}</td></tr>`;
+                orderSectionsHtml += `<tr><td style="padding:8px 12px;border-bottom:1.5px solid #000;font-size:15px;font-weight:900;color:#000">${r.product_name}</td><td style="padding:8px 12px;border-bottom:1.5px solid #000;text-align:center;font-weight:900;font-size:16px;color:#000">${displayQty(r.quantity, r.unit)}</td></tr>`;
             });
             orderSectionsHtml += `</tbody></table></div>`;
         }
@@ -282,26 +282,26 @@ export default function FactoryPage() {
             }
         });
 
-        let summaryHtml = `<div style="margin-bottom:25px;border:2px solid #0f172a;border-radius:12px;padding:16px;background:#f8fafc">
-            <h2 style="margin-top:0;color:#0f172a;border-bottom:2px solid #0f172a;padding-bottom:8px">📦 ${isAr ? 'إجمالي مطلوب تصنيعه' : 'Total Production Summary'}</h2>
+        let summaryHtml = `<div style="margin-bottom:25px;border:3px solid #000;border-radius:12px;padding:16px;background:transparent;color:#000;font-weight:900">
+            <h2 style="margin-top:0;color:#000;border-bottom:3px solid #000;padding-bottom:8px;font-weight:900">📦 ${isAr ? 'إجمالي مطلوب تصنيعه' : 'Total Production Summary'}</h2>
             <table style="width:100%;border-collapse:collapse">
                 <thead>
                     <tr>
-                        <th style="padding:10px;text-align:${isAr ? 'right' : 'left'};border-bottom:2px solid #e2e8f0;font-size:14px">${isAr ? 'الصنف' : 'Product'}</th>
-                        <th style="padding:10px;text-align:center;border-bottom:2px solid #e2e8f0;font-size:14px">${isAr ? 'إجمالي الكمية' : 'Total Qty'}</th>
+                        <th style="padding:10px;text-align:${isAr ? 'right' : 'left'};border-bottom:2px solid #000;font-size:14px;color:#000;font-weight:900">${isAr ? 'الصنف' : 'Product'}</th>
+                        <th style="padding:10px;text-align:center;border-bottom:2px solid #000;font-size:14px;color:#000;font-weight:900">${isAr ? 'إجمالي الكمية' : 'Total Qty'}</th>
                     </tr>
                 </thead>
                 <tbody>`;
         
         productTotals.forEach((data, name) => {
             summaryHtml += `<tr>
-                <td style="padding:10px;border-bottom:1px solid #e2e8f0;font-size:16px;font-weight:bold">${name}</td>
-                <td style="padding:10px;border-bottom:1px solid #e2e8f0;text-align:center;font-size:18px;font-weight:900;color:#0f172a">${displayQty(data.qty, data.unit)}</td>
+                <td style="padding:10px;border-bottom:1.5px solid #000;font-size:16px;font-weight:900;color:#000">${name}</td>
+                <td style="padding:10px;border-bottom:1.5px solid #000;text-align:center;font-size:18px;font-weight:900;color:#000">${displayQty(data.qty, data.unit)}</td>
             </tr>`;
         });
         summaryHtml += `</tbody></table></div>`;
 
-        const ingRows = Array.from(batchIngredients.values()).map(i => `<tr><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${i.name}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:bold">${displayQty(i.qty, i.unit)}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center;${i.available < i.qty ? 'color:red;font-weight:bold' : ''}">${displayQty(i.available, i.unit)}</td></tr>`).join('');
+        const ingRows = Array.from(batchIngredients.values()).map(i => `<tr><td style="padding:6px 12px;border-bottom:2px solid #000;color:#000;font-weight:900">${i.name}</td><td style="padding:6px 12px;border-bottom:2px solid #000;text-align:center;color:#000;font-weight:900">${displayQty(i.qty, i.unit)}</td><td style="padding:6px 12px;border-bottom:2px solid #000;text-align:center;color:#000;font-weight:900;${i.available < i.qty ? 'text-decoration:underline' : ''}">${displayQty(i.available, i.unit)}</td></tr>`).join('');
         const today = new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         
         const titleText = isAr 
@@ -314,14 +314,22 @@ export default function FactoryPage() {
         win.document.write(`<!DOCTYPE html><html><head><title>${titleText}</title>
             <style>${getFactoryPrintStyles(isAr ? 'rtl' : 'ltr')}</style></head><body>
             <div class="header">
-                <div><h1>🏭 ${isAr ? 'ورقة الإنتاج' : 'Production Sheet'}</h1><p class="date">${today}</p></div>
-                <div style="text-align:left;font-size:13px;color:#64748b">${isAr ? 'عدد الطلبات' : 'Orders'}: <strong>${orderGroups.size}</strong><br>${isAr ? 'عدد الأصناف' : 'Items'}: <strong>${active.length}</strong></div>
+                <div><h1 style="font-weight: 900; color: #000;">🏭 ${isAr ? 'ورقة الإنتاج' : 'Production Sheet'}</h1><p class="date" style="font-weight: 900; color: #000;">${today}</p></div>
+                <div style="text-align:left;font-size:13px;color:#000;font-weight:900">${isAr ? 'عدد الطلبات' : 'Orders'}: <strong style="font-weight:900">${orderGroups.size}</strong><br>${isAr ? 'عدد الأصناف' : 'Items'}: <strong style="font-weight:900">${active.length}</strong></div>
             </div>
-            ${summaryHtml}
-            <h2>📋 ${isAr ? 'الأصناف حسب الأوردر' : 'Items by Order'}</h2>
-            ${orderSectionsHtml}
-            <h2>🧪 ${isAr ? 'المواد المطلوبة' : 'Ingredients Needed'}</h2>
-            <table><thead><tr><th>${isAr ? 'المادة' : 'Ingredient'}</th><th style="text-align:center">${isAr ? 'المطلوب' : 'Needed'}</th><th style="text-align:center">${isAr ? 'المتوفر' : 'Available'}</th></tr></thead><tbody>${ingRows}</tbody></table>
+            <div style="page-break-after: always">
+                ${summaryHtml}
+            </div>
+
+            <div style="page-break-after: always">
+                <h2 style="margin-bottom:15px;border-bottom:3px solid #000;padding-bottom:8px;font-weight:900">📋 ${isAr ? 'الأصناف حسب الأوردر' : 'Items by Order'}</h2>
+                ${orderSectionsHtml}
+            </div>
+
+            <div style="padding-top: 10px">
+                <h2 style="margin-top:0;border-bottom:3px solid #000;padding-bottom:8px;font-weight:900">🧪 ${isAr ? 'المواد المطلوبة' : 'Ingredients Needed'}</h2>
+                <table><thead><tr><th style="font-weight:900;color:#000;border-bottom:2px solid #000;padding:10px">${isAr ? 'المادة' : 'Ingredient'}</th><th style="text-align:center;font-weight:900;color:#000;border-bottom:2px solid #000;padding:10px">${isAr ? 'المطلوب' : 'Needed'}</th><th style="text-align:center;font-weight:900;color:#000;border-bottom:2px solid #000;padding:10px">${isAr ? 'المتوفر' : 'Available'}</th></tr></thead><tbody>${ingRows}</tbody></table>
+            </div>
             <div style="margin-top:40px;padding-top:20px;border-top:2px solid #e2e8f0;text-align:center;color:#94a3b8;font-size:12px">
                 ${isAr ? 'تم التوليد بواسطة نظام ASN' : 'Generated by ASN System'} — ${new Date().toLocaleTimeString()}
             </div>

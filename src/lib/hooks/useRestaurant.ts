@@ -51,13 +51,18 @@ export function useRestaurant() {
                     if (!e1 && d1) {
                         setRestaurant(d1 as RestaurantData);
                     } else {
+                        console.warn("Retrying restaurant fetch without receipt_logo_url...");
                         // Fallback: omit 'receipt_logo_url' if it doesn't exist
-                        const { data: d2 } = await supabase
+                        const { data: d2, error: e2 } = await supabase
                             .from('restaurants')
                             .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address')
                             .eq('id', rId)
                             .single();
-                        if (d2) setRestaurant(d2 as RestaurantData);
+                        if (d2) {
+                            setRestaurant(d2 as RestaurantData);
+                        } else if (e2) {
+                            console.error("Failed to fetch restaurant even on fallback:", e2);
+                        }
                     }
                 }
             } catch (e) { console.error(e); }

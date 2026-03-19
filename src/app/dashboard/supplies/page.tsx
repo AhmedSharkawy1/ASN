@@ -13,7 +13,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
-import { getFactoryPrintStyles } from "@/lib/helpers/printerSettings";
+import { getFactoryPrintStyles, getPrinterSettings } from "@/lib/helpers/printerSettings";
+import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
+import { executePrint } from "@/lib/helpers/printEngine";
 
 /* ── Types ── */
 type Supplier = { id: string; name: string; phone: string | null; notes: string | null };
@@ -21,6 +23,7 @@ type Supply = {
     id: string; supplier_id: string; total_cost: number; amount_paid: number;
     remaining_balance: number; delivery_date: string; notes: string | null; created_at: string;
     suppliers?: { name: string; phone: string | null } | null;
+    items?: any[];
 };
 type InventoryItem = { id: string; name: string; unit: string; cost_per_unit: number };
 
@@ -66,7 +69,7 @@ export default function SuppliesPage() {
         setLoading(true);
         const { data } = await supabase
             .from('supplies')
-            .select('*, suppliers(name, phone)')
+            .select('*, suppliers(name, phone), items:supply_items(*)')
             .eq('restaurant_id', restaurantId)
             .order('delivery_date', { ascending: false });
         setSupplies((data as Supply[]) || []);
@@ -210,18 +213,63 @@ export default function SuppliesPage() {
     };
 
     const handlePrint = () => {
-        const printWindow = window.open('', '_blank', 'width=1000,height=700');
+        const s = getPrinterSettings();
+        const isSmall = s.paperWidth !== 'A4';
+        const printWindow = window.open('', '_blank', isSmall ? `width=400,height=800` : 'width=1000,height=700');
         if (!printWindow) return;
 
-        const tableRows = filtered.map(s => `
-            <tr style="border-bottom: 1px solid #e2e8f0;">
-                <td style="padding: 10px; border: 1px solid #e2e8f0;">${s.suppliers?.name || '—'}</td>
-                <td style="padding: 10px; border: 1px solid #e2e8f0; font-weight: bold;">${formatCurrency(s.total_cost)}</td>
-                <td style="padding: 10px; border: 1px solid #e2e8f0; color: #059669;">${formatCurrency(s.amount_paid)}</td>
-                <td style="padding: 10px; border: 1px solid #e2e8f0; color: #dc2626;">${formatCurrency(s.remaining_balance)}</td>
-                <td style="padding: 10px; border: 1px solid #e2e8f0;">${formatDate(s.delivery_date)}</td>
-            </tr>
-        `).join('');
+        const recordsHtml = filtered.map((sup, idx) => {
+            const itemsHtml = (sup.items || []).map(item => `
+                <tr style="border-bottom: 1px dotted #e2e8f0; font-size: 11px;">
+                    <td style="padding: 4px 0; text-align: ${isAr ? 'right' : 'left'}; font-weight: 900;">${item.item_name}</td>
+                    <td style="padding: 4px 0; text-align: center;">${item.quantity}</td>
+                    <td style="padding: 4px 0; text-align: ${isAr ? 'left' : 'right'}; font-weight: 900;">${(item.total_cost || 0).toLocaleString()}</td>
+                </tr>
+            `).join('');
+
+            return `
+                <div style="margin-bottom: 25px; border: 2px solid #000; padding: 12px; border-radius: 8px; page-break-inside: avoid; background: #fff; color: #000;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px;">
+                        <div>
+                            <div style="font-size: 18px; font-weight: 900;">${sup.suppliers?.name || '—'}</div>
+                            ${sup.suppliers?.phone ? `<div style="font-size: 13px; font-weight: 900;">${sup.suppliers.phone}</div>` : ''}
+                        </div>
+                        <div style="text-align: ${isAr ? 'left' : 'right'};">
+                            <div style="font-size: 14px; font-weight: 900;">${formatDate(sup.delivery_date)}</div>
+                            <div style="font-size: 11px; font-weight: 900;">#${idx + 1} | ${sup.id.split('-')[0].toUpperCase()}</div>
+                        </div>
+                    </div>
+
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+                        <thead>
+                            <tr style="border-bottom: 2px dashed #000; font-size: 12px; font-weight: 900;">
+                                <th style="padding-bottom: 6px; text-align: ${isAr ? 'right' : 'left'};">${isAr ? 'الصنف' : 'Item'}</th>
+                                <th style="padding-bottom: 6px; text-align: center;">${isAr ? 'الكمية' : 'Qty'}</th>
+                                <th style="padding-bottom: 6px; text-align: ${isAr ? 'left' : 'right'};">${isAr ? 'الإجمالي' : 'Total'}</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsHtml}</tbody>
+                    </table>
+
+                    <div style="display: flex; flex-direction: column; gap: 4px; border-top: 2px dashed #000; padding-top: 8px;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 14px;">
+                            <span>${isAr ? 'التكلفة الإجمالية:' : 'Total Cost:'}</span>
+                            <span>${sup.total_cost.toLocaleString()} ج.م</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 14px;">
+                            <span>${isAr ? 'المدفوع:' : 'Paid:'}</span>
+                            <span>${sup.amount_paid.toLocaleString()} ج.م</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 16px; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px;">
+                            <span>${isAr ? 'المتبقي:' : 'Remaining:'}</span>
+                            <span>${sup.remaining_balance.toLocaleString()} ج.م</span>
+                        </div>
+                    </div>
+
+                    ${sup.notes ? `<div style="margin-top: 12px; padding: 8px; border: 1px dashed #000; border-radius: 6px; font-size: 12px; font-weight: 900;">${isAr ? 'ملاحظات: ' : 'Notes: '}${sup.notes}</div>` : ''}
+                </div>
+            `;
+        }).join('');
 
         const html = `
             <!DOCTYPE html>
@@ -230,39 +278,59 @@ export default function SuppliesPage() {
                 <title>${isAr ? 'تقرير التوريدات' : 'Supplies Report'}</title>
                 <style>
                     ${getFactoryPrintStyles(isAr ? 'rtl' : 'ltr')}
-                    table { border: 1px solid #e2e8f0; margin-top: 20px; }
-                    th { border: 1px solid #e2e8f0; background: #f8fafc; }
+                    body { background: #fff; padding: 20px; color: #000; }
+                    @media print { body { padding: 0.5cm; } .no-print { display: none; } }
+                    * { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important; color: #000 !important; }
                 </style>
             </head>
             <body>
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 3px solid #0f172a; padding-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; border-bottom: 4px solid #000; padding-bottom: 15px;">
                     <div>
-                        <h1 style="margin: 0;">${isAr ? 'تقرير التوريدات' : 'Supplies Report'}</h1>
-                        <p style="margin: 5px 0 0 0; color: #64748b; font-weight: bold;">${isAr ? 'إجمالي المستحقات: ' : 'Total Remaining: '}${formatCurrency(stats.totalRemaining)}</p>
+                        <h1 style="margin: 0; font-size: 26px; font-weight: 900;">${isAr ? 'تقرير التوريدات' : 'Supplies Report'}</h1>
+                        <div style="margin-top: 12px; border: 2px solid #000; padding: 8px 15px; border-radius: 8px; display: inline-block;">
+                            <span style="font-size: 13px; font-weight: 900;">${isAr ? 'إجمالي المديونية:' : 'Total Debt:'}</span>
+                            <span style="font-size: 20px; font-weight: 900; margin-right: 10px;">${stats.totalRemaining.toLocaleString()} ج.م</span>
+                        </div>
                     </div>
                     <div style="text-align: ${isAr ? 'left' : 'right'};">
-                        <p style="margin: 0; font-weight: bold;">${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</p>
-                        <p style="margin: 5px 0 0 0; font-size: 12px; color: #64748b;">${isAr ? 'عدد التوريدات: ' : 'Total Supplies: '}${filtered.length}</p>
+                        <div style="font-size: 16px; font-weight: 900;">${new Date().toLocaleDateString(isAr ? 'ar-EG' : 'en-US')}</div>
+                        <div style="font-size: 14px; font-weight: 900; margin-top: 5px;">${isAr ? 'عدد العمليات: ' : 'Total Records: '}${filtered.length}</div>
                     </div>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="padding: 10px;">${isAr ? 'المورد' : 'Supplier'}</th>
-                            <th style="padding: 10px;">${isAr ? 'التكلفة الإجمالية' : 'Total Cost'}</th>
-                            <th style="padding: 10px;">${isAr ? 'المدفوع' : 'Paid'}</th>
-                            <th style="padding: 10px;">${isAr ? 'المتبقي' : 'Remaining'}</th>
-                            <th style="padding: 10px;">${isAr ? 'تاريخ التوريد' : 'Delivery Date'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>${tableRows}</tbody>
-                </table>
+                <div>${recordsHtml}</div>
             </body>
             </html>
         `;
         printWindow.document.write(html);
         printWindow.document.close();
         setTimeout(() => printWindow.print(), 500);
+    };
+
+    const handlePrintInvoice = async (supply: Supply) => {
+        if (!restaurantId) return;
+
+        const { data: rest } = await supabase.from('restaurants').select('*').eq('id', restaurantId).single();
+
+        const orderObj = {
+            ...supply,
+            source: 'supplier_supply', // Specific label for suppliers
+            order_number: 0,
+            customer_name: supply.suppliers?.name,
+            customer_phone: supply.suppliers?.phone,
+            total: supply.total_cost,
+            deposit_amount: supply.amount_paid,
+            discount: 0,
+            payment_method: supply.remaining_balance > 0 ? 'deposit' : 'cash',
+            items: (supply.items || []).map(it => ({
+                title: it.item_name,
+                qty: it.quantity,
+                price: it.unit_cost,
+            }))
+        };
+
+        const html = renderReceiptHtml(orderObj, rest, isAr);
+        const settings = getPrinterSettings();
+        executePrint(html, settings);
     };
 
     const handleExportExcel = () => {
@@ -390,6 +458,10 @@ export default function SuppliesPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-1">
+                                                <button onClick={() => handlePrintInvoice(supply)}
+                                                    className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition" title={isAr ? "طباعة الفاتورة" : "Print Receipt"}>
+                                                    <Printer className="w-4 h-4" />
+                                                </button>
                                                 <Link href={`/dashboard/supplies/${supply.id}`}
                                                     className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition" title={isAr ? "عرض التفاصيل" : "View Details"}>
                                                     <Eye className="w-4 h-4" />

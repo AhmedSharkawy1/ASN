@@ -6,12 +6,15 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import {
     Warehouse, ArrowLeft, ArrowRight, CalendarDays, DollarSign, Package,
-    CreditCard, Save, Users
+    CreditCard, Save, Users, Printer
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
+import { getPrinterSettings } from "@/lib/helpers/printerSettings";
+import { executePrint } from "@/lib/helpers/printEngine";
 
 /* ── Types ── */
 type BranchSupplyItem = {
@@ -93,6 +96,26 @@ export default function BranchSupplyDetailsPage() {
         }
     };
 
+    const handlePrintInvoice = async () => {
+        if (!restaurantId || !order) return;
+
+        const { data: rest } = await supabase.from('restaurants').select('*').eq('id', restaurantId).single();
+
+        const orderObj = {
+            ...order,
+            source: 'branch_supply',
+            order_number: order.order_number || 0,
+            total: order.total,
+            discount: 0,
+            payment_method: order.total - order.deposit_amount > 0 ? 'deposit' : 'cash',
+            items: order.items || []
+        };
+
+        const html = renderReceiptHtml(orderObj, rest, isAr);
+        const settings = getPrinterSettings();
+        executePrint(html, settings);
+    };
+
     const formatCurrency = (v: number) => `${v.toLocaleString()} ج.م`;
     const formatDate = (d: string) => {
         try { return new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); }
@@ -126,6 +149,10 @@ export default function BranchSupplyDetailsPage() {
                         <DollarSign className="w-4 h-4" /> {isAr ? "تسجيل دفعة" : "Record Payment"}
                     </button>
                 )}
+                <button onClick={() => handlePrintInvoice()}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm hover:bg-slate-50 transition active:scale-95">
+                    <Printer className="w-4 h-4" /> {isAr ? "طباعة" : "Print"}
+                </button>
             </div>
 
             {/* Summary Cards */}

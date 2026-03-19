@@ -25,3 +25,12 @@ Payload: {"id":"001b59ff-e0b1-4814-9272-6fd8bc3aa2f2","restaurant_id":"52a5bcf9-
 
 Customer Error: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'address' column of 'customers' in the schema cache"}
 Payload: {"id":"001b59ff-e0b1-4814-9272-6fd8bc3aa2f2","restaurant_id":"52a5bcf9-e37a-443d-abea-c25268993ffe","name":"احمد سعيد","phone":"01092621367","email":null,"loyalty_points":0,"total_spent":0,"total_orders":0,"last_order_date":null,"notes":null,"created_at":"2026-03-13T12:20:29.166+00:00","address":"البدرشين الجيزة"}
+
+Customer Error: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'address' column of 'customers' in the schema cache"}
+Payload: {"id":"001b59ff-e0b1-4814-9272-6fd8bc3aa2f2","restaurant_id":"52a5bcf9-e37a-443d-abea-c25268993ffe","name":"احمد سعيد","phone":"01092621367","email":null,"loyalty_points":0,"total_spent":0,"total_orders":0,"last_order_date":null,"notes":null,"created_at":"2026-03-13T12:20:29.166+00:00","address":"البدرشين "}
+
+Customer Error: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'address' column of 'customers' in the schema cache"}
+Payload: {"id":"001b59ff-e0b1-4814-9272-6fd8bc3aa2f2","restaurant_id":"52a5bcf9-e37a-443d-abea-c25268993ffe","name":"احمد سعيد","phone":"01092621367","email":null,"loyalty_points":0,"total_spent":0,"total_orders":0,"last_order_date":null,"notes":null,"created_at":"2026-03-13T12:20:29.166+00:00","address":"البدرشين"}
+
+Customer Error: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'address' column of 'customers' in the schema cache"}
+Payload: {"id":"001b59ff-e0b1-4814-9272-6fd8bc3aa2f2","restaurant_id":"52a5bcf9-e37a-443d-abea-c25268993ffe","name":"احمد سعيد","phone":"01092621367","email":null,"loyalty_points":0,"total_spent":0,"total_orders":0,"last_order_date":null,"notes":null,"created_at":"2026-03-13T12:20:29.166+00:00","address":"البدرشين"}

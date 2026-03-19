@@ -52,6 +52,14 @@ type RestaurantProfile = {
         background?: string;
         text?: string;
     };
+    desktop_permissions?: {
+        orders?: boolean;
+        products?: boolean;
+        inventory?: boolean;
+        finance?: boolean;
+        admin?: boolean;
+        settings?: boolean;
+    };
 };
 
 export default function SettingsPage() {
@@ -80,7 +88,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id')
+                .select('id, name, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions')
                 .eq('email', user.email)
                 .single();
 
@@ -140,6 +148,14 @@ export default function SettingsPage() {
                     theme_colors: profile.theme_colors || {},
                     telegram_bot_token: profile.telegram_bot_token || '',
                     telegram_chat_id: profile.telegram_chat_id || '',
+                    desktop_permissions: profile.desktop_permissions || {
+                        orders: true,
+                        products: true,
+                        inventory: true,
+                        finance: true,
+                        admin: true,
+                        settings: true,
+                    },
                 })
                 .eq('id', profile.id);
 
@@ -548,6 +564,46 @@ export default function SettingsPage() {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* Desktop App Permissions */}
+                <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
+                    <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                        <Settings className="w-5 h-5 text-blue" />
+                        {language === "ar" ? "صلاحيات تطبيق المكتبي (Desktop)" : "Desktop App Permissions"}
+                    </h2>
+                    <p className="text-sm text-silver mb-6">
+                        {language === "ar"
+                            ? "تحكم في الصفحات التي تظهر في القائمة الجانبية لتطبيق الكمبيوتر (Electron)."
+                            : "Control which pages appear in the sidebar of the desktop application."}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                        {[
+                            { id: 'orders', labelAr: 'الطلبات والـ POS', labelEn: 'Orders & POS' },
+                            { id: 'products', labelAr: 'القائمة والمنتجات', labelEn: 'Menu & Products' },
+                            { id: 'inventory', labelAr: 'المخزون والمصنع', labelEn: 'Inventory & Factory' },
+                            { id: 'finance', labelAr: 'المالية والحسابات', labelEn: 'Finance & Accounts' },
+                            { id: 'admin', labelAr: 'العملاء والموظفين', labelEn: 'Customers & Staff' },
+                            { id: 'settings', labelAr: 'الأدوات والإعدادات', labelEn: 'Tools & Settings' },
+                        ].map((item) => (
+                            <label key={item.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-black/20 rounded-xl border border-glass-border cursor-pointer hover:bg-slate-100 dark:hover:bg-black/30 transition-colors">
+                                <span className="font-bold text-sm">{language === "ar" ? item.labelAr : item.labelEn}</span>
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={profile.desktop_permissions?.[item.id as keyof typeof profile.desktop_permissions] ?? true}
+                                    onChange={(e) => {
+                                        const perms = profile.desktop_permissions || { orders: true, products: true, inventory: true, finance: true, admin: true, settings: true };
+                                        setProfile({
+                                            ...profile,
+                                            desktop_permissions: { ...perms, [item.id]: e.target.checked }
+                                        });
+                                    }}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
+                            </label>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Social & Contact Links */}

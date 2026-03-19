@@ -7,12 +7,15 @@ import { supabase } from "@/lib/supabase/client";
 import { recordSupplyPayment } from "@/lib/helpers/supplyService";
 import {
     Truck, ArrowLeft, ArrowRight, CalendarDays, DollarSign, Package,
-    CreditCard, Save, Users
+    CreditCard, Save, Users, Printer
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
+import { getPrinterSettings } from "@/lib/helpers/printerSettings";
+import { executePrint } from "@/lib/helpers/printEngine";
 
 /* ── Types ── */
 type SupplyDetail = {
@@ -71,6 +74,33 @@ export default function SupplyDetailsPage() {
         }
     };
 
+    const handlePrintInvoice = async () => {
+        if (!restaurantId || !supply) return;
+
+        const { data: rest } = await supabase.from('restaurants').select('*').eq('id', restaurantId).single();
+
+        const orderObj = {
+            ...supply,
+            source: 'supplier_supply', // Specific label for suppliers
+            order_number: 0,
+            customer_name: supply.suppliers?.name,
+            customer_phone: supply.suppliers?.phone,
+            total: supply.total_cost,
+            deposit_amount: supply.amount_paid,
+            discount: 0,
+            payment_method: supply.remaining_balance > 0 ? 'deposit' : 'cash',
+            items: items.map(it => ({
+                title: it.item_name,
+                qty: it.quantity,
+                price: it.unit_cost,
+            }))
+        };
+
+        const html = renderReceiptHtml(orderObj, rest, isAr);
+        const settings = getPrinterSettings();
+        executePrint(html, settings);
+    };
+
     const formatCurrency = (v: number) => `${v.toLocaleString()} ج.م`;
     const formatDate = (d: string) => {
         try { return new Date(d).toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }); }
@@ -103,6 +133,10 @@ export default function SupplyDetailsPage() {
                         <DollarSign className="w-4 h-4" /> {isAr ? "تسجيل دفعة" : "Record Payment"}
                     </button>
                 )}
+                <button onClick={handlePrintInvoice}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-bold rounded-xl border border-slate-200 dark:border-zinc-700 shadow-sm hover:bg-slate-50 transition active:scale-95">
+                    <Printer className="w-4 h-4" /> {isAr ? "طباعة" : "Print"}
+                </button>
             </div>
 
             {/* Summary Cards */}

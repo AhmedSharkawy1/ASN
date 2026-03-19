@@ -6,10 +6,14 @@ import { useRestaurant } from "@/lib/hooks/useRestaurant";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { formatCurrency, formatQuantity } from "@/lib/helpers/formatters";
-import { posDb, generateId, getPosNextOrderNumber } from "@/lib/pos-db";
+import { posDb, generateId, getPosNextOrderNumber, decrementPosStock } from "@/lib/pos-db";
 import type { PosCategory, PosMenuItem, PosOrder, PosCustomer, PosStaffUser } from "@/lib/pos-db";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
-import { getReceiptStyles } from "@/lib/helpers/printerSettings";
+import { getReceiptStyles, getPrinterSettings } from "@/lib/helpers/printerSettings";
+import { executePrint } from "@/lib/helpers/printEngine";
+import { usePrintSettings } from "@/lib/hooks/usePrintSettings";
+import PrintModal from "@/components/PrintModal";
+import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
 import { useSearchParams, useRouter } from "next/navigation";
 import { revertOrderInventory } from "@/lib/helpers/inventoryService";
 import { toast } from "sonner";
@@ -83,10 +87,15 @@ export default function POSPage() {
     const [weightInput, setWeightInput] = useState<string>("");
     const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
     const [originalOrderNumber, setOriginalOrderNumber] = useState<number | null>(null);
+    const [printModalHtml, setPrintModalHtml] = useState<string | null>(null);
 
     const searchRef = useRef<HTMLInputElement>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
+    const printFrameRef = useRef<HTMLIFrameElement>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+
+    /* ── Print Settings ── */
+    const { settings: printSettings, saveSettings } = usePrintSettings(restaurantId);
 
     /* ── Clock ── */
     useEffect(() => {
@@ -158,16 +167,23 @@ export default function POSPage() {
         const custs = await posDb.customers.where("restaurant_id").equals(restaurantId).toArray();
         setAllCustomers(custs);
 
-        // Load delivery zones (fetching to ensure cache is warm or just omit the result)
-        await supabase
-            .from("delivery_zones").select("id,name_ar,fee,estimated_time")
-            .eq("restaurant_id", restaurantId).eq("is_active", true).order("fee");
+        const zones = await posDb.delivery_zones.where("restaurant_id").equals(restaurantId).toArray();
+        // Fallback for zones if empty
+        if (zones.length === 0 && navigator.onLine) {
+            const { data: zData } = await supabase
+                .from("delivery_zones").select("id,name_ar,fee,estimated_time")
+                .eq("restaurant_id", restaurantId).eq("is_active", true).order("fee");
+            if (zData) {
+                await posDb.delivery_zones.bulkPut(zData.map(z => ({ ...z, restaurant_id: restaurantId, is_active: true } as any)));
+            }
+        }
     }, [restaurantId]);
 
     /* ── Initial sync + load ── */
     useEffect(() => {
         if (!restaurantId) return;
-        pullFromSupabase(restaurantId).then(() => loadData());
+        // Run sync in background, don't wait for it to load UI
+        pullFromSupabase(restaurantId).catch(e => console.error("Initial Sync Error:", e)).finally(() => loadData());
     }, [restaurantId, loadData]);
 
     /* ── Load existing order for editing ── */
@@ -343,10 +359,11 @@ export default function POSPage() {
 
     const printReceipt = () => {
         if (!receiptRef.current) return;
-        const pw = window.open("", "_blank", "width=300,height=600");
-        if (!pw) return;
-        pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>${receiptRef.current.innerHTML}</body></html>`);
-        pw.document.close(); pw.focus(); pw.print();
+        const html = `<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body><div class="receipt-wrapper">${receiptRef.current.innerHTML}</div></body></html>`;
+        const settings = getPrinterSettings();
+        executePrint(html, settings, (modalHtml) => {
+            setPrintModalHtml(modalHtml);
+        });
     };
 
     const printDirectReceipt = useCallback((
@@ -354,83 +371,37 @@ export default function POSPage() {
         notes: string, dFee: number, dName: string, oType: string, disc: number, oTotal: number,
         pMethod: string, deposit: number
     ) => {
-        const restName = restaurant?.name || 'Restaurant';
-        const orderTypeLabel = oType === 'dine_in' ? 'صالة' : oType === 'delivery' ? 'دليفري' : 'تيك أواي';
-        const itemsHtml = cartItems.map(c => {
-            const fmt = formatQuantity(c.qty, c.weightUnit || (isAr ? 'قطعة' : 'unit'), isAr);
-            const title = c.menuItem.sell_by_weight
-                ? `(${fmt.qty} ${fmt.unit}) ${c.menuItem.title_ar}`
-                : c.menuItem.title_ar + (c.menuItem.size_labels && c.menuItem.size_labels.length > 1 ? ` (${c.menuItem.size_labels[c.selectedSizeIdx]})` : '');
-            const qtyStr = c.menuItem.sell_by_weight ? '1' : `${fmt.qty}`;
-            return `<tr>
-                <td style="padding:4px 0;font-size:14px">${c.categoryName ? `<span style="font-size:12px;color:#0284c7;font-weight:bold">${c.categoryName}<br/></span>` : ''}${title}</td>
-                <td style="text-align:center;padding:4px 0;font-size:15px;font-weight:bold">${qtyStr}</td>
-                <td style="text-align:left;padding:4px 0;font-size:15px;font-weight:bold">${formatCurrency(c.unitPrice * c.qty)}</td>
-            </tr>`;
-        }).join('');
+        const orderForReceipt = {
+            order_number: orderNum,
+            items: cartItems.map(c => ({
+                title: c.menuItem.title_ar,
+                qty: c.qty,
+                price: c.unitPrice,
+                size: c.menuItem.size_labels?.[c.selectedSizeIdx],
+                category: c.categoryName,
+                weight_unit: c.weightUnit
+            })),
+            customer_name: cName || undefined,
+            customer_phone: cPhone || undefined,
+            customer_address: cAddress || undefined,
+            notes: notes || undefined,
+            delivery_fee: dFee,
+            delivery_driver_name: dName,
+            order_type: oType,
+            discount: disc,
+            total: oTotal,
+            payment_method: pMethod,
+            deposit_amount: deposit,
+            created_at: new Date().toISOString()
+        };
 
-        const pw = window.open('', '_blank', 'width=300,height=600');
-        if (pw) {
-            pw.document.write(`<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>
-                <div style="text-align:center;margin-bottom:15px">
-                    ${(restaurant?.receipt_logo_url || restaurant?.logo_url) ? `<img src="${restaurant.receipt_logo_url || restaurant.logo_url}" alt="Logo" style="width:80px;height:80px;object-fit:contain;margin-bottom:10px;margin-left:auto;margin-right:auto;display:block" />` : ''}
-                    <p style="font-weight:bold;font-size:22px;margin:0 0 5px 0">${restName}</p>
-                    ${restaurant?.phone ? `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${restaurant.phone}</p>` : ''}
-                    ${restaurant?.phone_numbers?.map(p => `<p style="font-size:14px;margin:0 0 5px 0" dir="ltr">${p.number}</p>`).join('') || ''}
-                    ${restaurant?.address ? `<p style="font-size:14px;margin:0 0 5px 0">${restaurant.address}</p>` : ''}
-                    <p style="font-size:14px;margin:0 0 5px 0">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
-                    <p style="font-weight:bold;font-size:18px;margin:0 0 5px 0">فاتورة رقم #${orderNum}</p>
-                    <p style="font-size:16px;font-weight:bold;margin:0;display:inline-block;border:1px solid #000;padding:2px 6px;border-radius:4px">${orderTypeLabel}</p>
-                </div>
-                ${(cName || cPhone) ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px">
-                    ${cName ? `<p style="margin:2px 0">العميل: <strong>${cName}</strong></p>` : ''}
-                    ${cPhone ? `<p style="margin:2px 0" dir="ltr">هاتف: <strong>${cPhone}</strong></p>` : ''}
-                    ${cAddress ? `<p style="margin:2px 0">العنوان: <strong>${cAddress}</strong></p>` : ''}
-                </div>` : ''}
-                ${notes ? `<div style="border-top:1.5px dashed #000;margin:12px 0"></div><div style="font-size:14px"><p style="margin:2px 0">ملاحظات: <strong>${notes}</strong></p></div>` : ''}
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-                    <thead><tr>
-                        <td style="font-weight:bold;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الصنف</td>
-                        <td style="font-weight:bold;text-align:center;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">الكمية</td>
-                        <td style="font-weight:bold;text-align:left;padding-bottom:8px;border-bottom:1.5px dashed #000;font-size:15px">المبلغ</td>
-                    </tr></thead>
-                    <tbody>${itemsHtml}</tbody>
-                </table>
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                ${disc > 0 ? `<div style="display:flex;justify-content:space-between;font-size:15px"><span>الخصم</span><span>-${formatCurrency(disc)}</span></div>` : ''}
-                ${dFee > 0 ? `<div style="display:flex;justify-content:space-between;font-size:12px;color:#0891b2"><span>🚚 حساب الدليفري ${dName ? `(${dName})` : ''}</span><span>+${formatCurrency(dFee)}</span></div>` : ''}
-                <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:20px;margin-top:10px"><span>الإجمالي</span><span>${formatCurrency(oTotal)}</span></div>
-                ${pMethod === 'deposit' && deposit > 0 ? `
-                    <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;color:#d97706;margin-top:8px"><span>المدفوع (عربون)</span><span>${formatCurrency(deposit)}</span></div>
-                    <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:900;color:#dc2626;margin-top:4px"><span>الباقي</span><span>${formatCurrency(Math.max(0, oTotal - deposit))}</span></div>
-                ` : ''}
-                <div style="border-top:1.5px dashed #000;margin:12px 0"></div>
-                <div style="font-size:13px;font-weight:bold;text-align:center">طريقة الدفع: <strong>${pMethod === 'cash' ? 'كاش' : pMethod === 'deposit' ? 'عربون' : pMethod}</strong></div>
-                <div style="text-align:center;font-size:13px;margin-top:20px;font-weight:bold"><p style="margin:0">شكرا لطلبكم نتمنى ان ينال اعجابكم ❤️</p></div>
-                <script>
-                    window.onload = function() {
-                        const imgs = document.getElementsByTagName('img');
-                        if (imgs.length === 0) {
-                            window.print();
-                        } else {
-                            let loaded = 0;
-                            const finish = () => {
-                                loaded++;
-                                if (loaded >= imgs.length) {
-                                    window.print();
-                                }
-                            };
-                            for (let img of imgs) {
-                                if (img.complete) finish();
-                                else { img.onload = finish; img.onerror = finish; }
-                            }
-                        }
-                    };
-                </script>
-            </body></html>`);
-            pw.document.close(); pw.focus();
-        }
+        const html = renderReceiptHtml(orderForReceipt, restaurant, isAr);
+
+        // Use the unified print engine (QZ Tray → iframe → popup fallback)
+        const currentSettings = getPrinterSettings();
+        executePrint(html, currentSettings, (modalHtml) => {
+            setPrintModalHtml(modalHtml);
+        });
     }, [restaurant, isAr]);
 
     /* ── Submit Order ── */
@@ -479,6 +450,13 @@ export default function POSPage() {
             // Write to Dexie first (offline-first)
             await posDb.orders.put(orderRecord);
 
+            // 1.5. Local Inventory Deduction (Offline-first)
+            for (const item of cart) {
+                if (item.menuItem.inventory_item_id) {
+                    await decrementPosStock(restaurantId, item.menuItem.inventory_item_id, item.qty);
+                }
+            }
+
             // Auto-save / update customer
             if (customerName && customerPhone) {
                 const existing = await posDb.customers.where("phone").equals(customerPhone).first();
@@ -524,13 +502,17 @@ export default function POSPage() {
                 setLastPaymentMethod(paymentMethod);
                 setLastDepositAmount(depositAmount);
 
-                // Auto-print directly without showing receipt modal
+                setLastPaymentMethod(paymentMethod);
+                setLastDepositAmount(depositAmount);
+        
+                // Always print receipt - with --kiosk-printing flag it prints silently,
+                // without it the browser print dialog appears for printer selection
                 printDirectReceipt(
                     orderNumber, capturedCart, customerName, customerPhone, customerAddress,
                     orderNotes || '', deliveryFee, driverObj?.name || '',
                     orderType, discount, total, paymentMethod, depositAmount
                 );
-
+        
                 setTodayStats(p => ({ count: editingOrderId ? p.count : p.count + 1, revenue: editingOrderId ? p.revenue : p.revenue + total }));
             }
             clearCart();
@@ -563,18 +545,28 @@ export default function POSPage() {
         setDeliveryFee(order.delivery_fee || 0);
         if (order.discount) { setDiscountValue(order.discount); setDiscountType(order.discount_type || "fixed"); }
 
-        // Delete held order
-        await posDb.orders.delete(order.id);
-        if (navigator.onLine) {
-            supabase.from("orders").delete().eq("id", order.id).then(() => { });
+        // Soft delete / remove from sync queue
+        await posDb.orders.update(order.id, { deleted_at: new Date().toISOString(), _dirty: true });
+        if (typeof window !== 'undefined' && 'electronAPI' in window) {
+            await (window as any).electronAPI.enqueueAction({
+                action_type: 'delete',
+                table_name: 'orders',
+                record_id: order.id
+            });
         }
         setHeldOrders(prev => prev.filter(h => h.id !== order.id));
         setShowHeld(false);
     };
 
     const deleteHeldOrder = async (id: string) => {
-        await posDb.orders.delete(id);
-        if (navigator.onLine) supabase.from("orders").delete().eq("id", id).then(() => { });
+        await posDb.orders.update(id, { deleted_at: new Date().toISOString(), _dirty: true });
+        if (typeof window !== 'undefined' && 'electronAPI' in window) {
+            await (window as any).electronAPI.enqueueAction({
+                action_type: 'delete',
+                table_name: 'orders',
+                record_id: id
+            });
+        }
         setHeldOrders(prev => prev.filter(h => h.id !== id));
     };
 
@@ -1051,6 +1043,23 @@ export default function POSPage() {
                         </button>
                     </div>
                 </div>
+            )}
+            {/* Hidden Iframe for Direct Printing */}
+            <iframe
+                ref={printFrameRef}
+                style={{ position: 'absolute', width: '0px', height: '0px', border: 'none' }}
+                title="Print Frame"
+            />
+
+            {/* Print Modal (Manual Mode) */}
+            {printModalHtml && (
+                <PrintModal
+                    html={printModalHtml}
+                    settings={printSettings}
+                    isAr={isAr}
+                    onClose={() => setPrintModalHtml(null)}
+                    onSaveSettings={saveSettings}
+                />
             )}
         </div>
     );
