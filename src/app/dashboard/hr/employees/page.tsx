@@ -136,13 +136,18 @@ export default function EmployeesPage() {
 
   const startCamera = async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error(isAr ? "الكاميرا غير مدعومة هنا. هل تستخدم HTTPS؟" : "Camera not supported here. Are you using HTTPS?");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } 
       });
       streamRef.current = stream;
       // Show camera UI first (this renders the <video> element)
       setShowCamera(true);
-    } catch {
+    } catch (err: any) {
+      console.error(err);
       toast.error(isAr ? "لا يمكن الوصول للكاميرا" : "Cannot access camera");
     }
   };

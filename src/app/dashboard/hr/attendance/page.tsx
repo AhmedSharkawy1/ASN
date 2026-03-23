@@ -174,11 +174,16 @@ export default function AttendancePage() {
 
     // Start camera for face scan
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error(isAr ? "الكاميرا غير مدعومة. يرجى التأكد من استخدام (HTTPS)" : "Camera not supported. Please ensure you use (HTTPS)");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: 320, height: 240 } });
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
-    } catch {
-      toast.error(isAr ? "لا يمكن فتح الكاميرا" : "Cannot open camera");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(isAr ? "لا يمكن فتح الكاميرا: " + (err.message || "") : "Cannot open camera: " + (err.message || ""));
     }
   };
 
