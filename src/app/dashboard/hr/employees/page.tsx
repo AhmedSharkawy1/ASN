@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import {
   Users, Search, Plus, X, Check, Camera, Trash2,
-  Edit3, DollarSign, Calendar, Briefcase, Phone, CreditCard, UserCheck
+  Edit3, DollarSign, Calendar, Briefcase, Phone, CreditCard, UserCheck, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -48,6 +48,7 @@ export default function EmployeesPage() {
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const faceapiRef = useRef<any>(null);
 
@@ -231,6 +232,66 @@ export default function EmployeesPage() {
       toast.success(isAr ? "📸 تم حفظ الصورة بنجاح" : "📸 Photo saved");
     }
     stopCamera();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !canvasRef.current) return;
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const canvas = canvasRef.current;
+    
+    // Scale down if image is too large
+    const MAX_WIDTH = 800;
+    let scale = 1;
+    if (img.width > MAX_WIDTH) {
+      scale = MAX_WIDTH / img.width;
+    }
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+    
+    const photoData = canvas.toDataURL('image/jpeg', 0.7);
+    setPhotoUrl(photoData);
+
+    const faceapi = faceapiRef.current;
+    if (faceapi && modelsLoaded) {
+      const toastId = toast.loading(isAr ? "جاري تحليل ملامح الوجه..." : "Analyzing face features...");
+      try {
+        let detection = await faceapi
+          .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.2 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+        
+        if (!detection) {
+          detection = await faceapi
+            .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.1 }))
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+        }
+
+        if (detection) {
+          setFaceDescriptor(Array.from(detection.descriptor));
+          setFaceRegistered(true);
+          toast.success(isAr ? "تم تسجيل الصورة وبصمة الوجه بنجاح ✅" : "Photo and face features saved ✅", { id: toastId });
+        } else {
+          setFaceRegistered(true);
+          toast.success(isAr ? "📸 تم حفظ الصورة (بدون بصمة ذكية — يمكنك المحاولة بصورة أوضح)" : "📸 Photo saved (no AI face — try clearer photo)", { id: toastId });
+        }
+      } catch (err) {
+        console.error("ASN_LOG: Face descriptor extraction error:", err);
+        setFaceRegistered(true);
+        toast.success(isAr ? "📸 تم حفظ الصورة بنجاح" : "📸 Photo saved", { id: toastId });
+      }
+    } else {
+      setFaceRegistered(true);
+      toast.success(isAr ? "📸 تم حفظ الصورة بنجاح" : "📸 Photo saved");
+    }
   };
 
   const handleSave = async () => {
@@ -480,11 +541,31 @@ export default function EmployeesPage() {
                     </div>
                   </div>
                 ) : (
-                  <button onClick={startCamera}
-                    className="w-full py-3 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-500 dark:text-zinc-400 hover:border-teal-500 hover:text-teal-500 transition-colors">
-                    {faceRegistered ? (isAr ? "📷 إعادة تسجيل الوجه" : "📷 Re-register Face") : (isAr ? "📷 فتح الكاميرا لتسجيل الوجه" : "📷 Open Camera to Register Face")}
-                  </button>
+                  <div className="space-y-3">
+                    <canvas ref={canvasRef} className="hidden" />
+                    <input type="file" accept="image/*" capture="user" className="hidden" ref={fileInputRef} onChange={handleFileUpload} />
+                    <div className="flex flex-col gap-2">
+                      <button onClick={startCamera}
+                        className="w-full py-3 border-2 border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-white/5 rounded-xl text-sm font-bold text-slate-700 dark:text-white hover:border-teal-500 hover:text-teal-600 dark:hover:text-teal-400 transition-colors flex items-center justify-center gap-2">
+                        <Camera className="w-4 h-4" />
+                        {faceRegistered ? (isAr ? "بدء الكاميرا المباشرة" : "Start Live Camera") : (isAr ? "فتح الكاميرا لتسجيل الوجه" : "Open Camera")}
+                      </button>
+                      
+                      <div className="relative flex items-center py-2">
+                        <div className="flex-grow border-t border-stone-200 dark:border-stone-700"></div>
+                        <span className="flex-shrink-0 mx-4 text-slate-400 dark:text-zinc-500 text-xs font-bold uppercase">{isAr ? "أو" : "OR"}</span>
+                        <div className="flex-grow border-t border-stone-200 dark:border-stone-700"></div>
+                      </div>
+
+                      <button onClick={() => fileInputRef.current?.click()}
+                        className="w-full py-3 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-600 dark:text-zinc-300 hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center justify-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        {isAr ? "التقاط من الهاتف / رفع صورة" : "Take Photo / Upload"}
+                      </button>
+                    </div>
+                  </div>
                 )}
+                
                 {photoUrl && !showCamera && (
                   <div className="mt-4 flex justify-center">
                     <img src={photoUrl} alt="Captured face" className="w-24 h-24 object-cover rounded-xl border-2 border-stone-200 shadow-sm" />

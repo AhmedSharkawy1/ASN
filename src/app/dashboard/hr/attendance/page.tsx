@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import {
   MapPin, Camera, Clock, CalendarCheck, UserCheck, UserX,
-  Search, Filter, ChevronDown, AlertTriangle, CheckCircle2, X, Scan
+  Search, Filter, ChevronDown, AlertTriangle, CheckCircle2, X, Scan, Upload
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -73,6 +73,7 @@ export default function AttendancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const faceapiRef = useRef<any>(null);
 
   // Location Management
@@ -190,6 +191,84 @@ export default function AttendancePage() {
   // Euclidean distance between two face descriptors
   const euclideanDistance = (a: number[], b: number[]): number => {
     return Math.sqrt(a.reduce((sum, val, i) => sum + (val - b[i]) ** 2, 0));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !canvasRef.current || !selectedEmployee) return;
+
+    setFaceStatus('scanning');
+    
+    // Stop video camera if it was running
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+
+    if (!selectedEmployee.face_descriptor) {
+      setFaceStatus('verified');
+      toast.info(isAr ? "⚠️ التحقق مؤجل لعدم وجود بصمة مسجلة" : "⚠️ Verification skipped - no registered face");
+      return;
+    }
+
+    const faceapi = faceapiRef.current;
+    if (!faceapi || !modelsLoaded) {
+      toast.error(isAr ? "نماذج الذكاء الاصطناعي غير جاهزة" : "AI models not ready");
+      setFaceStatus('idle');
+      return;
+    }
+
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    await new Promise(resolve => { img.onload = resolve; });
+
+    const canvas = canvasRef.current;
+    const MAX_WIDTH = 800;
+    let scale = 1;
+    if (img.width > MAX_WIDTH) scale = MAX_WIDTH / img.width;
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    
+    const ctx = canvas.getContext('2d');
+    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    try {
+      let detection = await faceapi
+        .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.2 }))
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+      
+      if (!detection) {
+        detection = await faceapi
+          .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.1 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+      }
+
+      if (!detection) {
+        toast.error(isAr ? "❌ لم يتم اكتشاف وجه. حاول التقاط صورة أوضح" : "❌ No face detected. Try a clearer photo");
+        setFaceStatus('failed');
+        return;
+      }
+
+      const liveDescriptor = Array.from(detection.descriptor) as number[];
+      const storedDescriptor = selectedEmployee.face_descriptor;
+      const distance = euclideanDistance(liveDescriptor, storedDescriptor);
+      const similarity = Math.round((1 - Math.min(distance, 1)) * 100);
+      setMatchScore(similarity);
+
+      if (similarity >= 70) {
+        setFaceStatus('verified');
+        toast.success(isAr ? `✅ تم التحقق (${similarity}% تطابق)` : `✅ Verified (${similarity}% match)`);
+      } else {
+        setFaceStatus('failed');
+        toast.error(isAr ? `❌ الوجه لا يتطابق أو غير واضح (${similarity}% تطابق)` : `❌ Face does not match (${similarity}% match)`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(isAr ? "حدث خطأ أثناء فحص الصورة" : "Error checking image");
+      setFaceStatus('failed');
+    }
   };
 
   const verifyFace = async () => {
