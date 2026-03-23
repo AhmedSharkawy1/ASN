@@ -241,13 +241,13 @@ export default function AttendancePage() {
 
       console.log(`ASN_LOG: Face match distance=${distance.toFixed(4)}, similarity=${similarity}%`);
 
-      // Threshold: distance < 0.6 = same person (face-api.js standard)
-      if (distance < 0.6) {
+      // User requested 70% minimum match percentage
+      if (similarity >= 70) {
         setFaceStatus('verified');
         toast.success(isAr ? `✅ تم التحقق من الوجه بنجاح (${similarity}% تطابق)` : `✅ Face verified (${similarity}% match)`);
       } else {
         setFaceStatus('failed');
-        toast.error(isAr ? `❌ الوجه لا يتطابق مع الموظف المسجل (${similarity}% تطابق)` : `❌ Face does not match (${similarity}% match)`);
+        toast.error(isAr ? `❌ الوجه لا يتطابق أو غير واضح (${similarity}% تطابق - المطلوب 70%)` : `❌ Face does not match (${similarity}% match - 70% required)`);
       }
     } catch (err) {
       console.error('ASN_LOG: Face verification error', err);
