@@ -13,6 +13,7 @@ interface Employee {
   id: string;
   full_name: string;
   face_descriptor: number[] | null;
+  profile_photo_url: string | null;
 }
 
 interface AttendanceRecord {
@@ -104,7 +105,7 @@ export default function AttendancePage() {
     setLoading(true);
     try {
       const [{ data: emps }, { data: att }, { data: locs }] = await Promise.all([
-        supabase.from('hr_employees').select('id, full_name, face_descriptor').eq('tenant_id', rId).eq('is_active', true),
+        supabase.from('hr_employees').select('id, full_name, face_descriptor, profile_photo_url').eq('tenant_id', rId).eq('is_active', true),
         supabase.from('hr_attendance').select('*, hr_employees(full_name)').eq('tenant_id', rId).eq('date', selectedDate).order('created_at', { ascending: false }),
         supabase.from('hr_locations').select('*').eq('tenant_id', rId).eq('is_active', true),
       ]);
@@ -416,9 +417,13 @@ export default function AttendancePage() {
             return (
               <div key={emp.id} className={`p-4 rounded-2xl border transition-all duration-300 ${isCheckedIn ? 'bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20' : 'bg-stone-50 dark:bg-white/5 border-stone-200 dark:border-stone-700'}`}>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-md ${isCheckedIn ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-stone-400 to-stone-500'}`}>
-                    {emp.full_name.charAt(0)}
-                  </div>
+                  {emp.profile_photo_url ? (
+                    <img src={emp.profile_photo_url} alt={emp.full_name} className={`w-10 h-10 rounded-xl object-cover shadow-md ${isCheckedIn ? 'ring-2 ring-emerald-500' : ''}`} />
+                  ) : (
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-md ${isCheckedIn ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-stone-400 to-stone-500'}`}>
+                      {emp.full_name.charAt(0)}
+                    </div>
+                  )}
                   <div className="min-w-0">
                     <div className="font-bold text-slate-900 dark:text-white text-sm truncate">{emp.full_name}</div>
                     {isCheckedIn && record?.check_in && (
@@ -529,9 +534,13 @@ export default function AttendancePage() {
             <div className="p-6 space-y-5">
               {/* Employee name */}
               <div className="text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white font-extrabold text-xl shadow-lg mx-auto mb-2">
-                  {selectedEmployee.full_name.charAt(0)}
-                </div>
+                {selectedEmployee.profile_photo_url ? (
+                  <img src={selectedEmployee.profile_photo_url} alt={selectedEmployee.full_name} className="w-14 h-14 rounded-2xl object-cover shadow-lg mx-auto mb-2" />
+                ) : (
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white font-extrabold text-xl shadow-lg mx-auto mb-2">
+                    {selectedEmployee.full_name.charAt(0)}
+                  </div>
+                )}
                 <h3 className="text-lg font-extrabold text-slate-800 dark:text-white">{selectedEmployee.full_name}</h3>
               </div>
 

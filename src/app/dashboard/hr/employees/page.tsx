@@ -44,6 +44,7 @@ export default function EmployeesPage() {
   const [showCamera, setShowCamera] = useState(false);
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
   const [faceRegistered, setFaceRegistered] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -112,6 +113,7 @@ export default function EmployeesPage() {
     setForm({ full_name: "", phone: "", national_id: "", department: "عام", job_title: "", hire_date: "", base_salary: 0 });
     setFaceDescriptor(null);
     setFaceRegistered(false);
+    setPhotoUrl(null);
     setIsModalOpen(true);
   };
 
@@ -128,6 +130,7 @@ export default function EmployeesPage() {
     });
     setFaceDescriptor(emp.face_descriptor);
     setFaceRegistered(!!emp.face_descriptor);
+    setPhotoUrl(emp.profile_photo_url || null);
     setIsModalOpen(true);
   };
 
@@ -179,7 +182,9 @@ export default function EmployeesPage() {
       if (detection) {
         setFaceDescriptor(Array.from(detection.descriptor));
         setFaceRegistered(true);
-        toast.success(isAr ? "تم تسجيل ملامح الوجه بنجاح ✅" : "Face features registered successfully ✅", { id: toastId });
+        const photoData = canvas.toDataURL('image/jpeg', 0.6);
+        setPhotoUrl(photoData);
+        toast.success(isAr ? "تم تسجيل ملامح الوجه والصورة بنجاح ✅" : "Face features and photo registered successfully ✅", { id: toastId });
       } else {
         toast.error(isAr ? "لم يتم اكتشاف وجه. حاول الاقتراب من الكاميرا" : "No face detected. Get closer to the camera", { id: toastId });
       }
@@ -207,6 +212,7 @@ export default function EmployeesPage() {
         hire_date: form.hire_date || null,
         base_salary: form.base_salary,
         face_descriptor: faceDescriptor,
+        profile_photo_url: photoUrl,
       };
 
       if (editingEmployee) {
@@ -298,9 +304,13 @@ export default function EmployeesPage() {
                 <tr key={emp.id} className="hover:bg-stone-50/50 dark:hover:bg-white/[0.02] transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white font-extrabold text-sm shadow-md">
-                        {emp.full_name.charAt(0)}
-                      </div>
+                      {emp.profile_photo_url ? (
+                        <img src={emp.profile_photo_url} alt={emp.full_name} className="w-10 h-10 rounded-xl object-cover shadow-md" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-500 flex items-center justify-center text-white font-extrabold text-sm shadow-md">
+                          {emp.full_name.charAt(0)}
+                        </div>
+                      )}
                       <div>
                         <div className="font-bold text-slate-900 dark:text-white">{emp.full_name}</div>
                         {emp.phone && <div className="text-xs text-slate-400">{emp.phone}</div>}
@@ -436,6 +446,11 @@ export default function EmployeesPage() {
                     className="w-full py-3 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-xl text-sm font-bold text-stone-500 dark:text-zinc-400 hover:border-teal-500 hover:text-teal-500 transition-colors">
                     {faceRegistered ? (isAr ? "📷 إعادة تسجيل الوجه" : "📷 Re-register Face") : (isAr ? "📷 فتح الكاميرا لتسجيل الوجه" : "📷 Open Camera to Register Face")}
                   </button>
+                )}
+                {photoUrl && !showCamera && (
+                  <div className="mt-4 flex justify-center">
+                    <img src={photoUrl} alt="Captured face" className="w-24 h-24 object-cover rounded-xl border-2 border-stone-200 shadow-sm" />
+                  </div>
                 )}
               </div>
             </div>
