@@ -214,19 +214,15 @@ export default function AttendancePage() {
 
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      canvas.width = video.videoWidth || 320;
-      canvas.height = video.videoHeight || 240;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // Detect face and extract descriptor
+      // Detect face directly from the video element to preserve aspect ratios
       const detection = await faceapi
-        .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (!detection) {
-        toast.error(isAr ? "❌ لم يتم اكتشاف وجه. تأكد من وضوح الوجه أمام الكاميرا" : "❌ No face detected. Ensure face is visible");
+        toast.error(isAr ? "❌ لم يتم اكتشاف وجه. أقترب قليلاً وتأكد من الإضاءة" : "❌ No face detected. Get closer and check lighting");
         setFaceStatus('failed');
         return;
       }

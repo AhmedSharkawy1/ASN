@@ -169,24 +169,28 @@ export default function EmployeesPage() {
     try {
       const canvas = canvasRef.current;
       const video = videoRef.current;
-      canvas.width = video.videoWidth || 320;
-      canvas.height = video.videoHeight || 240;
-      const ctx = canvas.getContext('2d');
-      ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-
+      
+      // Pass the video directly to face-api, which handles native aspect ratios better than a squashed canvas
       const detection = await faceapi
-        .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+        .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 }))
         .withFaceLandmarks()
         .withFaceDescriptor();
 
       if (detection) {
         setFaceDescriptor(Array.from(detection.descriptor));
         setFaceRegistered(true);
+        
+        // Only draw to canvas for generating the profile photo preview
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
         const photoData = canvas.toDataURL('image/jpeg', 0.6);
         setPhotoUrl(photoData);
+
         toast.success(isAr ? "تم تسجيل ملامح الوجه والصورة بنجاح ✅" : "Face features and photo registered successfully ✅", { id: toastId });
       } else {
-        toast.error(isAr ? "لم يتم اكتشاف وجه. حاول الاقتراب من الكاميرا" : "No face detected. Get closer to the camera", { id: toastId });
+        toast.error(isAr ? "لم يتم اكتشاف وجه. حاول الاقتراب والتأكد من الإضاءة" : "No face detected. Get closer and check lighting", { id: toastId });
       }
     } catch (err: any) {
       console.error("ASN_LOG: Face capture error:", err);
