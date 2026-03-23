@@ -142,11 +142,16 @@ export default function EmployeesPage() {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // Wait for the video to actually start playing
+        // Wait for video to actually start rendering visible frames
         await new Promise<void>((resolve) => {
           const v = videoRef.current!;
-          if (v.readyState >= 2) { resolve(); return; }
-          v.onloadeddata = () => resolve();
+          const onPlaying = () => {
+            v.removeEventListener('playing', onPlaying);
+            // Extra delay to ensure frames are actually drawn
+            setTimeout(resolve, 500);
+          };
+          v.addEventListener('playing', onPlaying);
+          v.play().catch(() => resolve());
         });
       }
       setShowCamera(true);
@@ -169,9 +174,15 @@ export default function EmployeesPage() {
     const canvas = canvasRef.current;
     const video = videoRef.current;
 
+    // Ensure video has actual dimensions (not black)
+    if (!video.videoWidth || !video.videoHeight) {
+      toast.error(isAr ? "الكاميرا لم تبدأ بعد. انتظر لحظة ثم حاول مرة أخرى" : "Camera not ready. Wait a moment and try again");
+      return;
+    }
+
     // Step 1: ALWAYS capture the photo first
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
     ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
     const photoData = canvas.toDataURL('image/jpeg', 0.7);
