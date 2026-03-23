@@ -86,8 +86,24 @@ export async function POST(req: Request) {
             break;
           }
         }
+        
+        if (!locationVerified) {
+          return NextResponse.json({ 
+            error: 'Outside allowed location', 
+            message: `عذراً يا ${bestMatch.full_name}، أنت لست داخل النطاق الجغرافي المسموح به للعمل!` 
+          }, { status: 403 });
+        }
       } else {
         locationVerified = true; // No locations defined = ignore
+      }
+    } else {
+      // Missing latitude/longitude entirely. Check if restaurant actually requires it.
+      const { data: locations } = await supabase.from('hr_locations').select('id').eq('tenant_id', restaurant_id).eq('is_active', true).limit(1);
+      if (locations && locations.length > 0) {
+        return NextResponse.json({ 
+          error: 'Location required', 
+          message: `عذراً، يجب السماح بتحديد الموقع الجغرافي لتسجيل الحضور!` 
+        }, { status: 403 });
       }
     }
 
