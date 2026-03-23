@@ -140,25 +140,19 @@ export default function EmployeesPage() {
         video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } 
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        // Wait for video to actually start rendering visible frames
-        await new Promise<void>((resolve) => {
-          const v = videoRef.current!;
-          const onPlaying = () => {
-            v.removeEventListener('playing', onPlaying);
-            // Extra delay to ensure frames are actually drawn
-            setTimeout(resolve, 500);
-          };
-          v.addEventListener('playing', onPlaying);
-          v.play().catch(() => resolve());
-        });
-      }
+      // Show camera UI first (this renders the <video> element)
       setShowCamera(true);
     } catch {
       toast.error(isAr ? "لا يمكن الوصول للكاميرا" : "Cannot access camera");
     }
   };
+
+  // Attach stream to video element AFTER it's rendered in the DOM
+  useEffect(() => {
+    if (showCamera && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [showCamera]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -174,9 +168,14 @@ export default function EmployeesPage() {
     const canvas = canvasRef.current;
     const video = videoRef.current;
 
-    // Ensure video has actual dimensions (not black)
+    // Wait for video to have actual frames (up to 3 seconds)
+    let retries = 0;
+    while ((!video.videoWidth || !video.videoHeight) && retries < 15) {
+      await new Promise(r => setTimeout(r, 200));
+      retries++;
+    }
     if (!video.videoWidth || !video.videoHeight) {
-      toast.error(isAr ? "الكاميرا لم تبدأ بعد. انتظر لحظة ثم حاول مرة أخرى" : "Camera not ready. Wait a moment and try again");
+      toast.error(isAr ? "الكاميرا لم تبدأ بعد. أغلق وافتح مرة أخرى" : "Camera not ready. Close and try again");
       return;
     }
 
