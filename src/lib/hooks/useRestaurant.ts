@@ -30,7 +30,11 @@ export function useRestaurant() {
                 const email = user.email || "";
                 let rId = null;
 
-                if (email.endsWith('.asn')) {
+                const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
+
+                if (impersonatingTenant) {
+                    rId = impersonatingTenant;
+                } else if (email.endsWith('.asn')) {
                     // Staff member
                     const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).single();
                     if (staff) rId = staff.restaurant_id;

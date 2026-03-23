@@ -22,11 +22,8 @@ export default function UserDashboardPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const { data: restaurant } = await supabase
-                .from('restaurants')
-                .select('id, name')
-                .eq('email', user.email)
-                .single();
+            const impTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
+            const { data: restaurant } = await supabase.from('restaurants').select('id, name').eq(impTenant ? 'id' : 'email', impTenant || user.email).single();
 
             if (restaurant) {
                 setRestaurantId(restaurant.id);

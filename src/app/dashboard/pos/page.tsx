@@ -22,7 +22,7 @@ import {
     DollarSign, Save, X, Printer, Clock, Banknote,
     PauseCircle, Play, StickyNote, Users, MapPin,
     LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
-    Package, Truck, Wifi, WifiOff, Monitor
+    Package, Truck, Wifi, WifiOff, Monitor, RefreshCw
 } from "lucide-react";
 
 /* ═══════════════════════════ TYPES ═══════════════════════════ */
@@ -49,6 +49,8 @@ export default function POSPage() {
     const [drivers, setDrivers] = useState<PosStaffUser[]>([]);
     const [allCustomers, setAllCustomers] = useState<PosCustomer[]>([]);
     const [isOnline, setIsOnline] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
     /* ── UI state ── */
     const [activeCategory, setActiveCategory] = useState<string>("");
@@ -87,6 +89,7 @@ export default function POSPage() {
     const [weightInput, setWeightInput] = useState<string>("");
     const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
     const [originalOrderNumber, setOriginalOrderNumber] = useState<number | null>(null);
+    const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(null);
     const [printModalHtml, setPrintModalHtml] = useState<string | null>(null);
 
     const searchRef = useRef<HTMLInputElement>(null);
@@ -105,7 +108,11 @@ export default function POSPage() {
 
     /* ── Sync status ── */
     useEffect(() => {
-        return subscribeSyncStatus(s => setIsOnline(s.isOnline));
+        return subscribeSyncStatus(s => {
+            setIsOnline(s.isOnline);
+            setIsSyncing(s.isSyncing);
+            setPendingSyncCount(s.pendingCount);
+        });
     }, []);
 
     /* ── Sound ── */
@@ -207,6 +214,7 @@ export default function POSPage() {
                 if (order) {
                     setEditingOrderId(order.id);
                     setOriginalOrderNumber(order.order_number);
+                    setOriginalCreatedAt(order.created_at);
                     
                     // Map items back to CartItems
                     const restoredCart: CartItem[] = order.items.map(item => {
@@ -443,7 +451,8 @@ export default function POSPage() {
                 deposit_amount: depositAmount || 0,
                 status: "pending",
                 is_draft: isHold,
-                created_at: new Date().toISOString(),
+                created_at: editingOrderId && originalCreatedAt ? originalCreatedAt : new Date().toISOString(),
+                updated_at: new Date().toISOString(),
                 _dirty: true,
             };
 
@@ -482,9 +491,9 @@ export default function POSPage() {
                 }
             }
 
-            // Push to Supabase if online
+            // Push to Supabase if online (Background Sync)
             if (navigator.onLine) {
-                await pushDirtyToSupabase(restaurantId);
+                pushDirtyToSupabase(restaurantId).catch(e => console.error("Background sync error:", e));
             }
 
             if (isHold) {
@@ -518,6 +527,7 @@ export default function POSPage() {
             clearCart();
             setEditingOrderId(null);
             setOriginalOrderNumber(null);
+            setOriginalCreatedAt(null);
             if (editId) {
                 router.replace('/dashboard/pos'); // Clean URL
             }
@@ -583,6 +593,12 @@ export default function POSPage() {
                         <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full ml-2 ${isOnline ? "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-red-500/15 text-red-600 dark:text-red-400"}`}>
                             {isOnline ? <><Wifi className="w-3 h-3" /> أونلاين</> : <><WifiOff className="w-3 h-3" /> أوفلاين</>}
                         </span>
+                        {(pendingSyncCount > 0 || isSyncing) && (
+                           <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400">
+                               <RefreshCw className={`w-3 h-3 ${isSyncing ? "animate-spin" : ""}`} />
+                               {isSyncing ? "جاري المزامنة..." : `غير متزامن (${pendingSyncCount})`}
+                           </span>
+                        )}
                     </h1>
                     
                     {/* Search */}
@@ -606,6 +622,20 @@ export default function POSPage() {
                         <span className="text-[10px] text-slate-500 dark:text-zinc-500 font-bold">الإيرادات</span>
                         <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(todayStats.revenue)}</span>
                     </div>
+                    
+                    <button 
+                        onClick={() => {
+                            if (navigator.onLine && restaurantId && !isSyncing) {
+                                pushDirtyToSupabase(restaurantId).then(() => pullFromSupabase(restaurantId));
+                            }
+                        }}
+                        disabled={isSyncing || !isOnline}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${isSyncing || !isOnline ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-400 border-slate-200 hover:text-blue-600 focus:ring-2"}`}
+                    >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-blue-500" : ""}`} /> 
+                        مزامنة
+                    </button>
+
                     <button onClick={() => setShowHeld(!showHeld)}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showHeld ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
                         <PauseCircle className="w-3.5 h-3.5" /> معلقة ({heldOrders.length})

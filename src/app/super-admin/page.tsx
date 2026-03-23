@@ -16,17 +16,18 @@ export default function SuperAdminDashboard() {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [clientsReq, branchesReq, subsReq] = await Promise.all([
+                const [clientsReq, branchesReq, subsReq, backupsReq] = await Promise.all([
                     supabase.from('restaurants').select('id', { count: 'exact' }),
                     supabase.from('branches').select('id', { count: 'exact' }),
-                    supabase.from('subscriptions').select('id', { count: 'exact' }).eq('status', 'active')
+                    supabase.from('subscriptions').select('id', { count: 'exact' }).eq('status', 'active'),
+                    supabase.from('system_backups').select('id', { count: 'exact' }).eq('status', 'completed')
                 ]);
 
                 setStats({
                     totalClients: clientsReq.count || 0,
                     totalBranches: branchesReq.count || 0,
                     activeSubscriptions: subsReq.count || 0,
-                    totalBackups: 0 // Placeholder until backup engine is written
+                    totalBackups: backupsReq.count || 0
                 });
             } catch (err) {
                 console.error("Error fetching admin stats:", err);

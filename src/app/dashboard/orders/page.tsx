@@ -12,6 +12,7 @@ import { getPrinterSettings } from "@/lib/helpers/printerSettings";
 import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
 import { executePrint } from "@/lib/helpers/printEngine";
 import { useRouter } from "next/navigation";
+import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
 
 type OrderItem = {
     title: string;
@@ -48,6 +49,9 @@ export default function OrdersPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [dateRange, setDateRange] = useState<{ from: string; to: string }>({ from: "", to: "" });
     const [sourceFilter, setSourceFilter] = useState<string>("all");
+    const [isOnline, setIsOnline] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
     const fetchOrders = useCallback(async () => {
         if (!restaurantId) return;
@@ -125,6 +129,16 @@ export default function OrdersPage() {
     }, [restaurantId, statusFilter, dateRange, sourceFilter]);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+    /* ── Sync status ── */
+    useEffect(() => {
+        return subscribeSyncStatus(s => {
+            setIsOnline(s.isOnline);
+            setIsSyncing(s.isSyncing);
+            setPendingSyncCount(s.pendingCount);
+            if (!s.isSyncing) fetchOrders(); // Automatically refresh list if sync finishes
+        });
+    }, [fetchOrders]);
 
     const updateStatus = async (orderId: string, newStatus: string) => {
         const order = orders.find(o => o.id === orderId);
@@ -205,7 +219,21 @@ export default function OrdersPage() {
                     <p className="text-slate-500 dark:text-zinc-400 text-base mt-1">{isAr ? "تتبع وإدارة جميع الطلبات في مكان واحد" : "Track and manage all orders in one place"}</p>
                 </div>
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto">
-                    <button onClick={fetchOrders} className="flex-1 sm:flex-none p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white rounded-xl border border-slate-300 dark:border-zinc-700/50 transition flex items-center justify-center"><RefreshCw className="w-4 h-4" /></button>
+                    <button 
+                        onClick={() => {
+                            if (navigator.onLine && restaurantId && !isSyncing) {
+                                pushDirtyToSupabase(restaurantId).then(() => pullFromSupabase(restaurantId)).then(() => fetchOrders());
+                            } else {
+                                fetchOrders();
+                            }
+                        }}
+                        disabled={isSyncing}
+                        className={`flex-1 sm:flex-none p-2.5 rounded-xl border transition flex items-center justify-center gap-2 ${isSyncing ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200" : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white border-slate-300 dark:border-zinc-700/50 hover:border-blue-400 focus:ring-2"}`}
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin text-blue-500" : ""}`} />
+                        <span className="text-sm font-bold">{isAr ? "مزامنة و تحديث" : "Sync & Refresh"}</span>
+                        {pendingSyncCount > 0 && <span className="text-[10px] font-bold bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md">({pendingSyncCount})</span>}
+                    </button>
                     <button onClick={exportCSV} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 font-medium text-base rounded-xl border border-slate-300 dark:border-zinc-700/50 -blue/30 transition">
                         <Download className="w-4 h-4" /> {isAr ? "تصدير CSV" : "Export CSV"}
                     </button>

@@ -89,7 +89,7 @@ export default function SettingsPage() {
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
                 .select('id, name, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions')
-                .eq('email', user.email)
+                .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
             if (e1) {
@@ -97,7 +97,7 @@ export default function SettingsPage() {
                 const { data: d2 } = await supabase
                     .from('restaurants')
                     .select('id, name, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id')
-                    .eq('email', user.email)
+                    .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
             } else {
@@ -776,6 +776,19 @@ function BackupRestorePanel() {
     const [status, setStatus] = useState("");
     const fileRef = useRef<HTMLInputElement>(null);
 
+    // ── Cloud Backup State ──
+    const [creatingBackup, setCreatingBackup] = useState(false);
+    const [cloudRestoring, setCloudRestoring] = useState(false);
+    const [cloudFile, setCloudFile] = useState<File | null>(null);
+    const cloudFileRef = useRef<HTMLInputElement>(null);
+    const [cloudModules, setCloudModules] = useState({
+        menu: true, orders: false, kitchen: true, factory: true,
+        inventory: true, supplies: true, tables: true, delivery: true,
+        customers: true, team: false, branches: false, finance: false,
+        notifications: false, settings: true
+    });
+
+    // ── Local POS Export (IndexedDB) ──
     const handleExport = async () => {
         const data = {
             categories: await posDb.categories.toArray(),
@@ -791,6 +804,7 @@ function BackupRestorePanel() {
         a.click(); URL.revokeObjectURL(a.href);
     };
 
+    // ── Local POS Import (IndexedDB) ──
     const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]; if (!file) return;
         setRestoring(true); setStatus("");
@@ -811,19 +825,225 @@ function BackupRestorePanel() {
         if (fileRef.current) fileRef.current.value = "";
     };
 
+    // ── Cloud Backup: Create & Download ──
+    const handleCloudBackup = async () => {
+        setCreatingBackup(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { toast.error("يجب تسجيل الدخول أولاً"); return; }
+
+            // Get tenant ID
+            const tenantId = sessionStorage.getItem('impersonating_tenant');
+            let restaurantId = tenantId;
+            if (!restaurantId) {
+                const { data: rest } = await supabase.from('restaurants').select('id').eq('email', user.email).single();
+                restaurantId = rest?.id;
+            }
+            if (!restaurantId) { toast.error("لم يتم العثور على المطعم"); return; }
+
+            // Trigger the cloud backup
+            const res = await fetch('/api/backup/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenant_id: restaurantId, backup_type: 'per_client' }),
+            });
+            const result = await res.json();
+
+            if (result.success && result.results?.length > 0) {
+                const backupResult = result.results[0];
+                // Download the backup file
+                const dlRes = await fetch('/api/backup/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backup_id: backupResult.backup_id }),
+                });
+                const dlResult = await dlRes.json();
+                if (dlResult.file_url) {
+                    const a = document.createElement('a');
+                    a.href = dlResult.file_url;
+                    a.download = dlResult.original_name || `backup_${Date.now()}.json`;
+                    a.click();
+                    toast.success("✅ تم إنشاء وتنزيل النسخة الاحتياطية!");
+                }
+            } else {
+                toast.error(result.error || "فشل إنشاء النسخة الاحتياطية");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("حدث خطأ أثناء إنشاء النسخة الاحتياطية");
+        } finally {
+            setCreatingBackup(false);
+        }
+    };
+
+    // ── Cloud Restore: Selective Module Restore from Backup File ──
+    const handleCloudRestore = async () => {
+        if (!cloudFile) { toast.error("يرجى اختيار ملف النسخة الاحتياطية"); return; }
+
+        const selectedModules = Object.keys(cloudModules).filter(k => cloudModules[k as keyof typeof cloudModules]);
+        if (selectedModules.length === 0) { toast.error("يرجى تحديد وحدة واحدة على الأقل"); return; }
+
+        setCloudRestoring(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { toast.error("يجب تسجيل الدخول أولاً"); return; }
+
+            const tenantId = sessionStorage.getItem('impersonating_tenant');
+            let restaurantId = tenantId;
+            if (!restaurantId) {
+                const { data: rest } = await supabase.from('restaurants').select('id').eq('email', user.email).single();
+                restaurantId = rest?.id;
+            }
+            if (!restaurantId) { toast.error("لم يتم العثور على المطعم"); return; }
+
+            const formData = new FormData();
+            formData.append("file", cloudFile);
+            formData.append("target_tenant_id", restaurantId);
+            formData.append("modules", JSON.stringify(selectedModules));
+
+            const res = await fetch('/api/backup/clone', {
+                method: 'POST',
+                body: formData,
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                let summary = "";
+                if (result.results) {
+                    for (const [table, data] of Object.entries(result.results as Record<string, { cloned: number; errors: string[] }>)) {
+                        if (data.cloned > 0) summary += `${table}: ${data.cloned} ✓  `;
+                    }
+                }
+                toast.success(`✅ تمت الاستعادة بنجاح! ${summary}`);
+                setCloudFile(null);
+                if (cloudFileRef.current) cloudFileRef.current.value = "";
+            } else {
+                toast.error(`فشلت الاستعادة: ${result.error}`);
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("حدث خطأ أثناء الاستعادة");
+        } finally {
+            setCloudRestoring(false);
+        }
+    };
+
+    const ALL_MODULES = [
+        { key: 'menu', label: 'القائمة', desc: 'الأقسام والمنتجات' },
+        { key: 'orders', label: 'الطلبات', desc: 'الطلبات وسجلات الطلبات والتكاليف' },
+        { key: 'kitchen', label: 'الوصفات', desc: 'وصفات المطبخ ومكونات الوصفات' },
+        { key: 'factory', label: 'المصنع', desc: 'طلبات الإنتاج' },
+        { key: 'inventory', label: 'المخزون', desc: 'أصناف المخزون وحركات المخزون' },
+        { key: 'supplies', label: 'التوريدات', desc: 'الموردين وأصناف التوريد والمدفوعات' },
+        { key: 'tables', label: 'الطاولات', desc: 'طاولات الصالة' },
+        { key: 'delivery', label: 'الدليفري', desc: 'مناطق التوصيل' },
+        { key: 'customers', label: 'العملاء', desc: 'قاعدة بيانات العملاء' },
+        { key: 'team', label: 'الفريق', desc: 'أعضاء الفريق (بدون بيانات تسجيل الدخول)' },
+        { key: 'branches', label: 'الفروع', desc: 'بيانات الفروع' },
+        { key: 'finance', label: 'المالية', desc: 'الحسابات المالية والمعاملات' },
+        { key: 'notifications', label: 'الإشعارات', desc: 'إشعارات العملاء' },
+        { key: 'settings', label: 'الإعدادات', desc: 'إعدادات الطابعة وصلاحيات الصفحات' },
+    ];
+
     return (
-        <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
-            <h2 className="text-xl font-bold mb-2 flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-600 dark:text-amber-400" /> النسخ الاحتياطي والاستعادة</h2>
-            <p className="text-sm text-slate-500 dark:text-zinc-500 mb-5">احتفظ بنسخة احتياطية من بيانات POS المحلية أو استعدها من ملف سابق.</p>
-            <div className="flex flex-wrap gap-3 items-center">
-                <button type="button" onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 hover:bg-blue-500/20 rounded-xl font-bold text-sm transition"><Download className="w-4 h-4" /> تنزيل نسخة احتياطية</button>
-                <label className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-500/20 rounded-xl font-bold text-sm transition cursor-pointer">
-                    <Upload className="w-4 h-4" /> {restoring ? "جاري الاستعادة..." : "استعادة من ملف"}
-                    <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
-                </label>
+        <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8 space-y-8">
+            {/* ═══ Section 1: Local POS Backup ═══ */}
+            <div>
+                <h2 className="text-xl font-bold mb-2 flex items-center gap-2"><RefreshCw className="w-5 h-5 text-amber-600 dark:text-amber-400" /> النسخ الاحتياطي والاستعادة</h2>
+                <p className="text-sm text-slate-500 dark:text-zinc-500 mb-5">احتفظ بنسخة احتياطية من بيانات POS المحلية أو استعدها من ملف سابق.</p>
+                <div className="flex flex-wrap gap-3 items-center">
+                    <button type="button" onClick={handleExport} className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 hover:bg-blue-500/20 rounded-xl font-bold text-sm transition"><Download className="w-4 h-4" /> تنزيل نسخة احتياطية</button>
+                    <label className="flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-500/20 rounded-xl font-bold text-sm transition cursor-pointer">
+                        <Upload className="w-4 h-4" /> {restoring ? "جاري الاستعادة..." : "استعادة من ملف"}
+                        <input ref={fileRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+                    </label>
+                </div>
+                <div className="flex items-center gap-2 mt-3 text-xs text-amber-600 dark:text-amber-400"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> استعادة البيانات ستضيف البيانات إلى القاعدة المحلية دون حذف الحالية.</div>
+                {status && <p className="mt-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">{status}</p>}
             </div>
-            <div className="flex items-center gap-2 mt-3 text-xs text-amber-600 dark:text-amber-400"><AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" /> استعادة البيانات ستضيف البيانات إلى القاعدة المحلية دون حذف الحالية.</div>
-            {status && <p className="mt-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">{status}</p>}
+
+            {/* ═══ Divider ═══ */}
+            <div className="border-t border-glass-border" />
+
+            {/* ═══ Section 2: Cloud Backup with Module Selection ═══ */}
+            <div>
+                <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                    <Download className="w-5 h-5 text-fuchsia-600 dark:text-fuchsia-400" />
+                    النسخ الاحتياطي السحابي
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-zinc-500 mb-5">
+                    أنشئ نسخة احتياطية شاملة من جميع بيانات المطعم على السيرفر، أو استعد بيانات محددة من ملف نسخة سابقة.
+                </p>
+
+                {/* Cloud Backup Create + Download */}
+                <button
+                    type="button"
+                    onClick={handleCloudBackup}
+                    disabled={creatingBackup}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-fuchsia-50 dark:bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400 border border-fuchsia-200 dark:border-fuchsia-500/20 hover:bg-fuchsia-500/20 rounded-xl font-bold text-sm transition disabled:opacity-50"
+                >
+                    {creatingBackup ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    {creatingBackup ? "جاري إنشاء النسخة..." : "إنشاء وتنزيل نسخة سحابية"}
+                </button>
+
+                {/* Cloud Restore Section */}
+                <div className="mt-6 p-5 bg-slate-50 dark:bg-black/20 rounded-xl border border-glass-border">
+                    <h3 className="text-base font-bold mb-3 text-slate-700 dark:text-zinc-300">استعادة من ملف نسخة سحابية</h3>
+
+                    {/* File Input */}
+                    <div className="mb-4">
+                        <label className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#131b26] border border-glass-border rounded-xl cursor-pointer hover:border-fuchsia-400 transition-colors w-fit">
+                            <Upload className="w-4 h-4 text-fuchsia-500" />
+                            <span className="text-sm font-bold text-slate-700 dark:text-zinc-300">
+                                {cloudFile ? cloudFile.name : "اختر ملف .json"}
+                            </span>
+                            <input
+                                ref={cloudFileRef}
+                                type="file"
+                                accept=".json"
+                                onChange={(e) => { const f = e.target.files?.[0]; if (f) setCloudFile(f); }}
+                                className="hidden"
+                            />
+                        </label>
+                    </div>
+
+                    {/* Module Selection */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-bold text-slate-600 dark:text-zinc-400 mb-2">اختر البيانات المراد استعادتها:</label>
+                        <div className="flex items-center gap-2 mb-3">
+                            <button type="button" onClick={() => setCloudModules(prev => Object.fromEntries(Object.keys(prev).map(k => [k, true])) as typeof prev)} className="text-xs px-3 py-1 rounded-lg bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-700 dark:text-fuchsia-300 font-bold hover:bg-fuchsia-200 transition-colors">تحديد الكل</button>
+                            <button type="button" onClick={() => setCloudModules(prev => Object.fromEntries(Object.keys(prev).map(k => [k, false])) as typeof prev)} className="text-xs px-3 py-1 rounded-lg bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-bold hover:bg-stone-200 transition-colors">إلغاء الكل</button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pe-1">
+                            {ALL_MODULES.map(mod => (
+                                <label key={mod.key} className="flex items-start gap-2.5 p-2.5 bg-white dark:bg-[#0a0f16] rounded-lg cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-900 border border-transparent hover:border-stone-200 dark:hover:border-stone-800 transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={cloudModules[mod.key as keyof typeof cloudModules]}
+                                        onChange={(e) => setCloudModules(prev => ({ ...prev, [mod.key]: e.target.checked }))}
+                                        className="mt-0.5 w-4 h-4 rounded text-fuchsia-600 focus:ring-fuchsia-500 border-stone-300 dark:border-stone-600"
+                                    />
+                                    <div>
+                                        <div className="text-sm font-bold text-slate-800 dark:text-white leading-none">{mod.label}</div>
+                                        <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">{mod.desc}</div>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Restore Button */}
+                    <button
+                        type="button"
+                        onClick={handleCloudRestore}
+                        disabled={cloudRestoring || !cloudFile}
+                        className={`flex items-center gap-2 px-5 py-2.5 ${cloudRestoring ? 'bg-fuchsia-400 cursor-not-allowed' : 'bg-fuchsia-600 hover:bg-fuchsia-700'} text-white font-bold rounded-xl shadow-sm transition-colors text-sm disabled:opacity-50`}
+                    >
+                        {cloudRestoring ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                        {cloudRestoring ? "جاري الاستعادة..." : "استعادة البيانات المحددة"}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

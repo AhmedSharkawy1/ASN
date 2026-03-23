@@ -1,0 +1,409 @@
+[
+  {
+    "tenantIds": [
+      "5fc9baf2-4246-4612-8ba9-377fc6cd8215",
+      "6cd35d66-f5e6-4add-a594-b7ec0ba8041a",
+      "8d40cc07-0dd1-4016-a7a3-6a265578f676",
+      "52a5bcf9-e37a-443d-abea-c25268993ffe",
+      "f5fdd660-21d0-44c1-b945-3cb51c3676b8",
+      "5415f2de-4369-4553-a14b-7dda1f1556f7",
+      "0c084d4b-2c24-4b47-ba02-a0656b1db67d",
+      "e8696c81-c69a-4641-814e-1bd9795a5ac3"
+    ]
+  },
+  {
+    "tid": "5fc9baf2-4246-4612-8ba9-377fc6cd8215",
+    "restaurant": {
+      "id": "5fc9baf2-4246-4612-8ba9-377fc6cd8215",
+      "email": "asnahmedsaid@gmail.com",
+      "name": "PizzaPasta",
+      "phone": null,
+      "theme": "pizzapasta",
+      "created_at": "2026-02-26T14:49:49.263592+00:00",
+      "logo_url": "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/logos/5fc9baf2-4246-4612-8ba9-377fc6cd8215/ad664933-a9e5-431b-9cdc-be5c9394b196.png",
+      "cover_url": "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/covers/5fc9baf2-4246-4612-8ba9-377fc6cd8215/66d78e26-70be-4d0b-b5df-51fd2f57809e.jpg",
+      "whatsapp_number": "+201092621367",
+      "map_link": null,
+      "facebook_url": null,
+      "instagram_url": null,
+      "tiktok_url": null,
+      "phone_numbers": [
+        {
+          "label": "1 ",
+          "number": "01092621367"
+        },
+        {
+          "label": "2",
+          "number": "01118641070"
+        }
+      ],
+      "theme_colors": {
+        "themes": {
+          "blue": {
+            "accent": "#f59e0b",
+            "card_bg": "#1e293b",
+            "primary": "#f73bb2",
+            "secondary": "#06b6d4",
+            "background": "#0f172a",
+            "text_color": "#f1f5f9"
+          },
+          "wood": {
+            "accent": "#fbbf24",
+            "card_bg": "#78350f",
+            "primary": "#d97706",
+            "secondary": "#92400e",
+            "background": "#451a03",
+            "text_color": "#fffbeb"
+          },
+          "pizzapasta": {
+            "accent": "#facc15",
+            "card_bg": "#18181b",
+            "primary": "#1d24e2",
+            "secondary": "#1226bf",
+            "background": "#050505",
+            "text_color": "#fafafa"
+          }
+        },
+        "custom_labels": {
+          "cartItems": "",
+          "orderReview": "",
+          "checkoutButton": "",
+          "confirmWhatsapp": "",
+          "deliveryDetails": "",
+          "menuUnavailable": "",
+          "searchPlaceholder": ""
+        }
+      },
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [],
+      "working_hours": null,
+      "payment_methods": [],
+      "marquee_enabled": false,
+      "marquee_text_ar": null,
+      "marquee_text_en": null,
+      "orders_enabled": true,
+      "order_channel": "whatsapp",
+      "telegram_bot_token": null,
+      "telegram_chat_id": null,
+      "address": null,
+      "receipt_logo_url": null
+    }
+  },
+  {
+    "tid": "6cd35d66-f5e6-4add-a594-b7ec0ba8041a",
+    "restaurant": {
+      "id": "6cd35d66-f5e6-4add-a594-b7ec0ba8041a",
+      "email": "aahmed32a32@gmail.com",
+      "name": "اطياب",
+      "phone": "+201092621367",
+      "theme": "pizzapasta",
+      "created_at": "2026-02-25T21:00:49.474692+00:00",
+      "logo_url": "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/logos/6cd35d66-f5e6-4add-a594-b7ec0ba8041a/b30b5555-7dbc-4fe5-8182-e8f6e28f7f89.png",
+      "cover_url": "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/covers/6cd35d66-f5e6-4add-a594-b7ec0ba8041a/b2e63802-e4b2-4cb2-9563-b2dc98a35701.png",
+      "whatsapp_number": "+201092621367",
+      "map_link": "https://www.google.com/maps?sca_esv=b7a78c7db20616cf&rlz=1C1YTUH_arEG1082EG1082&output=search&q=%D9%81%D8%B7%D8%A7%D8%B7%D8%B1%D9%89+%D8%A7%D8%B7%D9%8A%D8%A7%D8%A8+%D8%A7%D9%84%D8%A8%D8%AF%D8%B1%D8%B4%D9%8A%D9%86&source=lnms&fbs=ADc_l-ZR9GTD-dph9XQPYZvsoC8spCtkT9o_vp1u7ML7eKRlh8ax8qHsaDGLhGuLqkir5XYRt-Dydubr4NhT-Pzt-Le_VFzr_5_r67VidRdd8joF7j56Kdx4ydDlHhNPAhAKxUYWYR3kKs3xYEz0ZDXtcZkcwCwTuz8UucdN-bO3mKDll3SwcdhDSWMa2xA4y1PybIEuSyMpkRkj4oBvnfw6MpbqOQYxKNCUCa1lIHExJJHJtIqTQDi-0m19W6nRWYqlOQGpZMmqPE96DSlhyBCLP29FcQ1DrA&entry=mc&ved=1t:200715&ictx=111",
+      "facebook_url": "https://www.facebook.com/p/%D9%81%D8%B7%D8%A7%D8%B7%D8%B1%D9%8A-%D8%A7%D8%B7%D9%8A%D8%A7%D8%A8-61579667096558/",
+      "instagram_url": "",
+      "tiktok_url": "",
+      "phone_numbers": [
+        {
+          "label": "فودافون",
+          "number": "01092621367"
+        },
+        {
+          "label": "اتصالات",
+          "number": "01118641070"
+        }
+      ],
+      "theme_colors": {
+        "text": "#333333",
+        "primary": "#af0a13",
+        "secondary": "#9b0000",
+        "background": "#f8f9fa"
+      },
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [
+        "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/covers/6cd35d66-f5e6-4add-a594-b7ec0ba8041a/0ddebe68-59b7-472c-bb1f-336faacd88c2.png",
+        "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/covers/6cd35d66-f5e6-4add-a594-b7ec0ba8041a/303f31a7-c1d1-4de6-898d-7b1f93fced28.png",
+        "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/covers/6cd35d66-f5e6-4add-a594-b7ec0ba8041a/a7d78ee1-63aa-47d0-b5fc-0f7cfd99df54.png"
+      ],
+      "working_hours": "من 10 ل8 7 ايام فى الاسبوع ",
+      "payment_methods": [
+        {
+          "id": "743eca3c-d603-4ba8-afd6-5d7b19e80f77",
+          "link": "",
+          "number": "01092621367",
+          "desc_ar": "",
+          "desc_en": "",
+          "name_ar": "فودافون كاش",
+          "name_en": "vodafone cash"
+        }
+      ],
+      "marquee_enabled": true,
+      "marquee_text_ar": "عرض خاص لفترة محدودة 2 كل الاصناف عليها خصم 10 % ",
+      "marquee_text_en": "",
+      "orders_enabled": true,
+      "order_channel": "website",
+      "telegram_bot_token": "8685887059:AAE74aZqbpzBa0n3SrTg9_Judy7E2xOJSRI",
+      "telegram_chat_id": "1416076466",
+      "address": null,
+      "receipt_logo_url": null
+    }
+  },
+  {
+    "tid": "8d40cc07-0dd1-4016-a7a3-6a265578f676",
+    "restaurant": {
+      "id": "8d40cc07-0dd1-4016-a7a3-6a265578f676",
+      "email": "mohamedahmedgalhoum@gmail.com",
+      "name": "galhom",
+      "phone": null,
+      "theme": "theme9",
+      "created_at": "2026-02-27T13:04:58.459848+00:00",
+      "logo_url": "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/logos/8d40cc07-0dd1-4016-a7a3-6a265578f676/ee5a67b9-6f9d-4dac-9dcb-16c877de8f3d.png",
+      "cover_url": null,
+      "whatsapp_number": "+201092621367",
+      "map_link": "https://www.google.com/maps/place/%D9%85%D8%B7%D8%B9%D9%85+%D9%81%D8%B7%D8%A7%D8%B7%D8%B1%D9%89+%D8%A7%D8%B7%D9%8A%D8%A7%D8%A8+%D8%A7%D9%84%D8%A8%D8%AF%D8%B1%D8%B4%D9%8A%D9%86%E2%80%AD/@29.8487742,31.2735716,17z/data=!3m1!4b1!4m6!3m5!1s0x145835000e5c3471:0xff8afd050dcf7b04!8m2!3d29.8487742!4d31.2709967!16s%2Fg%2F11yx79gyjb?entry=ttu&g_ep=EgoyMDI2MDExMy4wIKXMDSoKLDEwMDc5MjA2OUgBUAM%3D",
+      "facebook_url": "https://www.facebook.com/p/%D9%81%D8%B7%D8%A7%D8%B7%D8%B1%D9%8A-%D8%A7%D8%B7%D9%8A%D8%A7%D8%A8-61579667096558/",
+      "instagram_url": null,
+      "tiktok_url": null,
+      "phone_numbers": [
+        {
+          "label": "فودافون",
+          "number": "01092621367"
+        },
+        {
+          "label": "فودافون 2",
+          "number": "01025946036"
+        }
+      ],
+      "theme_colors": {},
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [
+        "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/covers/8d40cc07-0dd1-4016-a7a3-6a265578f676/289e7ab4-57d8-4a35-a02e-ea1d8441906f.jpg"
+      ],
+      "working_hours": "من 10 صباحا الى 12 منتصف اللل",
+      "payment_methods": [
+        {
+          "id": "83a914d3-f659-4926-bd82-d64d94558300",
+          "link": "",
+          "number": "01092621367",
+          "desc_ar": "تحويل لحظة",
+          "desc_en": "",
+          "name_ar": "فودافون كاش",
+          "name_en": "vodavone cash"
+        }
+      ],
+      "marquee_enabled": false,
+      "marquee_text_ar": null,
+      "marquee_text_en": null,
+      "orders_enabled": true,
+      "order_channel": "whatsapp",
+      "telegram_bot_token": null,
+      "telegram_chat_id": null,
+      "address": null,
+      "receipt_logo_url": null
+    }
+  },
+  {
+    "tid": "52a5bcf9-e37a-443d-abea-c25268993ffe",
+    "restaurant": {
+      "id": "52a5bcf9-e37a-443d-abea-c25268993ffe",
+      "email": "ahmedtarek@asntechnology.com",
+      "name": "حلوانى الطارق",
+      "phone": null,
+      "theme": "theme6",
+      "created_at": "2026-03-10T04:00:53.882467+00:00",
+      "logo_url": "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/logos/52a5bcf9-e37a-443d-abea-c25268993ffe/2f82e51c-42ee-4db8-900e-52d8f765cbb4.jpg",
+      "cover_url": null,
+      "whatsapp_number": "+201000115145",
+      "map_link": "https://www.google.com/maps/place/El+Tarek+Dessert+restaurant/@29.774798,31.2646057,17z/data=!3m1!4b1!4m6!3m5!1s0x1459cb6afd6c21ab:0xf0d9e8c1a69f9765!8m2!3d29.7747934!4d31.2671806!16s%2Fg%2F11hzr5f8xd?entry=ttu&g_ep=EgoyMDI2MDMxMC4wIKXMDSoASAFQAw%3D%3D",
+      "facebook_url": "https://www.facebook.com/hlwany.altarq",
+      "instagram_url": null,
+      "tiktok_url": null,
+      "phone_numbers": [
+        {
+          "label": "رقم 1",
+          "number": "01125041000"
+        },
+        {
+          "label": "رقم 2",
+          "number": "01144613024"
+        }
+      ],
+      "theme_colors": {},
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [
+        "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/covers/52a5bcf9-e37a-443d-abea-c25268993ffe/36945ebb-306d-41eb-b5bc-5a48d7c2cf9c.jpg"
+      ],
+      "working_hours": null,
+      "payment_methods": [
+        {
+          "id": "a788070b-5916-4034-9832-25402b801d6c",
+          "link": "",
+          "number": "",
+          "desc_ar": "",
+          "desc_en": "",
+          "name_ar": "فودافون كاش",
+          "name_en": "Vodafone cash"
+        }
+      ],
+      "marquee_enabled": true,
+      "marquee_text_ar": "عرض خاص لفترة محدودة 10 % خصم على كل اصناف كحك وبسكوت العيد",
+      "marquee_text_en": "",
+      "orders_enabled": true,
+      "order_channel": "whatsapp",
+      "telegram_bot_token": "",
+      "telegram_chat_id": "",
+      "address": "ابو رجوان القبلى - بجوار مكتب البريد",
+      "receipt_logo_url": "https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/receipt_logos/52a5bcf9-e37a-443d-abea-c25268993ffe/3aac1802-d1b9-4bd9-ad15-acb408f1ba42.png"
+    }
+  },
+  {
+    "tid": "f5fdd660-21d0-44c1-b945-3cb51c3676b8",
+    "restaurant": {
+      "id": "f5fdd660-21d0-44c1-b945-3cb51c3676b8",
+      "email": "superadmin@asntechnology.com",
+      "name": "My Restaurant",
+      "phone": null,
+      "theme": "dark",
+      "created_at": "2026-03-15T12:15:25.492981+00:00",
+      "logo_url": null,
+      "cover_url": null,
+      "whatsapp_number": null,
+      "map_link": null,
+      "facebook_url": null,
+      "instagram_url": null,
+      "tiktok_url": null,
+      "phone_numbers": [],
+      "theme_colors": {},
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [],
+      "working_hours": null,
+      "payment_methods": [],
+      "marquee_enabled": false,
+      "marquee_text_ar": null,
+      "marquee_text_en": null,
+      "orders_enabled": true,
+      "order_channel": "whatsapp",
+      "telegram_bot_token": null,
+      "telegram_chat_id": null,
+      "address": null,
+      "receipt_logo_url": null
+    }
+  },
+  {
+    "tid": "5415f2de-4369-4553-a14b-7dda1f1556f7",
+    "restaurant": {
+      "id": "5415f2de-4369-4553-a14b-7dda1f1556f7",
+      "email": "user1@gmail.com",
+      "name": "user1",
+      "phone": null,
+      "theme": "dark",
+      "created_at": "2026-03-22T23:58:11.682801+00:00",
+      "logo_url": null,
+      "cover_url": null,
+      "whatsapp_number": null,
+      "map_link": null,
+      "facebook_url": null,
+      "instagram_url": null,
+      "tiktok_url": null,
+      "phone_numbers": [],
+      "theme_colors": {},
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [],
+      "working_hours": null,
+      "payment_methods": [],
+      "marquee_enabled": false,
+      "marquee_text_ar": null,
+      "marquee_text_en": null,
+      "orders_enabled": true,
+      "order_channel": "whatsapp",
+      "telegram_bot_token": null,
+      "telegram_chat_id": null,
+      "address": null,
+      "receipt_logo_url": null
+    }
+  },
+  {
+    "tid": "0c084d4b-2c24-4b47-ba02-a0656b1db67d",
+    "restaurant": {
+      "id": "0c084d4b-2c24-4b47-ba02-a0656b1db67d",
+      "email": "test1@1.com",
+      "name": "My Restaurant",
+      "phone": null,
+      "theme": "dark",
+      "created_at": "2026-03-13T16:54:47.087336+00:00",
+      "logo_url": null,
+      "cover_url": null,
+      "whatsapp_number": null,
+      "map_link": null,
+      "facebook_url": null,
+      "instagram_url": null,
+      "tiktok_url": null,
+      "phone_numbers": [],
+      "theme_colors": {},
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [],
+      "working_hours": null,
+      "payment_methods": [],
+      "marquee_enabled": false,
+      "marquee_text_ar": null,
+      "marquee_text_en": null,
+      "orders_enabled": true,
+      "order_channel": "whatsapp",
+      "telegram_bot_token": null,
+      "telegram_chat_id": null,
+      "address": null,
+      "receipt_logo_url": null
+    }
+  },
+  {
+    "tid": "e8696c81-c69a-4641-814e-1bd9795a5ac3",
+    "restaurant": {
+      "id": "e8696c81-c69a-4641-814e-1bd9795a5ac3",
+      "email": "test5@gmail.com",
+      "name": "test5",
+      "phone": null,
+      "theme": "dark",
+      "created_at": "2026-03-23T00:00:23.917917+00:00",
+      "logo_url": null,
+      "cover_url": null,
+      "whatsapp_number": null,
+      "map_link": null,
+      "facebook_url": null,
+      "instagram_url": null,
+      "tiktok_url": null,
+      "phone_numbers": [],
+      "theme_colors": {},
+      "subscription_plan": "free",
+      "subscription_expires_at": null,
+      "currency": "EGP",
+      "cover_images": [],
+      "working_hours": null,
+      "payment_methods": [],
+      "marquee_enabled": false,
+      "marquee_text_ar": null,
+      "marquee_text_en": null,
+      "orders_enabled": true,
+      "order_channel": "whatsapp",
+      "telegram_bot_token": null,
+      "telegram_chat_id": null,
+      "address": null,
+      "receipt_logo_url": null
+    }
+  }
+]

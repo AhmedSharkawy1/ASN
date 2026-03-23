@@ -23,6 +23,37 @@ function createWindow() {
   // Load the renderer (for sync status/controls) or the SaaS URL
   mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
 
+  // Handle downloads explicitly so files don't get lost
+  mainWindow.webContents.session.on('will-download', (event, item, webContents) => {
+    // Let electron show the native Save As dialog automatically
+    // But we can listen to events to log them
+    item.on('updated', (event, state) => {
+      if (state === 'interrupted') {
+        logger.error('Download is interrupted but can be resumed');
+      } else if (state === 'progressing') {
+        if (item.isPaused()) {
+          logger.info('Download is paused');
+        } else {
+          logger.info(`Received bytes: ${item.getReceivedBytes()}`);
+        }
+      }
+    });
+    
+    item.once('done', (event, state) => {
+      if (state === 'completed') {
+        logger.info('Download successfully');
+        dialog.showMessageBox(mainWindow, {
+          type: 'info',
+          title: 'Download Complete',
+          message: `File downloaded successfully to:\n${item.getSavePath()}`
+        });
+      } else {
+        logger.error(`Download failed: ${state}`);
+        dialog.showErrorBox('Download Failed', `The download failed to complete. State: ${state}`);
+      }
+    });
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });

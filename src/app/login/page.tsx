@@ -270,6 +270,7 @@ function LoginContent() {
                                         type="text"
                                         id="email"
                                         required
+                                        autoComplete="username"
                                         value={usernameOrEmail}
                                         onChange={(e) => setUsernameOrEmail(e.target.value)}
                                         dir="ltr"
@@ -291,6 +292,7 @@ function LoginContent() {
                                         type="password"
                                         id="password"
                                         required
+                                        autoComplete="current-password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         dir="ltr"

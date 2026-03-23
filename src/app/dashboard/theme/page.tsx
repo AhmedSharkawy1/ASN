@@ -181,7 +181,7 @@ export default function ThemePage() {
                 const { data: restaurant, error } = await supabase
                     .from('restaurants')
                     .select('id, theme, theme_colors')
-                    .eq('email', user.email)
+                    .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
 
                 // If error (e.g. theme_colors column doesn't exist yet), try without it
@@ -189,7 +189,7 @@ export default function ThemePage() {
                     const { data: restaurant2 } = await supabase
                         .from('restaurants')
                         .select('id, theme')
-                        .eq('email', user.email)
+                        .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                         .single();
                     if (restaurant2) {
                         setRestaurantId(restaurant2.id);

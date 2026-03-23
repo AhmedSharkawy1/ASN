@@ -72,7 +72,8 @@ export default function StaffPage() {
                 setRestaurantId(rId);
                 fetchStaff(rId);
             } else {
-                const { data: rest } = await supabase.from('restaurants').select('id').eq('email', session.user.email).single();
+                const impTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
+                const { data: rest } = await supabase.from('restaurants').select('id').eq(impTenant ? 'id' : 'email', impTenant || session.user.email).single();
                 if(rest) {
                     setRestaurantId(rest.id);
                     fetchStaff(rest.id);

@@ -44,7 +44,8 @@ export default function BranchesPage() {
                 fetchBranches(rId);
             } else {
                 // Fetch normally if not impersonating (Admin owner or staff with permissions)
-                const { data: rest } = await supabase.from('restaurants').select('id').eq('email', session.user.email).single();
+                const impTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
+                const { data: rest } = await supabase.from('restaurants').select('id').eq(impTenant ? 'id' : 'email', impTenant || session.user.email).single();
                 if(rest) {
                     setRestaurantId(rest.id);
                     fetchBranches(rest.id);

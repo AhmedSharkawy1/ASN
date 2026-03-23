@@ -56,10 +56,11 @@ export default function MenuBuilderPage() {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
+                const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
                 let { data: restaurant } = await supabase
-                    .from('restaurants').select('id').eq('email', user.email).single();
+                    .from('restaurants').select('id').eq(impersonatingTenant ? 'id' : 'email', impersonatingTenant || user.email).single();
 
-                if (!restaurant) {
+                if (!restaurant && !impersonatingTenant) {
                     const { data: newRest } = await supabase
                         .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id').single();
                     restaurant = newRest;

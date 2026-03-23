@@ -11,7 +11,8 @@ import {
     CreditCard, ChefHat, TableProperties, Truck, BookOpen,
     Factory, ScrollText, TrendingUp, Landmark, Users,
     UserCog, Printer, Store, Palette, QrCode,
-    PanelLeftClose, PanelLeftOpen
+    PanelLeftClose, PanelLeftOpen,
+    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -216,7 +217,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             return;
                         }
                     } else {
-                        console.error("ASN_LOG: Restaurant not found or multiple found for email:", email);
+                        // Fallback: check if this auth user is linked as a team member by auth_id
+                        console.log("ASN_LOG: No restaurant found for email, trying team_members by auth_id:", userId);
+                        const { data: staffFallback } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', userId).maybeSingle();
+                        
+                        if (staffFallback) {
+                            isStaffFlag = true;
+                            if (!staffFallback.is_active) {
+                                await supabase.auth.signOut();
+                                router.push("/login");
+                                return;
+                            }
+                            if (staffFallback.restaurants?.subscription_expires_at && new Date(staffFallback.restaurants.subscription_expires_at) < new Date()) {
+                                router.push('/subscription-expired');
+                                return;
+                            }
+                            rId = staffFallback.restaurant_id;
+                            rName = staffFallback.restaurants?.name || "";
+                            rLogo = staffFallback.restaurants?.logo_url || null;
+                            if (staffFallback.permissions) {
+                                tempPermissions = typeof staffFallback.permissions === 'string' ? JSON.parse(staffFallback.permissions) : staffFallback.permissions;
+                            }
+                        } else {
+                            // AUTO-CREATE: New account with no restaurant — create one automatically
+                            console.log("ASN_LOG: Auto-creating restaurant for new user:", email);
+                            const newName = email!.split('@')[0] || 'My Restaurant';
+                            const { data: newRest, error: createErr } = await supabase
+                                .from('restaurants')
+                                .insert({
+                                    name: newName,
+                                    email: email,
+                                })
+                                .select('id, name, logo_url')
+                                .single();
+
+                            if (createErr) {
+                                console.error("ASN_LOG: Failed to auto-create restaurant:", createErr);
+                            } else if (newRest) {
+                                console.log("ASN_LOG: Auto-created restaurant:", newRest.id, newRest.name);
+                                rId = newRest.id;
+                                rName = newRest.name;
+                                rLogo = newRest.logo_url || null;
+                            }
+                        }
                     }
                 }
             }
@@ -400,6 +443,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             label: language === "ar" ? "المالية" : "Finance",
             items: [
                 { href: "/dashboard/accounts", icon: Landmark, labelAr: "الحسابات", labelEn: "Accounts", key: "accounts" },
+            ]
+        },
+        {
+            key: "hr",
+            label: language === "ar" ? "الموارد البشرية" : "HR",
+            items: [
+                { href: "/dashboard/hr", icon: Fingerprint, labelAr: "لوحة HR", labelEn: "HR Dashboard", exact: true, key: "hr" },
+                { href: "/dashboard/hr/employees", icon: Users, labelAr: "الموظفين", labelEn: "Employees", key: "hr_employees" },
+                { href: "/dashboard/hr/attendance", icon: CalendarClock, labelAr: "الحضور والانصراف", labelEn: "Attendance", key: "hr_attendance" },
+                { href: "/dashboard/hr/payroll", icon: DollarSign, labelAr: "كشف المرتبات", labelEn: "Payroll", key: "hr_payroll" },
+                { href: "/dashboard/hr/deductions", icon: AlertTriangle, labelAr: "الخصومات", labelEn: "Deductions", key: "hr_deductions" },
+                { href: "/dashboard/hr/reports", icon: FileBarChart, labelAr: "تقارير HR", labelEn: "HR Reports", key: "hr_reports" },
             ]
         },
         {

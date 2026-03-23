@@ -89,6 +89,24 @@ export async function POST(request: Request) {
             }
         }
 
+        // Trigger auto-backup check (will skip if last backup < 24h ago)
+        if (results.orders > 0 || results.customers > 0) {
+            try {
+                const firstOrder = orders?.[0];
+                const tenantId = firstOrder?.restaurant_id;
+                if (tenantId) {
+                    // Fire-and-forget: don't block the sync response
+                    fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/backup/create`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tenant_id: tenantId, backup_type: 'auto' }),
+                    }).catch(err => console.error('[Sync] Auto-backup trigger failed:', err));
+                }
+            } catch (backupErr) {
+                console.error('[Sync] Auto-backup trigger error:', backupErr);
+            }
+        }
+
         return NextResponse.json({ success: true, ...results });
     } catch (err: unknown) {
         const error = err as Error;

@@ -1,0 +1,1 @@
+{"code":"23502","details":"Failing row contains (571e3af3-be20-43d5-ad7b-9988b2ffc304, e8696c81-c69a-4641-814e-1bd9795a5ac3, test5_2026-03-23_1774232123065, null, in_progress, null, 2026-03-23 02:15:19.103998+00, full).","hint":null,"message":"null value in column \"backup_file\" of relation \"system_backups\" violates not-null constraint"}

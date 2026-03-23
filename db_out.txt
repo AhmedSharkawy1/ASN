@@ -1,0 +1,12 @@
+[inventory_transactions]: id, restaurant_id, inventory_item_id, item_name, quantity, action, source, reference_id, performed_by, notes, created_at
+[supply_payments]: id, restaurant_id, supplier_id, supply_id, amount, payment_date, notes, created_at
+[production_requests]: id, restaurant_id, recipe_id, product_name, quantity, unit, status, production_date, notes, created_at, updated_at, order_id
+[financial_accounts]: (Empty Table)
+[financial_transactions]: (Empty Table)
+[orders]: id, restaurant_id, order_number, status, items, subtotal, discount, discount_type, total, payment_method, table_id, customer_id, customer_name, customer_phone, notes, is_draft, created_at, updated_at, order_type, customer_address, delivery_zone_id, delivery_fee, delivery_zone_name, source, order_cost, order_profit, profit_margin, deposit_amount
+[order_logs]: id, order_id, action, old_status, new_status, performed_by, created_at
+[order_costs]: (Empty Table)
+[team_members]: id, restaurant_id, name, email, phone, role, permissions, is_active, last_active, created_at, username, auth_id
+[branches]: id, tenant_id, branch_name, branch_code, address, phone, manager_id, is_active, created_at
+[client_page_access]: id, tenant_id, page_key, enabled
+[notifications]: id, restaurant_id, title, body, type, target, target_role, is_read, scheduled_at, created_at
