@@ -94,14 +94,26 @@ export default function HRDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const impTenant = sessionStorage.getItem('impersonating_tenant');
-      const { data: rest } = await supabase
-        .from('restaurants')
-        .select('id')
-        .eq(impTenant ? 'id' : 'email', impTenant || session.user.email)
-        .single();
-      if (rest) {
-        setRestaurantId(rest.id);
-        fetchData(rest.id);
+      if (impTenant) {
+        setRestaurantId(impTenant);
+        fetchData(impTenant);
+      } else {
+        const { data: rest } = await supabase
+          .from('restaurants')
+          .select('id')
+          .eq('email', session.user.email)
+          .single();
+        if (rest) {
+          setRestaurantId(rest.id);
+          fetchData(rest.id);
+        } else {
+          // Fallback for staff users
+          const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', session.user.id).single();
+          if (staff) {
+            setRestaurantId(staff.restaurant_id);
+            fetchData(staff.restaurant_id);
+          }
+        }
       }
     };
     init();

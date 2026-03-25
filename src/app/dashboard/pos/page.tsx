@@ -13,7 +13,7 @@ import { getReceiptStyles, getPrinterSettings } from "@/lib/helpers/printerSetti
 import { executePrint } from "@/lib/helpers/printEngine";
 import { usePrintSettings } from "@/lib/hooks/usePrintSettings";
 import PrintModal from "@/components/PrintModal";
-import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
+import { renderReceiptHtml, renderShiftReceiptHtml } from "@/lib/helpers/receiptRenderer";
 import { useSearchParams, useRouter } from "next/navigation";
 import { revertOrderInventory } from "@/lib/helpers/inventoryService";
 import { toast } from "sonner";
@@ -91,7 +91,10 @@ export default function POSPage() {
     const [originalOrderNumber, setOriginalOrderNumber] = useState<number | null>(null);
     const [originalCreatedAt, setOriginalCreatedAt] = useState<string | null>(null);
     const [printModalHtml, setPrintModalHtml] = useState<string | null>(null);
-
+    const [cashierId, setCashierId] = useState<string>("");
+    const [cashierName, setCashierName] = useState<string>("");
+    const [showShiftReport, setShowShiftReport] = useState(false);
+    const [shiftStats, setShiftStats] = useState({ count: 0, revenue: 0, cash: 0, deposit: 0, delivery: 0, orderNumbers: [] as number[] });
     const searchRef = useRef<HTMLInputElement>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
@@ -99,6 +102,22 @@ export default function POSPage() {
 
     /* ── Print Settings ── */
     const { settings: printSettings, saveSettings } = usePrintSettings(restaurantId);
+
+    /* ── Fetch Cashier Details ── */
+    useEffect(() => {
+        const fetchCashier = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            setCashierId(session.user.id);
+            const { data: team } = await supabase.from('team_members').select('name').eq('auth_id', session.user.id).maybeSingle();
+            if (team) {
+                setCashierName(team.name);
+            } else {
+                setCashierName(isAr ? "المدير (كاشير)" : "Admin Cashier");
+            }
+        };
+        fetchCashier();
+    }, [isAr]);
 
     /* ── Clock ── */
     useEffect(() => {
@@ -448,6 +467,8 @@ export default function POSPage() {
                 delivery_driver_name: driverObj?.name,
                 delivery_fee: deliveryFee || undefined,
                 notes: orderNotes || undefined,
+                cashier_id: cashierId || undefined,
+                cashier_name: cashierName || undefined,
                 deposit_amount: depositAmount || 0,
                 status: "pending",
                 is_draft: isHold,
@@ -582,6 +603,44 @@ export default function POSPage() {
 
     const handleItemClick = (item: PosMenuItem, sizeIdx: number) => { addToCart(item, sizeIdx); };
 
+    /* ── Shift Report Logic ── */
+    const openShiftReport = async () => {
+        if (!restaurantId || !cashierId) return;
+        const todayStr = new Date().toISOString().split("T")[0];
+        const allOrders = await posDb.orders.where("restaurant_id").equals(restaurantId).toArray();
+        const myOrders = allOrders.filter(o => o.created_at.startsWith(todayStr) && o.status !== "cancelled" && !o.is_draft && o.cashier_id === cashierId);
+        
+        let cash = 0, deposit = 0, deliveryFees = 0, collectedCashTotal = 0;
+        const orderNumbers = myOrders.map(o => o.order_number).sort((a,b) => a-b);
+
+        myOrders.forEach(o => {
+            if (o.status === "completed" || o.payment_method === "cash") {
+                collectedCashTotal += (o.total || 0);
+                cash += (o.total || 0);
+            } else if (o.deposit_amount && o.deposit_amount > 0) {
+                collectedCashTotal += o.deposit_amount;
+                deposit += o.deposit_amount;
+            }
+            if (o.order_type === 'delivery' && o.delivery_fee) deliveryFees += o.delivery_fee;
+        });
+
+        setShiftStats({ count: myOrders.length, revenue: collectedCashTotal, cash, deposit, delivery: deliveryFees, orderNumbers });
+        setShowShiftReport(true);
+    };
+
+    const printShiftReport = useCallback(() => {
+        const html = renderShiftReceiptHtml({
+            cashierName,
+            shiftStats,
+            restaurantName: restaurant?.name || "",
+            isAr
+        });
+        const currentSettings = getPrinterSettings();
+        executePrint(html, currentSettings, (modalHtml) => {
+            setPrintModalHtml(modalHtml);
+        });
+    }, [cashierName, shiftStats, restaurant, isAr]);
+
     /* ═══════════════════════════ RENDER ═══════════════════════════ */
     return (
         <div className="flex flex-col h-[calc(100vh-88px)] relative" dir={isAr ? "rtl" : "ltr"}>
@@ -617,11 +676,10 @@ export default function POSPage() {
                         <span className="text-[10px] text-slate-500 dark:text-zinc-500 font-bold">اليوم</span>
                         <span className="text-xs font-extrabold text-slate-900 dark:text-white">{todayStats.count}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl px-3 py-2">
-                        <Banknote className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-[10px] text-slate-500 dark:text-zinc-500 font-bold">الإيرادات</span>
-                        <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(todayStats.revenue)}</span>
-                    </div>
+                    <button onClick={openShiftReport} className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 border border-emerald-200 dark:border-emerald-500/30 rounded-xl px-4 py-2 transition-colors active:scale-95 cursor-pointer shadow-sm">
+                        <Banknote className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-[11px] text-emerald-700 dark:text-emerald-300 font-bold">{isAr ? "إيرادات الكاشير / الوردية" : "Cashier Shift Report"}</span>
+                    </button>
                     
                     <button 
                         onClick={() => {
@@ -651,25 +709,23 @@ export default function POSPage() {
             </div>
 
             {/* MAIN */}
-            <div className="flex flex-1 gap-4 min-h-0">
+            <div className="flex flex-col lg:flex-row flex-1 gap-4 min-h-0 overflow-y-auto lg:overflow-hidden pb-4 lg:pb-0 hide-scrollbar">
                 {/* LEFT: MENU */}
-                <div className="flex-1 flex flex-col min-h-0 min-w-0">
+                <div className="flex-1 flex flex-col min-h-[50vh] lg:min-h-0 min-w-0">
 
 
                     {/* Category Tabs */}
-                    <div className="flex flex-wrap gap-2 mb-3 pb-1">
+                    <div className="flex flex-wrap gap-2 mb-3 pb-2 w-full max-h-[110px] overflow-y-auto hide-scrollbar">
                         {categories.map(cat => (
                             <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
-                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${activeCategory === cat.id ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-2 border-emerald-400 dark:border-glass-border shadow-sm" : "bg-white dark:bg-card text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800/50 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white"}`}>
-                                {(cat.image_data || cat.image_url) ? <img src={cat.image_data || cat.image_url} alt="" className="w-3.5 h-3.5 rounded object-cover" /> : cat.emoji && <span>{cat.emoji}</span>}
-                                {isAr ? cat.name_ar : (cat.name_en || cat.name_ar)}
-                                <span className="bg-slate-200 dark:bg-zinc-700/50 text-slate-600 dark:text-zinc-400 px-1.5 py-0.5 rounded-md text-[10px] font-bold">{categoryCounts[cat.id] || 0}</span>
+                                className={`flex-1 min-w-fit px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${activeCategory === cat.id ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border-2 border-emerald-400 dark:border-glass-border shadow-sm" : "bg-white dark:bg-card text-slate-600 dark:text-zinc-400 border border-slate-200 dark:border-zinc-800/50 hover:bg-slate-50 hover:text-slate-900 dark:hover:text-white"}`}>
+                                <span className="text-center">{isAr ? cat.name_ar : (cat.name_en || cat.name_ar)}</span>
                             </button>
                         ))}
                     </div>
 
                     {/* Items Grid */}
-                    <div className="flex-1 overflow-y-auto grid grid-cols-7 lg:grid-cols-8 xl:grid-cols-9 2xl:grid-cols-10 gap-1.5 content-start pb-2 auto-rows-max" style={{ scrollbarWidth: "none" }}>
+                    <div className="flex-1 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-2 content-start pb-2 auto-rows-max hide-scrollbar">
                         {filteredItems.length === 0 ? (
                             <div className="col-span-full text-center py-16 text-slate-400 dark:text-zinc-600"><Package className="w-12 h-12 mx-auto mb-3 opacity-30" /><p className="text-sm font-bold">لا توجد أصناف</p></div>
                         ) : (() => {
@@ -731,7 +787,7 @@ export default function POSPage() {
                 </div>
 
                 {/* RIGHT: CART */}
-                <div className="w-full lg:w-[480px] xl:w-[520px] transition-all duration-300 ease-in-out bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl flex flex-col min-h-0 shrink-0">
+                <div className="w-full lg:w-[400px] xl:w-[480px] 2xl:w-[520px] transition-all duration-300 ease-in-out bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl flex flex-col min-h-[60vh] lg:min-h-0 shrink-0">
                     <div className="p-4 border-b border-slate-200 dark:border-zinc-800/50 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <h2 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
@@ -1080,6 +1136,69 @@ export default function POSPage() {
                 style={{ position: 'absolute', width: '0px', height: '0px', border: 'none' }}
                 title="Print Frame"
             />
+            {/* Cashier Shift Report Modal */}
+            {showShiftReport && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-[#131b26] w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="px-6 py-5 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-slate-50 dark:bg-black/20">
+                            <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
+                                <Banknote className="w-5 h-5 text-emerald-500" /> 
+                                {isAr ? "تقفيل الوردية" : "Shift Report"}
+                            </h2>
+                            <button onClick={() => setShowShiftReport(false)} className="p-2 bg-slate-200 hover:bg-slate-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-xl transition-colors">
+                                <X className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            <div className="flex flex-col items-center justify-center pb-5 border-b border-slate-100 dark:border-zinc-800">
+                                <div className="w-14 h-14 bg-indigo-100 dark:bg-indigo-500/10 rounded-full flex items-center justify-center mb-3">
+                                    <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{cashierName.charAt(0)}</span>
+                                </div>
+                                <span className="font-bold text-sm text-slate-500 dark:text-zinc-400 mb-1">{isAr ? "اسم الكاشير" : "Cashier Name"}</span>
+                                <span className="font-black text-2xl text-slate-800 dark:text-white leading-none">{cashierName}</span>
+                            </div>
+
+                            <div className="bg-emerald-50 dark:bg-emerald-500/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 text-center">
+                                <div className="text-[12px] font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-1.5">{isAr ? "إجمالي التحصيل اليوم" : "Total Collected"}</div>
+                                <div className="text-3xl font-black text-emerald-700 dark:text-emerald-300">{formatCurrency(shiftStats.revenue)}</div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-slate-50 dark:bg-black/30 p-4 rounded-2xl border border-slate-100 dark:border-zinc-800/50">
+                                    <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">{isAr ? "كاش (نقدي ومكتمل)" : "Cash In"}</div>
+                                    <div className="text-lg font-black text-slate-800 dark:text-white">{formatCurrency(shiftStats.cash)}</div>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-black/30 p-4 rounded-2xl border border-slate-100 dark:border-zinc-800/50">
+                                    <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">{isAr ? "مقدم / عربون" : "Deposits In"}</div>
+                                    <div className="text-lg font-black text-slate-800 dark:text-white">{formatCurrency(shiftStats.deposit)}</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-slate-50 dark:bg-black/30 p-4 rounded-2xl border border-slate-100 dark:border-zinc-800/50">
+                                    <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">{isAr ? "عدد الطلبات" : "Order Count"}</div>
+                                    <div className="text-lg font-black text-slate-800 dark:text-white">{shiftStats.count} {isAr ? "طلب" : "orders"}</div>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-black/30 p-4 rounded-2xl border border-slate-100 dark:border-zinc-800/50">
+                                    <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">{isAr ? "رسوم الدليفري" : "Delivery Fees"}</div>
+                                    <div className="text-lg font-black text-slate-800 dark:text-white">{formatCurrency(shiftStats.delivery)}</div>
+                                </div>
+                            </div>
+
+                            <div className="pt-2 flex gap-3">
+                                <button onClick={() => setShowShiftReport(false)} className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-2xl font-black transition-all shadow-lg shadow-indigo-600/20 text-lg flex items-center justify-center gap-2">
+                                    <CheckCircle2 className="w-5 h-5"/>
+                                    {isAr ? "تأكيد واستمرار" : "Acknowledge"}
+                                </button>
+                                <button onClick={printShiftReport} className="py-4 px-6 bg-slate-800 dark:bg-white hover:bg-slate-700 dark:hover:bg-slate-200 active:scale-[0.98] text-white dark:text-black rounded-2xl font-black transition-all shadow-lg text-lg flex items-center justify-center gap-2">
+                                    <Printer className="w-5 h-5"/>
+                                    {isAr ? "طباعة" : "Print"}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Print Modal (Manual Mode) */}
             {printModalHtml && (

@@ -70,7 +70,16 @@ export default function ReportsPage() {
         }
 
         const revenue = orders.reduce((s, o) => s + (o.total || 0), 0);
-        const collectedCash = orders.reduce((s, o) => s + (o.deposit_amount || 0), 0);
+        
+        const collectedCash = orders.reduce((s, o) => {
+            if (o.status === "completed" || o.payment_method === "cash") {
+                return s + (o.total || 0);
+            } else if (o.deposit_amount && o.deposit_amount > 0) {
+                return s + o.deposit_amount;
+            }
+            return s;
+        }, 0);
+
         const avgTicket = orders.length > 0 ? revenue / orders.length : 0;
         const deliveryFees = orders.reduce((s, o) => s + (o.delivery_fee || 0), 0);
         const discounts = orders.reduce((s, o) => s + (o.discount || 0), 0);

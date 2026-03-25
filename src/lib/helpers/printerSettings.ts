@@ -23,7 +23,7 @@ const DEFAULT_SETTINGS: PrinterSettings = {
 };
 
 export function getPrinterSettings(): PrinterSettings {
-    if (typeof window === 'undefined') return DEFAULT_SETTINGS;
+    if (typeof window === 'undefined') return { ...DEFAULT_SETTINGS, autoPrint: true };
 
     // Check for URL override (used by the automatic setup tool)
     const params = new URLSearchParams(window.location.search);
@@ -31,21 +31,22 @@ export function getPrinterSettings(): PrinterSettings {
 
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
-        let settings = DEFAULT_SETTINGS;
+        let settings = { ...DEFAULT_SETTINGS, autoPrint: true };
         if (raw) {
-            settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+            settings = { ...settings, ...JSON.parse(raw) };
+            // Force autoPrint true per user request to never show the settings modal on order
+            settings.autoPrint = true;
         }
         
         if (autoPrintOverride) {
             settings.autoPrint = true;
-            // PERSISTENT FIX: Save it immediately so it survives the login redirect and session transitions
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }
         
         return settings;
     } catch { /* ignore */ }
     
-    return autoPrintOverride ? { ...DEFAULT_SETTINGS, autoPrint: true } : DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, autoPrint: true };
 }
 
 export function savePrinterSettings(settings: PrinterSettings): void {

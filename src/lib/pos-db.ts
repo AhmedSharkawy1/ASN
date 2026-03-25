@@ -24,7 +24,7 @@ export type PosMenuItem = {
     desc_en?: string;
     prices: number[];
     size_labels?: string[];
-    image_data?: string;   // base64
+    image_data?: string;
     is_available: boolean;
     sell_by_weight?: boolean;
     weight_unit?: string;

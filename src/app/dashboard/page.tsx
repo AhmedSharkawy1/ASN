@@ -23,14 +23,29 @@ export default function UserDashboardPage() {
             if (!user) return;
 
             const impTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
-            const { data: restaurant } = await supabase.from('restaurants').select('id, name').eq(impTenant ? 'id' : 'email', impTenant || user.email).single();
+            let rId: string | null = null;
+            let rName = "";
 
-            if (restaurant) {
-                setRestaurantId(restaurant.id);
-                setRestaurantName(restaurant.name || "");
+            if (impTenant) {
+                const { data: rest } = await supabase.from('restaurants').select('id, name').eq('id', impTenant).single();
+                if (rest) { rId = rest.id; rName = rest.name || ""; }
+            } else {
+                const { data: rest } = await supabase.from('restaurants').select('id, name').eq('email', user.email).single();
+                if (rest) {
+                    rId = rest.id; rName = rest.name || "";
+                } else {
+                    // Fallback for staff users
+                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, restaurants(name)').eq('auth_id', user.id).single();
+                    if (staff) { rId = staff.restaurant_id; rName = (staff as any).restaurants?.name || ""; }
+                }
+            }
 
-                const { count: catsCount } = await supabase.from('categories').select('*', { count: 'exact', head: true }).eq('restaurant_id', restaurant.id);
-                const { count: itemsCount } = await supabase.from('items').select('*, categories!inner(restaurant_id)', { count: 'exact', head: true }).eq('categories.restaurant_id', restaurant.id);
+            if (rId) {
+                setRestaurantId(rId);
+                setRestaurantName(rName);
+
+                const { count: catsCount } = await supabase.from('categories').select('*', { count: 'exact', head: true }).eq('restaurant_id', rId);
+                const { count: itemsCount } = await supabase.from('items').select('*, categories!inner(restaurant_id)', { count: 'exact', head: true }).eq('categories.restaurant_id', rId);
                 setStats({ categories: catsCount || 0, items: itemsCount || 0 });
             }
         };

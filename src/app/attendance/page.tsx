@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Camera, MapPin, CheckCircle2, XCircle, Search, Clock, Upload, ScanFace } from "lucide-react";
 import { toast } from "sonner";
-import * as faceapi from 'face-api.js';
+import * as faceapi from '@vladmandic/face-api';
 
 interface Restaurant {
   id: string;

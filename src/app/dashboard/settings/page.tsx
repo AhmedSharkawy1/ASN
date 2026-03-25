@@ -192,7 +192,7 @@ export default function SettingsPage() {
         } catch (err) {
             console.error(err);
             // We could set an error toast here if needed
-            setSuccessMessage(language === "ar" ? "حدث خطأ أثناء החفظ!" : "Error saving settings!");
+            setSuccessMessage(language === "ar" ? "حدث خطأ أثناء الحفظ!" : "Error saving settings!");
             setTimeout(() => setSuccessMessage(""), 3000);
         } finally {
             setSaving(false);
@@ -390,7 +390,7 @@ export default function SettingsPage() {
 
                         {/* Order Channel selector */}
                         <div className="flex items-center gap-2 flex-wrap bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-glass-border">
-                            <span className="text-sm font-bold text-slate-500 dark:text-zinc-500 dark:text-zinc-400 mr-1 ml-1">
+                            <span className="text-sm font-bold text-slate-500 dark:text-zinc-400 mr-1 ml-1">
                                 {language === "ar" ? "طريقة الاستلام:" : "Channel:"}
                             </span>
                             {(["whatsapp", "website", "both"] as const).map(ch => (

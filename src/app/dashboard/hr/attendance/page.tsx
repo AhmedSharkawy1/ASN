@@ -84,7 +84,7 @@ export default function AttendancePage() {
   useEffect(() => {
     const loadModels = async () => {
       try {
-        const faceapi = await import('face-api.js');
+        const faceapi = await import('@vladmandic/face-api');
         faceapiRef.current = faceapi;
         if (!faceapi.nets.tinyFaceDetector.isLoaded) {
           await Promise.all([

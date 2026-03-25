@@ -14,6 +14,7 @@ interface Client {
     subscription_plan: string | null;
     subscription_expires_at: string | null;
     created_at: string;
+    parent_id: string | null;
 }
 
 interface PageAccess {
@@ -32,6 +33,11 @@ export default function SuperAdminClientsPage() {
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [clientPermissions, setClientPermissions] = useState<Record<string, boolean>>({});
     const [savingAccess, setSavingAccess] = useState(false);
+
+    // Parent Link Modal Options
+    const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+    const [selectedParentId, setSelectedParentId] = useState<string>("");
+    const [savingLink, setSavingLink] = useState(false);
 
     const PAGE_GROUPS = [
         {
@@ -102,7 +108,7 @@ export default function SuperAdminClientsPage() {
         try {
             const { data, error } = await supabase
                 .from('restaurants')
-                .select('id, name, email, subscription_plan, subscription_expires_at, created_at')
+                .select('id, name, email, subscription_plan, subscription_expires_at, created_at, parent_id')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -178,6 +184,34 @@ export default function SuperAdminClientsPage() {
         }
     };
 
+    const handleOpenParentLink = (client: Client) => {
+        setSelectedClient(client);
+        setSelectedParentId(client.parent_id || "");
+        setIsLinkModalOpen(true);
+    };
+
+    const handleSaveParentLink = async () => {
+        if (!selectedClient) return;
+        setSavingLink(true);
+        try {
+            const newParentId = selectedParentId === "" ? null : selectedParentId;
+            const { error } = await supabase
+                .from('restaurants')
+                .update({ parent_id: newParentId })
+                .eq('id', selectedClient.id);
+                
+            if (error) throw error;
+            toast.success(language === "ar" ? "تم ربط الفرع بنجاح" : "Branch linked successfully");
+            setIsLinkModalOpen(false);
+            fetchClients(); // refresh list
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error(language === "ar" ? "حدث خطأ أثناء الربط" : "Failed to link branch");
+        } finally {
+            setSavingLink(false);
+        }
+    };
+
     const filtered = clients.filter(c => 
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         c.email?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -247,6 +281,11 @@ export default function SuperAdminClientsPage() {
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600 dark:text-zinc-300">
                                                 {client.email || 'N/A'}
+                                                {client.parent_id && (
+                                                    <div className="mt-1 text-xs text-orange-500 font-bold">
+                                                        ↳ Branch of: {clients.find(c => c.id === client.parent_id)?.name || 'Unknown'}
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase tracking-wider">
@@ -277,6 +316,9 @@ export default function SuperAdminClientsPage() {
                                                     </button>
                                                     <button className="p-2 text-stone-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-colors" title="Manage Subscription">
                                                         <ShieldCheck className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => handleOpenParentLink(client)} className="p-2 text-stone-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 rounded-lg transition-colors" title="Link as Branch">
+                                                        <Building2 className="w-4 h-4" />
                                                     </button>
                                                     <button className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors" title="View Details">
                                                         <ExternalLink className="w-4 h-4" />
@@ -365,6 +407,59 @@ export default function SuperAdminClientsPage() {
                             >
                                 {savingAccess ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> : null}
                                 Save Permissions
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Parent Branch Link Modal */}
+            {isLinkModalOpen && selectedClient && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsLinkModalOpen(false)} />
+                    <div className="bg-white dark:bg-[#131b26] rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden">
+                        <div className="flex items-center justify-between p-6 border-b border-stone-100 dark:border-stone-800 shrink-0">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Building2 className="w-5 h-5 text-orange-500" />
+                                    Link as Branch
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">Tenant: {selectedClient.name}</p>
+                            </div>
+                            <button onClick={() => setIsLinkModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 rounded-xl hover:bg-stone-100 dark:hover:bg-[#1a2433] transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Select Parent Restaurant</label>
+                            <select 
+                                value={selectedParentId} 
+                                onChange={(e) => setSelectedParentId(e.target.value)}
+                                className="w-full p-3 rounded-xl border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 font-bold"
+                            >
+                                <option value="">-- None (Standalone Restaurant) --</option>
+                                {clients.filter(c => c.id !== selectedClient.id && !c.parent_id).map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                            </select>
+                            <p className="text-xs text-slate-500 mt-3 font-bold">
+                                By linking this restaurant to a parent, the parent owner will be able to switch into this account easily.
+                            </p>
+                        </div>
+                        <div className="p-6 border-t border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-black/20 flex justify-end gap-3">
+                            <button 
+                                onClick={() => setIsLinkModalOpen(false)}
+                                className="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-stone-200 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={handleSaveParentLink}
+                                disabled={savingLink}
+                                className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                {savingLink ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> : null}
+                                Save Link
                             </button>
                         </div>
                     </div>

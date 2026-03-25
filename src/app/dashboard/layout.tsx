@@ -19,7 +19,6 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { supabase } from "@/lib/supabase/client";
 import { subscribeSyncStatus } from "@/lib/sync-service";
 import { Toaster, toast } from "sonner";
-import { useBranch } from "@/lib/context/BranchContext";
 import { posDb } from "@/lib/pos-db";
 import { SyncStatus } from "@/components/SyncStatus";
 
@@ -85,10 +84,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const restaurantIdRef = useRef<string | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
 
-    // Multi-branch state
-
-    const [branches, setBranches] = useState<Branch[]>([]);
-    const { activeBranch, setActiveBranch } = useBranch();
+    // Tenant Switcher (Parent/Child Branches)
+    const [tenantLinks, setTenantLinks] = useState<{id: string, name: string, is_parent: boolean}[]>([]);
+    const [currentTenantId, setCurrentTenantId] = useState<string>("");
 
     const isActive = (href: string, exact?: boolean) => {
         if (exact) return pathname === href;
@@ -119,7 +117,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 
                 const cachedBranches = await posDb.branches.where('restaurant_id').equals(cached.restaurant_id).toArray();
                 if (cachedBranches.length > 0) {
-                    setBranches(cachedBranches as any);
+                    // Branches loaded from cache — context will be updated when online
                 }
                 
                 setLoading(false);
@@ -264,6 +262,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }
             }
 
+            // Fetch Tenant Switcher links regardless of impersonation, as long as user is a root owner
+            // This populates the dropdown so the owner can switch between their master account and branches.
+            if (roleData?.role !== 'super_admin' && !isStaffFlag && email) {
+                const { data: rootRest } = await supabase.from('restaurants').select('id, name, parent_id').ilike('email', email).maybeSingle();
+                if (rootRest && !rootRest.parent_id) { // Only root owners get the switcher
+                    const { data: children } = await supabase.from('restaurants').select('id, name').eq('parent_id', rootRest.id);
+                    if (children && children.length > 0) {
+                        setTenantLinks([
+                            { id: rootRest.id, name: rootRest.name, is_parent: true },
+                            ...children.map(c => ({ id: c.id, name: c.name, is_parent: false }))
+                        ]);
+                        setCurrentTenantId(rId || rootRest.id);
+                    }
+                }
+            }
+
             if (rId) {
                 console.log("ASN_LOG: Final rId for check:", rId);
                 const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
@@ -299,9 +313,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 restaurantIdRef.current = rId;
                 setRestaurantId(rId);
                 setPermissions(tempPermissions);
-
-                const { data: bData } = await supabase.from('branches').select('id, branch_name').eq('tenant_id', rId).eq('is_active', true);
-                if (bData) setBranches(bData as Branch[]);
             } else if (!roleData || roleData.role !== 'super_admin') {
                 router.push('/login');
                 return;
@@ -597,15 +608,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
 
                     <div className="flex items-center gap-3">
-                        {restaurantId && branches.length > 0 && (
+                        {restaurantId && tenantLinks.length > 0 && (
                             <select
                                 className="hidden md:block bg-stone-50 dark:bg-zinc-800/50 border border-stone-200 dark:border-zinc-700/50 text-slate-700 dark:text-zinc-300 text-sm rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-teal-500 transition-all font-bold"
-                                value={activeBranch}
-                                onChange={(e) => setActiveBranch(e.target.value)}
+                                value={currentTenantId}
+                                onChange={(e) => {
+                                    const selectedId = e.target.value;
+                                    const rootLink = tenantLinks.find(t => t.is_parent);
+                                    if (rootLink && selectedId === rootLink.id) {
+                                        sessionStorage.removeItem('impersonating_tenant');
+                                    } else {
+                                        sessionStorage.setItem('impersonating_tenant', selectedId);
+                                    }
+                                    window.location.reload();
+                                }}
                             >
-                                <option value="all">{language === "ar" ? "كل الفروع" : "All Branches"}</option>
-                                {branches.map((b: Branch) => (
-                                    <option key={b.id} value={b.id}>{b.branch_name}</option>
+                                {tenantLinks.map((t) => (
+                                    <option key={t.id} value={t.id}>
+                                        {t.is_parent ? `🏢 ${language === "ar" ? "رئيسي:" : "Main:"} ${t.name}` : `↳ ${t.name}`}
+                                    </option>
                                 ))}
                             </select>
                         )}

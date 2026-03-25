@@ -2,194 +2,158 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Search, Plus, MapPin, Store, Settings, MoreVertical } from "lucide-react";
+import { Building2, Search, ArrowRight, Store, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
+import { useRouter } from "next/navigation";
 
-export default function BranchesPage() {
+interface BranchRestaurant {
+    id: string;
+    name: string;
+    email: string | null;
+    created_at: string;
+    subscription_plan?: string | null;
+}
+
+export default function DashboardBranchesPage() {
     const { language } = useLanguage();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [branches, setBranches] = useState<any[]>([]);
+    const isAr = language === "ar";
+    const router = useRouter();
+
+    const [branches, setBranches] = useState<BranchRestaurant[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
-    const fetchBranches = useCallback(async (tId: string) => {
+    const fetchChildBranches = useCallback(async (parentId: string) => {
         setLoading(true);
         try {
             const { data, error } = await supabase
-                .from('branches')
-                .select('*')
-                .eq('tenant_id', tId)
-                .order('created_at', { ascending: false });
+                .from('restaurants')
+                .select('id, name, email, created_at, subscription_plan')
+                .eq('parent_id', parentId)
+                .order('created_at', { ascending: true });
 
             if (error) throw error;
-            setBranches(data || []);
+            setBranches((data as BranchRestaurant[]) || []);
         } catch (err: unknown) {
             console.error(err);
-            toast.error(language === "ar" ? "فشل في تحميل الفروع" : "Failed to load branches");
+            toast.error(isAr ? "فشل في تحميل الفروع" : "Failed to load branches");
         } finally {
             setLoading(false);
         }
-    }, [language]);
+    }, [isAr]);
 
     useEffect(() => {
         const init = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if(!session) return;
-            
-            const rId = sessionStorage.getItem('impersonating_tenant') || null;
-            if (rId) {
-                setRestaurantId(rId);
-                fetchBranches(rId);
+            if (!session) return;
+
+            // Find root owner ID
+            const { data: rootRest } = await supabase
+                .from('restaurants')
+                .select('id, parent_id')
+                .ilike('email', session.user.email)
+                .maybeSingle();
+
+            if (rootRest) {
+                // Determine the true parent ID
+                // If this is the parent, use its ID. If we are currently in a child, use its parent_id
+                const parentId = rootRest.parent_id || rootRest.id;
+                setRestaurantId(parentId);
+                fetchChildBranches(parentId);
             } else {
-                // Fetch normally if not impersonating (Admin owner or staff with permissions)
-                const impTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
-                const { data: rest } = await supabase.from('restaurants').select('id').eq(impTenant ? 'id' : 'email', impTenant || session.user.email).single();
-                if(rest) {
-                    setRestaurantId(rest.id);
-                    fetchBranches(rest.id);
-                } else {
-                    const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', session.user.id).single();
-                    if(staff) {
-                        setRestaurantId(staff.restaurant_id);
-                        fetchBranches(staff.restaurant_id);
-                    }
-                }
+                setLoading(false);
             }
         };
         init();
-    }, [fetchBranches]);
+    }, [fetchChildBranches]);
 
-    const handleCreateBranch = async () => {
-        if (!restaurantId) return;
-        try {
-            // Check limits first based on active subscription plan
-            const { data: rest } = await supabase.from('restaurants').select('subscription_plan').eq('id', restaurantId).single();
-            if (rest && rest.subscription_plan) {
-                const { data: plan } = await supabase.from('subscription_plans').select('max_branches').eq('plan_name', rest.subscription_plan).single();
-                if (plan && branches.length >= plan.max_branches) {
-                    toast.error(language === "ar" ? `لقد وصلت للحد الأقصى للفروع (${plan.max_branches}) في باقتك الحالية.` : `You have reached the maximum branches limit (${plan.max_branches}) for your current plan.`);
-                    return;
-                }
-            }
-
-            const { error } = await supabase.from('branches').insert([
-                {
-                    tenant_id: restaurantId,
-                    branch_name: `New Branch ${branches.length + 1}`,
-                    address: "Branch Address"
-                }
-            ]);
-
-            if (error) throw error;
-            toast.success(language === "ar" ? "تم إنشاء فرع جديد" : "New branch created");
-            fetchBranches(restaurantId);
-        } catch (err: unknown) {
-            console.error(err);
-            toast.error(language === "ar" ? "تعذر إنشاء الفرع" : "Failed to create branch");
-        }
+    const handleSwitchToBranch = (branchId: string) => {
+        sessionStorage.setItem('impersonating_tenant', branchId);
+        window.location.reload();
     };
 
-    const filtered = branches.filter(b => 
-        b.branch_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        (b.address && b.address.toLowerCase().includes(searchQuery.toLowerCase()))
+    const filtered = branches.filter(b =>
+        b.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center p-20">
+                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full" />
+            </div>
+        );
+    }
+
     return (
-        <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto w-full">
+        <div className="space-y-6 max-w-7xl mx-auto w-full" dir={isAr ? "rtl" : "ltr"}>
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">
-                        {language === "ar" ? "إدارة الفروع" : "Branch Management"}
+                    <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight flex items-center gap-3">
+                        <Building2 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                        {isAr ? "الفروع التابعة" : "Linked Branches"}
                     </h1>
-                    <p className="text-slate-500 dark:text-zinc-400 mt-1">
-                        {language === "ar" ? "إدارة نقاط البيع وعناوين الفروع" : "Manage your selling nodes and addresses"}
+                    <p className="text-slate-500 dark:text-zinc-400 mt-1 text-sm font-bold">
+                        {isAr ? "قائمة الحسابات والمطاعم المرتبطة بهذا المطعم كفروع تابعة له" : "List of accounts and restaurants linked to this restaurant as branches"}
                     </p>
                 </div>
-                <button 
-                    onClick={handleCreateBranch}
-                    className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-sm transition-colors w-fit"
-                >
-                    <Plus className="w-4 h-4" />
-                    {language === "ar" ? "إضافة فرع جديد" : "Add New Branch"}
-                </button>
             </div>
 
-            <div className="bg-white dark:bg-[#131b26] rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
-                    <div className="relative w-full max-w-sm">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder={language === "ar" ? "ابحث برقم أو إسم الفرع..." : "Search branches..."}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-stone-50 dark:bg-[#0a0f16] border border-stone-200 dark:border-stone-700 rounded-xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all dark:text-white"
-                        />
-                    </div>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-stone-50 dark:bg-[#0a0f16] border-b border-stone-200 dark:border-stone-800">
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">{language === "ar" ? "الفرع" : "Branch Name"}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">{language === "ar" ? "العنوان" : "Address"}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">{language === "ar" ? "رقم الهاتف" : "Phone"}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">{language === "ar" ? "تاريخ الإضافة" : "Added"}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider text-right">{language === "ar" ? "إجراءات" : "Actions"}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">{language === "ar" ? "جاري التحميل..." : "Loading branches..."}</td>
-                                </tr>
-                            ) : filtered.length === 0 ? (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">{language === "ar" ? "لم يتم العثور على فروع" : "No branches found."}</td>
-                                </tr>
-                            ) : (
-                                filtered.map((branch) => (
-                                    <tr key={branch.id} className="hover:bg-stone-50/50 dark:hover:bg-white/[0.02] transition-colors group">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-lg bg-teal-50 dark:bg-emerald-500/10 flex items-center justify-center shrink-0">
-                                                    <Store className="w-5 h-5 text-teal-600 dark:text-emerald-400" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-bold text-slate-900 dark:text-white">{branch.branch_name}</div>
-                                                    <div className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">{branch.is_main ? (language === "ar" ? "الفرع الرئيسي" : "Main Branch") : "Sub-branch"}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-zinc-300 flex items-center gap-2">
-                                            <MapPin className="w-4 h-4 text-slate-400" /> {branch.address || 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm font-mono text-slate-600 dark:text-zinc-300">
-                                            {branch.phone || 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-500 dark:text-zinc-400">
-                                            {new Date(branch.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button className="p-2 text-stone-400 hover:text-teal-600 dark:hover:text-emerald-400 transition-colors" title={language === "ar" ? "الإعدادات" : "Settings"}>
-                                                    <Settings className="w-4 h-4" />
-                                                </button>
-                                                <button className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 transition-colors">
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+            <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl p-4 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <p className="text-sm font-bold text-blue-700 dark:text-blue-300">
+                    {isAr ? "ملاحظة: لإنشاء فرع جديد، قم بإنشاء حساب جديد تماماً للمطعم، ثم تواصل مع الإدارة (Super Admin) لربطه كفرع تابع لمطعمك الرئيسي." 
+                        : "Note: To create a new branch, create a fresh account for the restaurant, then contact the Super Admin to link it as a branch to your main restaurant."}
+                </p>
             </div>
+
+            <div className="relative w-full max-w-md">
+                <Search className="absolute left-3 rtl:left-auto rtl:right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                    type="text"
+                    placeholder={isAr ? "ابحث عن فرع..." : "Search branches..."}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 rtl:pl-4 rtl:pr-10 pr-4 py-2.5 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500/30 outline-none transition-all text-slate-900 dark:text-white"
+                />
+            </div>
+
+            {filtered.length === 0 ? (
+                <div className="text-center py-20 bg-white dark:bg-card rounded-2xl border border-slate-200 dark:border-zinc-800/50">
+                    <Store className="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-zinc-700" />
+                    <p className="text-slate-500 dark:text-zinc-500 font-bold text-lg">{isAr ? "لا توجد فروع مرتبطة" : "No linked branches found"}</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filtered.map(branch => (
+                        <div key={branch.id} className="bg-white dark:bg-card rounded-2xl border border-slate-200 dark:border-zinc-800/50 overflow-hidden hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-500/30 transition-all flex flex-col">
+                            <div className="p-5 flex-1">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shrink-0">
+                                        <Building2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <h3 className="font-extrabold text-slate-900 dark:text-white text-lg truncate">{branch.name}</h3>
+                                        <p className="text-xs text-slate-400 dark:text-zinc-500 font-bold max-w-full truncate">
+                                            {branch.email || "No email"}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-slate-50 dark:bg-black/20 border-t border-slate-100 dark:border-zinc-800/50">
+                                <button
+                                    onClick={() => handleSwitchToBranch(branch.id)}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 font-bold rounded-xl transition active:scale-95"
+                                >
+                                    {isAr ? "دخول إلى الفرع" : "Switch to Branch"}
+                                    <ArrowRight className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

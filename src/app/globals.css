@@ -125,4 +125,13 @@
   .text-glow {
     text-shadow: 0 0 20px hsla(var(--glow-color) / 0.8), 0 0 40px hsla(var(--glow-color) / 0.4);
   }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
 }

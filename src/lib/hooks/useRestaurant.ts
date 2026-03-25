@@ -35,13 +35,19 @@ export function useRestaurant() {
                 if (impersonatingTenant) {
                     rId = impersonatingTenant;
                 } else if (email.endsWith('.asn')) {
-                    // Staff member
+                    // Staff member with .asn email
                     const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).single();
                     if (staff) rId = staff.restaurant_id;
                 } else {
                     // Owner
                     const { data: rest } = await supabase.from('restaurants').select('id').eq('email', email).single();
-                    if (rest) rId = rest.id;
+                    if (rest) {
+                        rId = rest.id;
+                    } else {
+                        // Fallback: staff user with regular email
+                        const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).single();
+                        if (staff) rId = staff.restaurant_id;
+                    }
                 }
 
                 if (rId) {

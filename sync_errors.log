@@ -34,3 +34,6 @@ Payload: {"id":"001b59ff-e0b1-4814-9272-6fd8bc3aa2f2","restaurant_id":"52a5bcf9-
 
 Customer Error: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'address' column of 'customers' in the schema cache"}
 Payload: {"id":"001b59ff-e0b1-4814-9272-6fd8bc3aa2f2","restaurant_id":"52a5bcf9-e37a-443d-abea-c25268993ffe","name":"احمد سعيد","phone":"01092621367","email":null,"loyalty_points":0,"total_spent":0,"total_orders":0,"last_order_date":null,"notes":null,"created_at":"2026-03-13T12:20:29.166+00:00","address":"البدرشين"}
+
+Order Error: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'branch_id' column of 'orders' in the schema cache"}
+Payload: {"id":"e02c9b75-96e7-4ae9-86db-9be257de51f0","restaurant_id":"6cd35d66-f5e6-4add-a594-b7ec0ba8041a","branch_id":"d537d848-0d88-4797-9e8a-5649cf52346c","order_number":44,"items":[{"id":"a514bfba-5788-437f-a418-d253c8b08a89","title":"بانيه","qty":1,"price":10,"size":"عادي","category":"إضافات الكريب والسوري"}],"subtotal":10,"discount":0,"discount_type":"fixed","total":10,"payment_method":"cash","customer_address":null,"notes":null,"deposit_amount":0,"status":"pending","is_draft":false,"created_at":"2026-03-24T09:39:40.079Z","updated_at":"2026-03-24T09:39:40.079Z","source":"pos"}

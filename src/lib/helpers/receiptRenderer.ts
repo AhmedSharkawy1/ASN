@@ -80,3 +80,75 @@ export function renderReceiptHtml(order: any, restaurant: any, isAr: boolean = t
         </div>
     </body></html>`;
 }
+
+export function renderShiftReceiptHtml(data: { cashierName: string, shiftStats: any, restaurantName: string, isAr: boolean }) {
+    const { cashierName, shiftStats, restaurantName, isAr } = data;
+    const fmtPrice = (num: number) => new Intl.NumberFormat('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(num);
+
+    const orderNumbersStr = shiftStats.orderNumbers && shiftStats.orderNumbers.length > 0 
+        ? shiftStats.orderNumbers.join(' - ')
+        : (isAr ? 'لا يوجد طلبات' : 'No orders');
+
+    return `<html><head><title>Shift Report</title><style>${getReceiptStyles()}</style></head><body>
+        <div class="receipt-wrapper">
+            <div style="text-align:center;margin-bottom:15px;color:#000;font-weight:900">
+                <p style="font-weight:900;font-size:22px;margin:0 0 5px 0;color:#000">${restaurantName}</p>
+                <p style="font-size:18px;font-weight:900;border:2px solid #000;padding:4px;border-radius:6px;display:inline-block;margin-top:5px;margin-bottom:10px;">
+                    ${isAr ? 'تقارير تسليم الوردية' : 'End of Shift Report'}
+                </p>
+                <p style="font-size:14px;margin:0 0 5px 0;font-weight:900;color:#000">${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}</p>
+            </div>
+            
+            <div style="border-top:2px dashed #000;margin:12px 0"></div>
+            
+            <table style="width:100%;border-collapse:collapse;margin-bottom:10px;color:#000;font-weight:900;font-size:15px;">
+                <tr>
+                    <td style="padding:6px 0;font-weight:900">${isAr ? 'اسم الكاشير:' : 'Cashier Name:'}</td>
+                    <td style="text-align:left;padding:6px 0;font-weight:900">${cashierName}</td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 0;font-weight:900">${isAr ? 'إجمالي عدد الطلبات:' : 'Total Orders:'}</td>
+                    <td style="text-align:left;padding:6px 0;font-weight:900">${shiftStats.count}</td>
+                </tr>
+            </table>
+
+            <div style="border-top:2px dashed #000;margin:12px 0"></div>
+
+            <table style="width:100%;border-collapse:collapse;margin-bottom:10px;color:#000;font-weight:900;font-size:15px;">
+                <tr>
+                    <td style="padding:4px 0;">${isAr ? 'كاش (مكتمل ونقدي):' : 'Cash (In):'}</td>
+                    <td style="text-align:left;padding:4px 0;">${fmtPrice(shiftStats.cash)}</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 0;">${isAr ? 'عربون / مقدم:' : 'Deposits (In):'}</td>
+                    <td style="text-align:left;padding:4px 0;">${fmtPrice(shiftStats.deposit)}</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 0;">${isAr ? 'رسوم التوصيل:' : 'Delivery Fees:'}</td>
+                    <td style="text-align:left;padding:4px 0;">${fmtPrice(shiftStats.delivery)}</td>
+                </tr>
+            </table>
+
+            <div style="border-top:2px dashed #000;margin:12px 0"></div>
+            
+            <div style="display:flex;justify-content:space-between;font-weight:900;font-size:20px;margin-top:10px;color:#000">
+                <span>${isAr ? 'إجمالي التحصيل:' : 'Total Handover:'}</span>
+                <span>${fmtPrice(shiftStats.revenue)}</span>
+            </div>
+
+            <div style="border-top:2px solid #000;border-bottom:2px solid #000;margin:15px 0;padding:10px 0;">
+                <p style="font-weight:900;font-size:15px;margin:0 0 5px 0;">${isAr ? 'أرقام الطلبات المنجزة:' : 'Processed Order Numbers:'}</p>
+                <p style="font-size:13px;line-height:1.6;margin:0;">${orderNumbersStr}</p>
+            </div>
+
+            <div style="margin-top:40px;display:flex;justify-content:space-between;font-size:14px;font-weight:900;">
+                <div style="text-align:center;width:45%;border-top:1px solid #000;padding-top:5px;">${isAr ? 'توقيع الكاشير' : 'Cashier Sign'}</div>
+                <div style="text-align:center;width:45%;border-top:1px solid #000;padding-top:5px;">${isAr ? 'توقيع المستلم' : 'Manager Sign'}</div>
+            </div>
+            
+            <div style="text-align:center;font-size:14px;margin-top:30px;font-weight:900;color:#000">
+                <p style="margin:0">${isAr ? 'تم طباعة التقرير من النظام' : 'Printed securely from System'}</p>
+            </div>
+        </div>
+    </body></html>`;
+}
