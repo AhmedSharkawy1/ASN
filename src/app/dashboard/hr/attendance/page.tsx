@@ -478,7 +478,7 @@ export default function AttendancePage() {
             <a href={`/attendance/${encodeURIComponent(restaurantName)}`} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold rounded-xl shadow-sm transition-transform hover:scale-105">
               <Scan className="w-4 h-4" />
-              {isAr ? "رابط الكشك" : "Kiosk Link"}
+              {isAr ? "تسجيل الحضور" : "Attendance Link"}
             </a>
           )}
           <button onClick={() => { setLocForm({ name: "", latitude: 0, longitude: 0, radius_meters: 200 }); setShowLocationModal(true); }}
