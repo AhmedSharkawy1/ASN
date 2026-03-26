@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
+import { uploadBase64, deleteImage } from "@/lib/uploadImage";
 
 interface Employee {
   id: string;
@@ -301,6 +302,20 @@ export default function EmployeesPage() {
     }
     setSaving(true);
     try {
+      let finalPhotoUrl = photoUrl;
+
+      // If photo is new (base64 from camera/upload), upload it to storage
+      if (photoUrl && photoUrl.startsWith('data:image')) {
+        const uploadedUrl = await uploadBase64(photoUrl, 'employees');
+        if (uploadedUrl) {
+          finalPhotoUrl = uploadedUrl;
+        } else {
+          toast.error(isAr ? "فشل رفع الصورة" : "Failed to upload photo");
+          setSaving(false);
+          return;
+        }
+      }
+
       const payload = {
         tenant_id: restaurantId,
         full_name: form.full_name,
@@ -311,7 +326,7 @@ export default function EmployeesPage() {
         hire_date: form.hire_date || null,
         base_salary: form.base_salary,
         face_descriptor: faceDescriptor,
-        profile_photo_url: photoUrl,
+        profile_photo_url: finalPhotoUrl,
       };
 
       if (editingEmployee) {
