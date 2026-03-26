@@ -48,8 +48,8 @@ export async function POST(req: Request) {
     // Convert to similarity %
     const similarity = Math.round((1 - Math.min(minDistance, 1)) * 100);
 
-    // Require 70% match exactly like dashboard
-    if (!bestMatch || similarity < 70) {
+    // Require 60% match exactly like dashboard
+    if (!bestMatch || similarity < 60) {
       return NextResponse.json({ 
         error: 'Face not matched', 
         message: `عذراً، لم يتم التعرف على وجهك (التطابق: ${similarity}%)` 

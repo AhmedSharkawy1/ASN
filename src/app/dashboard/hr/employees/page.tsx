@@ -480,13 +480,24 @@ export default function EmployeesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-500 dark:text-zinc-400 mb-1.5">{isAr ? "القسم" : "Department"}</label>
-                  <select value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-stone-50 dark:bg-white/5 border border-stone-200 dark:border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-teal-500 dark:text-white">
-                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
+                  <label className="block text-sm font-bold text-slate-500 dark:text-zinc-400 mb-2.5">{isAr ? "القسم" : "Department"}</label>
+                  <div className="flex flex-wrap gap-2">
+                    {DEPARTMENTS.map(d => (
+                      <button
+                        key={d}
+                        onClick={(e) => { e.preventDefault(); setForm({ ...form, department: d }); }}
+                        className={`px-4 py-2.5 text-sm font-bold rounded-xl transition-all border-2 ${
+                          form.department === d
+                            ? 'bg-teal-50 border-teal-500 text-teal-700 dark:bg-teal-500/20 dark:border-teal-400 dark:text-teal-300'
+                            : 'bg-stone-50 border-stone-200 text-slate-600 hover:border-teal-300 dark:bg-white/5 dark:border-white/10 dark:text-zinc-400 dark:hover:border-teal-500/50'
+                        }`}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-slate-500 dark:text-zinc-400 mb-1.5">{isAr ? "المسمى الوظيفي" : "Job Title"}</label>

@@ -28,8 +28,13 @@ export default function Navbar() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    // Hide navbar on dashboard and public menu pages
-    if (pathname.startsWith('/dashboard') || pathname.startsWith('/menu')) {
+    // Hide navbar on dashboard, super-admin, attendance, and public menu pages
+    if (
+        pathname.startsWith('/dashboard') || 
+        pathname.startsWith('/menu') || 
+        pathname.startsWith('/super-admin') || 
+        pathname.startsWith('/attendance')
+    ) {
         return null;
     }
 

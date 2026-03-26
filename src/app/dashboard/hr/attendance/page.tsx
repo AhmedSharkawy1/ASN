@@ -52,6 +52,7 @@ export default function AttendancePage() {
   const { language } = useLanguage();
   const isAr = language === "ar";
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
+  const [restaurantName, setRestaurantName] = useState<string | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [locations, setLocations] = useState<WorkLocation[]>([]);
@@ -126,10 +127,11 @@ export default function AttendancePage() {
       if (!session) return;
       const imp = sessionStorage.getItem('impersonating_tenant');
       const { data: rest } = await supabase
-        .from('restaurants').select('id')
+        .from('restaurants').select('id, name')
         .eq(imp ? 'id' : 'email', imp || session.user.email).single();
       if (rest) {
         setRestaurantId(rest.id);
+        setRestaurantName(rest.name);
         fetchData(rest.id);
       }
     };
@@ -257,7 +259,7 @@ export default function AttendancePage() {
       const similarity = Math.round((1 - Math.min(distance, 1)) * 100);
       setMatchScore(similarity);
 
-      if (similarity >= 70) {
+      if (similarity >= 60) {
         setFaceStatus('verified');
         toast.success(isAr ? `✅ تم التحقق (${similarity}% تطابق)` : `✅ Verified (${similarity}% match)`);
       } else {
@@ -320,13 +322,13 @@ export default function AttendancePage() {
 
       console.log(`ASN_LOG: Face match distance=${distance.toFixed(4)}, similarity=${similarity}%`);
 
-      // User requested 70% minimum match percentage
-      if (similarity >= 70) {
+      // User requested 60% minimum match percentage
+      if (similarity >= 60) {
         setFaceStatus('verified');
         toast.success(isAr ? `✅ تم التحقق من الوجه بنجاح (${similarity}% تطابق)` : `✅ Face verified (${similarity}% match)`);
       } else {
         setFaceStatus('failed');
-        toast.error(isAr ? `❌ الوجه لا يتطابق أو غير واضح (${similarity}% تطابق - المطلوب 70%)` : `❌ Face does not match (${similarity}% match - 70% required)`);
+        toast.error(isAr ? `❌ الوجه لا يتطابق أو غير واضح (${similarity}% تطابق - المطلوب 60%)` : `❌ Face does not match (${similarity}% match - 60% required)`);
       }
     } catch (err) {
       console.error('ASN_LOG: Face verification error', err);
@@ -471,7 +473,14 @@ export default function AttendancePage() {
             {isAr ? "تسجيل الحضور ببصمة الوجه والتحقق من الموقع" : "Check-in with face recognition & location verification"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {restaurantName && (
+            <a href={`/attendance/${encodeURIComponent(restaurantName)}`} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold rounded-xl shadow-sm transition-transform hover:scale-105">
+              <Scan className="w-4 h-4" />
+              {isAr ? "رابط الكشك" : "Kiosk Link"}
+            </a>
+          )}
           <button onClick={() => { setLocForm({ name: "", latitude: 0, longitude: 0, radius_meters: 200 }); setShowLocationModal(true); }}
             className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#131b26] border border-stone-200 dark:border-stone-700 text-slate-700 dark:text-white font-bold rounded-xl shadow-sm transition-colors hover:bg-stone-50 dark:hover:bg-white/5">
             <MapPin className="w-4 h-4 text-teal-500" />
