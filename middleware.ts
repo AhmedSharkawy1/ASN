@@ -16,67 +16,51 @@ export const config = {
 
 export default function middleware(req: NextRequest) {
     const url = req.nextUrl;
-
-    // Get hostname of request (e.g. atiab.asntechnology.net, test.localhost:3000)
     const hostname = req.headers.get('host') || '';
 
-    // Extract path and search params
-    const searchParams = req.nextUrl.searchParams.toString();
-    const path = `${url.pathname}${searchParams.length > 0 ? `?${searchParams}` : ''}`;
+    // تحديد النطاقات الأساسية
+    const rootDomains = ['asntechnology.net', 'localhost:3000'];
+    const rootDomain = rootDomains.find(d => hostname.endsWith(d)) || rootDomains[0];
 
-    console.log(`[Middleware] Host: ${hostname}, Path: ${path}`);
+    // استخراج الـ Subdomain بشكل أدق
+    let subdomain = '';
+    if (hostname.endsWith(`.${rootDomain}`)) {
+        subdomain = hostname.replace(`.${rootDomain}`, '');
+    } else if (hostname === rootDomain) {
+        subdomain = ''; // النطاق الأساسي
+    } else {
+        // في حالة وجود إعدادات localhost مختلفة أو دومين مخصص تماماً
+        subdomain = hostname.replace(rootDomain, '').replace('.', '');
+    }
 
-    // 0. Auto-open Atyab Menu on the main domain root path
-    if ((hostname === 'asntechnology.net' || hostname === 'www.asntechnology.net' || hostname === 'localhost:3000') && url.pathname === '/') {
+    const path = `${url.pathname}${url.search ? url.search : ''}`;
+
+    // الكلمات المحجوزة التي لا تمثل مطاعم
+    const reservedSubdomains = ['www', 'admin', 'api', 'dashboard', 'app', 'localhost:3000', 'asntechnology.net'];
+
+    // 1. التعامل مع النطاق الأساسي (الرئيسي)
+    if ((subdomain === '' || subdomain === 'www') && url.pathname === '/') {
+        // تحويل افتراضي لمطعم أطباق (يمكن تغييره لصفحة هبوط لاحقاً)
         return NextResponse.redirect(new URL(`/menu/6cd35d66-f5e6-4add-a594-b7ec0ba8041a`, req.url));
     }
 
-    // 1. Check for exact hardcoded aliases for external fully custom domains (e.g., www.brand.com)
-    const DOMAIN_ALIASES: Record<string, string> = {
-        'test-restaurant.localhost:3000': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a',
-    };
-
-    if (DOMAIN_ALIASES[hostname]) {
-        const destRestaurantId = DOMAIN_ALIASES[hostname];
-        if (!url.pathname.startsWith(`/menu/${destRestaurantId}`)) {
-            return NextResponse.rewrite(new URL(`/menu/${destRestaurantId}${path}`, req.url));
-        }
-        return NextResponse.next();
-    }
-
-    // 2. Determine root domains including localhost variations
-    const rootDomains = ['asntechnology.net', 'asntechnology.com', 'localhost:3000'];
-    const rootDomain = rootDomains.find(d => hostname.endsWith(d)) || rootDomains[0];
-
-    // Extract the potential subdomain (e.g., "atiab" from "atiab.asntechnology.net")
-    const currentHost = hostname.replace(`.${rootDomain}`, '').replace(rootDomain, '');
-
-    // Known "safe" prefixes that shouldn't be treated as restaurant subdomains
-    const reservedSubdomains = ['www', 'admin', 'api', 'dashboard', 'app', 'localhost:3000', rootDomain];
-
-    // 3. Fallback: If it's a subdomain and NOT a reserved one (and no explicit alias above)
-    if (
-        currentHost !== hostname && // It actually has a subdomain portion
-        currentHost !== rootDomain && // It's not just exactly the root domain
-        !reservedSubdomains.includes(currentHost)
-    ) {
-        // Rewrite to the menu path!
-        // For example some-other.asntechnology.net -> /menu/some-other
-        if (!url.pathname.startsWith(`/menu/${currentHost}`)) {
-            return NextResponse.rewrite(new URL(`/menu/${currentHost}${path}`, req.url));
+    // 2. التعامل مع الـ Subdomains (مثل atiab.asntechnology.net)
+    if (subdomain && !reservedSubdomains.includes(subdomain)) {
+        // إذا كان الطلب لا يخص الـ API ولا يبدأ بمسار المنيو فعلياً
+        if (!url.pathname.startsWith(`/menu/${subdomain}`) && !url.pathname.startsWith('/api')) {
+            console.log(`[Middleware] Subdomain detected: ${subdomain}. Rewriting to /menu/${subdomain}${path}`);
+            return NextResponse.rewrite(new URL(`/menu/${subdomain}${path}`, req.url));
         }
     }
 
-    // 4. Protect /super-admin route
+    // 3. حماية مسار الـ super-admin
     if (url.pathname.startsWith('/super-admin')) {
-        // To enforce strictly, we really should verify a session cookie or token.
-        // For Next.js middleware with Supabase, we need to check the auth cookie.
-        // We will just return Next anyway to be parsed by the page/layout, 
-        // because running full DB queries in middleware edge runtime is not ideal for Supabase standard client unless using @supabase/ssr.
-        // Let's rely on the layout.tsx to do the heavy lifting of role auth, but we can prevent simple access here:
-        const nextAuthCookie = req.cookies.get('sb-' + process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1].split('.')[0] + '-auth-token');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+        const projectRef = supabaseUrl.split('//')[1]?.split('.')[0];
+        const nextAuthCookie = req.cookies.get(`sb-${projectRef}-auth-token`);
+        
         if (!nextAuthCookie) {
-           return NextResponse.redirect(new URL('/login', req.url));
+            return NextResponse.redirect(new URL('/login', req.url));
         }
     }
 
