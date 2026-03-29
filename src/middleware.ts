@@ -35,14 +35,20 @@ export default function middleware(req: NextRequest) {
     // 1. الدومين الأساسي (Redirect)
     // ═══════════════════════════════════════════════════════════════
     if (isMainDomain) {
-        // تحويل /menu/slug -> slug.asntechnology.net (للحفاظ على هوية المطعم)
+        // تحويل /menu/slug -> slug.asntechnology.net
         const menuMatch = path.match(/^\/menu\/([^/]+)/);
         if (menuMatch && !hostname.includes('localhost')) {
-            const slug = menuMatch[1];
-            // لو كان الـ slug عبارة عن UUID، صفحة المنيو ستتعرف عليه، 
-            // ولكن التحويل للـ subdomain أفضل لو كان slug نصي
-            const protocol = req.headers.get('x-forwarded-proto') || 'https';
-            return NextResponse.redirect(new URL(`${protocol}://${slug}.${rootDomain}/`, req.url));
+            const param = menuMatch[1];
+            
+            // تحقق إذا كان المعرف عبارة عن UUID
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(param);
+
+            // لا تقم بالتحويل لسبدومين إذا كان المعرف هو UUID (لأن Vercel/Cloudflare سيعطي خطأ SSL)
+            if (!isUUID) {
+                const protocol = req.headers.get('x-forwarded-proto') || 'https';
+                console.log(`[Middleware] Redirecting slug ${param} to subdomain`);
+                return NextResponse.redirect(new URL(`${protocol}://${param}.${rootDomain}/`, req.url));
+            }
         }
         return NextResponse.next();
     } 
