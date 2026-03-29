@@ -7,13 +7,8 @@ export const config = {
     ],
 };
 
-const SLUG_TO_UUID: Record<string, string> = {
-    'atiab': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a',
-};
-
-const UUID_TO_SLUG: Record<string, string> = Object.fromEntries(
-    Object.entries(SLUG_TO_UUID).map(([slug, uuid]) => [uuid, slug])
-);
+// الكلمات المحجوزة التي لا تمثل مطاعم
+const RESERVED_SUBDOMAINS = ['www', 'admin', 'api', 'dashboard', 'app', 'super-admin', 'login'];
 
 export default function middleware(req: NextRequest) {
     const url = req.nextUrl;
@@ -23,13 +18,12 @@ export default function middleware(req: NextRequest) {
     const rootDomains = ['asntechnology.net', 'localhost:3000'];
     const rootDomain = rootDomains.find(d => hostname.endsWith(d)) || rootDomains[0];
 
-    // استخراج الـ Subdomain بشكل أدق
+    // استخراج الـ Subdomain
     let subdomain = '';
-    // إزالة الدومين الأساسي والنقطة التي قبله
     const hostWithoutRoot = hostname.replace(`.${rootDomain}`, '').replace(rootDomain, '');
     if (hostWithoutRoot && hostWithoutRoot !== 'www') {
         const parts = hostWithoutRoot.split('.');
-        subdomain = parts[parts.length - 1]; // آخر جزء هو الـ subdomain
+        subdomain = parts[parts.length - 1];
     } else if (hostname.startsWith('www.')) {
         subdomain = 'www';
     }
@@ -38,48 +32,32 @@ export default function middleware(req: NextRequest) {
     const path = url.pathname;
 
     // ═══════════════════════════════════════════════════════════════
-    // 1. الدومين الأساسي: تحويل /menu/atiab -> atiab.asntechnology.net
+    // 1. الدومين الأساسي (Redirect)
     // ═══════════════════════════════════════════════════════════════
     if (isMainDomain) {
+        // تحويل /menu/slug -> slug.asntechnology.net (للحفاظ على هوية المطعم)
         const menuMatch = path.match(/^\/menu\/([^/]+)/);
-        if (menuMatch) {
-            const param = menuMatch[1];
-            const slug = UUID_TO_SLUG[param] || (SLUG_TO_UUID[param] ? param : null);
-            
-            if (slug && !hostname.includes('localhost')) {
-                const protocol = req.headers.get('x-forwarded-proto') || 'https';
-                console.log(`[Middleware] Redirecting ${path} to ${slug}.${rootDomain}`);
-                return NextResponse.redirect(new URL(`${protocol}://${slug}.${rootDomain}/`, req.url));
-            }
+        if (menuMatch && !hostname.includes('localhost')) {
+            const slug = menuMatch[1];
+            // لو كان الـ slug عبارة عن UUID، صفحة المنيو ستتعرف عليه، 
+            // ولكن التحويل للـ subdomain أفضل لو كان slug نصي
+            const protocol = req.headers.get('x-forwarded-proto') || 'https';
+            return NextResponse.redirect(new URL(`${protocol}://${slug}.${rootDomain}/`, req.url));
         }
-        
-        const res = NextResponse.next();
-        res.headers.set('x-asn-subdomain', 'main');
-        res.headers.set('x-asn-host', hostname);
-        return res;
+        return NextResponse.next();
     } 
 
     // ═══════════════════════════════════════════════════════════════
-    // 2. السبدومين: عرض المنيو مباشرة (rewrite داخلي)
+    // 2. السبدومين (Rewrite)
     // ═══════════════════════════════════════════════════════════════
-    const reserved = ['admin', 'api', 'dashboard', 'app'];
-    if (subdomain && !reserved.includes(subdomain)) {
-        const restaurantId = SLUG_TO_UUID[subdomain] || subdomain;
-        
-        // Rewrite داخلي للمنيو
+    if (subdomain && !RESERVED_SUBDOMAINS.includes(subdomain)) {
+        // توجيه السبدومين داخلياً لصفحة المنيو باستخدام الـ subdomain كـ slug
         if (path === '/' || (!path.startsWith('/menu/') && !path.startsWith('/api'))) {
-            const targetPath = path === '/' ? `/menu/${restaurantId}` : `/menu/${restaurantId}${path}`;
-            console.log(`[Middleware] Subdomain ${subdomain} -> Rewrite to ${targetPath}`);
-            const res = NextResponse.rewrite(new URL(`${targetPath}${url.search || ''}`, req.url));
-            res.headers.set('x-asn-subdomain', subdomain);
-            res.headers.set('x-asn-host', hostname);
-            res.headers.set('x-asn-target', targetPath);
-            return res;
+            const targetPath = path === '/' ? `/menu/${subdomain}` : `/menu/${subdomain}${path}`;
+            console.log(`[Middleware] Subdomain ${subdomain} -> Dynamic Rewrite to ${targetPath}`);
+            return NextResponse.rewrite(new URL(`${targetPath}${url.search || ''}`, req.url));
         }
     }
 
-    const finalRes = NextResponse.next();
-    finalRes.headers.set('x-asn-subdomain', subdomain || 'none');
-    finalRes.headers.set('x-asn-host', hostname);
-    return finalRes;
+    return NextResponse.next();
 }
