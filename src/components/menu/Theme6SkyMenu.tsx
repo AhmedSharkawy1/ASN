@@ -242,10 +242,10 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                             <FaWhatsapp className="w-6 h-6" />
                         </a>
                     )}
-                    {config.phone && (
-                        <a href={`tel:${config.phone}`} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                    {(config.phone_numbers && config.phone_numbers.length > 0) && (
+                        <button onClick={(e) => { e.preventDefault(); setShowCallMenu(true); }} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                             <Phone className="w-6 h-6" />
-                        </a>
+                        </button>
                     )}
                     <button onClick={() => { if (navigator.share) navigator.share({ title: config.name, url: location.href }); else { navigator.clipboard.writeText(location.href); alert('تم نسخ الرابط'); } }}
                         className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
@@ -634,15 +634,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                                     <h3 className="text-white text-base font-black uppercase">{isAr ? 'أرقام التوصيل' : 'Delivery Numbers'}</h3>
                                 </div>
                                 <div className="p-3 space-y-2 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-                                    {config.phone && (
-                                        <a href={`tel:${config.phone}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
-                                            <div className="flex flex-col">
-                                                <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums">{config.phone}</span>
-                                                <span className="text-[9px] text-zinc-400 font-bold">{isAr ? 'الرقم الرئيسي' : 'Main'}</span>
-                                            </div>
-                                            <div className="w-9 h-9 bg-white dark:bg-zinc-700 rounded-xl flex items-center justify-center" style={{ color: T6 }}>☏</div>
-                                        </a>
-                                    )}
+                                    
                                     {config.phone_numbers?.map((num: any, i: number) => (
                                         <a key={i} href={`tel:${num.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
                                             <div className="flex flex-col">

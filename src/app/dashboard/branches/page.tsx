@@ -53,7 +53,7 @@ export default function DashboardBranchesPage() {
             const { data: rootRest } = await supabase
                 .from('restaurants')
                 .select('id, parent_id')
-                .ilike('email', session.user.email)
+                .ilike('email', session.user.email || '')
                 .maybeSingle();
 
             if (rootRest) {

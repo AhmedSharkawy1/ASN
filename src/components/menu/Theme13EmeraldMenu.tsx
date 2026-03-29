@@ -326,7 +326,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                             <FaWhatsapp className="text-sm md:text-base" />
                         </a>
                     )}
-                    {(config.phone || (config.phones && config.phones.length > 0)) && (
+                    {(config.phone_numbers && config.phone_numbers.length > 0) && (
                         <div className="relative shrink-0">
                             <button
                                 onClick={() => setIsPhoneMenuOpen(!isPhoneMenuOpen)}
@@ -346,24 +346,15 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                                         <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center" dir={isAr ? 'rtl' : 'ltr'}>
                                             {isAr ? 'أرقام الديلفري' : 'Delivery Numbers'}
                                         </div>
-                                        {config.phones && config.phones.length > 0 ? (
-                                            config.phones.map((phoneNum: string, idx: number) => (
-                                                <a
-                                                    key={idx}
-                                                    href={`tel:${phoneNum}`}
-                                                    className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                                                >
-                                                    {phoneNum}
-                                                </a>
-                                            ))
-                                        ) : (
-                                            <a
-                                                href={`tel:${config.phone}`}
-                                                className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                                            >
-                                                {config.phone}
-                                            </a>
-                                        )}
+                                        {config.phone_numbers?.map((pn: {label?: string; number: string}, idx: number) => (
+                                                    <a
+                                                        key={idx}
+                                                        href={`tel:${pn.number}`}
+                                                        className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                                    >
+                                                        {pn.label || pn.number}
+                                                    </a>
+                                                ))}
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -649,14 +640,12 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                         <span className="text-[10px] md:text-xs font-semibold">{isAr ? 'السلة' : 'Cart'}</span>
                     </button>
                 )}
-                <a
-                    href={`tel:${config.phone}`}
-                    className="flex flex-col items-center gap-1 px-4 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                <button onClick={(e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers })); }} className="flex flex-col items-center gap-1 px-4 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     style={{ color: textMuted }}
                 >
-                    <PhoneCall className="w-5 h-5 md:w-6 md:h-6" />
+                            <PhoneCall className="w-5 h-5 md:w-6 md:h-6" />
                     <span className="text-[10px] md:text-xs font-semibold">{isAr ? 'اتصل' : 'Call'}</span>
-                </a>
+                        </button>
             </div>
 
             {/* Item Details Modal */}

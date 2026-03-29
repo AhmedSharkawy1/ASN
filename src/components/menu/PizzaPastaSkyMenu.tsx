@@ -39,6 +39,8 @@ type Category = {
 
 type RestaurantConfig = {
     name: string;
+    slogan_ar?: string;
+    slogan_en?: string;
     theme: string;
     phone?: string;
     whatsapp_number?: string;
@@ -95,6 +97,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
     const [showCallMenu, setShowCallMenu] = useState(false);
+    const [showBottomCallModal, setShowBottomCallModal] = useState(false);
     const [showCategoriesModal, setShowCategoriesModal] = useState(false);
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
     const [showCheckout, setShowCheckout] = useState(false);
@@ -304,7 +307,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                                     {config.name}
                                 </h1>
                                 <span className="text-sky-600 dark:text-sky-500 text-[10px] font-black uppercase tracking-[0.1em] mt-1">
-                                    {isAr ? "مذاق إيطالي أصيل" : "Delicious Italian Taste"}
+                                    {isAr ? (config.slogan_ar || "مذاق إيطالي أصيل") : (config.slogan_en || config.slogan_ar || "Delicious Italian Taste")}
                                 </span>
                             </div>
                         </div>
@@ -314,7 +317,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                     </div>
 
                     <div className="flex w-full gap-3">
-                        {(config.phone || (config.phone_numbers && config.phone_numbers.length > 0)) && (
+                        {((config.phone_numbers && config.phone_numbers.length > 0)) && (
                             <div className="flex-1 relative">
                                 <button
                                     onClick={() => { setShowCallMenu(!showCallMenu); triggerHaptic(10); }}
@@ -325,16 +328,9 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                                 </button>
                                 {showCallMenu && (
                                     <>
-                                        <div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px]" onClick={() => setShowCallMenu(false)}></div>
+<div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px]" onClick={() => setShowCallMenu(false)}></div>
                                         <div className="absolute top-full mt-3 left-0 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-[1.5rem] shadow-2xl overflow-hidden animate-slideUp z-50">
-                                            {config.phone && (
-                                                <a href={`tel:${config.phone}`} className="flex items-center justify-between px-5 py-4 hover:bg-sky-50 dark:hover:bg-sky-500/5 border-b last:border-0 border-zinc-100 dark:border-white/5 transition-all group">
-                                                    <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">{isAr ? "الرقم الأساسي" : "Main"}</span>
-                                                    <span className="text-[15px] font-black tabular-nums text-sky-600 dark:text-sky-500 flex items-center gap-2" dir="ltr">
-                                                        {config.phone} <span className="group-hover:animate-emoji text-xs">📞</span>
-                                                    </span>
-                                                </a>
-                                            )}
+                                            
                                             {config.phone_numbers?.map((pn, idx) => (
                                                 <a key={idx} href={`tel:${pn.number}`} className="flex items-center justify-between px-5 py-4 hover:bg-sky-50 dark:hover:bg-sky-500/5 border-b last:border-0 border-zinc-100 dark:border-white/5 transition-all group">
                                                     <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">{pn.label || `${isAr ? 'رقم' : 'Line'} ${idx + 1}`}</span>
@@ -669,6 +665,54 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                 )
                 }
             </AnimatePresence >
+            {/* ═══════ BOTTOM NAV DELIVERY MODAL ═══════ */}
+            <AnimatePresence>
+                {showBottomCallModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+                        onClick={() => setShowBottomCallModal(false)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            
+                            <div className="px-5 pb-4 pt-5 flex items-center justify-between border-b border-zinc-100 dark:border-white/5">
+                                <h3 className="text-lg font-black text-zinc-900 dark:text-white">{isAr ? 'أرقام الدليفري' : 'Delivery Numbers'}</h3>
+                                <button onClick={() => setShowBottomCallModal(false)} className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 active:scale-90 transition-transform">
+                                    <span className="text-lg">✕</span>
+                                </button>
+                            </div>
+                            <div className="p-4 overflow-y-auto space-y-3 pb-safe" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 1rem), 1.5rem)' }}>
+                                {config.phone_numbers && config.phone_numbers.length > 0 ? (
+                                    config.phone_numbers.map((pn: {label?: string; number: string}, idx: number) => (
+                                        <a key={idx} href={`tel:${pn.number}`}
+                                            className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700/50 rounded-2xl active:scale-[0.97] transition-all hover:bg-rose-50 dark:hover:bg-rose-500/5 group"
+                                        >
+                                            <div className="flex flex-col text-right flex-1 min-w-0">
+                                                <span className="font-bold text-zinc-400 dark:text-zinc-500 text-[11px] mb-1">
+                                                    {pn.label || (isAr ? `رقم ${idx + 1}` : `Line ${idx + 1}`)}
+                                                </span>
+                                                <span className="text-[17px] font-black text-rose-600 dark:text-rose-500 tabular-nums tracking-tight" dir="ltr">
+                                                    {pn.number}
+                                                </span>
+                                            </div>
+                                            <div className="w-11 h-11 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center shadow-sm text-lg border border-zinc-100 dark:border-white/5 group-hover:scale-110 transition-transform shrink-0 ml-3">
+                                                📞
+                                            </div>
+                                        </a>
+                                    ))
+                                ) : (
+                                    <div className="p-8 text-center text-zinc-400 font-bold">{isAr ? 'لا توجد أرقام مسجلة' : 'No numbers registered'}</div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+
 
             <ASNFooter />
             <CheckoutModal
@@ -732,11 +776,11 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                         </a>
                     )}
 
-                    {config.phone && (
-                        <a href={`tel:${config.phone}`} className="flex-1 flex flex-col items-center py-2 text-zinc-500 active:scale-90 transition-transform">
+                    {(config.phone_numbers && config.phone_numbers.length > 0) && (
+                        <button onClick={() => setShowBottomCallModal(true)} className="flex-1 flex flex-col items-center py-2 text-zinc-500 active:scale-90 transition-transform">
                             <span className="text-xl">📞</span>
                             <span className="text-[8px] font-black text-zinc-400 mt-1 uppercase">{isAr ? "اتصال" : "Call"}</span>
-                        </a>
+                        </button>
                     )}
 
                     <button

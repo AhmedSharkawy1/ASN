@@ -97,6 +97,7 @@ type RestaurantConfig = {
         location_url?: string;
     };
     phones?: string[];
+    phone_numbers?: {label?: string, number: string}[];
     latitude?: string;
     longitude?: string;
     address?: string;
@@ -720,24 +721,15 @@ export default function Theme15SkyMenu({ config, categories, restaurantId }: { c
                                 <div className="px-4 py-2 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase text-center" dir={isRTL ? 'rtl' : 'ltr'}>
                                     {isRTL ? 'أرقام الديلفري' : 'Delivery Numbers'}
                                 </div>
-                                {config.phones && config.phones.length > 0 ? (
-                                    config.phones.map((phoneNum: string, idx: number) => (
-                                        <a
-                                            key={idx}
-                                            href={`tel:${phoneNum}`}
-                                            className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 hover:bg-gray-50 transition-colors"
-                                        >
-                                            {phoneNum}
-                                        </a>
-                                    ))
-                                ) : (
-                                    <a
-                                        href={`tel:${config.phone}`}
-                                        className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 hover:bg-gray-50 transition-colors"
-                                    >
-                                        {config.phone}
-                                    </a>
-                                )}
+                                {config.phone_numbers?.map((pn: {label?: string; number: string}, idx: number) => (
+                                                    <a
+                                                        key={idx}
+                                                        href={`tel:${pn.number}`}
+                                                        className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        {pn.label || pn.number}
+                                                    </a>
+                                                ))}
                             </motion.div>
                         )}
                     </AnimatePresence>

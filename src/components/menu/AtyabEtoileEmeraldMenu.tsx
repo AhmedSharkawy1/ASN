@@ -613,12 +613,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                                     <span className="text-[11px] font-bold text-[#888] uppercase tracking-widest">{isAr ? "تواصل" : "Contact"}</span>
                                     <span className="text-lg">📞</span>
                                 </div>
-                                {config.phone && (
-                                    <a href={`tel:${config.phone}`} className="flex items-center justify-between px-6 py-4 border-b border-[#34d399] dark:border-[#333] active:bg-[#059669]/5 transition-colors group">
-                                        <span className="text-[12px] font-medium text-[#888] group-hover:text-[#059669]">{isAr ? "الرئيسي" : "Main"}</span>
-                                        <span className="text-base font-bold tabular-nums" style={{ color: PRIMARY }}>{config.phone}</span>
-                                    </a>
-                                )}
+                                
                                 {config.phone_numbers?.map((p, i) => (
                                     <a key={i} href={`tel:${p.number}`} className="flex items-center justify-between px-6 py-4 border-b last:border-0 border-[#34d399] dark:border-[#333] active:bg-[#059669]/5 transition-colors group">
                                         <span className="text-[12px] font-medium text-[#888] group-hover:text-[#059669]">{p.label}</span>

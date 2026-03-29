@@ -257,11 +257,11 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                         <FaTiktok className="w-5 h-5" />
                     </a>
                 )}
-                {config.phone && (
-                    <a href={`tel:${config.phone}`} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                        <Phone className="w-5 h-5" />
-                    </a>
-                )}
+                {(config.phone_numbers && config.phone_numbers.length > 0) && (
+                        <button onClick={(e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers })); }} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                            <Phone className="w-5 h-5" />
+                        </button>
+                    )}
             </div>
 
             {/* ─── STICKY NAV: TEXT TABS + CIRCULAR SUB-CATS ─── */}

@@ -697,15 +697,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                                 <h3 className="text-xl font-black text-white uppercase">{isAr ? "أرقام التوصيل" : "Delivery"}</h3>
                             </div>
                             <div className="p-3 space-y-2 overflow-y-auto t5-no-scrollbar">
-                                {config.phone && (
-                                    <a href={`tel:${config.phone}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform group flex-row-reverse">
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums">{config.phone}</span>
-                                            <span className="text-[9px] text-zinc-400 font-bold">{isAr ? "الرقم الرئيسي" : "Main Number"}</span>
-                                        </div>
-                                        <div className="w-9 h-9 bg-white dark:bg-zinc-700 rounded-xl flex items-center justify-center text-lg" style={{ color: THEME5_PRIMARY }}>☏</div>
-                                    </a>
-                                )}
+                                
                                 {config.phone_numbers?.map((num, i) => (
                                     <a key={i} href={`tel:${num.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform group flex-row-reverse">
                                         <div className="flex flex-col items-end">

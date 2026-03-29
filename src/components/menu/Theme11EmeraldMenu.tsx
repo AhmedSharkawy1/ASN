@@ -321,7 +321,7 @@ export default function Theme11EmeraldMenu({ config, categories, restaurantId }:
                                 </a>
                             )}
 
-                            {(config.phone || (config.phones && config.phones.length > 0)) && (
+                            {(config.phone_numbers && config.phone_numbers.length > 0) && (
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsPhoneMenuOpen(!isPhoneMenuOpen)}
@@ -341,24 +341,15 @@ export default function Theme11EmeraldMenu({ config, categories, restaurantId }:
                                                 <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center">
                                                     أرقام الديلفري
                                                 </div>
-                                                {config.phones && config.phones.length > 0 ? (
-                                                    config.phones.map((phoneNum: string, idx: number) => (
-                                                        <a
-                                                            key={idx}
-                                                            href={`tel:${phoneNum}`}
-                                                            className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-                                                        >
-                                                            {phoneNum}
-                                                        </a>
-                                                    ))
-                                                ) : (
+                                                {config.phone_numbers?.map((pn: {label?: string; number: string}, idx: number) => (
                                                     <a
-                                                        href={`tel:${config.phone}`}
+                                                        key={idx}
+                                                        href={`tel:${pn.number}`}
                                                         className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
                                                     >
-                                                        {config.phone}
+                                                        {pn.label || pn.number}
                                                     </a>
-                                                )}
+                                                ))}
                                             </motion.div>
                                         )}
                                     </AnimatePresence>

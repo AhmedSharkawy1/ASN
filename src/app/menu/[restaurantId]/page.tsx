@@ -93,6 +93,8 @@ type Category = {
 type RestaurantConfig = {
   id: string;
   name: string;
+  slogan_ar?: string;
+  slogan_en?: string;
   theme: string;
   phone?: string;
   whatsapp_number?: string;
@@ -139,6 +141,19 @@ function SmartMenuContent({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Global Delivery Modal (for themes without built-in call menu)
+  const [globalDeliveryNumbers, setGlobalDeliveryNumbers] = useState<{label?: string, number: string}[]>([]);
+  const [showGlobalDeliveryModal, setShowGlobalDeliveryModal] = useState(false);
+
+  useEffect(() => {
+    const handleOpenModal = (e: any) => {
+      setGlobalDeliveryNumbers(e.detail || []);
+      setShowGlobalDeliveryModal(true);
+    };
+    document.addEventListener('openDeliveryModal', handleOpenModal);
+    return () => document.removeEventListener('openDeliveryModal', handleOpenModal);
+  }, []);
+
   // Cart & Modal State
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
@@ -169,7 +184,7 @@ function SmartMenuContent({
         const { data: d1, error: e1 } = await supabase
           .from("restaurants")
           .select(
-            "id, name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors",
+            "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors",
           )
           .eq("id", params.restaurantId)
           .single();
@@ -178,7 +193,7 @@ function SmartMenuContent({
           const { data: d2 } = await supabase
             .from("restaurants")
             .select(
-              "id, name, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
+              "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
             )
             .eq("id", params.restaurantId)
             .single();
@@ -1219,6 +1234,44 @@ function SmartMenuContent({
                     </div>
                   );
                 })()}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Global Delivery Numbers Modal */}
+      <AnimatePresence>
+        {showGlobalDeliveryModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+          onClick={() => setShowGlobalDeliveryModal(false)}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+            onClick={e => e.stopPropagation()}
+          >
+              <div className="px-5 pb-4 pt-5 flex items-center justify-between border-b border-zinc-100 dark:border-white/5" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                <h3 className="text-lg font-black text-zinc-900 dark:text-white">{language === 'ar' ? 'أرقام الدليفري' : 'Delivery Numbers'}</h3>
+                <button onClick={() => setShowGlobalDeliveryModal(false)} className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 active:scale-90 transition-transform">
+                  <span className="text-lg">✕</span>
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto space-y-3 pb-safe" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 1rem), 1.5rem)' }}>
+                {globalDeliveryNumbers.length > 0 ? (
+                  globalDeliveryNumbers.map((pn, i) => (
+                    <a key={i} href={`tel:${pn.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700/50 rounded-2xl active:scale-[0.97] transition-transform" dir="rtl">
+                      <div className="flex flex-col text-right">
+                        <span className="font-bold text-zinc-400 dark:text-zinc-500 text-[11px] mb-1">{pn.label || (language === 'ar' ? `رقم ${i+1}` : `Line ${i+1}`)}</span>
+                        <span className="text-[17px] font-black text-rose-600 dark:text-rose-500 tabular-nums" dir="ltr">{pn.number}</span>
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center shadow-sm text-lg border border-zinc-100 dark:border-white/5">📞</div>
+                    </a>
+                  ))
+                ) : (
+                  <div className="p-8 text-center text-zinc-400 font-bold">{language === 'ar' ? 'لا توجد أرقام مسجلة' : 'No numbers registered'}</div>
+                )}
               </div>
             </motion.div>
           </motion.div>
