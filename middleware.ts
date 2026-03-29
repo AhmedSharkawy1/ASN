@@ -54,20 +54,13 @@ export default function middleware(req: NextRequest) {
     // 2. التعامل مع الـ Subdomains (مثل atiab.asntechnology.net)
     if (subdomain && !reservedSubdomains.includes(subdomain)) {
         // البحث عن الـ UUID الخاص بالـ subdomain
-        const restaurantId = SUBDOMAIN_MAP[subdomain];
+        const restaurantId = SUBDOMAIN_MAP[subdomain] || subdomain;
+        const menuPath = url.pathname === '/' ? `/menu/${restaurantId}` : url.pathname;
 
-        if (restaurantId) {
-            // إذا وجدنا الـ UUID، نقوم بعمل rewrite للمسار
-            if (!url.pathname.startsWith(`/menu/${restaurantId}`) && !url.pathname.startsWith('/api')) {
-                console.log(`[Middleware] Subdomain: ${subdomain} → Restaurant: ${restaurantId}`);
-                return NextResponse.rewrite(new URL(`/menu/${restaurantId}${path}`, req.url));
-            }
-        } else {
-            // إذا لم يكن موجوداً في الـ Map، جرب الـ slug مباشرة (لدعم مستقبلي)
-            if (!url.pathname.startsWith(`/menu/${subdomain}`) && !url.pathname.startsWith('/api')) {
-                console.log(`[Middleware] Subdomain (slug fallback): ${subdomain}`);
-                return NextResponse.rewrite(new URL(`/menu/${subdomain}${path}`, req.url));
-            }
+        // إذا لم يكن المسار يبدأ بـ /menu بالفعل
+        if (!url.pathname.startsWith('/menu/') && !url.pathname.startsWith('/api')) {
+            console.log(`[Middleware] Subdomain: ${subdomain} → Redirecting to ${menuPath}`);
+            return NextResponse.redirect(new URL(`https://${rootDomain}${menuPath}${url.search ? url.search : ''}`));
         }
     }
 
