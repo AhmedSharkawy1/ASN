@@ -26,6 +26,11 @@ export default function middleware(req: NextRequest) {
 
     console.log(`[Middleware] Host: ${hostname}, Path: ${path}`);
 
+    // 0. Auto-open Atyab Menu on the main domain root path
+    if ((hostname === 'asntechnology.net' || hostname === 'www.asntechnology.net' || hostname === 'localhost:3000') && url.pathname === '/') {
+        return NextResponse.redirect(new URL(`/menu/6cd35d66-f5e6-4add-a594-b7ec0ba8041a`, req.url));
+    }
+
     // 1. Check for exact hardcoded aliases for external fully custom domains (e.g., www.brand.com)
     const DOMAIN_ALIASES: Record<string, string> = {
         'test-restaurant.localhost:3000': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a',
