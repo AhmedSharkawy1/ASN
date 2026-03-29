@@ -35,21 +35,39 @@ export default function middleware(req: NextRequest) {
 
     const path = `${url.pathname}${url.search ? url.search : ''}`;
 
+    // ربط أسماء النطاقات الفرعية بمعرفات المطاعم (UUID)
+    // أضف هنا كل مطعم جديد: 'اسم-الsubdomain': 'UUID-المطعم'
+    const SUBDOMAIN_MAP: Record<string, string> = {
+        'atiab': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a',
+        // أضف مطاعم أخرى هنا:
+        // 'pizza-house': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    };
+
     // الكلمات المحجوزة التي لا تمثل مطاعم
     const reservedSubdomains = ['www', 'admin', 'api', 'dashboard', 'app', 'localhost:3000', 'asntechnology.net'];
 
     // 1. التعامل مع النطاق الأساسي (الرئيسي)
     if ((subdomain === '' || subdomain === 'www') && url.pathname === '/') {
-        // تحويل افتراضي لمطعم أطباق (يمكن تغييره لصفحة هبوط لاحقاً)
         return NextResponse.redirect(new URL(`/menu/6cd35d66-f5e6-4add-a594-b7ec0ba8041a`, req.url));
     }
 
     // 2. التعامل مع الـ Subdomains (مثل atiab.asntechnology.net)
     if (subdomain && !reservedSubdomains.includes(subdomain)) {
-        // إذا كان الطلب لا يخص الـ API ولا يبدأ بمسار المنيو فعلياً
-        if (!url.pathname.startsWith(`/menu/${subdomain}`) && !url.pathname.startsWith('/api')) {
-            console.log(`[Middleware] Subdomain detected: ${subdomain}. Rewriting to /menu/${subdomain}${path}`);
-            return NextResponse.rewrite(new URL(`/menu/${subdomain}${path}`, req.url));
+        // البحث عن الـ UUID الخاص بالـ subdomain
+        const restaurantId = SUBDOMAIN_MAP[subdomain];
+
+        if (restaurantId) {
+            // إذا وجدنا الـ UUID، نقوم بعمل rewrite للمسار
+            if (!url.pathname.startsWith(`/menu/${restaurantId}`) && !url.pathname.startsWith('/api')) {
+                console.log(`[Middleware] Subdomain: ${subdomain} → Restaurant: ${restaurantId}`);
+                return NextResponse.rewrite(new URL(`/menu/${restaurantId}${path}`, req.url));
+            }
+        } else {
+            // إذا لم يكن موجوداً في الـ Map، جرب الـ slug مباشرة (لدعم مستقبلي)
+            if (!url.pathname.startsWith(`/menu/${subdomain}`) && !url.pathname.startsWith('/api')) {
+                console.log(`[Middleware] Subdomain (slug fallback): ${subdomain}`);
+                return NextResponse.rewrite(new URL(`/menu/${subdomain}${path}`, req.url));
+            }
         }
     }
 
