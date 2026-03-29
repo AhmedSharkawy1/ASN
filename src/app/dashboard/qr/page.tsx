@@ -11,7 +11,7 @@ type TableQR = { id: string; label: string };
 
 export default function QRPage() {
     const { language } = useLanguage();
-    const { restaurantId } = useRestaurant();
+    const { restaurantId, slug } = useRestaurant();
     const isAr = language === "ar";
 
     const [tables, setTables] = useState<TableQR[]>([]);
@@ -27,6 +27,11 @@ export default function QRPage() {
 
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
     const getQRUrl = () => {
+        if (slug) {
+            const domain = `https://${slug}.asntechnology.net`;
+            if (selectedItem === "menu") return domain;
+            return `${domain}?table=${selectedItem}`;
+        }
         if (selectedItem === "menu") return `${baseUrl}/menu/${restaurantId}`;
         return `${baseUrl}/menu/${restaurantId}?table=${selectedItem}`;
     };

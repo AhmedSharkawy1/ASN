@@ -26,12 +26,9 @@ export default function middleware(req: NextRequest) {
 
     console.log(`[Middleware] Host: ${hostname}, Path: ${path}`);
 
-    // 1. Check for exact hardcoded aliases mapping directly to a specific restaurant ID (UUID)
+    // 1. Check for exact hardcoded aliases for external fully custom domains (e.g., www.brand.com)
     const DOMAIN_ALIASES: Record<string, string> = {
-        'atiab.asntechnology.com': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a',
-        'atiab.asntechnology.net': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a',
         'test-restaurant.localhost:3000': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a',
-        'atiab.localhost:3000': '6cd35d66-f5e6-4add-a594-b7ec0ba8041a'
     };
 
     if (DOMAIN_ALIASES[hostname]) {
@@ -43,12 +40,11 @@ export default function middleware(req: NextRequest) {
     }
 
     // 2. Determine root domains including localhost variations
-    // Replace this with the actual root domain in production 'asntechnology.net'
-    const isLocalhost = hostname.includes('localhost') || hostname.includes('127.0.0.1');
-    const rootDomain = isLocalhost ? 'localhost:3000' : 'asntechnology.net';
+    const rootDomains = ['asntechnology.net', 'asntechnology.com', 'localhost:3000'];
+    const rootDomain = rootDomains.find(d => hostname.endsWith(d)) || rootDomains[0];
 
-    // Extract the potential subdomain
-    const currentHost = hostname.replace(`.${rootDomain}`, '');
+    // Extract the potential subdomain (e.g., "atiab" from "atiab.asntechnology.net")
+    const currentHost = hostname.replace(`.${rootDomain}`, '').replace(rootDomain, '');
 
     // Known "safe" prefixes that shouldn't be treated as restaurant subdomains
     const reservedSubdomains = ['www', 'admin', 'api', 'dashboard', 'app', 'localhost:3000', rootDomain];

@@ -10,6 +10,7 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 interface Client {
     id: string;
     name: string;
+    slug: string | null;
     email: string | null;
     subscription_plan: string | null;
     subscription_expires_at: string | null;
@@ -108,7 +109,7 @@ export default function SuperAdminClientsPage() {
         try {
             const { data, error } = await supabase
                 .from('restaurants')
-                .select('id, name, email, subscription_plan, subscription_expires_at, created_at, parent_id')
+                .select('id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -275,7 +276,14 @@ export default function SuperAdminClientsPage() {
                                                     </div>
                                                     <div>
                                                         <div className="font-bold text-slate-900 dark:text-white">{client.name}</div>
-                                                        <div className="text-xs text-slate-500 dark:text-zinc-400 font-mono mt-0.5">{client.id.split('-')[0]}...</div>
+                                                        <div className="flex items-center gap-2 mt-0.5">
+                                                            <div className="text-xs text-slate-500 dark:text-zinc-400 font-mono italic">{client.id.split('-')[0]}...</div>
+                                                            {client.slug && (
+                                                                <div className="text-[10px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded font-bold">
+                                                                    @{client.slug}
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>

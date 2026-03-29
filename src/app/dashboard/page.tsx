@@ -27,16 +27,20 @@ export default function UserDashboardPage() {
             let rName = "";
 
             if (impTenant) {
-                const { data: rest } = await supabase.from('restaurants').select('id, name').eq('id', impTenant).single();
-                if (rest) { rId = rest.id; rName = rest.name || ""; }
+                const { data: rest } = await supabase.from('restaurants').select('id, name, slug').eq('id', impTenant).single();
+                if (rest) { rId = rest.id; rName = rest.name || ""; (window as any).rSlug = rest.slug; }
             } else {
-                const { data: rest } = await supabase.from('restaurants').select('id, name').eq('email', user.email).single();
+                const { data: rest } = await supabase.from('restaurants').select('id, name, slug').eq('email', user.email).single();
                 if (rest) {
-                    rId = rest.id; rName = rest.name || "";
+                    rId = rest.id; rName = rest.name || ""; (window as any).rSlug = rest.slug;
                 } else {
                     // Fallback for staff users
-                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, restaurants(name)').eq('auth_id', user.id).single();
-                    if (staff) { rId = staff.restaurant_id; rName = (staff as any).restaurants?.name || ""; }
+                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, restaurants(name, slug)').eq('auth_id', user.id).single();
+                    if (staff) { 
+                        rId = staff.restaurant_id; 
+                        rName = (staff as any).restaurants?.name || ""; 
+                        (window as any).rSlug = (staff as any).restaurants?.slug;
+                    }
                 }
             }
 
@@ -59,7 +63,17 @@ export default function UserDashboardPage() {
         }
     }, [])
 
-    const menuUrl = restaurantId && origin ? `${origin}/menu/${restaurantId}` : '';
+    const [menuUrl, setMenuUrl] = useState("");
+    useEffect(() => {
+        if (restaurantId) {
+            const slug = (window as any).rSlug;
+            if (slug) {
+                setMenuUrl(`https://${slug}.asntechnology.net`);
+            } else if (origin) {
+                setMenuUrl(`${origin}/menu/${restaurantId}`);
+            }
+        }
+    }, [restaurantId, origin]);
 
     const handleCopy = async () => {
         if (!menuUrl) return;

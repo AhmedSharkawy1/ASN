@@ -180,7 +180,7 @@ export default function ThemePage() {
 
                 const { data: restaurant, error } = await supabase
                     .from('restaurants')
-                    .select('id, theme, theme_colors')
+                    .select('id, theme, theme_colors, slug')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
 
@@ -188,15 +188,17 @@ export default function ThemePage() {
                 if (error) {
                     const { data: restaurant2 } = await supabase
                         .from('restaurants')
-                        .select('id, theme')
+                        .select('id, theme, slug')
                         .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                         .single();
                     if (restaurant2) {
                         setRestaurantId(restaurant2.id);
+                        (window as any).rSlug = restaurant2.slug;
                         setSelectedTheme(restaurant2.theme || "pizzapasta");
                     }
                 } else if (restaurant) {
                     setRestaurantId(restaurant.id);
+                    (window as any).rSlug = restaurant.slug;
                     setSelectedTheme(restaurant.theme || "pizzapasta");
                     if (restaurant.theme_colors) {
                         setThemeColors(prev => ({ ...prev, ...restaurant.theme_colors }));
@@ -354,7 +356,7 @@ export default function ThemePage() {
                             </p>
                         </div>
                         <a
-                            href={restaurantId ? `/menu/${restaurantId}` : "#"}
+                            href={restaurantId ? ((window as any).rSlug ? `https://${(window as any).rSlug}.asntechnology.net` : `/menu/${restaurantId}`) : "#"}
                             target="_blank"
                             className="flex items-center gap-2 text-blue font-bold hover:underline text-base"
                         >

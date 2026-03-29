@@ -181,12 +181,14 @@ function SmartMenuContent({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let restData: any = null;
 
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.restaurantId);
+
         const { data: d1, error: e1 } = await supabase
           .from("restaurants")
           .select(
             "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors",
           )
-          .eq("id", params.restaurantId)
+          .eq(isUUID ? "id" : "slug", params.restaurantId)
           .single();
 
         if (e1 || !d1) {
@@ -195,7 +197,7 @@ function SmartMenuContent({
             .select(
               "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
             )
-            .eq("id", params.restaurantId)
+            .eq(isUUID ? "id" : "slug", params.restaurantId)
             .single();
           restData = d2;
         } else {

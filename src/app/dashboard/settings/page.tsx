@@ -48,6 +48,7 @@ type RestaurantProfile = {
     order_channel?: "whatsapp" | "website" | "both";
     telegram_bot_token?: string;
     telegram_chat_id?: string;
+    slug?: string;
     theme_colors?: {
         primary?: string;
         secondary?: string;
@@ -90,7 +91,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions')
                 .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
@@ -98,7 +99,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
@@ -132,6 +133,7 @@ export default function SettingsPage() {
                     name: profile.name,
                     slogan_ar: profile.slogan_ar,
                     slogan_en: profile.slogan_en,
+                    slug: profile.slug?.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''),
                     phone: profile.phone,
                     whatsapp_number: profile.whatsapp_number,
                     address: profile.address,
@@ -169,6 +171,9 @@ export default function SettingsPage() {
                     .from('restaurants')
                     .update({
                         name: profile.name,
+                        slug: profile.slug?.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''),
+                        slogan_ar: profile.slogan_ar,
+                        slogan_en: profile.slogan_en,
                         phone: profile.phone,
                         whatsapp_number: profile.whatsapp_number,
                         address: profile.address,
@@ -193,11 +198,9 @@ export default function SettingsPage() {
             if (error) throw error;
             setSuccessMessage(language === "ar" ? "تم حفظ الإعدادات بنجاح!" : "Settings saved successfully!");
             setTimeout(() => setSuccessMessage(""), 3000);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            // We could set an error toast here if needed
-            setSuccessMessage(language === "ar" ? "حدث خطأ أثناء الحفظ!" : "Error saving settings!");
-            setTimeout(() => setSuccessMessage(""), 3000);
+            toast.error(language === "ar" ? `خطأ أثناء الحفظ: ${err.message}` : `Save error: ${err.message}`);
         } finally {
             setSaving(false);
         }
@@ -426,6 +429,19 @@ export default function SettingsPage() {
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "الشعار النصي (إنجليزي)" : "Slogan (English)"}</label>
                             <input type="text" value={profile.slogan_en || ''} onChange={e => setProfile({ ...profile, slogan_en: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" dir="ltr" placeholder="e.g., Authentic Italian Taste" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "رابط المنيو (Subdomain)" : "Menu Link (Slug)"}</label>
+                            <div className="relative">
+                                <input type="text" value={profile.slug || ''} onChange={e => setProfile({ ...profile, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                                    className="w-full pl-4 pr-11 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base font-bold text-blue-600 dark:text-blue-400" placeholder="brand-name" />
+                                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400 font-bold">.asn</div>
+                            </div>
+                            <p className="text-[10px] text-slate-500 px-1">
+                                {language === "ar" 
+                                    ? `سيصبح رابطك: ${profile.slug || "brand"}.asntechnology.net` 
+                                    : `Your link will be: ${profile.slug || "brand"}.asntechnology.net`}
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "رقم واتساب (للطلبات)" : "WhatsApp (For Orders)"}</label>
