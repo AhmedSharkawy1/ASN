@@ -17,54 +17,55 @@ import {
 } from "lucide-react";
 import { FaTiktok } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
-import PizzaPastaMenu from "@/components/menu/PizzaPastaMenu";
-import AtyabOrientalMenu from "@/components/menu/AtyabOrientalMenu";
-import BabAlHaraMenu from "@/components/menu/BabAlHaraMenu";
-import AtyabEtoileMenu from "@/components/menu/AtyabEtoileMenu";
-import Theme5Menu from "@/components/menu/Theme5Menu";
-import Theme6Menu from "@/components/menu/Theme6Menu";
-import Theme7Menu from "@/components/menu/Theme7Menu";
+import dynamic from "next/dynamic";
+const PizzaPastaMenu = dynamic(() => import("@/components/menu/PizzaPastaMenu"));
+const AtyabOrientalMenu = dynamic(() => import("@/components/menu/AtyabOrientalMenu"));
+const BabAlHaraMenu = dynamic(() => import("@/components/menu/BabAlHaraMenu"));
+const AtyabEtoileMenu = dynamic(() => import("@/components/menu/AtyabEtoileMenu"));
+const Theme5Menu = dynamic(() => import("@/components/menu/Theme5Menu"));
+const Theme6Menu = dynamic(() => import("@/components/menu/Theme6Menu"));
+const Theme7Menu = dynamic(() => import("@/components/menu/Theme7Menu"));
 
-import Theme9Menu from "@/components/menu/Theme9Menu";
-import Theme10Menu from "@/components/menu/Theme10Menu";
-import Theme11Menu from "@/components/menu/Theme11Menu";
-import Theme12Menu from "@/components/Theme12Menu/Theme12Menu";
-import Theme13Menu from "@/components/menu/Theme13Menu";
-import Theme16Menu from "@/components/menu/Theme16Menu";
-import PizzaPastaCyanMenu from "@/components/menu/PizzaPastaCyanMenu";
-import PizzaPastaEmeraldMenu from "@/components/menu/PizzaPastaEmeraldMenu";
-import PizzaPastaSkyMenu from "@/components/menu/PizzaPastaSkyMenu";
-import AtyabOrientalCyanMenu from "@/components/menu/AtyabOrientalCyanMenu";
-import AtyabOrientalEmeraldMenu from "@/components/menu/AtyabOrientalEmeraldMenu";
-import AtyabOrientalSkyMenu from "@/components/menu/AtyabOrientalSkyMenu";
-import BabAlHaraCyanMenu from "@/components/menu/BabAlHaraCyanMenu";
-import BabAlHaraEmeraldMenu from "@/components/menu/BabAlHaraEmeraldMenu";
-import BabAlHaraSkyMenu from "@/components/menu/BabAlHaraSkyMenu";
-import AtyabEtoileCyanMenu from "@/components/menu/AtyabEtoileCyanMenu";
-import AtyabEtoileEmeraldMenu from "@/components/menu/AtyabEtoileEmeraldMenu";
-import AtyabEtoileSkyMenu from "@/components/menu/AtyabEtoileSkyMenu";
-import Theme5CyanMenu from "@/components/menu/Theme5CyanMenu";
-import Theme5EmeraldMenu from "@/components/menu/Theme5EmeraldMenu";
-import Theme5SkyMenu from "@/components/menu/Theme5SkyMenu";
-import Theme6CyanMenu from "@/components/menu/Theme6CyanMenu";
-import Theme6EmeraldMenu from "@/components/menu/Theme6EmeraldMenu";
-import Theme6SkyMenu from "@/components/menu/Theme6SkyMenu";
-import Theme7CyanMenu from "@/components/menu/Theme7CyanMenu";
-import Theme7EmeraldMenu from "@/components/menu/Theme7EmeraldMenu";
-import Theme7SkyMenu from "@/components/menu/Theme7SkyMenu";
-import Theme9CyanMenu from "@/components/menu/Theme9CyanMenu";
-import Theme9EmeraldMenu from "@/components/menu/Theme9EmeraldMenu";
-import Theme9SkyMenu from "@/components/menu/Theme9SkyMenu";
-import Theme10CyanMenu from "@/components/menu/Theme10CyanMenu";
-import Theme10EmeraldMenu from "@/components/menu/Theme10EmeraldMenu";
-import Theme10SkyMenu from "@/components/menu/Theme10SkyMenu";
-import Theme11CyanMenu from "@/components/menu/Theme11CyanMenu";
-import Theme11EmeraldMenu from "@/components/menu/Theme11EmeraldMenu";
-import Theme11SkyMenu from "@/components/menu/Theme11SkyMenu";
-import Theme13CyanMenu from "@/components/menu/Theme13CyanMenu";
-import Theme13EmeraldMenu from "@/components/menu/Theme13EmeraldMenu";
-import Theme13SkyMenu from "@/components/menu/Theme13SkyMenu";
-import Theme15SkyMenu from "@/components/menu/Theme15SkyMenu";
+const Theme9Menu = dynamic(() => import("@/components/menu/Theme9Menu"));
+const Theme10Menu = dynamic(() => import("@/components/menu/Theme10Menu"));
+const Theme11Menu = dynamic(() => import("@/components/menu/Theme11Menu"));
+const Theme12Menu = dynamic(() => import("@/components/Theme12Menu/Theme12Menu"));
+const Theme13Menu = dynamic(() => import("@/components/menu/Theme13Menu"));
+const Theme16Menu = dynamic(() => import("@/components/menu/Theme16Menu"));
+const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
+const PizzaPastaEmeraldMenu = dynamic(() => import("@/components/menu/PizzaPastaEmeraldMenu"));
+const PizzaPastaSkyMenu = dynamic(() => import("@/components/menu/PizzaPastaSkyMenu"));
+const AtyabOrientalCyanMenu = dynamic(() => import("@/components/menu/AtyabOrientalCyanMenu"));
+const AtyabOrientalEmeraldMenu = dynamic(() => import("@/components/menu/AtyabOrientalEmeraldMenu"));
+const AtyabOrientalSkyMenu = dynamic(() => import("@/components/menu/AtyabOrientalSkyMenu"));
+const BabAlHaraCyanMenu = dynamic(() => import("@/components/menu/BabAlHaraCyanMenu"));
+const BabAlHaraEmeraldMenu = dynamic(() => import("@/components/menu/BabAlHaraEmeraldMenu"));
+const BabAlHaraSkyMenu = dynamic(() => import("@/components/menu/BabAlHaraSkyMenu"));
+const AtyabEtoileCyanMenu = dynamic(() => import("@/components/menu/AtyabEtoileCyanMenu"));
+const AtyabEtoileEmeraldMenu = dynamic(() => import("@/components/menu/AtyabEtoileEmeraldMenu"));
+const AtyabEtoileSkyMenu = dynamic(() => import("@/components/menu/AtyabEtoileSkyMenu"));
+const Theme5CyanMenu = dynamic(() => import("@/components/menu/Theme5CyanMenu"));
+const Theme5EmeraldMenu = dynamic(() => import("@/components/menu/Theme5EmeraldMenu"));
+const Theme5SkyMenu = dynamic(() => import("@/components/menu/Theme5SkyMenu"));
+const Theme6CyanMenu = dynamic(() => import("@/components/menu/Theme6CyanMenu"));
+const Theme6EmeraldMenu = dynamic(() => import("@/components/menu/Theme6EmeraldMenu"));
+const Theme6SkyMenu = dynamic(() => import("@/components/menu/Theme6SkyMenu"));
+const Theme7CyanMenu = dynamic(() => import("@/components/menu/Theme7CyanMenu"));
+const Theme7EmeraldMenu = dynamic(() => import("@/components/menu/Theme7EmeraldMenu"));
+const Theme7SkyMenu = dynamic(() => import("@/components/menu/Theme7SkyMenu"));
+const Theme9CyanMenu = dynamic(() => import("@/components/menu/Theme9CyanMenu"));
+const Theme9EmeraldMenu = dynamic(() => import("@/components/menu/Theme9EmeraldMenu"));
+const Theme9SkyMenu = dynamic(() => import("@/components/menu/Theme9SkyMenu"));
+const Theme10CyanMenu = dynamic(() => import("@/components/menu/Theme10CyanMenu"));
+const Theme10EmeraldMenu = dynamic(() => import("@/components/menu/Theme10EmeraldMenu"));
+const Theme10SkyMenu = dynamic(() => import("@/components/menu/Theme10SkyMenu"));
+const Theme11CyanMenu = dynamic(() => import("@/components/menu/Theme11CyanMenu"));
+const Theme11EmeraldMenu = dynamic(() => import("@/components/menu/Theme11EmeraldMenu"));
+const Theme11SkyMenu = dynamic(() => import("@/components/menu/Theme11SkyMenu"));
+const Theme13CyanMenu = dynamic(() => import("@/components/menu/Theme13CyanMenu"));
+const Theme13EmeraldMenu = dynamic(() => import("@/components/menu/Theme13EmeraldMenu"));
+const Theme13SkyMenu = dynamic(() => import("@/components/menu/Theme13SkyMenu"));
+const Theme15SkyMenu = dynamic(() => import("@/components/menu/Theme15SkyMenu"));
 import { PaymentMethodEntry } from "@/app/dashboard/settings/page";
 
 type Item = {
@@ -183,22 +184,30 @@ function SmartMenuContent({
 
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.restaurantId);
 
-        const { data: d1, error: e1 } = await supabase
+        let query1 = supabase
           .from("restaurants")
-          .select(
-            "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors",
-          )
-          .eq(isUUID ? "id" : "slug", params.restaurantId)
-          .single();
+          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors");
+
+        if (params.restaurantId === 'demo') {
+          query1 = query1.eq("is_marketing_account", true).limit(1).maybeSingle();
+        } else {
+          query1 = query1.eq(isUUID ? "id" : "slug", params.restaurantId).single();
+        }
+
+        const { data: d1, error: e1 } = await query1;
 
         if (e1 || !d1) {
-          const { data: d2 } = await supabase
+          let query2 = supabase
             .from("restaurants")
-            .select(
-              "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled",
-            )
-            .eq(isUUID ? "id" : "slug", params.restaurantId)
-            .single();
+            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled");
+          
+          if (params.restaurantId === 'demo') {
+            query2 = query2.eq("is_marketing_account", true).limit(1).maybeSingle();
+          } else {
+            query2 = query2.eq(isUUID ? "id" : "slug", params.restaurantId).single();
+          }
+
+          const { data: d2 } = await query2;
           restData = d2;
         } else {
           restData = d1;

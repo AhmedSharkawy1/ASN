@@ -12,7 +12,7 @@ import {
     Factory, ScrollText, TrendingUp, Landmark, Users,
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
-    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart
+    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -161,12 +161,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             // Impersonation Support
             const impersonatingTenant = sessionStorage.getItem('impersonating_tenant');
             if (impersonatingTenant) {
-                const { data: rest, error: impError } = await supabase.from('restaurants').select('id,name,logo_url').eq('id', impersonatingTenant).maybeSingle();
+                const { data: rest, error: impError } = await supabase.from('restaurants').select('id,name,logo_url,is_marketing_account').eq('id', impersonatingTenant).maybeSingle();
                 if (impError) console.error("ASN_LOG: Impersonation Lookup Error:", impError);
                 if (rest) {
                     rId = rest.id;
                     rName = rest.name + ' (Impersonating)';
                     rLogo = rest.logo_url;
+                    if (rest.is_marketing_account) tempPermissions['marketing_links'] = true;
                 }
             } else if (roleData && roleData.role === 'super_admin') {
                 router.push('/super-admin');
@@ -200,9 +201,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         if (staff.permissions) {
                             tempPermissions = typeof staff.permissions === 'string' ? JSON.parse(staff.permissions) : staff.permissions;
                         }
+                        if (staff.restaurants?.is_marketing_account) tempPermissions['marketing_links'] = true;
                     }
                 } else {
-                    const { data: rest, error: restError } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at').ilike('email', email!).maybeSingle();
+                    const { data: rest, error: restError } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at, is_marketing_account').ilike('email', email!).maybeSingle();
                     
                     if (restError) console.error("ASN_LOG: Restaurant Lookup Error:", restError);
 
@@ -214,6 +216,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             router.push('/subscription-expired');
                             return;
                         }
+                        if (rest.is_marketing_account) tempPermissions['marketing_links'] = true;
                     } else {
                         // Fallback: check if this auth user is linked as a team member by auth_id
                         console.log("ASN_LOG: No restaurant found for email, trying team_members by auth_id:", userId);
@@ -236,6 +239,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             if (staffFallback.permissions) {
                                 tempPermissions = typeof staffFallback.permissions === 'string' ? JSON.parse(staffFallback.permissions) : staffFallback.permissions;
                             }
+                            if (staffFallback.restaurants?.is_marketing_account) tempPermissions['marketing_links'] = true;
                         } else {
                             // AUTO-CREATE: New account with no restaurant — create one automatically
                             console.log("ASN_LOG: Auto-creating restaurant for new user:", email);
@@ -472,6 +476,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             key: "admin",
             label: language === "ar" ? "المسؤول والتسويق" : "Admin",
             items: [
+                { href: "/dashboard/marketing-links", icon: Megaphone, labelAr: "روابط العرض للتسويق", labelEn: "Marketing Links", key: "marketing_links" },
                 { href: "/dashboard/customers", icon: Users, labelAr: "العملاء", labelEn: "Customers", key: "customers" },
                 { href: "/dashboard/staff", icon: UserCog, labelAr: "الفريق", labelEn: "Staff", key: "team" },
                 { href: "/dashboard/notifications", icon: Bell, labelAr: "إشعارات العملاء", labelEn: "Notifications", key: "notifications" },

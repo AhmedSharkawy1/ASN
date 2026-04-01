@@ -327,7 +327,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                         <div className="flex flex-col gap-5">
                             {section.items.filter((i: any) => i.is_available !== false).map((item: any) => (
                                 <div key={item.id}
-                                    className="flex items-start gap-4 cursor-pointer rounded-2xl p-3 transition-all active:scale-[0.98] relative"
+                                    className="flex items-start gap-4 cursor-pointer rounded-3xl p-3 transition-all active:scale-[0.98] relative"
                                     style={{
                                         background: isDarkMode ? 'rgba(255,255,255,0.03)' : T7_CARD,
                                         border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}`,
@@ -403,8 +403,8 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
             {/* ── FLOATING CART NAV ── */}
             <AnimatePresence>
                 {config.orders_enabled !== false && cartCount > 0 && !isCartOpen && (
-                    <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
-                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-sm rounded-[2rem] shadow-2xl p-2 flex items-center justify-between backdrop-blur-md border"
+                    <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl p-2 flex items-center justify-between backdrop-blur-md border max-h-[85vh] flex flex-col mx-auto"
                         style={{
                             background: isDarkMode ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)',
                             borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
@@ -433,7 +433,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                 {selectedItem && (
                     <div className="fixed inset-0 z-[400] flex flex-col" style={{ background: isDarkMode ? T7_BG : '#f8fafc' }}
                         onClick={closeModal}>
-                        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             className="flex-1 flex flex-col overflow-y-auto"
                             onClick={e => e.stopPropagation()}>
                             {/* big image */}
@@ -553,7 +553,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                 {isCartOpen && (
                     <div className="fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsCartOpen(false)}>
                         <motion.div initial={{ opacity: 0, scale: .95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .95 }}
-                            className="w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                            className="w-[85vw] max-w-[310px] rounded-3xl shadow-2xl overflow-hidden flex flex-col h-auto max-h-[85vh] mx-auto"
                             style={{ background: isDarkMode ? T7_BG2 : '#fff' }}
                             onClick={e => e.stopPropagation()}>
                             {/* header */}
@@ -573,7 +573,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                                         <p>{isAr ? 'السلة فارغة' : 'Cart is empty'}</p>
                                     </div>
                                 ) : cart.map(ci => (
-                                    <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-3 p-3 rounded-2xl"
+                                    <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-3 p-3 rounded-3xl"
                                         style={{ background: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}` }}>
                                         <div className="w-14 h-14 rounded-xl shrink-0 overflow-hidden" style={{ background: isDarkMode ? '#1e293b' : '#e2e8f0' }}>
                                             <img src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
@@ -617,7 +617,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                 )}
             </AnimatePresence>
 
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

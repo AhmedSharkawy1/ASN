@@ -61,6 +61,7 @@ interface RestaurantType {
     marquee_text_en?: string;
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
+    show_asn_branding?: boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
@@ -450,11 +451,11 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                                     const hasMultiSizes = item.prices.length > 1;
                                     return (
                                         <div key={item.id} onClick={() => setSelectedItem({ item, catName: catName(cat), catImg: cat.image_url || cat.image })}
-                                            className={`relative rounded-[14px] md:rounded-[20px] overflow-hidden cursor-pointer group transition-all duration-300 transform hover:-translate-y-1 ${hasMultiSizes ? 'col-span-2 flex flex-row' : 'flex flex-col'}`}
+                                            className={`relative rounded-[14px] rounded-[2rem] overflow-hidden cursor-pointer group transition-all duration-300 transform hover:-translate-y-1 ${hasMultiSizes ? 'col-span-2 flex flex-row' : 'flex flex-col'}`}
                                             style={{ background: bgWhite, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${borderColor}` }}>
 
                                             {/* Top Image Box */}
-                                            <div className={`overflow-hidden bg-gray-100 relative shrink-0 ${hasMultiSizes ? 'w-32 md:w-44' : 'w-full h-32 md:h-48'}`}>
+                                            <div className={`overflow-hidden bg-gray-100 relative shrink-0 ${hasMultiSizes ? 'w-32 md:w-44' : 'w-full h-32 md:h-32'}`}>
                                                 <img src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
                                                     alt={itemName(item)}
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
@@ -477,7 +478,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                                                 )}
 
                                                 {/* Footer area */}
-                                                <div className="mt-auto flex flex-col gap-2 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                <div className=" flex flex-col gap-2 w-full" dir={isAr ? 'rtl' : 'ltr'}>
                                                     <div className="flex flex-col gap-1 w-full text-right mb-2 px-1">
                                                         {item.prices.map((p: number, idx: number) => (
                                                             <div key={idx} className="flex justify-between items-center w-full">
@@ -512,7 +513,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                 {/* SIDEBAR (Desktop Only) */}
                 <div className="hidden lg:block w-[300px] shrink-0">
                     {/* About Card */}
-                    <div className="rounded-2xl overflow-hidden shadow-sm mb-6 border" style={{ background: bgWhite, borderColor }}>
+                    <div className="rounded-3xl overflow-hidden shadow-sm mb-6 border" style={{ background: bgWhite, borderColor }}>
                         <div className="py-3 px-4 font-black text-center border-b" style={{ color: T9_RED, borderColor }}>
                             {isAr ? 'عن المطعم' : 'About us'}
                         </div>
@@ -544,10 +545,10 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
             <AnimatePresence>
                 {selectedItem && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={closeModal}>
                         <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-                            className="relative w-full max-w-[500px] max-h-[85vh] rounded-[24px] overflow-hidden flex flex-col shadow-2xl"
+                            className="relative w-[85vw] max-w-[310px] w-full max-h-[85vh] rounded-[24px] overflow-hidden flex flex-col shadow-2xl mx-auto"
                             style={{ background: bgWhite }}
                             onClick={e => e.stopPropagation()}>
 
@@ -557,7 +558,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                             </button>
 
                             {/* Image Box */}
-                            <div className="w-full h-[250px] shrink-0 relative flex items-center justify-center" style={{ backgroundColor: bgBody }}>
+                            <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative flex items-center justify-center" style={{ backgroundColor: bgBody }}>
                                 <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
                                     alt={itemName(selectedItem.item)}
                                     className="w-full h-full object-cover" />
@@ -670,11 +671,11 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
             <AnimatePresence>
                 {isCartOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[9991] bg-black/50 backdrop-blur-sm"
+                        className="fixed inset-0 z-[9991] bg-black/50 backdrop-blur-sm flex items-center justify-center py-16 px-6 mb-safe"
                         onClick={() => setIsCartOpen(false)}>
-                        <motion.div initial={{ x: isAr ? '-100%' : '100%' }} animate={{ x: 0 }} exit={{ x: isAr ? '-100%' : '100%' }}
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className={`absolute top-0 ${isAr ? 'left-0' : 'right-0'} w-full max-w-[350px] h-full flex flex-col shadow-2xl`}
+                            className={`relative w-[85vw] max-w-[310px] max-h-[85vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl`}
                             style={{ background: bgWhite }}
                             onClick={e => e.stopPropagation()}>
 
@@ -705,7 +706,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                                                             {c.notes && <span>{c.notes}</span>}
                                                         </p>
                                                     )}
-                                                    <div className="mt-auto flex justify-between items-center w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                    <div className=" flex justify-between items-center w-full" dir={isAr ? 'rtl' : 'ltr'}>
                                                         {/* Qty Controls */}
                                                         <div className="flex items-center gap-3">
                                                             <button onClick={() => updateQty(c.id, c.notes, 1)} className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold border hover:bg-red-50 hover:text-red-500 hover:border-red-500" style={{ borderColor, color: textDark }}><Plus className="w-3 h-3" /></button>
@@ -730,7 +731,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
 
                             {/* Footer */}
                             {cart.length > 0 && (
-                                <div className="absolute bottom-0 w-full p-5 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] border-t z-20" style={{ background: bgBody, borderColor }}>
+                                <div className="absolute bottom-0 w-full p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] border-t z-20" style={{ background: bgBody, borderColor }}>
                                     <div className="flex justify-between items-center mb-4 text-sm font-black" style={{ color: textDark }}>
                                         <span>{isAr ? 'المجموع' : 'Total'}</span>
                                         <span className="text-xl" style={{ color: T9_RED }}>{cur}{cartTotal.toFixed?.(0)}</span>
@@ -750,9 +751,9 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
             <AnimatePresence>
                 {isDrawerOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm md:hidden"
+                        className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-sm md:hidden flex items-center justify-center py-16 px-6 mb-safe"
                         onClick={() => setIsDrawerOpen(false)}>
-                        <motion.div initial={{ x: isAr ? '100%' : '-100%' }} animate={{ x: 0 }} exit={{ x: isAr ? '100%' : '-100%' }}
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                             className={`absolute top-0 ${isAr ? 'right-0' : 'left-0'} w-[85%] max-w-[320px] h-full flex flex-col shadow-2xl`}
                             style={{ background: bgWhite }}
@@ -863,9 +864,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                 <AnimatePresence>
                     {isPhoneMenuOpen && (
                         <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 10 }}
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-slate-700 py-2 z-[110] overflow-hidden"
                         >
                             <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center" dir={isAr ? 'rtl' : 'ltr'}>
@@ -886,7 +885,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
             </div>
 
             {/* Checkout Modal */}
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

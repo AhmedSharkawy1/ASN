@@ -56,6 +56,7 @@ type RestaurantConfig = {
     marquee_text_en?: string;
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
+    show_asn_branding?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -264,7 +265,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
 
             {/* ===== HERO COVER ===== */}
             {(config.cover_images && config.cover_images.length > 0) ? (
-                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                <div className="relative w-full h-32 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
                     <Swiper
                         modules={[Autoplay, EffectFade]}
                         effect="fade"
@@ -281,7 +282,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                     </Swiper>
                 </div>
             ) : config.cover_url ? (
-                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                <div className="relative w-full h-32 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
                     <img src={config.cover_url} alt="Cover" className="w-full h-full object-cover" />
                 </div>
             ) : null}
@@ -306,7 +307,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                 </span>
                             </div>
                         </div>
-                        <button onClick={toggleDarkMode} className="w-11 h-11 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xl transition-all active:scale-90 border border-zinc-200 dark:border-white/10 shadow-sm" suppressHydrationWarning>
+                        <button onClick={toggleDarkMode} className="w-11 h-11 rounded-3xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xl transition-all active:scale-90 border border-zinc-200 dark:border-white/10 shadow-sm" suppressHydrationWarning>
                             {isDark ? '☀️' : '🌙'}
                         </button>
                     </div>
@@ -316,14 +317,14 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                             <div className="flex-1 relative">
                                 <button
                                     onClick={() => { setShowCallMenu(!showCallMenu); triggerHaptic(10); }}
-                                    className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[13px] border ${showCallMenu ? "bg-zinc-900 text-white border-zinc-800" : "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"}`}
+                                    className={`w-full font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[13px] border ${showCallMenu ? "bg-zinc-900 text-white border-zinc-800" : "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"}`}
                                 >
                                     <span className="text-xl animate-emoji">📞</span>
                                     <span>{isAr ? "اتصل للطلب" : "Call to Order"}</span>
                                 </button>
                                 {showCallMenu && (
                                     <>
-<div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px]" onClick={() => setShowCallMenu(false)}></div>
+<div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px] flex items-center justify-center py-16 px-6 mb-safe" onClick={() => setShowCallMenu(false)}></div>
                                         <div className="absolute top-full mt-3 left-0 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-[1.5rem] shadow-2xl overflow-hidden animate-slideUp z-50">
                                             
                                             {config.phone_numbers?.map((pn, idx) => (
@@ -341,7 +342,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                         )}
                         {config.facebook_url && (
                             <a href={config.facebook_url} target="_blank" rel="noopener noreferrer"
-                                className="flex-1 bg-[#1877F2] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-xl text-[13px] border border-white/10 active:scale-95 transition-transform">
+                                className="flex-1 bg-[#1877F2] text-white font-black py-4 rounded-3xl flex items-center justify-center gap-2 shadow-xl text-[13px] border border-white/10 active:scale-95 transition-transform">
                                 <FaFacebook className="w-5 h-5" />
                                 <span className="animate-popular">{isAr ? "فيسبوك" : "Facebook"}</span>
                             </a>
@@ -362,7 +363,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                 key={cat.id}
                                 data-cat-id={cat.id}
                                 onClick={() => handleNavClick(cat.id)}
-                                className={`whitespace-nowrap px-4 py-2 rounded-2xl text-[12px] font-black border transition-all duration-300 ${activeSection === cat.id
+                                className={`whitespace-nowrap px-4 py-2 rounded-3xl text-[12px] font-black border transition-all duration-300 ${activeSection === cat.id
                                     ? "bg-rose-600 text-white border-rose-500 scale-105 shadow-md"
                                     : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-white/10 text-zinc-500"
                                     }`}
@@ -383,9 +384,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                 <AnimatePresence>
                     {cart.length > 0 && !showCart && !selectedItem && (
                         <motion.button
-                            initial={{ y: 100, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            exit={{ y: 100, opacity: 0 }}
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             onClick={() => { setShowCart(true); triggerHaptic(20); }}
                             className="fixed bottom-24 right-6 left-6 z-[70] bg-rose-600 text-white p-5 rounded-3xl shadow-2xl flex items-center justify-between animate-reveal border border-white/20 hover:scale-[1.02] transition-transform"
                         >
@@ -445,7 +444,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                     return (
                                         <div
                                             key={item.id}
-                                            className={`py-3 group transition-all -mx-2 px-2 rounded-2xl border border-transparent flex gap-3
+                                            className={`py-3 group transition-all -mx-2 px-2 rounded-3xl border border-transparent flex gap-3
                                                 ${hasManyPrices ? "flex-col" : "items-center justify-between"}
                                                 hover:bg-rose-50/30 dark:hover:bg-rose-900/5 hover:border-rose-100 dark:hover:border-rose-900/10`}
                                         >
@@ -476,7 +475,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                             onClick={() => openItemSelect(item, isAr ? cat.name_ar : (cat.name_en || cat.name_ar), pIdx)}
                                                             className={`flex flex-col items-center gap-1 transition-all group/btn
                                                                 ${hasManyPrices
-                                                                    ? "bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-2xl py-2 px-1 active:scale-95 hover:border-rose-500/50"
+                                                                    ? "bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-3xl py-2 px-1 active:scale-95 hover:border-rose-500/50"
                                                                     : "active:scale-90"
                                                                 }`}
                                                         >
@@ -486,7 +485,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                                 </span>
                                                             )}
                                                             <div className={`flex items-center justify-center gap-0.5
-                                                                ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-2xl border border-zinc-200 dark:border-white/5 hover:border-rose-500/40 shadow-sm"}`}
+                                                                ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-3xl border border-zinc-200 dark:border-white/5 hover:border-rose-500/40 shadow-sm"}`}
                                                             >
                                                                 <span className={`${hasManyPrices ? "text-rose-600 dark:text-rose-500 text-lg" : "text-rose-600 text-base"} font-black leading-none tabular-nums`}>{price}</span>
                                                                 <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{isAr ? "ج" : "EGP"}</span>
@@ -497,7 +496,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                             key={pIdx}
                                                             className={`flex flex-col items-center gap-1 transition-all group/btn
                                                                 ${hasManyPrices
-                                                                    ? "bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-2xl py-2 px-1"
+                                                                    ? "bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-3xl py-2 px-1"
                                                                     : ""
                                                                 }`}
                                                         >
@@ -507,7 +506,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                                 </span>
                                                             )}
                                                             <div className={`flex items-center justify-center gap-0.5
-                                                                ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-2xl border border-zinc-200 dark:border-white/5 shadow-sm"}`}
+                                                                ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-3xl border border-zinc-200 dark:border-white/5 shadow-sm"}`}
                                                             >
                                                                 <span className={`${hasManyPrices ? "text-rose-600 dark:text-rose-500 text-lg" : "text-rose-600 text-base"} font-black leading-none tabular-nums`}>{price}</span>
                                                                 <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{isAr ? "ج" : "EGP"}</span>
@@ -534,9 +533,11 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                         </div>
                     )}
                     <div className="space-y-1 opacity-50 hover:opacity-100 transition-opacity">
+                        {config.show_asn_branding !== false && (
                         <a href="/" target="_blank" className="text-rose-600 font-black text-[9px] block tracking-wider">
                             {isAr ? "مدعوم بواسطة" : "Powered by"} ASN Technology
                         </a>
+                        )}
                     </div>
                 </footer>
             </main>
@@ -546,13 +547,13 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                 {selectedItem && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 backdrop-blur-md p-10 md:p-24"
+                        className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 md: backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setSelectedItem(null)}
                     >
                         <motion.div
-                            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="w-full max-w-xl bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[82vh]"
+                            className="w-[85vw] max-w-[310px] bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] mx-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="p-6 border-b border-zinc-100 dark:border-white/5 flex items-center justify-between">
@@ -570,12 +571,12 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                             <button
                                                 key={idx}
                                                 onClick={() => { setTempSizeIdx(idx); triggerHaptic(5); }}
-                                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-1 ${tempSizeIdx === idx ? "border-rose-600 bg-rose-50 dark:bg-rose-900/10" : "border-zinc-100 dark:border-white/5 bg-zinc-50 dark:bg-white/5"}`}
+                                                className={`p-4 rounded-3xl border-2 transition-all flex flex-col items-center gap-1 ${tempSizeIdx === idx ? "border-rose-600 bg-rose-50 dark:bg-rose-900/10" : "border-zinc-100 dark:border-white/5 bg-zinc-50 dark:bg-white/5"}`}
                                             >
                                                 <span className={`text-[9px] font-black uppercase ${tempSizeIdx === idx ? "text-rose-600" : "text-zinc-400"}`}>
                                                     {selectedItem.item.size_labels?.[idx] || "عادي"}
                                                 </span>
-                                                <span className="text-xl font-black tabular-nums">{p} {isAr ? "ج" : "EGP"}</span>
+                                                <span className="text-lg font-black tabular-nums">{p} {isAr ? "ج" : "EGP"}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -585,7 +586,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                 {config.orders_enabled !== false && (
                                     <button
                                         onClick={addToCart}
-                                        className="w-full bg-rose-600 text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-base"
+                                        className="w-full bg-rose-600 text-white font-black py-4 rounded-3xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-base"
                                     >
                                         <ShoppingCart className="w-5 h-5" />
                                         {isAr ? "إضافة للطلب - " : "Add to Order - "}
@@ -603,12 +604,12 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                 {showCart && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-xl p-10 md:p-32"
+                        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 md: backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowCart(false)}
                     >
                         <motion.div
                             initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className="w-full max-w-xl bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[82vh]"
+                            className="w-[85vw] max-w-[310px] bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] mx-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="p-6 border-b border-zinc-100 dark:border-white/5 flex items-center justify-between">
@@ -625,7 +626,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                     <h4 className="text-xs font-black text-right text-zinc-400 uppercase tracking-widest">{isAr ? "محتويات السلة" : "Cart Items"}</h4>
                                     <div className="space-y-3">
                                         {cart.map((c) => (
-                                            <div key={c.id} className="bg-zinc-50 dark:bg-white/5 p-4 rounded-2xl border border-zinc-100 dark:border-white/5 flex items-center justify-between">
+                                            <div key={c.id} className="bg-zinc-50 dark:bg-white/5 p-4 rounded-3xl border border-zinc-100 dark:border-white/5 flex items-center justify-between">
                                                 <div className="flex-1 text-right">
                                                     <h4 className="font-black text-sm">{isAr ? c.item.title_ar : (c.item.title_en || c.item.title_ar)}</h4>
                                                     <p className="text-[9px] text-zinc-500 font-bold">{c.size_label !== "عادي" ? c.size_label : ""}</p>
@@ -651,7 +652,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                     <span className="text-base font-black text-zinc-500">{isAr ? "الحساب الكلي" : "Grand Total"}</span>
                                 </div>
                                 <button onClick={() => { setShowCart(false); setShowCheckout(true); }}
-                                    className="w-full bg-rose-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3">
+                                    className="w-full bg-rose-600 text-white font-black py-4 rounded-3xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3">
                                     🛒 {isAr ? "إتمام الطلب" : "Proceed to Checkout"}
                                 </button>
                             </div>
@@ -664,12 +665,12 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
             <AnimatePresence>
                 {showBottomCallModal && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowBottomCallModal(false)}>
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+                            className="relative w-[85vw] max-w-[310px] bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10 mx-auto"
                             onClick={e => e.stopPropagation()}
                         >
                             
@@ -683,7 +684,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                 {config.phone_numbers && config.phone_numbers.length > 0 ? (
                                     config.phone_numbers.map((pn: {label?: string; number: string}, idx: number) => (
                                         <a key={idx} href={`tel:${pn.number}`}
-                                            className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700/50 rounded-2xl active:scale-[0.97] transition-all hover:bg-rose-50 dark:hover:bg-rose-500/5 group"
+                                            className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700/50 rounded-3xl active:scale-[0.97] transition-all hover:bg-rose-50 dark:hover:bg-rose-500/5 group"
                                         >
                                             <div className="flex flex-col text-right flex-1 min-w-0">
                                                 <span className="font-bold text-zinc-400 dark:text-zinc-500 text-[11px] mb-1">
@@ -709,7 +710,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
 
 
 
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}
@@ -736,15 +737,15 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                 {showCategoriesModal && (
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowCategoriesModal(false)}
                     >
-                        <div className="w-full max-w-sm bg-white dark:bg-[#09090b] rounded-[2rem] shadow-2xl overflow-hidden relative" onClick={(e) => e.stopPropagation()}>
+                        <div className="w-[85vw] max-w-[310px] bg-white dark:bg-[#09090b] rounded-[2rem] shadow-2xl overflow-hidden relative max-h-[85vh] flex flex-col mx-auto" onClick={(e) => e.stopPropagation()}>
                             <button onClick={() => setShowCategoriesModal(false)} className="absolute top-6 left-6 w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black transition-all active:scale-90 hover:bg-rose-600 hover:text-white z-10">✕</button>
                             <div className="p-8 text-center border-b border-zinc-100 dark:border-white/5">
                                 <h3 className="text-lg font-black text-zinc-900 dark:text-white">{isAr ? "أقسام المنيو" : "Menu Sections"}</h3>
                             </div>
-                            <div className="p-4 grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+                            <div className="p-4 grid grid-cols-2 gap-3 max-h-[85vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
                                 {categories.map((cat) => (
                                     <button
                                         key={cat.id}
@@ -763,7 +764,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
 
             {/* ===== BOTTOM GLASS DOCK ===== */}
             <nav className="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-8 pt-2">
-                <div className="max-w-xl mx-auto bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2.5rem] p-1.5 flex items-center justify-around shadow-xl relative">
+                <div className="w-[85vw] max-w-[310px] mx-auto bg-white/80 dark:bg-zinc-900/80 backdrop-blur-2xl border border-zinc-200 dark:border-white/10 rounded-[2.5rem] p-1.5 flex items-center justify-around shadow-xl relative">
                     {config.whatsapp_number && (
                         <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`} className="flex-1 flex flex-col items-center py-2 text-[#25D366] active:scale-90 transition-transform">
                             <FaWhatsapp className="w-6 h-6" />
@@ -794,7 +795,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
 
                     <button
                         onClick={() => { setShowCategoriesModal(true); triggerHaptic(10); }}
-                        className="flex-1 flex flex-col items-center py-2 text-zinc-500 active:scale-90 transition-all"
+                        className="flex-1 flex items-center py-2 text-zinc-500 active:scale-90 transition-all"
                     >
                         <svg className="w-6 h-6 animate-popular" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M9 6H20M9 12H20M9 18H20M5 6V6.01M5 12V12.01M5 18V18.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -808,10 +809,10 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
             <AnimatePresence>
                 {showPaymentOptions && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                        className="fixed inset-0 z-[160] flex items-center justify-center bg-black/80 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowPaymentOptions(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 50 }}
-                            className="bg-white dark:bg-zinc-90 w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+                            className="bg-white dark:bg-zinc-90 w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10 mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
                                 <button onClick={() => setShowPaymentOptions(false)} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95 text-zinc-500">✕</button>

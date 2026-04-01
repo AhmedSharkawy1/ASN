@@ -243,20 +243,24 @@ export default function CheckoutModal({
     const effectiveStep = hasAddons ? step : step + 1;
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" dir={isAr ? "rtl" : "ltr"}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center py-16 px-6 mb-safe" dir={isAr ? "rtl" : "ltr"}>
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={effectiveStep < 5 ? onClose : undefined} />
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={effectiveStep < 5 ? onClose : undefined} />
 
             {/* Modal */}
-            <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-200 dark:border-zinc-800 animate-[slideUp_0.3s_ease-out]">
+            <div 
+                className="relative w-[85vw] max-w-[310px] max-h-[85vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 mx-auto"
+                style={{ animation: "popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
+            >
                 {/* Header */}
-                <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-t-2xl">
-                    <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+                <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-5 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-t-[2rem]">
+                    <h3 className="text-lg font-black text-zinc-900 dark:text-white flex-1 text-center">
                         {stepLabels[step as keyof typeof stepLabels]}
                     </h3>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition">
-                        <X className="w-5 h-5 text-zinc-500" />
+                    <button onClick={onClose} className="absolute left-4 p-2.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 hover:text-rose-600 hover:bg-rose-50 transition-all active:scale-90">
+                        <X className="w-5 h-5 font-bold" />
                     </button>
+                    <div className="absolute right-4 w-10"></div> {/* Spacer for centering */}
                 </div>
 
                 <div className="p-5 space-y-4">
@@ -266,7 +270,7 @@ export default function CheckoutModal({
                             <p className="text-xs text-zinc-500 dark:text-zinc-400">
                                 {isAr ? "اختر الإضافات لكل صنف (اختياري)" : "Choose extras for each item (optional)"}
                             </p>
-                            <div className="space-y-5 max-h-[55vh] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                            <div className="space-y-5 max-h-[85vh] overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                                 {cartItems.map((item, idx) => {
                                     const relevantAddons = getAddonsForItem(item);
                                     if (relevantAddons.length === 0) return null;
@@ -649,9 +653,9 @@ export default function CheckoutModal({
             </div>
 
             <style jsx>{`
-                @keyframes slideUp {
-                    from { transform: translateY(100px); opacity: 0; }
-                    to { transform: translateY(0); opacity: 1; }
+                @keyframes popIn {
+                    from { transform: scale(0.95); opacity: 0; }
+                    to { transform: scale(1); opacity: 1; }
                 }
             `}</style>
         </div>

@@ -1,7 +1,13 @@
 import React from 'react';
 import { FaFacebook } from "react-icons/fa";
 
-export default function ASNFooter() {
+interface ASNFooterProps {
+    show?: boolean;
+}
+
+export default function ASNFooter({ show = true }: ASNFooterProps) {
+    if (!show) return null;
+    
     return (
         <div className="w-full text-center py-8 pb-32 flex flex-col items-center justify-center gap-3 z-10 relative">
             <p className="text-sm font-bold opacity-70">

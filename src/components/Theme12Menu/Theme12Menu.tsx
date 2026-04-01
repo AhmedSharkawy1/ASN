@@ -802,7 +802,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                 </div>
             </div >
 
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

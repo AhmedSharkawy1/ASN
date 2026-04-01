@@ -52,6 +52,7 @@ type RestaurantConfig = {
     marquee_text_en?: string;
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
+    show_asn_branding?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -347,7 +348,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                 {/* Hero Section */}
                 <div className="relative">
                     {/* Banner Image */}
-                    <div className="h-48 md:h-64 w-full relative">
+                    <div className="h-32 md:h-64 w-full relative">
                         {config.cover_images && config.cover_images.length > 0 ? (
                             <Swiper
                                 modules={[Autoplay, EffectFade]}
@@ -528,32 +529,32 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
             </main>
 
             {/* Bottom Nav */}
-            <nav className="fixed bottom-0 left-0 right-0 z-[130] t5-bottom-nav px-2 py-4 flex items-center justify-around rounded-t-[2rem]">
+            <nav className="fixed bottom-0 left-0 right-0 z-[130] t5-bottom-nav px-2 py-4 flex items-center justify-around rounded-[2rem]">
                 {config.facebook_url && (
                     <a href={config.facebook_url} target="_blank" className="flex flex-col items-center gap-1 flex-1">
-                        <div className="w-10 h-10 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
+                        <div className="w-9 h-9 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
                             <FaFacebook className="w-5 h-5" />
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "فيسبوك" : "Facebook"}</span>
                     </a>
                 )}
 
-                <div onClick={() => setShowCallMenu(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
-                    <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                <div onClick={() => setShowCallMenu(true)} className="flex items-center gap-1 flex-1 cursor-pointer">
+                    <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">📞</span>
                     </div>
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? "دليفري" : "Call"}</span>
                 </div>
 
-                <div onClick={scrollToTop} className="flex flex-col items-center gap-1 flex-1 -mt-8 cursor-pointer">
+                <div onClick={scrollToTop} className="flex items-center gap-1 flex-1 -mt-8 cursor-pointer">
                     <div className="w-14 h-14 flex items-center justify-center text-white rounded-full shadow-lg border-[4px] border-[#f8f9fa] dark:border-[#121212] active:scale-90 transition-transform" style={{ backgroundColor: THEME5_PRIMARY }}>
                         <span className="text-xl font-black">↑</span>
                     </div>
                     <span className="text-[9px] font-black mt-1" style={{ color: THEME5_PRIMARY }}>{isAr ? "للأعلى" : "Top"}</span>
                 </div>
 
-                <div onClick={() => setShowPaymentMenu(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
-                    <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                <div onClick={() => setShowPaymentMenu(true)} className="flex items-center gap-1 flex-1 cursor-pointer">
+                    <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">💳</span>
                     </div>
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? "الدفع" : "Pay"}</span>
@@ -561,7 +562,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
 
                 {config.map_link && (
                     <a href={config.map_link} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
-                        <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                        <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                             <span className="text-lg">📍</span>
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "الموقع" : "Map"}</span>
@@ -569,8 +570,8 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                 )}
 
                 {config.orders_enabled !== false && (
-                    <div onClick={() => setShowCart(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer relative">
-                        <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                    <div onClick={() => setShowCart(true)} className="flex items-center gap-1 flex-1 cursor-pointer relative">
+                        <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                             <ShoppingBag className="w-5 h-5" />
                         </div>
                         {cartCount > 0 && (
@@ -592,9 +593,9 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
             <AnimatePresence>
                 {/* Item Select Modal */}
                 {selectedItem && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setSelectedItem(null)}>
-                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-lg bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl" onClick={e => e.stopPropagation()}>
-                            <div className="relative h-48 bg-zinc-100 dark:bg-zinc-800">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md py-16 px-6 mb-safe" onClick={() => setSelectedItem(null)}>
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-[85vw] max-w-[310px] bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col h-auto max-h-[85vh] shadow-2xl mx-auto" onClick={e => e.stopPropagation()}>
+                            <div className="relative h-32 bg-zinc-100 dark:bg-zinc-800">
                                 {(selectedItem.item.image_url || selectedItem.catImg) ? (
                                     <img src={selectedItem.item.image_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-cover" />
                                 ) : (
@@ -640,9 +641,9 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                 {/* Cart Modal */}
                 {showCart && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCart(false)}>
-                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-lg bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col max-h-[95vh] shadow-2xl" onClick={e => e.stopPropagation()}>
-                            <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center flex-row-reverse bg-gray-50 dark:bg-black/20">
-                                <h3 className="text-xl font-bold flex items-center gap-2">
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-[85vw] max-w-[310px] bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col max-h-[95vh] shadow-2xl mx-auto" onClick={e => e.stopPropagation()}>
+                            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center flex-row-reverse bg-gray-50 dark:bg-black/20">
+                                <h3 className="text-lg font-bold flex items-center gap-2">
                                     {isAr ? "سلة الطلبات" : "Your Cart"} <ShoppingBag className="w-5 h-5" style={{ color: THEME5_PRIMARY }} />
                                 </h3>
                                 <button onClick={() => setShowCart(false)} className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300"><X className="w-5 h-5" /></button>
@@ -653,7 +654,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                                 ) : (
                                     <div className="space-y-4">
                                         {cart.map((c) => (
-                                            <div key={c.id} className="flex gap-4 p-3 border rounded-2xl flex-row-reverse border-zinc-100 dark:border-zinc-800 bg-gray-50 dark:bg-black/10">
+                                            <div key={c.id} className="flex gap-4 p-3 border rounded-3xl flex-row-reverse border-zinc-100 dark:border-zinc-800 bg-gray-50 dark:bg-black/10">
                                                 <div className="flex flex-col items-center justify-between bg-white dark:bg-[#1E1E1E] border rounded-full p-1 border-zinc-100 dark:border-zinc-800">
                                                     <button onClick={() => updateCartQty(c.id, 1)} className="w-7 h-7 rounded-full bg-zinc-100 dark:bg-[#333] flex items-center justify-center hover:bg-[#059669] hover:text-white transition-colors"><PlusIcon className="w-4 h-4" /></button>
                                                     <span className="font-bold tabular-nums my-1">{c.quantity}</span>
@@ -689,7 +690,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                 {/* Delivery Call Modal */}
                 {showCallMenu && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShowCallMenu(false)}>
-                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-[2rem] overflow-hidden shadow-2xl flex flex-col h-auto max-h-[85vh] mx-auto" onClick={e => e.stopPropagation()}>
                             <div className="p-5 text-center shrink-0" style={{ backgroundColor: THEME5_PRIMARY }}>
                                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 backdrop-blur-md">
                                     <span className="text-xl">📞</span>
@@ -699,7 +700,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                             <div className="p-3 space-y-2 overflow-y-auto t5-no-scrollbar">
                                 
                                 {config.phone_numbers?.map((num, i) => (
-                                    <a key={i} href={`tel:${num.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform group flex-row-reverse">
+                                    <a key={i} href={`tel:${num.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform group flex-row-reverse">
                                         <div className="flex flex-col items-end">
                                             <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums">{num.number}</span>
                                             <span className="text-[9px] text-zinc-400 font-bold">{num.label}</span>
@@ -718,11 +719,11 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                 {/* Payment Modal */}
                 {showPaymentMenu && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShowPaymentMenu(false)}>
-                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col h-auto max-h-[85vh] mx-auto" onClick={e => e.stopPropagation()}>
                             <div className="p-6 pb-2 text-center shrink-0 flex justify-between items-start">
                                 <button onClick={() => setShowPaymentMenu(false)} className="w-8 h-8 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95 text-zinc-500">✕</button>
                                 <div className="text-right">
-                                    <div className="w-12 h-12 bg-zinc-100 dark:bg-white/5 rounded-2xl flex items-center justify-center ml-auto mb-3 text-2xl" style={{ color: THEME5_PRIMARY }}>💳</div>
+                                    <div className="w-12 h-12 bg-zinc-100 dark:bg-white/5 rounded-3xl flex items-center justify-center ml-auto mb-3 text-2xl" style={{ color: THEME5_PRIMARY }}>💳</div>
                                     <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-1">{isAr ? "وسائل الدفع" : "Payment Methods"}</h3>
                                     <p className="text-[10px] opacity-60 font-black uppercase tracking-widest">{isAr ? "طرق الدفع المتاحة" : "Available Payment Methods"}</p>
                                 </div>
@@ -730,7 +731,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                             <div className="px-5 py-4 space-y-3 overflow-y-auto t5-no-scrollbar">
                                 {config.payment_methods && config.payment_methods.length > 0 ? (
                                     config.payment_methods.map((pm) => (
-                                        <div key={pm.id} className="block p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 text-right transition-all hover:border-[#059669]/50">
+                                        <div key={pm.id} className="block p-4 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 text-right transition-all hover:border-[#059669]/50">
                                             <h4 className="font-black text-sm text-zinc-800 dark:text-white mb-1">{isAr ? pm.name_ar : pm.name_en || pm.name_ar}</h4>
                                             {(pm.desc_ar || pm.desc_en) && (
                                                 <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-3 leading-tight">{isAr ? pm.desc_ar : pm.desc_en || pm.desc_ar}</p>
@@ -768,7 +769,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="block p-5 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 text-right">
+                                    <div className="block p-5 bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 text-right">
                                         <span className="text-sm font-black text-zinc-800 dark:text-white block mb-1">{isAr ? "كاش عند الاستلام" : "Cash on Delivery"}</span>
                                         <p className="text-[10px] text-zinc-400 leading-tight">{isAr ? "الدفع المباشر كاش للمندوب عند وصول الطلب" : "Pay cash directly to the delivery agent"}</p>
                                     </div>
@@ -784,9 +785,9 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                 {/* Categories Grid Modal */}
                 {showCategoriesModal && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCategoriesModal(false)}>
-                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-md bg-white dark:bg-[#1E1E1E] rounded-[2rem] overflow-hidden flex flex-col max-h-[85vh] shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-[85vw] max-w-[310px] bg-white dark:bg-[#1E1E1E] rounded-[2rem] overflow-hidden flex flex-col h-auto max-h-[85vh] shadow-2xl mx-auto" onClick={e => e.stopPropagation()}>
                             <div className="p-5 flex justify-between items-center bg-gray-50 dark:bg-black/20 border-b border-zinc-100 dark:border-zinc-800 flex-row-reverse shrink-0">
-                                <h3 className="text-xl font-bold flex items-center gap-2 text-zinc-900 dark:text-white">
+                                <h3 className="text-lg font-bold flex items-center gap-2 text-zinc-900 dark:text-white">
                                     <LayoutGrid className="w-5 h-5" style={{ color: THEME5_PRIMARY }} />
                                     {isAr ? "جميع الأقسام" : "All Categories"}
                                 </h3>
@@ -800,7 +801,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
                                             setShowCategoriesModal(false);
                                             scrollToSection(c.id);
                                         }}
-                                        className="flex flex-col items-center justify-center p-4 border rounded-2xl bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 hover:shadow-md transition-all active:scale-95 group gap-2"
+                                        className="flex flex-col items-center justify-center p-4 border rounded-3xl bg-white dark:bg-zinc-900 border-zinc-100 dark:border-zinc-800 hover:shadow-md transition-all active:scale-95 group gap-2"
                                     >
                                         <div className="w-14 h-14 rounded-full flex items-center justify-center text-3xl group-hover:scale-110 transition-transform" style={{ backgroundColor: `${THEME5_PRIMARY}1a` }}>
                                             {c.emoji || "🍽️"}
@@ -815,7 +816,7 @@ export default function Theme5EmeraldMenu({ config, categories, language, restau
             </AnimatePresence>
 
             {/* Checkout Modal */}
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

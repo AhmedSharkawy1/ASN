@@ -57,6 +57,7 @@ type RestaurantConfig = {
     marquee_text_en?: string;
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
+    show_asn_branding?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -270,7 +271,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
 
             {/* ===== HERO COVER ===== */}
             {(config.cover_images && config.cover_images.length > 0) ? (
-                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                <div className="relative w-full h-32 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
                     <Swiper
                         modules={[Autoplay, EffectFade]}
                         effect="fade"
@@ -287,7 +288,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                     </Swiper>
                 </div>
             ) : config.cover_url ? (
-                <div className="relative w-full h-48 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
+                <div className="relative w-full h-32 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
                     <img src={config.cover_url} alt="Cover" className="w-full h-full object-cover" />
                 </div>
             ) : null}
@@ -313,7 +314,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                                 )}
                             </div>
                         </div>
-                        <button onClick={toggleDarkMode} className="w-11 h-11 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xl transition-all active:scale-90 border border-zinc-200 dark:border-white/10 shadow-sm" suppressHydrationWarning>
+                        <button onClick={toggleDarkMode} className="w-11 h-11 rounded-3xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xl transition-all active:scale-90 border border-zinc-200 dark:border-white/10 shadow-sm" suppressHydrationWarning>
                             {isDark ? '☀️' : '🌙'}
                         </button>
                     </div>
@@ -323,7 +324,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                         <div className="flex-1 relative">
                             <button
                                 onClick={() => { haptic(); setShowCallMenu(!showCallMenu); }}
-                                className={`w-full font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border ${showCallMenu ? "bg-zinc-900 text-white border-zinc-800" : "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"}`}
+                                className={`w-full font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border ${showCallMenu ? "bg-zinc-900 text-white border-zinc-800" : "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"}`}
                             >
                                 <Phone className="w-5 h-5" />
                                 <span>{isAr ? "اتصل بنا" : "Call Us"}</span>
@@ -333,9 +334,9 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                             <AnimatePresence>
                                 {showCallMenu && (
                                     <>
-<div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px]" onClick={() => setShowCallMenu(false)} />
+<div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px] flex items-center justify-center py-16 px-6 mb-safe" onClick={() => setShowCallMenu(false)} />
                                         <motion.div
-                                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                                             className="absolute top-full mt-3 left-0 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-[1.5rem] shadow-2xl overflow-hidden z-50"
                                         >
                                             <div className="px-4 py-2 bg-zinc-50 dark:bg-white/5 border-b border-zinc-100 dark:border-white/5">
@@ -359,7 +360,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
 
                         {config.facebook_url && (
                             <a href={config.facebook_url} target="_blank" rel="noopener noreferrer"
-                                className="flex-1 bg-[#1877F2] hover:bg-[#166fe5] text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border border-white/10">
+                                className="flex-1 bg-[#1877F2] hover:bg-[#166fe5] text-white font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border border-white/10">
                                 <FaFacebook className="w-5 h-5" />
                                 <span>{isAr ? "فيسبوك" : "Facebook"}</span>
                             </a>
@@ -380,7 +381,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                                 key={cat.id}
                                 data-cat-id={cat.id}
                                 onClick={() => handleNavClick(cat.id)}
-                                className={`whitespace-nowrap px-4 py-2 rounded-2xl text-[12px] font-black border transition-all duration-300 ${activeCategory === cat.id
+                                className={`whitespace-nowrap px-4 py-2 rounded-3xl text-[12px] font-black border transition-all duration-300 ${activeCategory === cat.id
                                     ? "bg-[#059669] text-black border-[#059669] scale-105 shadow-lg shadow-[#059669]/20"
                                     : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-white/10 text-zinc-500 hover:border-[#059669]/30"
                                     }`}
@@ -432,7 +433,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                                         <div
                                             key={item.id}
                                             onClick={() => openItemSelect(item, isAr ? cat.name_ar : cat.name_en || cat.name_ar)}
-                                            className={`py-2 group transition-all -mx-2 px-2 rounded-2xl border border-transparent cursor-pointer flex gap-2
+                                            className={`py-2 group transition-all -mx-2 px-2 rounded-3xl border border-transparent cursor-pointer flex gap-2
                                                 ${hasManyPrices ? "flex-col" : "items-center justify-between"}
                                                 hover:bg-[#059669]/5 hover:border-[#059669]/10`}
                                         >
@@ -519,9 +520,11 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                     </div>
 
                     <div className="flex flex-col items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
+                        {config.show_asn_branding !== false && (
                         <a href="/" target="_blank" className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400">
                             {isAr ? "مدعوم بواسطة" : "Powered by"} <span className="font-black text-[#059669]">ASN Technology</span>
                         </a>
+                        )}
                     </div>
                 </footer>
             </main>
@@ -530,11 +533,11 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
             <AnimatePresence>
                 {selectedItem && config.orders_enabled !== false && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4 sm:p-6"
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 sm: backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setSelectedItem(null)}>
                         <motion.div
-                            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                            className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white w-full max-w-lg rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh] border border-zinc-200 dark:border-white/10"
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white w-[85vw] max-w-[310px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-auto max-h-[85vh] border border-zinc-200 dark:border-white/10 mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
                                 <button onClick={() => setSelectedItem(null)} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
@@ -556,7 +559,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                                         <button key={idx} onClick={() => { setTempSizeIdx(idx); haptic(5); }}
                                             className={`p-4 rounded-3xl border-2 transition-all flex flex-col items-center gap-1 ${tempSizeIdx === idx ? "border-[#059669] bg-[#059669]/10" : "border-transparent bg-zinc-100 dark:bg-white/5"}`}>
                                             <span className={`text-[10px] font-black uppercase ${tempSizeIdx === idx ? "text-[#059669]" : "opacity-60"}`}>{selectedItem.item.size_labels?.[idx] || "عادي"}</span>
-                                            <span className="text-xl font-black tabular-nums">{p} {isAr ? "ج.م" : "EGP"}</span>
+                                            <span className="text-lg font-black tabular-nums">{p} {isAr ? "ج.م" : "EGP"}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -564,7 +567,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
 
                             <div className="p-6 bg-zinc-50 dark:bg-white/5 border-t border-zinc-200 dark:border-white/10">
                                 <button onClick={addToCart}
-                                    className="w-full bg-[#059669] text-black font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-lg">
+                                    className="w-full bg-[#059669] text-black font-black py-4 rounded-3xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-lg">
                                     <ShoppingCart className="w-5 h-5" />
                                     {isAr ? "إضافة للطلب - " : "Add to Order - "}{selectedItem.item.prices?.[tempSizeIdx] || 0} {isAr ? "ج.م" : "EGP"}
                                 </button>
@@ -578,10 +581,10 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
             <AnimatePresence>
                 {showCart && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-xl p-4 sm:p-6"
+                        className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 sm: backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowCart(false)}>
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white w-full max-w-xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[90vh] border border-zinc-200 dark:border-white/10"
+                            className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white w-[85vw] max-w-[310px] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10 mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
                                 <button onClick={() => setShowCart(false)} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
@@ -596,7 +599,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                                 <div className="space-y-3">
                                     <h4 className="text-xs font-black text-right opacity-60 uppercase tracking-widest border-b border-zinc-100 dark:border-white/5 pb-2">{isAr ? "محتويات السلة" : "Cart Items"}</h4>
                                     {cart.map((c) => (
-                                        <div key={c.id} className="bg-zinc-50 dark:bg-white/5 p-4 rounded-2xl flex items-center justify-between">
+                                        <div key={c.id} className="bg-zinc-50 dark:bg-white/5 p-4 rounded-3xl flex items-center justify-between">
                                             <div className="flex-1 text-right">
                                                 <h4 className="font-bold text-sm">{isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar}</h4>
                                                 <p className="text-[10px] opacity-70 font-bold mt-0.5">{c.size_label !== "عادي" ? c.size_label : ""}</p>
@@ -618,7 +621,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                                     <span className="text-[9px] font-black opacity-60 uppercase tracking-widest">{isAr ? "إجمالي الحساب" : "Total"}</span>
                                 </div>
                                 <button onClick={() => { setShowCart(false); setShowCheckout(true); }}
-                                    className="w-full bg-[#059669] text-black font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3">
+                                    className="w-full bg-[#059669] text-black font-black py-4 rounded-3xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3">
                                     🛒 {isAr ? "إتمام الطلب" : "Proceed to Checkout"}
                                 </button>
                             </div>
@@ -630,12 +633,12 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
             <AnimatePresence>
                 {showBottomCallModal && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowBottomCallModal(false)}>
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+                            className="relative w-[85vw] max-w-[310px] bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10 mx-auto"
                             onClick={e => e.stopPropagation()}
                         >
                             
@@ -649,7 +652,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
                                 {config.phone_numbers && config.phone_numbers.length > 0 ? (
                                     config.phone_numbers.map((pn: {label?: string; number: string}, idx: number) => (
                                         <a key={idx} href={`tel:${pn.number}`}
-                                            className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700/50 rounded-2xl active:scale-[0.97] transition-all hover:bg-amber-50 dark:hover:bg-amber-500/5 group"
+                                            className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700/50 rounded-3xl active:scale-[0.97] transition-all hover:bg-amber-50 dark:hover:bg-amber-500/5 group"
                                         >
                                             <div className="flex flex-col text-right flex-1 min-w-0">
                                                 <span className="font-bold text-zinc-400 dark:text-zinc-500 text-[11px] mb-1">
@@ -675,7 +678,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
 
 
 
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}
@@ -701,7 +704,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
             <AnimatePresence>
                 {cart.length > 0 && !showCart && !selectedItem && (
                     <motion.button
-                        initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+                        initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         onClick={() => { setShowCart(true); haptic(20); }}
                         className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[58] bg-[#059669] text-black shadow-2xl shadow-[#059669]/30 px-6 py-4 rounded-full flex items-center gap-3 transition-transform hover:scale-105 active:scale-95 font-black">
                         <ShoppingCart className="w-5 h-5" />
@@ -713,7 +716,7 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
 
             {/* ═══════ BOTTOM NAVIGATION BAR ═══════ */}
             <nav className="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-8 pt-2 md:hidden">
-                <div className="max-w-xl mx-auto bg-white/80 dark:bg-[#0f0f0f]/70 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-[2.5rem] p-1 flex items-center justify-around shadow-xl relative">
+                <div className="w-[85vw] max-w-[310px] mx-auto bg-white/80 dark:bg-[#0f0f0f]/70 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-[2.5rem] p-1 flex items-center justify-around shadow-xl relative">
                     {config.whatsapp_number && (
                         <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`} className="flex-1 flex flex-col items-center py-2 text-[#25D366] active:scale-90 transition-transform">
                             <FaWhatsapp className="w-6 h-6" />
@@ -748,18 +751,18 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
             <AnimatePresence>
                 {showCategoriesGrid && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowCategoriesGrid(false)}>
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className="w-full max-w-sm bg-[#18181b] rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden"
+                            className="w-[85vw] max-w-[310px] bg-[#18181b] rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden max-h-[85vh] flex flex-col mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 text-center border-b border-white/5">
                                 <h3 className="text-xl font-black text-white">{isAr ? "أقسام المنيو" : "Menu Categories"}</h3>
                             </div>
-                            <div className="p-4 grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto">
+                            <div className="p-4 grid grid-cols-2 gap-3 max-h-[85vh] overflow-y-auto">
                                 {categories.map((cat) => (
                                     <button key={cat.id} onClick={() => handleNavClick(cat.id)}
-                                        className="flex flex-row-reverse items-center justify-between bg-[#27272a] hover:bg-[#3f3f46] p-4 rounded-2xl border border-white/5 active:scale-95 transition-all group">
+                                        className="flex flex-row-reverse items-center justify-between bg-[#27272a] hover:bg-[#3f3f46] p-4 rounded-3xl border border-white/5 active:scale-95 transition-all group">
                                         <span className="text-[13px] font-bold text-white group-hover:text-[#059669] transition-colors">{isAr ? cat.name_ar : cat.name_en || cat.name_ar}</span>
                                         <span className="text-xl atyab-emoji">{cat.emoji}</span>
                                     </button>
@@ -774,10 +777,10 @@ export default function AtyabOrientalEmeraldMenu({ config, categories, language,
             <AnimatePresence>
                 {showPaymentOptions && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowPaymentOptions(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 50 }}
-                            className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+                            className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10 mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
                                 <button onClick={() => setShowPaymentOptions(false)} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95 text-zinc-500"><X className="w-5 h-5" /></button>

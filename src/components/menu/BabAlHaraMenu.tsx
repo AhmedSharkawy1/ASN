@@ -56,6 +56,7 @@ type RestaurantConfig = {
     marquee_text_en?: string;
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
+    show_asn_branding?: boolean;
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -254,7 +255,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                     {/* Logo - Centered */}
                     <div className="w-full max-w-4xl flex items-center justify-center relative z-10">
                         {config.logo_url && (
-                            <div className="w-36 h-36 md:w-48 md:h-48 rounded-full border-[8px] border-white/30 bg-white shadow-[0_25px_60px_rgba(0,0,0,0.7)] overflow-hidden p-0.5 transform transition-transform hover:scale-110 duration-500">
+                            <div className="w-36 h-36 md:w-48 md:h-32 rounded-full border-[8px] border-white/30 bg-white shadow-[0_25px_60px_rgba(0,0,0,0.7)] overflow-hidden p-0.5 transform transition-transform hover:scale-110 duration-500">
                                 <div className="w-full h-full bg-white flex items-center justify-center rounded-full overflow-hidden">
                                     <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover" />
                                 </div>
@@ -271,13 +272,13 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                 {/* Section Title */}
                 <div className="px-6 py-8 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: PRIMARY, boxShadow: `0 10px 20px -5px ${PRIMARY}33` }}>
+                        <div className="w-10 h-10 rounded-3xl flex items-center justify-center text-white shadow-lg" style={{ backgroundColor: PRIMARY, boxShadow: `0 10px 20px -5px ${PRIMARY}33` }}>
                             <span className="text-xl">★</span>
                         </div>
                         <h2 className="text-2xl font-black text-zinc-900 dark:text-zinc-100 tracking-tight">{isAr ? "قائمة الطعام" : "Our Menu"}</h2>
                     </div>
                     <div className="h-0.5 flex-1 bg-zinc-200 dark:bg-zinc-800 mx-4 rounded-full opacity-50" />
-                    <button onClick={toggleDarkMode} className="w-12 h-12 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center shadow-sm transition-all active:scale-90" suppressHydrationWarning>
+                    <button onClick={toggleDarkMode} className="w-12 h-12 rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center shadow-sm transition-all active:scale-90" suppressHydrationWarning>
                         {isDark ? '☀️' : '🌙'}
                     </button>
                 </div>
@@ -374,7 +375,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                                             </p>
 
                                             {/* Prices */}
-                                            <div className="mt-auto space-y-1.5 z-20 relative">
+                                            <div className=" space-y-1.5 z-20 relative">
                                                 {item.prices.map((price, pIdx) => {
                                                     const sizeLabel = item.size_labels?.[pIdx] || "عادي";
                                                     const curQty = qtyInCart(item, sizeLabel);
@@ -426,9 +427,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
             <AnimatePresence>
                 {!showCheckout && cart.length > 0 && config.orders_enabled !== false && (
                     <motion.div
-                        initial={{ y: 200, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 200, opacity: 0 }}
+                        initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         className="fixed bottom-[95px] left-4 right-4 z-[120]"
                     >
                         <div onClick={() => { haptic(); setShowCheckout(true); }} className="bg-gradient-to-r from-zinc-900 to-black dark:from-white dark:to-zinc-200 text-white dark:text-black rounded-[1.5rem] shadow-2xl p-4 flex items-center justify-between cursor-pointer active:scale-[0.98] transition-transform">
@@ -453,32 +452,32 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
             </AnimatePresence>
 
             {/* ═══════ BOTTOM NAVIGATION ═══════ */}
-            <nav className="fixed bottom-0 left-0 right-0 z-[110] bab-bottom-nav px-2 py-4 flex items-center justify-around rounded-t-[2rem]">
+            <nav className="fixed bottom-0 left-0 right-0 z-[110] bab-bottom-nav px-2 py-4 flex items-center justify-around rounded-[2rem]">
                 {config.facebook_url && (
                     <a href={config.facebook_url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 flex-1">
-                        <div className="w-10 h-10 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
+                        <div className="w-9 h-9 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
                             <FaFacebook className="w-5 h-5" />
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "فيسبوك" : "Facebook"}</span>
                     </a>
                 )}
 
-                <div onClick={() => { haptic(); setShowCallMenu(true); }} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
-                    <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                <div onClick={() => { haptic(); setShowCallMenu(true); }} className="flex items-center gap-1 flex-1 cursor-pointer">
+                    <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">📞</span>
                     </div>
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? "دليفري" : "Delivery"}</span>
                 </div>
 
-                <div onClick={scrollToTop} className="flex flex-col items-center gap-1 flex-1 -mt-8">
+                <div onClick={scrollToTop} className="flex items-center gap-1 flex-1 -mt-8">
                     <div className="w-14 h-14 flex items-center justify-center text-white rounded-full shadow-lg border-[4px] border-[#f8f9fa] dark:border-[#121212] active:scale-90 transition-transform" style={{ backgroundColor: PRIMARY }}>
                         <span className="text-xl font-black">↑</span>
                     </div>
                     <span className="text-[9px] font-black mt-1" style={{ color: PRIMARY }}>{isAr ? "للأعلى" : "Top"}</span>
                 </div>
 
-                <div onClick={() => { haptic(); setShowPaymentMenu(true); }} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
-                    <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                <div onClick={() => { haptic(); setShowPaymentMenu(true); }} className="flex items-center gap-1 flex-1 cursor-pointer">
+                    <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">💳</span>
                     </div>
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? "الدفع" : "Pay"}</span>
@@ -486,7 +485,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
 
                 {config.map_link && (
                     <a href={config.map_link} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 flex-1">
-                        <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                        <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                             <span className="text-lg">📍</span>
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "موقعنا" : "Map"}</span>
@@ -513,7 +512,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                         className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
                         onClick={() => setShowCallMenu(false)}>
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col max-h-[85vh]"
+                            className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col h-auto max-h-[85vh] mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-5 text-center shrink-0" style={{ backgroundColor: PRIMARY }}>
                                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 backdrop-blur-md">
@@ -524,7 +523,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                             <div className="p-3 space-y-2 overflow-y-auto bab-no-scrollbar">
                                 
                                 {config.phone_numbers?.map((p, i) => (
-                                    <a key={i} href={`tel:${p.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
+                                    <a key={i} href={`tel:${p.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
                                         <div className="flex flex-col">
                                             <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums" dir="ltr">{p.number}</span>
                                             <span className="text-[9px] text-zinc-400 font-bold">{p.label}</span>
@@ -548,12 +547,12 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                         className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
                         onClick={() => setShowPaymentMenu(false)}>
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white dark:bg-zinc-90 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col max-h-[90vh]"
+                            className="bg-white dark:bg-zinc-90 w-[85vw] max-w-[310px] rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col h-auto max-h-[85vh] mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 pb-2 text-center shrink-0 flex justify-between items-start">
                                 <button onClick={() => setShowPaymentMenu(false)} className="w-8 h-8 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95 text-zinc-500">✕</button>
                                 <div className="text-right">
-                                    <div className="w-12 h-12 bg-zinc-100 dark:bg-white/5 rounded-2xl flex items-center justify-center ml-auto mb-3 text-2xl">💳</div>
+                                    <div className="w-12 h-12 bg-zinc-100 dark:bg-white/5 rounded-3xl flex items-center justify-center ml-auto mb-3 text-2xl">💳</div>
                                     <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-1">{isAr ? "وسائل الدفع" : "Payment Methods"}</h3>
                                     <p className="text-[10px] opacity-60 font-black uppercase tracking-widest">{isAr ? "طرق الدفع المتاحة" : "Available Payment Methods"}</p>
                                 </div>
@@ -561,7 +560,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                             <div className="px-5 py-4 space-y-3 overflow-y-auto bab-no-scrollbar">
                                 {config.payment_methods && config.payment_methods.length > 0 ? (
                                     config.payment_methods.map((pm) => (
-                                        <div key={pm.id} className="block p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 text-right transition-all hover:border-[#e31e24]/50">
+                                        <div key={pm.id} className="block p-4 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 text-right transition-all hover:border-[#e31e24]/50">
                                             <h4 className="font-black text-sm text-zinc-800 dark:text-white mb-1">{isAr ? pm.name_ar : pm.name_en || pm.name_ar}</h4>
                                             {(pm.desc_ar || pm.desc_en) && (
                                                 <p className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 mb-3 leading-tight">{isAr ? pm.desc_ar : pm.desc_en || pm.desc_ar}</p>
@@ -588,7 +587,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                                         </div>
                                     ))
                                 ) : (
-                                    <div className="block p-5 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 text-right">
+                                    <div className="block p-5 bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 text-right">
                                         <span className="text-sm font-black text-zinc-800 dark:text-white block mb-1">{isAr ? "كاش عند الاستلام" : "Cash on Delivery"}</span>
                                         <p className="text-[10px] text-zinc-400 leading-tight">{isAr ? "الدفع المباشر كاش للمندوب عند وصول الطلب" : "Pay cash directly to the delivery agent"}</p>
                                     </div>
@@ -606,7 +605,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
             <div className="px-6 mt-16 mb-12 text-center flex flex-col items-center">
                 {/* QR Code */}
                 <div className="mb-6 p-6 bg-white rounded-[2.5rem] shadow-2xl shadow-black/5 border border-zinc-100 flex flex-col items-center">
-                    <div className="w-48 h-48 mb-3 p-1 bg-white">
+                    <div className="w-48 h-32 mb-3 p-1 bg-white">
                         <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}&color=000000`}
                             alt="QR Code Menu"
@@ -616,13 +615,23 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                     <span className="text-[11px] font-black text-zinc-800 uppercase tracking-widest">{isAr ? "امسح لمشاركة المنيو" : "Scan to share menu"}</span>
                 </div>
 
+                {config.show_asn_branding !== false && (
+
+
                 <p className="text-[10px] font-bold text-zinc-400 dark:text-zinc-600 mb-2 leading-relaxed">
+
+
                     {isAr ? "مدعوم بواسطة" : "Powered by"} <span className="font-black" style={{ color: PRIMARY }}>ASN Technology</span>
+
+
                 </p>
+
+
+                )}
             </div>
 
             {/* ═══════ CHECKOUT MODAL ═══════ */}
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

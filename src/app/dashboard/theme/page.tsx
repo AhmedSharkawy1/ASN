@@ -383,9 +383,9 @@ export default function ThemePage() {
                                 </p>
                             </div>
 
-                            <div className="w-[360px] h-[720px] border-[10px] border-slate-900 dark:border-slate-800 rounded-[2.5rem] overflow-hidden bg-white dark:bg-black relative shadow-2xl">
+                            <div className="w-[414px] h-[850px] border-[10px] border-slate-900 dark:border-slate-800 rounded-[3rem] overflow-hidden bg-white dark:bg-black relative shadow-2xl">
                                 {/* Phone Notch */}
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[18px] bg-slate-900 dark:border-slate-800 rounded-b-xl z-20"></div>
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[24px] bg-slate-900 dark:border-slate-800 rounded-b-2xl z-20"></div>
 
                                 {restaurantId ? (
                                     <iframe

@@ -54,21 +54,9 @@ export default function Hero() {
                 {/* Glowing Orbs */}
                 <motion.div
                     className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-cyan-500/10 dark:bg-cyan-500/20 rounded-full blur-2xl md:blur-[120px] mix-blend-normal md:mix-blend-multiply dark:mix-blend-normal md:dark:mix-blend-screen opacity-50 dark:opacity-100"
-                    animate={{
-                        x: [0, 50, 0, -50, 0],
-                        y: [0, -50, 50, 0, 0],
-                        scale: [1, 1.2, 0.8, 1.1, 1]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                 />
                 <motion.div
                     className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-blue-dark/20 rounded-full blur-3xl md:blur-[150px] mix-blend-normal md:mix-blend-multiply dark:mix-blend-normal md:dark:mix-blend-screen opacity-30 dark:opacity-100"
-                    animate={{
-                        x: [0, -80, 0, 80, 0],
-                        y: [0, 80, -80, 0, 0],
-                        scale: [1, 0.9, 1.3, 0.9, 1]
-                    }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
                 />
             </div>
 
@@ -100,16 +88,6 @@ export default function Hero() {
                             whileHover={{ zIndex: 50, scale: 1.1 }}
                         >
                             <motion.div
-                                animate={{
-                                    y: [0, -25, 0],
-                                    x: [0, 20, 0],
-                                    rotateZ: [0, 8, 0],
-                                }}
-                                transition={{
-                                    duration: 12 + (index % 5) * 3,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                }}
                                 className="relative flex items-center justify-center p-4 lg:p-5 rounded-2xl bg-transparent group transition-colors"
                             >
                                 {/* 3D Hover glow */}
@@ -217,8 +195,6 @@ export default function Hero() {
             {/* Scroll indicator */}
             <motion.div
                 className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10"
-                animate={{ y: [0, 10, 0] }}
-                transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
             >
                 <span className="text-xs text-silver tracking-widest uppercase">
                     {language === "ar" ? "قم بالتمرير" : "Scroll"}

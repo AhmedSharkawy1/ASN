@@ -14,7 +14,8 @@ export default function StarsBackground() {
     // Generate elements once with useMemo — pure CSS animations, no framer-motion
     const { stars, shootingStars, glowingStars } = useMemo(() => {
         // Reduced to 50 stars (CSS animated)
-        const starsArr = Array.from({ length: 50 }).map((_, i) => ({
+        // Reduced to 20 stars (CSS animated) for extreme lightness
+        const starsArr = Array.from({ length: 20 }).map((_, i) => ({
             id: `star-${i}`,
             x: Math.random() * 100,
             y: Math.random() * 100,
@@ -24,13 +25,8 @@ export default function StarsBackground() {
         }));
 
         // Reduced from 8 → 3 shooting stars, and made them slower
-        const shootingStarsArr = Array.from({ length: 3 }).map((_, i) => ({
-            id: `shooting-${i}`,
-            bottom: `${Math.random() * 50}%`,
-            right: `${Math.random() * 50}%`,
-            delay: Math.random() * 15 + i * 8, // Slower respawn (more delay)
-            duration: Math.random() * 1.5 + 2.5, // Slower crossing (2.5s to 4s instead of 0.8s to 2.3s)
-        }));
+        // Removed shooting stars completely for performance
+        const shootingStarsArr: any[] = [];
 
         // 5 glowing stars
         const glowingStarsArr = Array.from({ length: 5 }).map((_, i) => ({

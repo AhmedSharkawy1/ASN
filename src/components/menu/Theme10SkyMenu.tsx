@@ -56,6 +56,7 @@ interface RestaurantType {
     marquee_text_en?: string;
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
+    show_asn_branding?: boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
@@ -333,9 +334,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                     <AnimatePresence>
                                         {isPhoneMenuOpen && (
                                             <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: 10 }}
+                                                initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                                                 className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[110] overflow-hidden"
                                             >
                                                 <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center">
@@ -377,7 +376,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
 
                 {/* Hero Banner Container */}
                 <div className="pt-6 relative z-10">
-                    <div className="rounded-2xl md:rounded-3xl overflow-hidden shadow-lg border relative aspect-[21/9] sm:aspect-[21/7] max-h-[350px] w-full" style={{ borderColor }}>
+                    <div className="rounded-3xl md:rounded-3xl overflow-hidden shadow-lg border relative aspect-[21/9] sm:aspect-[21/7] max-h-[350px] w-full" style={{ borderColor }}>
                         {config.cover_images && config.cover_images.length > 1 ? (
                             <Swiper
                                 modules={[Autoplay]}
@@ -471,10 +470,10 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                                 {cat.items?.map((item: MenuItem, idx: number) => (
                                     <div key={item.id || idx} onClick={() => openModal(item, catName(cat), cat.image_url)}
-                                        className="rounded-2xl overflow-hidden border transition-all hover:shadow-md cursor-pointer group flex flex-row"
+                                        className="rounded-3xl overflow-hidden border transition-all hover:shadow-md cursor-pointer group flex flex-row"
                                         style={{ backgroundColor: bgCard, borderColor }}>
                                         {/* Image Box */}
-                                        <div className="w-[110px] sm:w-[130px] h-[130px] shrink-0 relative overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                        <div className="w-[110px] sm:w-[130px] h-24 shrink-0 relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                                             <img
                                                 src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"}
                                                 alt={itemName(item)}
@@ -499,7 +498,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                                 </p>
                                             )}
 
-                                            <div className="mt-auto pt-2 border-t flex flex-wrap items-end gap-x-2 gap-y-1" style={{ borderColor }}>
+                                            <div className=" pt-2 border-t flex flex-wrap items-end gap-x-2 gap-y-1" style={{ borderColor }}>
                                                 {item.prices.map((price: number, pIdx: number) => (
                                                     <div key={pIdx} className="flex flex-col items-start bg-black/5 dark:bg-white/5 rounded-md px-2 py-1 flex-1 min-w-[60px]">
                                                         {item.size_labels?.[pIdx] && (
@@ -534,11 +533,11 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
             <AnimatePresence>
                 {selectedItem && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4"
+                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 sm: backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={closeModal}>
                         <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative w-full max-w-[340px] max-h-[85vh] rounded-[24px] overflow-hidden flex flex-col shadow-2xl mx-auto"
+                            className="relative w-[85vw] max-w-[310px] max-h-[85vh] rounded-[24px] overflow-hidden flex flex-col shadow-2xl mx-auto"
                             style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()}>
 
@@ -548,13 +547,13 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                             </button>
 
                             {/* Modal Header Image */}
-                            <div className="w-full h-[200px] sm:h-[180px] shrink-0 relative bg-slate-100 dark:bg-slate-800">
+                            <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
                                 <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
                                     alt={itemName(selectedItem.item)} className="w-full h-full object-cover" />
 
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
-                                    <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>
+                                    <h2 className="text-xl sm:text-2xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>
                                     <p className="text-white/90 text-sm sm:text-base font-bold drop-shadow-sm line-clamp-2">
                                         {isAr ? selectedItem.item.description_ar : (selectedItem.item.description_en || selectedItem.item.description_ar)}
                                     </p>
@@ -562,7 +561,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                             </div>
 
                             {/* Modal Content */}
-                            <div className="flex-1 overflow-y-auto p-5 pb-24" style={{ color: textMain }}>
+                            <div className="flex-1 overflow-y-auto p-4 pb-20" style={{ color: textMain }}>
 
                                 {/* Base Price */}
                                 <div className="flex justify-between items-center bg-slate-50 dark:bg-slate-900 border p-4 rounded-xl mb-6" style={{ borderColor }}>
@@ -654,7 +653,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                                 <Plus className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <button onClick={addToCart} className="flex-1 h-12 rounded-full text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-md hover:shadow-lg"
+                                        <button onClick={addToCart} className="flex-1 h-11 rounded-full text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-md hover:shadow-lg"
                                             style={{ backgroundColor: primaryColor }}>
                                             <ShoppingCart className="w-5 h-5" />
                                             {isAr ? 'إضافة إلى السلة' : 'Add to Cart'} — {cur}{(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed?.(0)}
@@ -671,11 +670,11 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
             <AnimatePresence>
                 {isCartOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm"
+                        className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex items-center justify-center py-16 px-6 mb-safe"
                         onClick={() => setIsCartOpen(false)}>
-                        <motion.div initial={{ x: isAr ? '100%' : '100%' }} animate={{ x: 0 }} exit={{ x: isAr ? '100%' : '100%' }}
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className={`absolute top-0 ${isAr ? 'right-0' : 'right-0'} w-full max-w-[400px] h-full flex flex-col shadow-2xl`}
+                            className={`relative w-[85vw] max-w-[310px] max-h-[85vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl`}
                             style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()}>
 
@@ -701,7 +700,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                 ) : (
                                     <div className="p-4 space-y-4">
                                         {cart.map((c, i) => (
-                                            <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-sm border" style={{ borderColor }}>
+                                            <div key={i} className="flex gap-4 p-4 rounded-3xl bg-white dark:bg-slate-800 shadow-sm border" style={{ borderColor }}>
                                                 <div className="w-20 h-20 shrink-0 bg-slate-100 rounded-xl overflow-hidden">
                                                     <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
                                                 </div>
@@ -740,12 +739,12 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
 
                             {/* Cart Footer */}
                             {cart.length > 0 && (
-                                <div className="p-5 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] border-t z-20" style={{ backgroundColor: bgCard, borderColor }}>
+                                <div className="p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] border-t z-20" style={{ backgroundColor: bgCard, borderColor }}>
                                     <div className="flex justify-between items-center mb-4 text-sm font-bold" style={{ color: textMain }}>
                                         <span>{isAr ? 'الإجمالي' : 'Total'}</span>
                                         <span className="text-xl font-black" style={{ color: primaryColor }}>{cur}{cartTotal.toFixed?.(0)}</span>
                                     </div>
-                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full flex justify-center items-center gap-2 h-14 rounded-full text-white font-bold text-lg transition-transform active:scale-95 shadow-lg"
+                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full flex justify-center items-center gap-2 h-11 rounded-full text-white font-bold text-base transition-transform active:scale-95 shadow-lg"
                                         style={{ backgroundColor: '#10b981' }}>
                                         {isAr ? 'إتمام الطلب' : 'Proceed to Checkout'}
                                     </button>
@@ -756,7 +755,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                 )}
             </AnimatePresence>
 
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

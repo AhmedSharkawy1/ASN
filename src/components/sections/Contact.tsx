@@ -1,12 +1,22 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Send, Mail } from "lucide-react";
+import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Send, Mail, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { FaFacebook, FaWhatsapp, FaInstagram, FaPhoneAlt } from "react-icons/fa";
 import { useLanguage } from "@/lib/context/LanguageContext";
 
 export default function Contact() {
     const { language } = useLanguage();
+    const [formData, setFormData] = useState({
+        firstName: "",
+        lastName: "",
+        phone: "",
+        email: "",
+        message: ""
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
 
     const content = {
         ar: {
@@ -25,6 +35,9 @@ export default function Contact() {
                 message: "رسالتك",
                 messagePh: "قم بوصف متطلبات مشروعك هنا...",
                 submit: "إرسال الرسالة",
+                submitting: "جاري الإرسال...",
+                success: "تم إرسال رسالتك بنجاح. سنتواصل معك قريباً!",
+                error: "حدث خطأ أثناء الإرسال. يرجى المحاولة مرة أخرى.",
             }
         },
         en: {
@@ -43,6 +56,9 @@ export default function Contact() {
                 message: "Transmission Data",
                 messagePh: "Detail your operational requirements...",
                 submit: "Transmit Request",
+                submitting: "Transmitting...",
+                success: "Request Transmitted. We'll contact you soon!",
+                error: "Transmission Failed. Please try again.",
             }
         }
     };
@@ -101,6 +117,38 @@ export default function Contact() {
             hoverBorder: "rgba(59, 130, 246, 0.6)"
         }
     ];
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (isSubmitting) return;
+        
+        setIsSubmitting(true);
+        setSubmitStatus("idle");
+
+        try {
+            const res = await fetch("/api/contact", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData),
+            });
+
+            if (res.ok) {
+                setSubmitStatus("success");
+                setFormData({ firstName: "", lastName: "", phone: "", email: "", message: "" });
+            } else {
+                setSubmitStatus("error");
+            }
+            
+        } catch (error) {
+            console.error("Error submitting form:", error);
+            setSubmitStatus("error");
+        } finally {
+            setIsSubmitting(false);
+            setTimeout(() => setSubmitStatus("idle"), 5000);
+        }
+    };
 
     return (
         <section id="contact" className="relative py-24 md:py-32 w-full overflow-hidden border-t border-glass-border">
@@ -188,7 +236,7 @@ export default function Contact() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.2 }}
                         className="glass-card p-8 md:p-10 flex flex-col gap-6 relative overflow-hidden"
-                        onSubmit={(e) => e.preventDefault()}
+                        onSubmit={handleSubmit}
                     >
                         <div className="absolute top-0 right-0 w-64 h-64 bg-blue/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
@@ -199,9 +247,12 @@ export default function Contact() {
                                     type="text"
                                     id="firstName"
                                     required
+                                    value={formData.firstName}
+                                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
                                     dir={language === "ar" ? "rtl" : "ltr"}
-                                    className="w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner"
+                                    className="w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner disabled:opacity-50"
                                     placeholder={t.form.firstNamePh}
+                                    disabled={isSubmitting}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -209,9 +260,12 @@ export default function Contact() {
                                 <input
                                     type="text"
                                     id="lastName"
+                                    value={formData.lastName}
+                                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
                                     dir={language === "ar" ? "rtl" : "ltr"}
-                                    className="w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner"
+                                    className="w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner disabled:opacity-50"
                                     placeholder={t.form.lastNamePh}
+                                    disabled={isSubmitting}
                                 />
                             </div>
                         </div>
@@ -223,9 +277,12 @@ export default function Contact() {
                                     type="tel"
                                     id="phone"
                                     required
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
                                     dir="ltr"
-                                    className={`w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner ${language === "ar" ? "text-right" : "text-left"}`}
+                                    className={`w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner disabled:opacity-50 ${language === "ar" ? "text-right" : "text-left"}`}
                                     placeholder={t.form.phonePh}
+                                    disabled={isSubmitting}
                                 />
                             </div>
                             <div className="space-y-2">
@@ -233,9 +290,12 @@ export default function Contact() {
                                 <input
                                     type="email"
                                     id="email"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                                     dir="ltr"
-                                    className={`w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner ${language === "ar" ? "text-right" : "text-left"}`}
+                                    className={`w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 shadow-inner disabled:opacity-50 ${language === "ar" ? "text-right" : "text-left"}`}
                                     placeholder={t.form.emailPh}
+                                    disabled={isSubmitting}
                                 />
                             </div>
                         </div>
@@ -245,20 +305,66 @@ export default function Contact() {
                             <textarea
                                 id="message"
                                 required
+                                value={formData.message}
+                                onChange={(e) => setFormData({...formData, message: e.target.value})}
                                 rows={4}
                                 dir={language === "ar" ? "rtl" : "ltr"}
-                                className="w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 resize-none shadow-inner"
+                                className="w-full px-5 py-3.5 rounded-xl bg-background border border-glass-border focus:border-blue-light focus:bg-background focus:outline-none focus:ring-1 focus:ring-blue-light transition-all text-foreground placeholder-silver/30 resize-none shadow-inner disabled:opacity-50"
                                 placeholder={t.form.messagePh}
+                                disabled={isSubmitting}
                             ></textarea>
                         </div>
 
-                        <button className="group relative w-full py-4 mt-4 rounded-xl overflow-hidden bg-blue text-white font-bold transition-all flex items-center justify-center gap-2 hover:shadow-glow-lg active:scale-[0.98] z-10 border border-blue-light/50">
-                            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-blue to-blue-dark group-hover:opacity-80 transition-opacity duration-300"></div>
-                            <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.2)_50%,transparent_100%)] -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                            <span className="relative flex items-center gap-2 drop-shadow-md">
-                                {t.form.submit}
-                                <Send className={`w-5 h-5 transition-transform duration-300 ${language === "ar" ? "group-hover:-translate-x-1 group-hover:-translate-y-1 scale-x-[-1]" : "group-hover:translate-x-1 group-hover:-translate-y-1"}`} />
-                            </span>
+                        <button 
+                            type="submit"
+                            disabled={isSubmitting}
+                            className={`group relative w-full py-4 mt-4 rounded-xl overflow-hidden text-white font-bold transition-all flex items-center justify-center gap-2 border z-10 ${
+                                submitStatus === "success" 
+                                    ? "bg-green-600 border-green-500" 
+                                    : submitStatus === "error"
+                                        ? "bg-red-600 border-red-500"
+                                        : "bg-blue border-blue-light/50 hover:shadow-glow-lg active:scale-[0.98]"
+                            } disabled:opacity-80 disabled:cursor-not-allowed`}
+                        >
+                            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-black/0 via-black/10 to-black/0"></div>
+                            {submitStatus === "idle" && !isSubmitting && (
+                                <>
+                                    <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.2)_50%,transparent_100%)] -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                                    <span className="relative flex items-center gap-2 drop-shadow-md">
+                                        {t.form.submit}
+                                        <Send className={`w-5 h-5 transition-transform duration-300 ${language === "ar" ? "group-hover:-translate-x-1 group-hover:-translate-y-1 scale-x-[-1]" : "group-hover:translate-x-1 group-hover:-translate-y-1"}`} />
+                                    </span>
+                                </>
+                            )}
+                            
+                            {isSubmitting && (
+                                <span className="relative flex items-center gap-2 drop-shadow-md">
+                                    {t.form.submitting}
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                </span>
+                            )}
+
+                            {submitStatus === "success" && (
+                                <motion.span 
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="relative flex items-center gap-2 drop-shadow-md"
+                                >
+                                    {t.form.success}
+                                    <CheckCircle className="w-5 h-5" />
+                                </motion.span>
+                            )}
+
+                            {submitStatus === "error" && (
+                                <motion.span 
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="relative flex items-center gap-2 drop-shadow-md"
+                                >
+                                    {t.form.error}
+                                    <AlertCircle className="w-5 h-5" />
+                                </motion.span>
+                            )}
                         </button>
                     </motion.form>
                 </div>

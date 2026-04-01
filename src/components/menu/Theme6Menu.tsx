@@ -179,7 +179,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
             {/* ─────────── HEADER ─────────── */}
             <div className="flex flex-col bg-white dark:bg-zinc-900 pb-6">
                 {/* Cover */}
-                <div className="h-48 md:h-64 w-full relative">
+                <div className="h-32 md:h-64 w-full relative">
                     {config.cover_images && config.cover_images.length > 0 ? (
                         <Swiper
                             modules={[Autoplay, EffectFade]}
@@ -342,7 +342,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                                         )}
 
                                         {/* Price tags — rounded-md pills */}
-                                        <div className="mt-auto flex flex-wrap gap-2 justify-end">
+                                        <div className=" flex flex-wrap gap-2 justify-end">
                                             {item.prices.map((price: number, pIdx: number) => {
                                                 const lbl = item.size_labels?.[pIdx];
                                                 return (
@@ -362,24 +362,24 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
             </main>
 
             {/* ─────────── BOTTOM NAV ─────────── */}
-            <nav className="fixed bottom-0 left-0 right-0 z-[130] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-2 py-4 flex items-center justify-around rounded-t-[2rem] border-t border-zinc-100 dark:border-white/5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+            <nav className="fixed bottom-0 left-0 right-0 z-[130] bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md px-2 py-4 flex items-center justify-around rounded-[2rem] border-t border-zinc-100 dark:border-white/5 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
                 {config.facebook_url && (
                     <a href={config.facebook_url} target="_blank" className="flex flex-col items-center gap-1 flex-1">
-                        <div className="w-10 h-10 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
+                        <div className="w-9 h-9 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
                             <FaFacebook className="w-5 h-5" />
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? 'فيسبوك' : 'Facebook'}</span>
                     </a>
                 )}
 
-                <div onClick={() => setShowCallMenu(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
-                    <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                <div onClick={() => setShowCallMenu(true)} className="flex items-center gap-1 flex-1 cursor-pointer">
+                    <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">📞</span>
                     </div>
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? 'دليفري' : 'Call'}</span>
                 </div>
 
-                <div onClick={scrollToTop} className="flex flex-col items-center gap-1 flex-1 -mt-8 cursor-pointer">
+                <div onClick={scrollToTop} className="flex items-center gap-1 flex-1 -mt-8 cursor-pointer">
                     <div className="w-14 h-14 flex items-center justify-center text-white rounded-full shadow-lg border-[4px] border-[#f8f9fa] dark:border-[#121212] active:scale-90 transition-transform"
                         style={{ backgroundColor: T6 }}>
                         <span className="text-xl font-black">↑</span>
@@ -387,8 +387,8 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                     <span className="text-[9px] font-black mt-1" style={{ color: T6 }}>{isAr ? 'للأعلى' : 'Top'}</span>
                 </div>
 
-                <div onClick={() => setShowPayMenu(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
-                    <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                <div onClick={() => setShowPayMenu(true)} className="flex items-center gap-1 flex-1 cursor-pointer">
+                    <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">💳</span>
                     </div>
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? 'الدفع' : 'Pay'}</span>
@@ -396,7 +396,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
 
                 {config.map_link && (
                     <a href={config.map_link} target="_blank" className="flex flex-col items-center gap-1 flex-1">
-                        <div className="w-10 h-10 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
+                        <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                             <span className="text-lg">📍</span>
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? 'موقعنا' : 'Location'}</span>
@@ -415,7 +415,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
             {/* ─────────── CART BAR (floating above bottom nav) ─────────── */}
             <AnimatePresence>
                 {config.orders_enabled !== false && cartCount > 0 && !isCartOpen && (
-                    <motion.div initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 60, opacity: 0 }}
+                    <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                         className="fixed bottom-4 left-4 right-4 z-[150]">
                         <button onClick={() => setIsCartOpen(true)}
                             className="w-full text-white rounded-xl py-3 px-4 flex items-center justify-between font-bold shadow-[0_10px_30px_rgba(0,0,0,0.1)]"
@@ -443,7 +443,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                 {selectedItem && (
                     <div className="fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeItemModal}>
                         <motion.div initial={{ opacity: 0, scale: .95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .95 }}
-                            className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                            className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-3xl shadow-2xl overflow-hidden flex flex-col h-auto max-h-[85vh] mx-auto"
                             onClick={e => e.stopPropagation()}>
                             {/* image header */}
                             <div className="relative h-64 w-full bg-zinc-100 dark:bg-zinc-800 shrink-0">
@@ -545,7 +545,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                 {isCartOpen && (
                     <div className="fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setIsCartOpen(false)}>
                         <motion.div initial={{ opacity: 0, scale: .95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .95 }}
-                            className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                            className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-3xl shadow-2xl overflow-hidden flex flex-col h-auto max-h-[85vh] mx-auto"
                             onClick={e => e.stopPropagation()}>
                             {/* header */}
                             <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
@@ -564,7 +564,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                                         <p>{isAr ? 'السلة فارغة' : 'Cart is empty'}</p>
                                     </div>
                                 ) : cart.map(ci => (
-                                    <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                                    <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-800">
                                         <div className="w-16 h-16 rounded-xl bg-zinc-200 dark:bg-zinc-700 shrink-0 overflow-hidden">
                                             <img src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop'}
                                                 alt="" className="w-full h-full object-cover" />
@@ -625,7 +625,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                     showCallMenu && (
                         <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShowCallMenu(false)}>
                             <motion.div initial={{ scale: .95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: .95, opacity: 0 }}
-                                className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col max-h-[85vh]"
+                                className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col h-auto max-h-[85vh] mx-auto"
                                 onClick={e => e.stopPropagation()}>
                                 <div className="p-5 text-center shrink-0" style={{ backgroundColor: T6 }}>
                                     <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 backdrop-blur-md">
@@ -636,7 +636,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                                 <div className="p-3 space-y-2 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                                     
                                     {config.phone_numbers?.map((num: any, i: number) => (
-                                        <a key={i} href={`tel:${num.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
+                                        <a key={i} href={`tel:${num.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
                                             <div className="flex flex-col">
                                                 <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums">{num.number}</span>
                                                 <span className="text-[9px] text-zinc-400 font-bold">{num.label}</span>
@@ -658,15 +658,15 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                     showPayMenu && (
                         <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-4" onClick={() => setShowPayMenu(false)}>
                             <motion.div initial={{ scale: .95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: .95, opacity: 0 }}
-                                className="bg-white dark:bg-zinc-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col max-h-[90vh]"
+                                className="bg-white dark:bg-zinc-900 w-[85vw] max-w-[310px] rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/10 flex flex-col h-auto max-h-[85vh] mx-auto"
                                 onClick={e => e.stopPropagation()}>
                                 <div className="p-6 pb-2 text-center shrink-0">
-                                    <div className="w-12 h-12 bg-zinc-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl">💳</div>
+                                    <div className="w-12 h-12 bg-zinc-100 dark:bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-3 text-2xl">💳</div>
                                     <h3 className="text-xl font-black text-zinc-900 dark:text-white">{isAr ? 'وسائل الدفع' : 'Payment Methods'}</h3>
                                 </div>
                                 <div className="px-5 py-3 space-y-3 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
                                     {config.payment_methods?.length > 0 ? config.payment_methods.map((pm: any) => (
-                                        <div key={pm.id} className="block p-5 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 text-right">
+                                        <div key={pm.id} className="block p-5 bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 text-right">
                                             <span className="text-sm font-black text-zinc-800 dark:text-white block mb-1">{isAr ? pm.name_ar : (pm.name_en || pm.name_ar)}</span>
                                             {(pm.desc_ar || pm.desc_en) && <p className="text-[10px] text-zinc-400 leading-tight mb-2">{isAr ? pm.desc_ar : (pm.desc_en || pm.desc_ar)}</p>}
                                             {pm.number && (
@@ -693,7 +693,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                                             )}
                                         </div>
                                     )) : (
-                                        <div className="block p-5 bg-white dark:bg-zinc-800 rounded-2xl border border-zinc-100 dark:border-white/5 text-right">
+                                        <div className="block p-5 bg-white dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 text-right">
                                             <span className="text-sm font-black text-zinc-800 dark:text-white block mb-1">{isAr ? 'كاش عند الاستلام' : 'Cash on Delivery'}</span>
                                             <p className="text-[10px] text-zinc-400 leading-tight">{isAr ? 'الدفع المباشر كاش للمندوب عند وصول الطلب' : 'Pay cash to the delivery agent'}</p>
                                         </div>
@@ -729,7 +729,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                 div[style*="scrollbar"]::-webkit-scrollbar { display: none; }
             `}</style >
 
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

@@ -21,18 +21,12 @@ export default function About() {
                     >
                         {/* Spinning glowing rings */}
                         <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
                             className="absolute inset-0 rounded-full border border-blue/20 border-t-blue/90 shadow-[inset_0_0_30px_rgba(46,163,255,0.1)]"
                         />
                         <motion.div
-                            animate={{ rotate: -360 }}
-                            transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
                             className="absolute inset-4 rounded-full border border-silver/10 border-b-silver/70"
                         />
                         <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
                             className="absolute inset-8 rounded-full border border-blue-light/10 border-r-blue-light/60"
                         />
 
@@ -52,18 +46,6 @@ export default function About() {
                                 style={{
                                     top: `${Math.random() * 100}%`,
                                     left: `${Math.random() * 100}%`,
-                                }}
-                                animate={{
-                                    y: [0, -30, 0],
-                                    x: [0, (Math.random() - 0.5) * 30, 0],
-                                    opacity: [0, 1, 0],
-                                    scale: [0, 1.5, 0]
-                                }}
-                                transition={{
-                                    duration: 3 + Math.random() * 3,
-                                    repeat: Infinity,
-                                    delay: Math.random() * 2,
-                                    ease: "easeInOut"
                                 }}
                             />
                         ))}

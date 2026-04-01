@@ -66,6 +66,7 @@ type RestaurantConfig = {
     marquee_text_en?: string;
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
+    show_asn_branding?: boolean;
 };
 
 type CartItem = {
@@ -346,7 +347,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
 
             {/* ═══════ HERO BANNER SLIDER ═══════ */}
             <section className="relative w-full max-w-4xl mx-auto mt-4 px-4 overflow-hidden">
-                <div className="relative rounded-2xl overflow-hidden shadow-sm h-[200px] md:h-[300px]">
+                <div className="relative rounded-3xl overflow-hidden shadow-sm h-24 md:h-[300px]">
                     <Swiper
                         modules={[Autoplay, EffectFade]}
                         effect="fade"
@@ -425,7 +426,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                                 return (
                                     <div
                                         key={item.id}
-                                        className={`bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-2xl p-3 md:p-4 shadow-sm border border-[#22d3ee] dark:border-[#333] relative group cursor-pointer hover:shadow-md transition-shadow ${hasManyPrices ? 'col-span-2 flex flex-row gap-3' : 'flex flex-col'}`}
+                                        className={`bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-3xl p-3 md:p-4 shadow-sm border border-[#22d3ee] dark:border-[#333] relative group cursor-pointer hover:shadow-md transition-shadow ${hasManyPrices ? 'col-span-2 flex flex-row gap-3' : 'flex flex-col'}`}
                                     >
                                         {/* Item Image */}
                                         <div className={`overflow-hidden relative shrink-0 ${hasManyPrices ? 'w-28 md:w-36 rounded-xl' : 'w-full h-32 md:h-40'}`} style={{ backgroundColor: '#FDFBF7' }}>
@@ -477,7 +478,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                                             </div>
 
                                             {/* Prices */}
-                                            <div className="mt-auto flex flex-col items-end justify-end gap-1 w-full">
+                                            <div className=" flex flex-col items-end justify-end gap-1 w-full">
                                                 {item.prices.length > 1 ? (
                                                     <div className="w-full space-y-1 mb-3">
                                                         {item.prices.map((price, idx) => {
@@ -525,7 +526,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                 ))}
 
                 {/* ═══════ FOOTER ═══════ */}
-                <footer className="mt-16 rounded-t-[2rem] text-white py-12 px-6" style={{ backgroundColor: PRIMARY }}>
+                <footer className="mt-16 rounded-[2rem] text-white p-6 sm:p-8" style={{ backgroundColor: PRIMARY }}>
                     <div className="max-w-4xl mx-auto flex flex-col items-center text-center gap-8">
                         <p className="text-lg md:text-xl font-bold">
                             {config.working_hours || (isAr ? "أوقات العمل من 10 صباحاً إلى 2 صباحاً، 7 أيام في الأسبوع" : "Open 10 AM - 2 AM, 7 days a week")}
@@ -553,7 +554,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
 
                         {/* QR Code */}
                         <div className="flex flex-col items-center gap-3">
-                            <div className="p-3 bg-white rounded-2xl shadow-lg">
+                            <div className="p-3 bg-white rounded-3xl shadow-lg">
                                 <img
                                     src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
                                     alt="QR Code"
@@ -564,9 +565,15 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                         </div>
 
                         <div className="flex flex-col items-center gap-1 mt-4 opacity-80">
+                            {config.show_asn_branding !== false && (
+
                             <p className="text-[10px] font-medium uppercase tracking-wider">
+
                                 {isAr ? "مدعوم بواسطة" : "Powered by"} <span className="font-black">ASN Technology</span>
+
                             </p>
+
+                            )}
                         </div>
                     </div>
                 </footer>
@@ -574,7 +581,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
 
             {/* ═══════ BOTTOM NAVIGATION BAR ═══════ */}
             <nav className="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-8 pt-2 md:hidden">
-                <div className="max-w-xl mx-auto etoile-glass border border-[#22d3ee] dark:border-[#333] rounded-full p-1.5 flex items-center justify-around shadow-lg relative">
+                <div className="w-[85vw] max-w-[310px] mx-auto etoile-glass border border-[#22d3ee] dark:border-[#333] rounded-full p-1.5 flex items-center justify-around shadow-lg relative">
                     {config.whatsapp_number && (
                         <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`} className="flex-1 flex flex-col items-center py-2 text-[#25D366] active:scale-95 transition-transform">
                             <FaWhatsapp className="w-6 h-6" />
@@ -606,7 +613,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                     {/* Call Menu Overlay */}
                     <AnimatePresence>
                         {showCallMenu && (
-                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                            <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
                                 className="absolute bottom-[calc(100%+1.5rem)] left-0 right-0 bg-[#FDFBF7] dark:bg-[#1E1E1E] border border-[#22d3ee] dark:border-[#333] rounded-[1.5rem] shadow-xl mx-2 z-[62] overflow-hidden"
                             >
                                 <div className="px-5 py-3 bg-white dark:bg-[#121212] border-b border-[#22d3ee] dark:border-[#333] text-right flex justify-between items-center flex-row-reverse">
@@ -630,7 +637,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
             <AnimatePresence>
                 {(showCallMenu || showCategoriesMenu) && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[59]"
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[59] flex items-center justify-center py-16 px-6 mb-safe"
                         onClick={() => { setShowCallMenu(false); setShowCategoriesMenu(false); }}
                     />
                 )}
@@ -640,22 +647,22 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
             <AnimatePresence>
                 {showCategoriesMenu && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowCategoriesMenu(false)}
                     >
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                            className="w-full max-w-sm bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-[2rem] shadow-2xl border border-[#22d3ee] dark:border-[#333] overflow-hidden"
+                            className="w-[85vw] max-w-[310px] bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-[2rem] shadow-2xl border border-[#22d3ee] dark:border-[#333] overflow-hidden max-h-[85vh] flex flex-col mx-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="p-6 text-center border-b border-[#22d3ee] dark:border-[#333]">
                                 <h3 className="text-2xl font-bold uppercase">{isAr ? "أقسام المنيو" : "Menu Categories"}</h3>
                             </div>
-                            <div className="p-4 grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto etoile-no-scrollbar">
+                            <div className="p-4 grid grid-cols-2 gap-3 max-h-[85vh] overflow-y-auto etoile-no-scrollbar">
                                 {categories.map((cat) => (
                                     <button
                                         key={cat.id}
                                         onClick={() => handleNavClick(cat.id)}
-                                        className="flex flex-col items-center justify-center gap-2 bg-white dark:bg-[#121212] hover:bg-[#0891b2]/5 p-4 rounded-2xl border border-[#22d3ee] dark:border-[#333] active:scale-95 transition-all group"
+                                        className="flex flex-col items-center justify-center gap-2 bg-white dark:bg-[#121212] hover:bg-[#0891b2]/5 p-4 rounded-3xl border border-[#22d3ee] dark:border-[#333] active:scale-95 transition-all group"
                                     >
                                         <span className="text-3xl">{cat.emoji || "✨"}</span>
                                         <span className="text-[13px] font-semibold group-hover:text-[#0891b2] uppercase text-center leading-tight">
@@ -691,8 +698,8 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
             {/* ═══════ ITEM SELECT MODAL ═══════ */}
             <AnimatePresence>
                 {selectedItem && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex flex-col justify-end md:justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedItem(null)}>
-                        <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }} className="w-full max-w-md mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden mt-auto md:mt-0" onClick={e => e.stopPropagation()}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex bg-black/60 items-center justify-center backdrop-blur-md py-16 px-6 mb-safe" onClick={() => setSelectedItem(null)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="w-[85vw] max-w-[310px] mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden  max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                             <div className="relative aspect-video bg-gray-100 dark:bg-black overflow-hidden">
                                 <img src={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-cover" onError={handleImageError} />
                                 <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
@@ -705,7 +712,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                                     )}
                                 </div>
                             </div>
-                            <div className="p-5 overflow-y-auto max-h-[50vh]">
+                            <div className="p-5 flex-1 overflow-y-auto">
                                 <h4 className="font-bold mb-3 text-right">{isAr ? "اختر الحجم" : "Select Size"}</h4>
                                 <div className="space-y-2">
                                     {selectedItem.item.prices.map((p, idx) => {
@@ -738,11 +745,11 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
             {/* ═══════ CART MODAL ═══════ */}
             <AnimatePresence>
                 {showCart && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex flex-col justify-end md:justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowCart(false)}>
-                        <motion.div initial={{ y: 200, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 200, opacity: 0 }} className="w-full max-w-lg mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden mt-auto md:mt-0 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
-                            <div className="p-5 border-b border-[#22d3ee] dark:border-[#333] flex justify-between items-center bg-gray-50 dark:bg-black/20">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex bg-black/60 items-center justify-center backdrop-blur-md py-16 px-6 mb-safe" onClick={() => setShowCart(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="w-[85vw] max-w-[310px] mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden flex flex-col h-auto max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                            <div className="p-4 border-b border-[#22d3ee] dark:border-[#333] flex justify-between items-center bg-gray-50 dark:bg-black/20">
                                 <button onClick={() => setShowCart(false)} className="w-8 h-8 bg-gray-200 dark:bg-[#333] text-gray-500 rounded-full flex items-center justify-center hover:bg-gray-300 transition-colors"><X className="w-5 h-5" /></button>
-                                <h3 className="text-xl font-bold flex items-center gap-2">{isAr ? "سلة الطلبات" : "Your Cart"} <ShoppingCart className="w-5 h-5 text-[#0891b2]" /></h3>
+                                <h3 className="text-lg font-bold flex items-center gap-2">{isAr ? "سلة الطلبات" : "Your Cart"} <ShoppingCart className="w-5 h-5 text-[#0891b2]" /></h3>
                             </div>
                             <div className="p-5 overflow-y-auto flex-1">
                                 {cart.length === 0 ? (
@@ -753,7 +760,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                                 ) : (
                                     <div className="space-y-4">
                                         {cart.map((c) => (
-                                            <div key={c.id} className="flex gap-4 p-3 rounded-2xl border border-[#22d3ee] dark:border-[#333] bg-gray-50 dark:bg-black/10">
+                                            <div key={c.id} className="flex gap-4 p-3 rounded-3xl border border-[#22d3ee] dark:border-[#333] bg-gray-50 dark:bg-black/10">
                                                 <div className="flex flex-col items-center justify-between bg-white dark:bg-[#1E1E1E] rounded-full p-1 border border-[#22d3ee] dark:border-[#333]">
                                                     <button onClick={() => updateCartQty(c.id, 1)} className="w-7 h-7 rounded-full bg-gray-100 dark:bg-[#333] flex items-center justify-center hover:bg-[#0891b2] hover:text-white transition-colors" >+</button>
                                                     <span className="font-bold text-sm my-1">{c.quantity}</span>
@@ -791,10 +798,10 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
             <AnimatePresence>
                 {showPaymentOptions && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                        className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-md py-16 px-6 mb-safe"
                         onClick={() => setShowPaymentOptions(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 50 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 50 }}
-                            className="bg-white dark:bg-[#1E1E1E] w-full max-w-sm rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-[#22d3ee] dark:border-[#333]"
+                            className="bg-white dark:bg-[#1E1E1E] w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-[#22d3ee] dark:border-[#333] mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 border-b border-[#22d3ee] dark:border-[#333] flex items-center justify-between">
                                 <button onClick={() => setShowPaymentOptions(false)} className="w-10 h-10 bg-gray-100 dark:bg-[#333] rounded-full flex items-center justify-center font-bold active:scale-95 text-[#888]"><X className="w-5 h-5" /></button>
@@ -848,7 +855,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                 )}
             </AnimatePresence>
 
-            <ASNFooter />
+            <ASNFooter show={config.show_asn_branding !== false} />
             <CheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}

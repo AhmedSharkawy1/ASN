@@ -11,6 +11,8 @@ import Footer from "@/components/ui/Footer";
 import { useRef } from "react";
 import Image from "next/image";
 import { useLanguage } from "@/lib/context/LanguageContext";
+import MenuPartnersShowcase from "@/components/sections/MenuPartnersShowcase";
+import MenuThemesShowcase from "@/components/sections/MenuThemesShowcase";
 
 export default function ServicePage({ params }: { params: { slug: string } }) {
     const service = getServiceBySlug(params.slug);
@@ -209,6 +211,15 @@ export default function ServicePage({ params }: { params: { slug: string } }) {
 
                 </div>
             </div>
+            
+            {/* Conditional Rendering of Partners Section for Digital Menu Service */}
+            {service.slug === "digital-menu-systems" && (
+                <div className="w-full mt-16 z-20 relative flex flex-col">
+                    <MenuThemesShowcase />
+                    <MenuPartnersShowcase />
+                </div>
+            )}
+            
             <div className="w-full mt-24">
                 <Footer />
             </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -16,6 +16,7 @@ interface Client {
     subscription_expires_at: string | null;
     created_at: string;
     parent_id: string | null;
+    is_marketing_account: boolean;
 }
 
 interface PageAccess {
@@ -34,6 +35,7 @@ export default function SuperAdminClientsPage() {
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [clientPermissions, setClientPermissions] = useState<Record<string, boolean>>({});
     const [savingAccess, setSavingAccess] = useState(false);
+    const [showAsnBranding, setShowAsnBranding] = useState(true);
 
     // Parent Link Modal Options
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -109,7 +111,7 @@ export default function SuperAdminClientsPage() {
         try {
             const { data, error } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id')
+                .select('id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id, is_marketing_account')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -153,6 +155,14 @@ export default function SuperAdminClientsPage() {
                 ALL_PAGE_KEYS.forEach(k => { perms[k] = true });
             }
             setClientPermissions(perms);
+
+            // Also fetch ASN branding flag
+            const { data: restData } = await supabase
+                .from('restaurants')
+                .select('show_asn_branding')
+                .eq('id', client.id)
+                .single();
+            setShowAsnBranding(restData?.show_asn_branding !== false);
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to load permissions");
@@ -175,6 +185,17 @@ export default function SuperAdminClientsPage() {
             }
             
             toast.success(language === "ar" ? "تم حفظ صلاحيات الصفحات" : "Page access updated successfully");
+
+            // Save ASN branding flag
+            const { error: brandingError } = await supabase
+                .from('restaurants')
+                .update({ show_asn_branding: showAsnBranding })
+                .eq('id', selectedClient.id);
+            if (brandingError) {
+                console.error('Branding save error:', brandingError);
+                toast.error('Failed to save branding setting');
+            }
+
             setIsAccessModalOpen(false);
         } catch (err: unknown) {
             console.error(err);
@@ -210,6 +231,22 @@ export default function SuperAdminClientsPage() {
             toast.error(language === "ar" ? "حدث خطأ أثناء الربط" : "Failed to link branch");
         } finally {
             setSavingLink(false);
+        }
+    };
+
+    const handleToggleMarketing = async (client: Client) => {
+        try {
+            const newValue = !client.is_marketing_account;
+            const { error } = await supabase
+                .from('restaurants')
+                .update({ is_marketing_account: newValue })
+                .eq('id', client.id);
+            if (error) throw error;
+            setClients(clients.map(c => c.id === client.id ? { ...c, is_marketing_account: newValue } : c));
+            toast.success(newValue ? "Marketing account Enabled" : "Marketing account Disabled");
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error("Failed to toggle marketing status");
         }
     };
 
@@ -283,6 +320,11 @@ export default function SuperAdminClientsPage() {
                                                                     @{client.slug}
                                                                 </div>
                                                             )}
+                                                            {client.is_marketing_account && (
+                                                                <div className="text-[10px] px-1.5 py-0.5 bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-700 dark:text-fuchsia-300 rounded font-bold uppercase flex items-center gap-1">
+                                                                    <Megaphone className="w-2.5 h-2.5" /> Promo
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -321,6 +363,9 @@ export default function SuperAdminClientsPage() {
                                                     </button>
                                                     <button onClick={() => handleOpenAccess(client)} className="p-2 text-stone-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors" title="Manage Page Access">
                                                         <LayoutList className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => handleToggleMarketing(client)} className={`p-2 rounded-lg transition-colors ${client.is_marketing_account ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10' : 'text-stone-400 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-500/10'}`} title="Toggle Marketing Status">
+                                                        <Megaphone className="w-4 h-4" />
                                                     </button>
                                                     <button className="p-2 text-stone-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-colors" title="Manage Subscription">
                                                         <ShieldCheck className="w-4 h-4" />
@@ -400,6 +445,33 @@ export default function SuperAdminClientsPage() {
                                 </div>
                             ))}
                         </div>
+
+                            {/* ASN Branding Section */}
+                            <div className="space-y-3 border-t border-stone-200 dark:border-stone-700 pt-6">
+                                <h4 className="text-xs font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    {language === 'ar' ? 'إعدادات البراندينج' : 'Branding Settings'}
+                                </h4>
+                                <div className="flex items-center justify-between p-4 rounded-xl border border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-[#0a0f16] hover:border-blue-500/30 transition-colors">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                                            {language === 'ar' ? 'عرض "Powered by ASN Technology"' : 'Show "Powered by ASN Technology"'}
+                                        </span>
+                                        <span className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
+                                            {language === 'ar' ? 'التحكم في ظهور علامة ASN في المنيو الإلكتروني' : 'Control ASN branding visibility on the electronic menu'}
+                                        </span>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            className="sr-only peer" 
+                                            checked={showAsnBranding}
+                                            onChange={(e) => setShowAsnBranding(e.target.checked)}
+                                        />
+                                        <div className="w-11 h-6 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                    </label>
+                                </div>
+                            </div>
 
                         <div className="p-6 border-t border-stone-100 dark:border-stone-800 shrink-0 bg-stone-50 dark:bg-black/20 flex justify-end gap-3">
                             <button 
