@@ -33,7 +33,7 @@ export default function middleware(req: NextRequest) {
     const hostname = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
 
     // تحديد النطاق الأساسي
-    const rootDomains = ['asntechnology.net', 'localhost:3000'];
+    const rootDomains = ['asntechnology.net', 'localhost:3000', 'localhost:3456'];
     const rootDomain = rootDomains.find(d => hostname.endsWith(d)) || rootDomains[0];
 
     // استخراج الـ Subdomain

@@ -324,3 +324,42 @@ export function initSyncService(restaurantId: string): () => void {
         window.removeEventListener('offline', handleOffline);
     };
 }
+
+/* ── Force Sync Now: manual trigger for desktop "Upload Data" button ── */
+export async function forceSyncNow(): Promise<void> {
+    // Get current restaurant_id from offline session or Supabase session
+    let restaurantId: string | null = null;
+
+    try {
+        const offlineSession = localStorage.getItem('offline_session');
+        if (offlineSession) {
+            const parsed = JSON.parse(offlineSession);
+            restaurantId = parsed.restaurant_id;
+        }
+    } catch { /* ignore */ }
+
+    if (!restaurantId) {
+        // Try from the sync service internal state — check Dexie for any order
+        const anyOrder = await posDb.orders.limit(1).first();
+        if (anyOrder) {
+            restaurantId = anyOrder.restaurant_id;
+        }
+    }
+
+    if (!restaurantId) {
+        console.warn('[Sync] Cannot force sync: no restaurant ID found');
+        return;
+    }
+
+    // If Electron, trigger the main process sync
+    if (isElectron()) {
+        try {
+            await (window as any).electronAPI.forceSync();
+        } catch (err) {
+            console.error('[Sync] Electron force sync failed:', err);
+        }
+    }
+
+    // Also push dirty records via the web path
+    await pushDirtyToSupabase(restaurantId);
+}

@@ -39,7 +39,7 @@ export default function RootLayout({
   const headersList = headers();
   const host = headersList.get('host') || '';
   const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
-  const rootDomain = isLocalhost ? 'localhost:3000' : 'asntechnology.net';
+  const rootDomain = isLocalhost ? (host.includes(':3456') ? 'localhost:3456' : 'localhost:3000') : 'asntechnology.net';
   const currentHost = host.replace(`.${rootDomain}`, '');
 
   const reservedSubdomains = ['www', 'admin', 'api', 'dashboard', 'app', rootDomain];

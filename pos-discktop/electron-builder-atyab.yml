@@ -1,0 +1,47 @@
+appId: com.asntechnology.pos.atyab
+productName: "حلوانى اطياب"
+copyright: "Copyright © 2026 ASN Technology"
+
+directories:
+  output: dist-atyab
+
+files:
+  - electron/**/*
+  - assets/**/*
+  - .env
+  - package.json
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,readme.md,LICENSE,license,LICENCE}"
+  - "!**/node_modules/.package-lock.json"
+  - "!app/**/*"
+
+extraResources:
+  - from: app
+    to: app
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: assets/icon.png
+  publisherName: ASN Technology
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "حلوانى اطياب"
+
+publish:
+  - provider: github
+    owner: AhmedSharkawy1
+    repo: ASN
+    releaseType: release
+
+asar: true
+compression: normal
+
+npmRebuild: false

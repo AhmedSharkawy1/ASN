@@ -1,0 +1,6 @@
+node_modules/
+dist/
+dist-atyab/
+app/
+*.log
+.env.local

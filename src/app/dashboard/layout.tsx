@@ -12,7 +12,7 @@ import {
     Factory, ScrollText, TrendingUp, Landmark, Users,
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
-    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone
+    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -127,6 +127,36 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         };
 
         const checkAuth = async () => {
+            // If offline, skip ALL Supabase operations and rely on cache
+            if (!navigator.onLine) {
+                const offline = localStorage.getItem('offline_session');
+                if (offline) {
+                    const parsed = JSON.parse(offline);
+                    // Make sure cache has our data
+                    const cached = await posDb.settings.get('current_config');
+                    if (cached) {
+                        setRestaurantName(cached.restaurant_name);
+                        setRestaurantLogo(cached.restaurant_logo || null);
+                        setRestaurantId(cached.restaurant_id);
+                        restaurantIdRef.current = cached.restaurant_id;
+                        if (cached.permissions_json) {
+                            setPermissions(JSON.parse(cached.permissions_json));
+                        }
+                    } else {
+                        // Minimal setup from offline_session
+                        setRestaurantId(parsed.restaurant_id);
+                        restaurantIdRef.current = parsed.restaurant_id;
+                        setPermissions({ _isAdmin: true });
+                    }
+                    setLoading(false);
+                    return;
+                } else {
+                    router.push('/login');
+                    return;
+                }
+            }
+
+            // ═══ ONLINE: Full Supabase auth check ═══
             const { data: { session } } = await supabase.auth.getSession();
             let finalSession = session;
 
@@ -267,7 +297,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
 
             // Fetch Tenant Switcher links regardless of impersonation, as long as user is a root owner
-            // This populates the dropdown so the owner can switch between their master account and branches.
             if (roleData?.role !== 'super_admin' && !isStaffFlag && email) {
                 const { data: rootRest } = await supabase.from('restaurants').select('id, name, parent_id').ilike('email', email).maybeSingle();
                 if (rootRest && !rootRest.parent_id) { // Only root owners get the switcher
@@ -333,13 +362,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 if (navigator.onLine) {
                     await checkAuth();
                 } else if (!hasCache) {
-                    // No cache and offline?
-                    toast.error(language === "ar" ? "أنت أوفلاين ولا يوجد بيانات مخزنة" : "You are offline and no cached data found");
+                    // Offline with no cache: check offline_session
+                    const offlineSession = localStorage.getItem('offline_session');
+                    if (offlineSession) {
+                        // We have a session but no cache — create minimal cache
+                        const parsed = JSON.parse(offlineSession);
+                        if (parsed.restaurant_id) {
+                            setRestaurantId(parsed.restaurant_id);
+                            restaurantIdRef.current = parsed.restaurant_id;
+                            setPermissions({ _isAdmin: true });
+                            setLoading(false);
+                        } else {
+                            toast.error(language === "ar" ? "أنت أوفلاين ولا يوجد بيانات مخزنة" : "You are offline and no cached data found");
+                            setLoading(false);
+                        }
+                    } else {
+                        router.push('/login');
+                    }
+                } else {
+                    // Offline but has cache — already loaded, just mark done
                     setLoading(false);
                 }
             } catch (err) {
                 console.log("ASN_LOG: Auth fallback triggered", err);
                 if (!hasCache) {
+                    // Check offline_session as last resort
+                    const offlineSession = localStorage.getItem('offline_session');
+                    if (offlineSession) {
+                        const parsed = JSON.parse(offlineSession);
+                        if (parsed.restaurant_id) {
+                            setRestaurantId(parsed.restaurant_id);
+                            restaurantIdRef.current = parsed.restaurant_id;
+                            setPermissions({ _isAdmin: true });
+                            setLoading(false);
+                            return;
+                        }
+                    }
                     router.push('/login');
                 }
             }
@@ -489,7 +547,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", key: "printer" },
                 { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", key: "branches" },
                 { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", key: "theme" },
-                { href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "qr" },
+                ...(!isDesktopApp ? [{ href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "qr" }] : []),
                 { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "settings_page" },
             ]
         }
@@ -511,7 +569,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <div className="fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
             )}
 
-            {!isDesktopApp && (
+            {(
             <aside className={`fixed md:sticky top-0 h-screen z-50 flex flex-col transition-all duration-300
                 ${language === 'ar' ? 'right-0' : 'left-0'}
                 ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0')}
@@ -600,7 +658,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             )}
 
             <main className="flex-1 flex flex-col min-h-screen overflow-y-auto">
-                {!isDesktopApp && (
+                {(
                 <header className="h-[72px] border-b border-stone-100 dark:border-zinc-800/50 bg-white/80 dark:bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0 transition-colors">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition">
@@ -644,6 +702,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </button>
 
                         <SyncStatus />
+
+                        {isDesktopApp && (
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        if (typeof window !== 'undefined' && 'electronAPI' in (window as any)) {
+                                            const result = await (window as any).electronAPI.forceSync();
+                                            if (result.success) {
+                                                toast.success(language === 'ar' ? 'تم رفع البيانات بنجاح' : 'Data uploaded successfully');
+                                            }
+                                        } else {
+                                            // Fallback: trigger sync service
+                                            const { forceSyncNow } = await import('@/lib/sync-service');
+                                            await forceSyncNow();
+                                            toast.success(language === 'ar' ? 'تم رفع البيانات بنجاح' : 'Data uploaded successfully');
+                                        }
+                                    } catch (err) {
+                                        toast.error(language === 'ar' ? 'فشل رفع البيانات' : 'Upload failed');
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition-all border border-emerald-500/20"
+                                title={language === 'ar' ? 'رفع البيانات على السيرفر' : 'Upload data to server'}
+                            >
+                                <Cloud className="w-4 h-4" />
+                                {language === 'ar' ? 'رفع البيانات' : 'Upload Data'}
+                            </button>
+                        )}
 
                         {restaurantLogo ? (
                             <Image src={restaurantLogo} alt={restaurantName || "Logo"} width={40} height={40} className="w-10 h-10 object-cover rounded-xl shadow-md border-2 border-white dark:border-zinc-800" />

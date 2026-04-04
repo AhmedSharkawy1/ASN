@@ -50,7 +50,59 @@ function LoginContent() {
         setError(null);
 
         try {
-            let loginEmail = usernameOrEmail.trim();
+            const input = usernameOrEmail.trim();
+
+            // ═══════════════════════════════════════════
+            // OFFLINE-FIRST: Try local login first when offline
+            // ═══════════════════════════════════════════
+            if (!navigator.onLine) {
+                // Try by username
+                let staff = await posDb.pos_users.where('username').equals(input).first();
+                // Also try by email stored in username field
+                if (!staff) {
+                    staff = await posDb.pos_users.filter(u => 
+                        u.username === input || u.name === input
+                    ).first();
+                }
+                
+                // Also try from cached offline_session (same password re-login)
+                const cachedSession = localStorage.getItem('offline_session');
+                if (!staff && cachedSession) {
+                    const parsed = JSON.parse(cachedSession);
+                    const cachedPw = localStorage.getItem('offline_pw');
+                    if (
+                        (parsed.user.email === input || parsed.user.username === input) &&
+                        cachedPw === password
+                    ) {
+                        // Re-use cached session
+                        parsed.logged_at = new Date().toISOString();
+                        localStorage.setItem('offline_session', JSON.stringify(parsed));
+                        router.push('/dashboard');
+                        return;
+                    }
+                }
+
+                if (staff && staff.password === password) {
+                    localStorage.setItem('offline_session', JSON.stringify({
+                        user: { id: staff.id, email: staff.username, role: staff.role },
+                        restaurant_id: staff.restaurant_id,
+                        logged_at: new Date().toISOString()
+                    }));
+                    localStorage.setItem('offline_pw', password);
+                    router.push('/dashboard');
+                    return;
+                }
+
+                setError(language === "ar" 
+                    ? "أنت أوفلاين. تأكد من البيانات أو اتصل بالإنترنت أولاً." 
+                    : "You are offline. Check your credentials or connect to the internet first.");
+                return;
+            }
+
+            // ═══════════════════════════════════════════
+            // ONLINE: Normal Supabase login
+            // ═══════════════════════════════════════════
+            let loginEmail = input;
 
             if (!loginEmail.includes('@')) {
                 // It's a staff username, look up the internal email
@@ -67,56 +119,129 @@ function LoginContent() {
                 loginEmail = data.email;
             }
 
-            if (navigator.onLine) {
-                const { data: authData, error } = await supabase.auth.signInWithPassword({
-                    email: loginEmail,
-                    password,
-                });
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: loginEmail,
+                password,
+            });
 
-                if (error) {
-                    throw error;
-                }
+            if (authError) {
+                throw authError;
+            }
 
-                // Check if user is a super admin
+            // ═══════════════════════════════════════════
+            // CACHE for offline: Save credentials locally
+            // ═══════════════════════════════════════════
+            try {
+                // Cache the login credentials for offline use
+                const userId = authData.user.id;
+                const userEmail = authData.user.email || loginEmail;
+                
+                // Get restaurant info for the session
                 const { data: roleData } = await supabase
                     .from('user_roles')
                     .select('role')
-                    .eq('user_id', authData.user.id)
-                    .single();
+                    .eq('user_id', userId)
+                    .maybeSingle();
 
-                if (roleData && roleData.role === 'super_admin') {
+                let restaurantId = null;
+                let role = 'admin';
+
+                if (roleData?.role === 'super_admin') {
                     router.push('/super-admin');
-                } else {
-                    router.push('/dashboard');
+                    return;
                 }
-            } else {
-                throw new Error("Offline");
+
+                // Check if staff
+                if (userEmail.endsWith('.asn') || roleData?.role === 'staff') {
+                    const { data: staff } = await supabase
+                        .from('team_members')
+                        .select('restaurant_id, role')
+                        .eq('auth_id', userId)
+                        .maybeSingle();
+                    if (staff) {
+                        restaurantId = staff.restaurant_id;
+                        role = staff.role || 'staff';
+                    }
+                } else {
+                    const { data: rest } = await supabase
+                        .from('restaurants')
+                        .select('id')
+                        .ilike('email', userEmail)
+                        .maybeSingle();
+                    if (rest) {
+                        restaurantId = rest.id;
+                        role = 'admin';
+                    }
+                }
+
+                // Save to pos_users for offline login
+                if (restaurantId) {
+                    await posDb.pos_users.put({
+                        id: userId,
+                        restaurant_id: restaurantId,
+                        name: input,
+                        username: input.includes('@') ? input : loginEmail,
+                        password: password,
+                        role: role as 'admin' | 'staff' | 'delivery',
+                        is_active: true,
+                    });
+                }
+
+                // Always save offline session
+                localStorage.setItem('offline_session', JSON.stringify({
+                    user: { id: userId, email: userEmail, username: input, role },
+                    restaurant_id: restaurantId,
+                    logged_at: new Date().toISOString()
+                }));
+                localStorage.setItem('offline_pw', password);
+
+            } catch (cacheErr) {
+                console.warn('[Login] Failed to cache credentials for offline:', cacheErr);
             }
+
+            router.push('/dashboard');
 
         } catch (err: unknown) {
             console.error("Login attempt failed:", err);
             
-            // Try offline fallback
-            const isOffline = !navigator.onLine || (err as any).message?.includes("fetch");
-            if (isOffline) {
-                const staff = await posDb.pos_users.where('username').equals(usernameOrEmail.trim()).first();
+            // Try offline fallback even if online login failed (network issue)
+            try {
+                let staff = await posDb.pos_users.where('username').equals(usernameOrEmail.trim()).first();
+                if (!staff) {
+                    staff = await posDb.pos_users.filter(u => u.name === usernameOrEmail.trim()).first();
+                }
                 if (staff && staff.password === password) {
-                    // Success! Store offline session
                     localStorage.setItem('offline_session', JSON.stringify({
                         user: { id: staff.id, email: staff.username, role: staff.role },
                         restaurant_id: staff.restaurant_id,
                         logged_at: new Date().toISOString()
                     }));
+                    localStorage.setItem('offline_pw', password);
                     router.push('/dashboard');
                     return;
                 }
-            }
+
+                // Check cached session password
+                const cachedSession = localStorage.getItem('offline_session');
+                const cachedPw = localStorage.getItem('offline_pw');
+                if (cachedSession && cachedPw === password) {
+                    const parsed = JSON.parse(cachedSession);
+                    if (parsed.user.email === usernameOrEmail.trim() || 
+                        parsed.user.username === usernameOrEmail.trim()) {
+                        parsed.logged_at = new Date().toISOString();
+                        localStorage.setItem('offline_session', JSON.stringify(parsed));
+                        router.push('/dashboard');
+                        return;
+                    }
+                }
+            } catch { /* ignore fallback errors */ }
             
             setError(err instanceof Error ? err.message : "Failed to login. Please check your credentials.");
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <main className="min-h-screen bg-slate-300/80 dark:bg-background relative overflow-hidden flex items-center justify-center p-6">

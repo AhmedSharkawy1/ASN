@@ -1,0 +1,39 @@
+appId: com.asntechnology.pos
+productName: ASN POS
+copyright: "Copyright © 2026 ASN Technology"
+
+directories:
+  output: dist
+  buildResources: assets
+
+files:
+  - electron/**/*
+  - assets/**/*
+  - .env
+  - package.json
+  - node_modules/**/*
+  - "!node_modules/electron/**"
+  - "!node_modules/electron-builder/**"
+
+extraResources:
+  - from: app
+    to: app
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  icon: assets/icon.png
+
+nsis:
+  oneClick: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ASN POS
+
+asar: false
+npmRebuild: false
+compression: store
