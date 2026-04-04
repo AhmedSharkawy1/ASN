@@ -72,6 +72,40 @@ export const exportMenuToExcel = async (restaurantId: string) => {
     }
 };
 
+export const downloadEmptyMenuTemplate = () => {
+    try {
+        const rows = [
+            {
+                'Category AR': 'البيتزا',
+                'Category EN': 'Pizza',
+                'Emoji': '🍕',
+                'Item AR': 'بيتزا مارجريتا',
+                'Item EN': 'Margherita Pizza',
+                'Description AR': 'بيتزا بالجبنة والصلصة',
+                'Description EN': 'Cheese and tomato sauce pizza',
+                'Sizes': 'صغير,وسط,كبير',
+                'Prices': '50,100,150',
+                'Popular': 'نعم',
+                'Spicy': 'لا',
+                'Sold By Weight': 'لا',
+                'الوحدة': 'قطعة',
+                'Recipe Ingredients': 'دقيق:0.2:kg, جبنة موتزاريلا:0.1:kg',
+                'Cost': '25'
+            }
+        ];
+
+        const ws = xlsx.utils.json_to_sheet(rows);
+        const wb = xlsx.utils.book_new();
+        xlsx.utils.book_append_sheet(wb, ws, "Menu Template");
+
+        xlsx.writeFile(wb, `Empty_Menu_Template.xlsx`);
+        return true;
+    } catch (e) {
+        console.error("Export error:", e);
+        return false;
+    }
+};
+
 export const importMenuFromExcel = async (restaurantId: string, file: File) => {
     return new Promise<{ success: boolean; message: string }>((resolve) => {
         const reader = new FileReader();

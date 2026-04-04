@@ -462,21 +462,21 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
                     </a>
                 )}
 
-                <div onClick={() => { haptic(); setShowCallMenu(true); }} className="flex items-center gap-1 flex-1 cursor-pointer">
+                <div onClick={() => { haptic(); setShowCallMenu(true); }} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
                     <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">📞</span>
                     </div>
                     <span className="text-[9px] font-black text-zinc-500">{isAr ? "دليفري" : "Delivery"}</span>
                 </div>
 
-                <div onClick={scrollToTop} className="flex items-center gap-1 flex-1 -mt-8">
+                <div onClick={scrollToTop} className="flex flex-col items-center gap-1 flex-1 -mt-8">
                     <div className="w-14 h-14 flex items-center justify-center text-white rounded-full shadow-lg border-[4px] border-[#f8f9fa] dark:border-[#121212] active:scale-90 transition-transform" style={{ backgroundColor: PRIMARY }}>
                         <span className="text-xl font-black">↑</span>
                     </div>
                     <span className="text-[9px] font-black mt-1" style={{ color: PRIMARY }}>{isAr ? "للأعلى" : "Top"}</span>
                 </div>
 
-                <div onClick={() => { haptic(); setShowPaymentMenu(true); }} className="flex items-center gap-1 flex-1 cursor-pointer">
+                <div onClick={() => { haptic(); setShowPaymentMenu(true); }} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
                     <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
                         <span className="text-lg">💳</span>
                     </div>

@@ -5,8 +5,8 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
-import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2 } from "lucide-react";
-import { exportMenuToExcel, importMenuFromExcel } from "@/lib/excel";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown } from "lucide-react";
+import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Item = {
@@ -142,9 +142,9 @@ export default function MenuBuilderPage() {
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري تحميل المنيو..." : "Loading Menu Builder..."}</div>;
 
     return (
-        <div className="lg:grid lg:grid-cols-12 lg:gap-6 flex flex-col w-full mx-auto pb-20">
-            {/* Left Column - Menu Builder */}
-            <div className="col-span-12 lg:col-span-7 flex flex-col gap-6">
+        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
+            {/* Main Menu Builder */}
+            <div className="col-span-12 flex flex-col gap-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-glass-border pb-6">
                 <div>
                     <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
@@ -155,6 +155,12 @@ export default function MenuBuilderPage() {
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={downloadEmptyMenuTemplate}
+                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-dashed border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-sm">
+                        <FileDown className="w-5 h-5 text-blue" />
+                        {language === "ar" ? "تحميل نموذج" : "Download Template"}
+                    </button>
                     <button
                         onClick={async () => {
                             if (!restaurantId) return;
@@ -339,45 +345,6 @@ export default function MenuBuilderPage() {
             )}
             </div>
 
-            {/* Right Column - Live Preview */}
-            <div className="col-span-12 lg:col-span-5 hidden lg:block">
-                <div className="sticky top-[90px]">
-                    <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-[3rem] p-4 shadow-xl flex flex-col items-center w-max mx-auto">
-                        <div className="w-full flex justify-between items-center mb-5 px-3">
-                            <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                                <span className="flex h-3 w-3 relative">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                                </span>
-                                {language === "ar" ? "معاينة حية" : "Live Preview"}
-                            </h3>
-                            <button
-                                onClick={() => setPreviewKey(k => k + 1)}
-                                className="p-1.5 text-silver hover:text-blue hover:bg-blue/10 rounded-lg transition-colors"
-                                title={language === "ar" ? "تحديث المعاينة" : "Refresh Preview"}
-                            >
-                                <RefreshCw className="w-4 h-4" />
-                            </button>
-                        </div>
-                        <div className="w-[414px] h-[850px] border-[10px] border-slate-900 dark:border-slate-800 rounded-[3rem] overflow-hidden bg-white dark:bg-black relative shadow-2xl">
-                            {/* Phone Notch */}
-                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[24px] bg-slate-900 dark:border-slate-800 rounded-b-2xl z-20"></div>
-                            {restaurantId ? (
-                                <iframe
-                                    key={previewKey}
-                                    src={`/menu/${restaurantId}`}
-                                    className="w-full h-full border-0 absolute inset-0"
-                                    sandbox="allow-scripts allow-same-origin"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                    <Loader2 className="w-6 h-6 animate-spin text-silver" />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }

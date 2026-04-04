@@ -795,7 +795,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
 
                     <button
                         onClick={() => { setShowCategoriesModal(true); triggerHaptic(10); }}
-                        className="flex-1 flex items-center py-2 text-zinc-500 active:scale-90 transition-all"
+                        className="flex-1 flex flex-col items-center py-2 text-zinc-500 active:scale-90 transition-all"
                     >
                         <svg className="w-6 h-6 animate-popular" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M9 6H20M9 12H20M9 18H20M5 6V6.01M5 12V12.01M5 18V18.01" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
