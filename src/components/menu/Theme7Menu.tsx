@@ -237,6 +237,11 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                         <FaFacebook className="w-5 h-5" />
                     </a>
                 )}
+                {config.instagram_url && (
+                    <a href={config.instagram_url} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                        <FaInstagram className="w-5 h-5" />
+                    </a>
+                )}
                 {config.whatsapp_number && (
                     <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
                         <FaWhatsapp className="w-5 h-5" />

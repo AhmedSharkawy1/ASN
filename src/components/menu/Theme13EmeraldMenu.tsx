@@ -338,9 +338,11 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
 
                             <AnimatePresence>
                                 {isPhoneMenuOpen && (
+                                            <>
+                                            <div className="fixed inset-0 z-[299] bg-black/40 backdrop-blur-[4px]" onClick={() => setIsPhoneMenuOpen(false)} />
                                     <motion.div
                                         initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                        className="absolute top-full mt-2 left-1/2 -translate-x-1/2 md:-translate-x-0 md:left-auto md:right-0 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-[0_5px_20px_rgba(0,0,0,0.2)] border border-gray-100 dark:border-slate-700 py-2 z-[110] overflow-hidden"
+                                        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85vw] max-w-[310px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[300] overflow-hidden"
                                     >
                                         <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center" dir={isAr ? 'rtl' : 'ltr'}>
                                             {isAr ? 'أرقام الديلفري' : 'Delivery Numbers'}
@@ -355,6 +357,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                                                     </a>
                                                 ))}
                                     </motion.div>
+                                            </>
                                 )}
                             </AnimatePresence>
                         </div>

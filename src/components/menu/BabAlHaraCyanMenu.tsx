@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 // lucide-react icons used elsewhere
-import { FaWhatsapp, FaFacebook } from "react-icons/fa";
+import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus } from "lucide-react";
 import SharedMarquee from "./SharedMarquee";
@@ -257,7 +257,7 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
                         {config.logo_url && (
                             <div className="w-36 h-36 md:w-48 md:h-32 rounded-full border-[8px] border-white/30 bg-white shadow-[0_25px_60px_rgba(0,0,0,0.7)] overflow-hidden p-0.5 transform transition-transform hover:scale-110 duration-500">
                                 <div className="w-full h-full bg-white flex items-center justify-center rounded-full overflow-hidden">
-                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover" />
+                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15]" />
                                 </div>
                             </div>
                         )}
@@ -300,7 +300,7 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
                         <div className={`bab-cat-thumb border-2 p-1 bg-white dark:bg-zinc-800 transition-all ${activeSection === "" ? "bab-cat-active" : "border-transparent"}`}>
                             <div className="w-full h-full rounded-full overflow-hidden">
                                 {config.logo_url ? (
-                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover" />
+                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15]" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-700 text-lg">🏠</div>
                                 )}
@@ -459,6 +459,14 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
                             <FaFacebook className="w-5 h-5" />
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "فيسبوك" : "Facebook"}</span>
+                    </a>
+                )}
+                {config.instagram_url && (
+                    <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 flex-1">
+                        <div className="w-9 h-9 flex items-center justify-center bg-[#E1306C]/10 text-[#E1306C] rounded-xl active:scale-90 transition-transform">
+                            <FaInstagram className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-black text-zinc-500">{isAr ? "انستجرام" : "Instagram"}</span>
                     </a>
                 )}
 

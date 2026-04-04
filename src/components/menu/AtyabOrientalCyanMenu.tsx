@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { ShoppingCart, X, Phone } from "lucide-react";
-import { FaWhatsapp, FaFacebook } from "react-icons/fa";
+import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import SharedMarquee from "./SharedMarquee";
 import CheckoutModal from "./CheckoutModal";
@@ -113,7 +113,6 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
-    const [showCallMenu, setShowCallMenu] = useState(false);
     const [showBottomCallModal, setShowBottomCallModal] = useState(false);
     const [showCategoriesGrid, setShowCategoriesGrid] = useState(false);
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
@@ -323,39 +322,12 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                     <div className="flex w-full gap-3 relative">
                         <div className="flex-1 relative">
                             <button
-                                onClick={() => { haptic(); setShowCallMenu(!showCallMenu); }}
-                                className={`w-full font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border ${showCallMenu ? "bg-zinc-900 text-white border-zinc-800" : "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"}`}
+                                onClick={() => { haptic(); setShowBottomCallModal(true); }}
+                                className="w-full font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"
                             >
                                 <Phone className="w-5 h-5" />
                                 <span>{isAr ? "اتصل بنا" : "Call Us"}</span>
                             </button>
-
-                            {/* Call Menu Dropdown */}
-                            <AnimatePresence>
-                                {showCallMenu && (
-                                    <>
-<div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px] flex items-center justify-center py-16 px-6 mb-safe" onClick={() => setShowCallMenu(false)} />
-                                        <motion.div
-                                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                            className="absolute top-full mt-3 left-0 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-[1.5rem] shadow-2xl overflow-hidden z-50"
-                                        >
-                                            <div className="px-4 py-2 bg-zinc-50 dark:bg-white/5 border-b border-zinc-100 dark:border-white/5">
-                                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{isAr ? "خطوط الطلبات" : "Order Lines"}</span>
-                                            </div>
-                                            
-                                            {config.phone_numbers?.map((p, i) => (
-                                                <a key={i} href={`tel:${p.number}`} className="flex items-center justify-between px-5 py-3.5 hover:bg-[#0891b2]/5 border-b last:border-0 border-zinc-100 dark:border-white/5 transition-all">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-2 h-2 rounded-full bg-[#0891b2]" />
-                                                        <span className="text-[11px] font-bold text-zinc-500">{p.label}</span>
-                                                    </div>
-                                                    <span className="text-[15px] font-black text-zinc-900 dark:text-white tabular-nums tracking-tighter" dir="ltr">{p.number}</span>
-                                                </a>
-                                            ))}
-                                        </motion.div>
-                                    </>
-                                )}
-                            </AnimatePresence>
                         </div>
 
                         {config.facebook_url && (
@@ -363,6 +335,13 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                                 className="flex-1 bg-[#1877F2] hover:bg-[#166fe5] text-white font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border border-white/10">
                                 <FaFacebook className="w-5 h-5" />
                                 <span>{isAr ? "فيسبوك" : "Facebook"}</span>
+                            </a>
+                        )}
+                {config.instagram_url && (
+                            <a href={config.instagram_url} target="_blank" rel="noopener noreferrer"
+                                className="flex-1 bg-[#E1306C] hover:bg-[#166fe5] text-white font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border border-white/10">
+                                <FaInstagram className="w-5 h-5" />
+                                <span>{isAr ? "انستجرام" : "Instagram"}</span>
                             </a>
                         )}
                     </div>

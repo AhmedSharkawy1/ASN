@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { ShoppingCart, MapPin } from "lucide-react";
-import { FaWhatsapp, FaFacebook } from "react-icons/fa";
+import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import SharedMarquee from "./SharedMarquee";
 import CheckoutModal from "./CheckoutModal";
@@ -97,7 +97,6 @@ export default function PizzaPastaEmeraldMenu({ config, categories, language, re
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
-    const [showCallMenu, setShowCallMenu] = useState(false);
     const [showBottomCallModal, setShowBottomCallModal] = useState(false);
     const [showCategoriesModal, setShowCategoriesModal] = useState(false);
     const [showPaymentOptions, setShowPaymentOptions] = useState(false);
@@ -321,28 +320,12 @@ export default function PizzaPastaEmeraldMenu({ config, categories, language, re
                         {((config.phone_numbers && config.phone_numbers.length > 0)) && (
                             <div className="flex-1 relative">
                                 <button
-                                    onClick={() => { setShowCallMenu(!showCallMenu); triggerHaptic(10); }}
-                                    className={`w-full font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[13px] border ${showCallMenu ? "bg-zinc-900 text-white border-zinc-800" : "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"}`}
+                                    onClick={() => { setShowBottomCallModal(true); triggerHaptic(10); }}
+                                    className="w-full font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[13px] border bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white border-zinc-200 dark:border-white/10"
                                 >
                                     <span className="text-xl animate-emoji">📞</span>
                                     <span>{isAr ? "اتصل للطلب" : "Call to Order"}</span>
                                 </button>
-                                {showCallMenu && (
-                                    <>
-<div className="fixed inset-0 z-[-1] bg-black/40 backdrop-blur-[4px] flex items-center justify-center py-16 px-6 mb-safe" onClick={() => setShowCallMenu(false)}></div>
-                                        <div className="absolute top-full mt-3 left-0 right-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 rounded-[1.5rem] shadow-2xl overflow-hidden animate-slideUp z-50">
-                                            
-                                            {config.phone_numbers?.map((pn, idx) => (
-                                                <a key={idx} href={`tel:${pn.number}`} className="flex items-center justify-between px-5 py-4 hover:bg-emerald-50 dark:hover:bg-emerald-500/5 border-b last:border-0 border-zinc-100 dark:border-white/5 transition-all group">
-                                                    <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">{pn.label || `${isAr ? 'رقم' : 'Line'} ${idx + 1}`}</span>
-                                                    <span className="text-[15px] font-black tabular-nums text-emerald-600 dark:text-emerald-500 flex items-center gap-2" dir="ltr">
-                                                        {pn.number} <span className="group-hover:animate-emoji text-xs">📞</span>
-                                                    </span>
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </>
-                                )}
                             </div>
                         )}
                         {config.facebook_url && (
@@ -350,6 +333,13 @@ export default function PizzaPastaEmeraldMenu({ config, categories, language, re
                                 className="flex-1 bg-[#1877F2] text-white font-black py-4 rounded-3xl flex items-center justify-center gap-2 shadow-xl text-[13px] border border-white/10 active:scale-95 transition-transform">
                                 <FaFacebook className="w-5 h-5" />
                                 <span className="animate-popular">{isAr ? "فيسبوك" : "Facebook"}</span>
+                            </a>
+                        )}
+                {config.instagram_url && (
+                            <a href={config.instagram_url} target="_blank" rel="noopener noreferrer"
+                                className="flex-1 bg-[#E1306C] text-white font-black py-4 rounded-3xl flex items-center justify-center gap-2 shadow-xl text-[13px] border border-white/10 active:scale-95 transition-transform">
+                                <FaInstagram className="w-5 h-5" />
+                                <span className="animate-popular">{isAr ? "انستجرام" : "Instagram"}</span>
                             </a>
                         )}
                     </div>

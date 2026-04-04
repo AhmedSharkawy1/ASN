@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Share2, Bike, X, Moon, Sun, ShoppingBag, Plus as PlusIcon, Minus, LayoutGrid } from 'lucide-react';
-import { FaWhatsapp, FaFacebook } from 'react-icons/fa';
+import { FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -387,7 +387,7 @@ export default function Theme5SkyMenu({ config, categories, language, restaurant
                         {/* Overlapping Logo */}
                         <div className="absolute -top-6 -right-2 w-24 h-24 rounded-full border-4 border-white dark:border-zinc-800 overflow-hidden bg-white shadow-sm z-20">
                             {config.logo_url ? (
-                                <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                                <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-[1.15]" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-2xl">🍽️</div>
                             )}
@@ -536,6 +536,14 @@ export default function Theme5SkyMenu({ config, categories, language, restaurant
                             <FaFacebook className="w-5 h-5" />
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "فيسبوك" : "Facebook"}</span>
+                    </a>
+                )}
+                {config.instagram_url && (
+                    <a href={config.instagram_url} target="_blank" className="flex flex-col items-center gap-1 flex-1">
+                        <div className="w-9 h-9 flex items-center justify-center bg-[#E1306C]/10 text-[#E1306C] rounded-xl active:scale-90 transition-transform">
+                            <FaInstagram className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-black text-zinc-500">{isAr ? "انستجرام" : "Instagram"}</span>
                     </a>
                 )}
 

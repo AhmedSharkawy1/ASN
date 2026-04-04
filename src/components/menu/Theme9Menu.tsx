@@ -763,7 +763,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                             <div className="pt-10 pb-8 px-5 flex flex-col items-center relative text-center text-white" style={{ background: T9_RED }}>
                                 <button onClick={() => setIsDrawerOpen(false)} className="absolute top-4 left-4 p-1 opacity-80 hover:opacity-100"><X className="w-6 h-6" /></button>
                                 <div className="w-20 h-20 bg-white rounded-full p-1 shadow-lg mb-3">
-                                    <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover rounded-full" />
+                                    <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-[1.15] rounded-full" />
                                 </div>
                                 <h3 className="font-black text-lg drop-shadow-md">{config.name}</h3>
                             </div>

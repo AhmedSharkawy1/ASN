@@ -75,7 +75,7 @@ export default function MenuBuilderPage() {
                     if (catsData) {
                         const catIds = catsData.map(c => c.id);
                         const { data: itemsData } = catIds.length > 0
-                            ? await supabase.from('items').select('*').in('category_id', catIds)
+                            ? await supabase.from('items').select('*').in('category_id', catIds).order('sort_order', { ascending: true })
                             : { data: [] };
 
                         setCategories(catsData.map(cat => ({
@@ -115,6 +115,34 @@ export default function MenuBuilderPage() {
 
     const handleDeleteCategory = (catId: string) => setDeletingCatId(catId);
     const handleDeleteItem = (catId: string, itemId: string) => setDeletingItemObj({ catId, itemId });
+
+    const handleMoveCategory = async (index: number, direction: 'up' | 'down') => {
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === categories.length - 1) return;
+        const newCats = [...categories];
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        [newCats[index], newCats[swapIndex]] = [newCats[swapIndex], newCats[index]];
+        setCategories(newCats);
+        Promise.all([
+            supabase.from('categories').update({ sort_order: index }).eq('id', newCats[index].id),
+            supabase.from('categories').update({ sort_order: swapIndex }).eq('id', newCats[swapIndex].id)
+        ]).catch(console.error);
+    };
+
+    const handleMoveItem = async (catId: string, itemIndex: number, direction: 'up' | 'down') => {
+        const cat = categories.find(c => c.id === catId);
+        if (!cat) return;
+        if (direction === 'up' && itemIndex === 0) return;
+        if (direction === 'down' && itemIndex === cat.items.length - 1) return;
+        const newItems = [...cat.items];
+        const swapIndex = direction === 'up' ? itemIndex - 1 : itemIndex + 1;
+        [newItems[itemIndex], newItems[swapIndex]] = [newItems[swapIndex], newItems[itemIndex]];
+        setCategories(categories.map(c => c.id === catId ? { ...c, items: newItems } : c));
+        Promise.all([
+            supabase.from('items').update({ sort_order: itemIndex }).eq('id', newItems[itemIndex].id),
+            supabase.from('items').update({ sort_order: swapIndex }).eq('id', newItems[swapIndex].id)
+        ]).catch(console.error);
+    };
 
     const updateCategory = async (catId: string, updates: Partial<Category>) => {
         await supabase.from('categories').update(updates).eq('id', catId);
@@ -218,7 +246,7 @@ export default function MenuBuilderPage() {
                 </div>
             ) : (
                 <div className="flex flex-col gap-6">
-                    {categories.map((cat) => {
+                    {categories.map((cat, catIdx) => {
                         const isCollapsed = collapsedCats.has(cat.id);
                         return (
                             <div key={cat.id} className="bg-white dark:bg-card border border-glass-border rounded-2xl overflow-hidden shadow-sm">
@@ -250,9 +278,13 @@ export default function MenuBuilderPage() {
                                                     {cat.name_en && cat.name_en !== cat.name_ar && <span className="text-sm text-silver">{cat.name_en}</span>}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-2">
-                                                <button onClick={() => { setEditingCat(cat.id); setEditingItem(null); }} className="p-2 text-blue hover:bg-blue/10 rounded-lg transition-colors"><Edit2 className="w-5 h-5" /></button>
-                                                <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 className="w-5 h-5" /></button>
+                                            <div className="flex items-center gap-1.5 md:gap-2">
+                                                <div className="flex bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border">
+                                                    <button onClick={() => handleMoveCategory(catIdx, 'up')} disabled={catIdx === 0} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-5 h-5" /></button>
+                                                    <button onClick={() => handleMoveCategory(catIdx, 'down')} disabled={catIdx === categories.length - 1} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-5 h-5" /></button>
+                                                </div>
+                                                <button onClick={() => { setEditingCat(cat.id); setEditingItem(null); }} className="p-2 text-blue hover:bg-blue/10 rounded-lg transition-colors"><Edit2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                                <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
                                             </div>
                                         </div>
                                     )}
@@ -268,7 +300,7 @@ export default function MenuBuilderPage() {
                                                     <div className="text-center py-4 text-silver/60 text-base">{language === "ar" ? "لا توجد أصناف بعد." : "No items yet."}</div>
                                                 )}
 
-                                                {cat.items.map((item) => (
+                                                {cat.items.map((item, iIdx) => (
                                                     <div key={item.id} className="group rounded-2xl border border-glass-border bg-slate-50/50 dark:bg-card p-4 hover:border-blue/30 transition-colors">
                                                         {editingItem === item.id ? (
                                                             <ItemEditor item={item} language={language}
@@ -278,7 +310,11 @@ export default function MenuBuilderPage() {
                                                         ) : (
                                                             <ItemRow item={item} language={language}
                                                                 onEdit={() => { setEditingItem(item.id); setEditingCat(null); setAddingItemToCat(null); }}
-                                                                onDelete={() => handleDeleteItem(cat.id, item.id)} />
+                                                                onDelete={() => handleDeleteItem(cat.id, item.id)}
+                                                                isFirst={iIdx === 0}
+                                                                isLast={iIdx === cat.items.length - 1}
+                                                                onMoveUp={() => handleMoveItem(cat.id, iIdx, 'up')}
+                                                                onMoveDown={() => handleMoveItem(cat.id, iIdx, 'down')} />
                                                         )}
                                                     </div>
                                                 ))}
@@ -599,9 +635,11 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
 }
 
 // ===================== ITEM ROW (read-only) =====================
-function ItemRow({ item, language, onEdit, onDelete }: {
+function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, onMoveDown }: {
     item: Item; language: string;
     onEdit: () => void; onDelete: () => void;
+    isFirst?: boolean; isLast?: boolean;
+    onMoveUp?: () => void; onMoveDown?: () => void;
 }) {
     return (
         <>
@@ -621,9 +659,15 @@ function ItemRow({ item, language, onEdit, onDelete }: {
                         <p className="text-base text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
                     </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
-                    <button onClick={onEdit} className="p-2 text-blue hover:bg-blue/10 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                    <button onClick={onDelete} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <div className="flex items-center bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border">
+                        <button onClick={onMoveUp} disabled={isFirst} className="p-1 px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-4 h-4" /></button>
+                        <button onClick={onMoveDown} disabled={isLast} className="p-1 px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-4 h-4" /></button>
+                    </div>
+                    <div className="flex gap-1">
+                        <button onClick={onEdit} className="p-1.5 text-blue hover:bg-blue/10 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={onDelete} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                    </div>
                 </div>
             </div>
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-glass-border border-dashed">

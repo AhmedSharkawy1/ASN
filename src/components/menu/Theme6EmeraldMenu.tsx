@@ -9,7 +9,7 @@ import {
     Star, MapPin, Phone, Link as LinkIcon,
     Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, Share2
 } from 'lucide-react';
-import { FaWhatsapp, FaFacebook } from 'react-icons/fa';
+import { FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -237,6 +237,11 @@ export default function Theme6EmeraldMenu({ config, categories, restaurantId }: 
                             <FaFacebook className="w-6 h-6" />
                         </a>
                     )}
+                {config.instagram_url && (
+                        <a href={config.instagram_url} target="_blank" className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                            <FaInstagram className="w-6 h-6" />
+                        </a>
+                    )}
                     {config.whatsapp_number && (
                         <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                             <FaWhatsapp className="w-6 h-6" />
@@ -367,6 +372,14 @@ export default function Theme6EmeraldMenu({ config, categories, restaurantId }: 
                     <a href={config.facebook_url} target="_blank" className="flex flex-col items-center gap-1 flex-1">
                         <div className="w-9 h-9 flex items-center justify-center bg-[#1877F2]/10 text-[#1877F2] rounded-xl active:scale-90 transition-transform">
                             <FaFacebook className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-black text-zinc-500">{isAr ? 'فيسبوك' : 'Facebook'}</span>
+                    </a>
+                )}
+                {config.instagram_url && (
+                    <a href={config.instagram_url} target="_blank" className="flex flex-col items-center gap-1 flex-1">
+                        <div className="w-9 h-9 flex items-center justify-center bg-[#E1306C]/10 text-[#E1306C] rounded-xl active:scale-90 transition-transform">
+                            <FaInstagram className="w-5 h-5" />
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? 'فيسبوك' : 'Facebook'}</span>
                     </a>

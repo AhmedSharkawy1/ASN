@@ -278,7 +278,7 @@ export default function Theme11SkyMenu({ config, categories, restaurantId }: The
             <div className="sticky top-0 z-[100] shadow-sm backdrop-blur-md border-b transition-colors duration-300" style={{ backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : 'rgba(255, 255, 255, 0.85)', borderColor }}>
                 <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src={config.logo_url} alt="Logo" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover border-2 shadow-sm" style={{ borderColor: primaryColor }} />
+                        <img src={config.logo_url} alt="Logo" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover scale-[1.15] border-2 shadow-sm" style={{ borderColor: primaryColor }} />
                     </div>
                     <div className="flex items-center gap-2 md:gap-4">
                         <div className="flex items-center gap-1.5 md:gap-2 mr-2 md:mr-4 border-r pr-2 md:pr-4 border-gray-200 dark:border-slate-700">
@@ -333,9 +333,11 @@ export default function Theme11SkyMenu({ config, categories, restaurantId }: The
 
                                     <AnimatePresence>
                                         {isPhoneMenuOpen && (
+                                            <>
+                                            <div className="fixed inset-0 z-[299] bg-black/40 backdrop-blur-[4px]" onClick={() => setIsPhoneMenuOpen(false)} />
                                             <motion.div
                                                 initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                                className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[110] overflow-hidden"
+                                                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85vw] max-w-[310px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[300] overflow-hidden"
                                             >
                                                 <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center">
                                                     أرقام الديلفري
@@ -350,6 +352,7 @@ export default function Theme11SkyMenu({ config, categories, restaurantId }: The
                                                     </a>
                                                 ))}
                                             </motion.div>
+                                            </>
                                         )}
                                     </AnimatePresence>
                                 </div>

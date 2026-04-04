@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { X, MapPin, ShoppingCart } from "lucide-react";
-import { FaWhatsapp, FaFacebook } from "react-icons/fa";
+import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
@@ -314,7 +314,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                             {config.logo_url && (
                                 <div className="w-10 h-10 md:w-12 md:h-12 relative flex items-center justify-center overflow-hidden rounded-full bg-[#FDFBF7] dark:bg-[#1E1E1E] shadow-sm border border-[#22d3ee] dark:border-[#333] p-1">
-                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover rounded-full" />
+                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15] rounded-full" />
                                 </div>
                             )}
                             <div className="hidden md:flex flex-col">
@@ -548,6 +548,11 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                             {config.facebook_url && (
                                 <a href={config.facebook_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white flex items-center justify-center hover:bg-white hover:text-[#0891b2] transition-colors">
                                     <FaFacebook className="w-5 h-5" />
+                                </a>
+                            )}
+                {config.instagram_url && (
+                                <a href={config.instagram_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white flex items-center justify-center hover:bg-white hover:text-[#0891b2] transition-colors">
+                                    <FaInstagram className="w-5 h-5" />
                                 </a>
                             )}
                         </div>
