@@ -150,7 +150,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                          </div>
                     )}
                     <button
-                        onClick={async () => { await supabase.auth.signOut(); router.push("/login"); }}
+                        onClick={async () => { 
+                            sessionStorage.removeItem('impersonating_tenant');
+                            localStorage.removeItem('offline_session');
+                            localStorage.removeItem('offline_pw');
+                            await supabase.auth.signOut(); 
+                            router.push("/login"); 
+                        }}
                         className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-4 py-3'} rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 text-[15px] font-bold transition-all`}
                         title={sidebarCollapsed ? "Logout" : undefined}
                     >

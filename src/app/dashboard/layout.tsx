@@ -647,7 +647,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         </div>
                     )}
                     <button
-                        onClick={async () => { await supabase.auth.signOut(); router.push("/login"); }}
+                        onClick={async () => { 
+                            sessionStorage.removeItem('impersonating_tenant');
+                            localStorage.removeItem('offline_session');
+                            localStorage.removeItem('offline_pw');
+                            await supabase.auth.signOut(); 
+                            router.push("/login"); 
+                        }}
                         className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-3'} rounded-xl text-red-500/90 hover:text-red-600 hover:bg-red-50 dark:text-red-400/80 dark:hover:bg-red-500/10 text-[16px] font-extrabold transition-all`}
                     >
                         <LogOut className="w-5 h-5" />

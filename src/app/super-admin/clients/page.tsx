@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -41,6 +41,11 @@ export default function SuperAdminClientsPage() {
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
     const [selectedParentId, setSelectedParentId] = useState<string>("");
     const [savingLink, setSavingLink] = useState(false);
+
+    // Password Update Modal Options
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [updatingPassword, setUpdatingPassword] = useState(false);
 
     const PAGE_GROUPS = [
         {
@@ -262,6 +267,50 @@ export default function SuperAdminClientsPage() {
         }
     };
 
+    const handleOpenPasswordModal = (client: Client) => {
+        setSelectedClient(client);
+        setNewPassword("");
+        setIsPasswordModalOpen(true);
+    };
+
+    const handleUpdatePassword = async () => {
+        if (!selectedClient || !selectedClient.email) {
+            toast.error(language === "ar" ? "هذا العميل لا يمتلك بريد إلكتروني" : "This client has no email");
+            return;
+        }
+        if (newPassword.length < 6) {
+            toast.error(language === "ar" ? "كلمة المرور يجب أن تكون 6 أحرف على الأقل" : "Password must be at least 6 characters");
+            return;
+        }
+
+        setUpdatingPassword(true);
+        try {
+            const res = await fetch("/api/auth/update-client-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: selectedClient.email,
+                    password: newPassword
+                })
+            });
+            const data = await res.json();
+            
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to update password");
+            }
+            
+            toast.success(language === "ar" ? "تم تغيير الرقم السري بنجاح" : "Password updated successfully");
+            setIsPasswordModalOpen(false);
+            setNewPassword("");
+        } catch (err: unknown) {
+            console.error(err);
+            const message = err instanceof Error ? err.message : "Error updating password";
+            toast.error(message);
+        } finally {
+            setUpdatingPassword(false);
+        }
+    };
+
     const filtered = clients.filter(c => 
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         c.email?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -370,6 +419,9 @@ export default function SuperAdminClientsPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleOpenPasswordModal(client)} className="p-2 text-stone-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors" title="Change Password">
+                                                        <Key className="w-4 h-4" />
+                                                    </button>
                                                     <button onClick={() => handleImpersonate(client.id)} className="p-2 text-stone-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors" title="Login as Client">
                                                         <LogIn className="w-4 h-4" />
                                                     </button>
@@ -552,6 +604,60 @@ export default function SuperAdminClientsPage() {
                             >
                                 {savingLink ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> : null}
                                 Save Link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Password Update Modal */}
+            {isPasswordModalOpen && selectedClient && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsPasswordModalOpen(false)} />
+                    <div className="bg-white dark:bg-[#131b26] rounded-2xl shadow-xl w-full max-w-sm relative z-10 overflow-hidden">
+                        <div className="flex items-center justify-between p-6 border-b border-stone-100 dark:border-stone-800 shrink-0">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Key className="w-5 h-5 text-red-500" />
+                                    {language === 'ar' ? "تغيير كلمة المرور" : "Change Password"}
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{selectedClient.email}</p>
+                            </div>
+                            <button onClick={() => setIsPasswordModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 rounded-xl hover:bg-stone-100 dark:hover:bg-[#1a2433] transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                {language === 'ar' ? "كلمة المرور الجديدة" : "New Password"}
+                            </label>
+                            <input 
+                                type="text"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="••••••••"
+                                autoComplete="off"
+                                className="w-full pl-4 pr-4 py-3 bg-stone-50 dark:bg-[#0a0f16] border border-stone-200 dark:border-stone-700 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all dark:text-white font-mono tracking-widest"
+                            />
+                            <p className="text-xs text-slate-500 mt-3">
+                                {language === 'ar' 
+                                  ? "هذا الإجراء سيقوم بتغيير الرقم السري لحساب العميل فوراً ولن يحتاج إلى تأكيد عبر الإيميل." 
+                                  : "This will instantly change the client's password without needing email confirmation."}
+                            </p>
+                        </div>
+                        <div className="p-6 border-t border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-black/20 flex justify-end gap-3">
+                            <button 
+                                onClick={() => setIsPasswordModalOpen(false)}
+                                className="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-stone-200 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                                {language === 'ar' ? "إلغاء" : "Cancel"}
+                            </button>
+                            <button 
+                                onClick={handleUpdatePassword}
+                                disabled={updatingPassword || !newPassword || newPassword.length < 6}
+                                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                {updatingPassword ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> : null}
+                                {language === 'ar' ? "حفظ وتغيير" : "Update Password"}
                             </button>
                         </div>
                     </div>
