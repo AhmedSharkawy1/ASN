@@ -85,8 +85,20 @@ export default function SuperAdminClientsPage() {
             ]
         },
         {
+            titleEn: 'HR & Payroll', titleAr: 'الموارد البشرية',
+            pages: [
+                { key: 'hr', nameEn: 'HR Dashboard', nameAr: 'لوحة الموارد البشرية' },
+                { key: 'hr_employees', nameEn: 'Employees', nameAr: 'إدارة الموظفين' },
+                { key: 'hr_attendance', nameEn: 'Attendance', nameAr: 'الحضور والانصراف' },
+                { key: 'hr_payroll', nameEn: 'Payroll', nameAr: 'كشف المرتبات' },
+                { key: 'hr_deductions', nameEn: 'Deductions & Bonuses', nameAr: 'الخصومات والمكافآت' },
+                { key: 'hr_reports', nameEn: 'HR Reports', nameAr: 'تقارير الموارد البشرية' },
+            ]
+        },
+        {
             titleEn: 'Admin & Team', titleAr: 'المسؤول والتسويق',
             pages: [
+                { key: 'marketing_links', nameEn: 'Marketing Links', nameAr: 'روابط العرض للتسويق' },
                 { key: 'customers', nameEn: 'Customers database', nameAr: 'قاعدة بيانات العملاء' },
                 { key: 'team', nameEn: 'Staff & Roles', nameAr: 'إدارة الفريق' },
                 { key: 'notifications', nameEn: 'Client Notifications', nameAr: 'إشعارات العملاء' },
