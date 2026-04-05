@@ -63,6 +63,7 @@ type RestaurantProfile = {
         admin?: boolean;
         settings?: boolean;
     };
+    auto_approve_website_orders?: boolean;
 };
 
 export default function SettingsPage() {
@@ -91,7 +92,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders')
                 .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
@@ -99,7 +100,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
@@ -162,6 +163,7 @@ export default function SettingsPage() {
                         admin: true,
                         settings: true,
                     },
+                    auto_approve_website_orders: profile.auto_approve_website_orders || false,
                 })
                 .eq('id', profile.id);
 
@@ -190,6 +192,7 @@ export default function SettingsPage() {
                         marquee_text_ar: profile.marquee_text_ar || '',
                         marquee_text_en: profile.marquee_text_en || '',
                         orders_enabled: profile.orders_enabled ?? true,
+                        auto_approve_website_orders: profile.auto_approve_website_orders || false,
                     })
                     .eq('id', profile.id);
                 error = fallbackUpdate.error;
@@ -412,6 +415,17 @@ export default function SettingsPage() {
                                     {ch === "whatsapp" ? "📲 واتساب" : ch === "website" ? "📦 ويبسايت" : "🔄 الاثنين"}
                                 </button>
                             ))}
+                        </div>
+
+                        {/* Auto-Approve Orders Toggle */}
+                        <div className="flex items-center gap-2 flex-wrap bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-glass-border ml-auto">
+                            <span className="text-sm font-bold text-slate-500 dark:text-zinc-400 mr-1 ml-1" title={language === "ar" ? "تأكيد فوري للطلبات من الويب واعتبارها مدفوعة ومكتملة" : "Auto-confirm website orders as paid & completed"}>
+                                {language === "ar" ? "تأكيد الطلبات تلقائياً:" : "Auto-Approve Orders:"}
+                            </span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" checked={profile.auto_approve_website_orders || false} onChange={e => setProfile({ ...profile, auto_approve_website_orders: e.target.checked })} />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
+                            </label>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -379,17 +379,25 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         });
 
         // 6. Process inventory deduction (blocking for status determination)
-        let finalStatus = 'pending'; // Website orders stay pending until confirmed
+        const { data: restaurantData } = await supabase
+            .from('restaurants')
+            .select('auto_approve_website_orders')
+            .eq('id', restaurantId)
+            .maybeSingle();
+            
+        const autoApprove = restaurantData?.auto_approve_website_orders === true;
+        let finalStatus = autoApprove ? 'completed' : 'pending';
+        
         try {
             const invResult = await processOrderInventory(restaurantId, items, order.id);
-            if (!invResult.allDeducted) {
-                finalStatus = 'pending'; // Needs factory production, stay pending
+            if (!invResult.allDeducted && !autoApprove) {
+                finalStatus = 'pending'; // Needs factory production, stay pending unless auto-approve is forced
                 // Add a note or handle messages if needed
                 console.log('Order deferred to factory:', invResult.messages);
             }
         } catch (err) {
             console.error('[Inventory] deduction error:', err);
-            finalStatus = 'pending'; // Fallback
+            finalStatus = autoApprove ? 'completed' : 'pending'; // Fallback
         }
 
         // 6.5 Update the order with its calculated status

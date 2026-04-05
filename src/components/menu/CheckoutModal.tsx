@@ -54,6 +54,12 @@ export default function CheckoutModal({
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [orderNumber, setOrderNumber] = useState<number | null>(null);
+    const [finalizedOrderDetails, setFinalizedOrderDetails] = useState<{
+        items: OrderItem[];
+        subtotal: number;
+        extrasTotal: number;
+        total: number;
+    } | null>(null);
 
     // Extras state: { [itemIndex]: { [addonId]: qty } }
     const [itemExtras, setItemExtras] = useState<Record<number, Record<string, number>>>({});
@@ -105,6 +111,7 @@ export default function CheckoutModal({
             setLoading(false);
             setOrderNumber(null);
             setItemExtras({});
+            setFinalizedOrderDetails(null);
         }
     }, [isOpen]);
 
@@ -151,7 +158,7 @@ export default function CheckoutModal({
             return {
                 ...item,
                 id: (item as CheckoutCartItem & { item?: { id: string } }).item?.id || item.id,
-                extras 
+                extras
             };
         });
     };
@@ -181,6 +188,10 @@ export default function CheckoutModal({
     const handleSubmit = async () => {
         setLoading(true);
         const finalItems = getFinalItems();
+        const currentExtrasTotal = extrasTotal;
+        const currentSubtotal = subtotal;
+        const currentTotal = total;
+
         const result = await submitOrder({
             restaurantId,
             restaurantName,
@@ -200,6 +211,12 @@ export default function CheckoutModal({
         setLoading(false);
         if (result.success) {
             setOrderNumber(result.orderNumber || 0);
+            setFinalizedOrderDetails({
+                items: finalItems,
+                subtotal: currentSubtotal,
+                extrasTotal: currentExtrasTotal,
+                total: currentTotal
+            });
             setStep(hasAddons ? 5 : 4);
             onOrderSuccess?.();
             // We removed the auto redirect here so the user can see the success step (Step 5)
@@ -211,7 +228,10 @@ export default function CheckoutModal({
 
     const sendWhatsApp = () => {
         if (!whatsappNumber) return;
-        const finalItems = getFinalItems();
+        const finalItems = finalizedOrderDetails ? finalizedOrderDetails.items : getFinalItems();
+        const finalSubtotal = finalizedOrderDetails ? finalizedOrderDetails.subtotal + finalizedOrderDetails.extrasTotal : subtotal + extrasTotal;
+        const finalTotal = finalizedOrderDetails ? finalizedOrderDetails.total : total;
+
         const msg = buildWhatsAppMessage({
             orderNumber: orderNumber || 0,
             restaurantName,
@@ -222,8 +242,8 @@ export default function CheckoutModal({
             deliveryZoneName: selectedZone ? (isAr ? selectedZone.name_ar : (selectedZone.name_en || selectedZone.name_ar)) : undefined,
             deliveryFee,
             items: finalItems,
-            subtotal: subtotal + extrasTotal,
-            total,
+            subtotal: finalSubtotal,
+            total: finalTotal,
             notes: notes || undefined,
             currency: currency.replace('.', ''),
             language,
@@ -248,7 +268,7 @@ export default function CheckoutModal({
             <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={effectiveStep < 5 ? onClose : undefined} />
 
             {/* Modal */}
-            <div 
+            <div
                 className="relative w-[85vw] max-w-[310px] max-h-[85vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 mx-auto"
                 style={{ animation: "popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
             >
