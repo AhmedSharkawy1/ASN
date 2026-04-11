@@ -139,3 +139,5 @@ const config: Config = {
   plugins: [],
 };
 export default config;
+
+// rebuild tailwind cache

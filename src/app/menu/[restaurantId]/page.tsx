@@ -32,6 +32,7 @@ const Theme11Menu = dynamic(() => import("@/components/menu/Theme11Menu"));
 const Theme12Menu = dynamic(() => import("@/components/Theme12Menu/Theme12Menu"));
 const Theme13Menu = dynamic(() => import("@/components/menu/Theme13Menu"));
 const Theme16Menu = dynamic(() => import("@/components/menu/Theme16Menu"));
+const Theme17Menu = dynamic(() => import("@/components/menu/Theme17Menu"));
 const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
 const PizzaPastaEmeraldMenu = dynamic(() => import("@/components/menu/PizzaPastaEmeraldMenu"));
 const PizzaPastaSkyMenu = dynamic(() => import("@/components/menu/PizzaPastaSkyMenu"));
@@ -186,7 +187,7 @@ function SmartMenuContent({
 
         let query1 = supabase
           .from("restaurants")
-          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors");
+          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address");
 
         if (params.restaurantId === 'demo') {
           query1 = query1.eq("is_marketing_account", true).limit(1).maybeSingle();
@@ -199,7 +200,7 @@ function SmartMenuContent({
         if (e1 || !d1) {
           let query2 = supabase
             .from("restaurants")
-            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled");
+            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address");
           
           if (params.restaurantId === 'demo') {
             query2 = query2.eq("is_marketing_account", true).limit(1).maybeSingle();
@@ -389,6 +390,10 @@ function SmartMenuContent({
   // If Theme 16
   if (config?.theme === "theme16") {
     return <Theme16Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme 17 (Lusha Theme)
+  if (config?.theme === "theme17") {
+    return <Theme17Menu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {

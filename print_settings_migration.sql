@@ -24,4 +24,4 @@ create policy "Allow all authenticated operations"
   on print_settings for all 
   to authenticated 
   using (true) 
-  with check (true);
+  with check (true)

@@ -112,6 +112,14 @@ const THEMES = [
         description_en: "Elegant red design, clean interface with excellent support for extras and cart.",
         preview_color: "#af0a13", // Crimson
     },
+    {
+        id: "theme17",
+        name_ar: "لوشا (الأحمر المميز - ثيم 17)",
+        name_en: "Lusha (Premium Red - Theme 17)",
+        description_ar: "تصميم جذاب باللون الأحمر يعتمد على عرض الفئات بنظام التمرير (Coverflow) وشكل كروت المنتجات الجانبي الحديث.",
+        description_en: "Attractive red design featuring Coverflow categories swiper and modern side-layout product cards.",
+        preview_color: "#d32f2f", // Lusha Red
+    },
     // ===== PizzaPasta Color Variations =====
     { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#0891b2" },
     { id: "pizzapasta-emerald", name_ar: "PizzaPasta (Emerald)", name_en: "PizzaPasta (Emerald)", description_ar: "نفس التصميم PizzaPasta بلون Emerald", description_en: "PizzaPasta design with Emerald color", preview_color: "#059669" },
@@ -171,12 +179,21 @@ export default function ThemePage() {
     const [_themeColors, setThemeColors] = useState({ ...DEFAULT_COLORS });
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [themeOverrides, setThemeOverrides] = useState<Record<string, { custom_name_ar?: string; custom_name_en?: string; is_hidden?: boolean }>>({});
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
+
+                // Fetch theme overrides from theme_settings
+                const { data: overridesData } = await supabase.from('theme_settings').select('*');
+                if (overridesData) {
+                    const map: Record<string, any> = {};
+                    overridesData.forEach((row: any) => { map[row.theme_id] = row; });
+                    setThemeOverrides(map);
+                }
 
                 const { data: restaurant, error } = await supabase
                     .from('restaurants')
@@ -213,6 +230,19 @@ export default function ThemePage() {
 
         fetchData();
     }, []);
+
+    // Apply overrides: filter hidden themes and apply custom names
+    const visibleThemes = THEMES
+        .filter(t => !themeOverrides[t.id]?.is_hidden)
+        .map(t => {
+            const ov = themeOverrides[t.id];
+            if (!ov) return t;
+            return {
+                ...t,
+                name_ar: ov.custom_name_ar || t.name_ar,
+                name_en: ov.custom_name_en || t.name_en,
+            };
+        });
 
     const handleSave = async () => {
         if (!restaurantId) return;
@@ -298,7 +328,7 @@ export default function ThemePage() {
 
 
                     <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2">
-                        {THEMES.map((theme) => (
+                        {visibleThemes.map((theme) => (
                             <div
                                 key={theme.id}
                                 onClick={() => setSelectedTheme(theme.id)}
