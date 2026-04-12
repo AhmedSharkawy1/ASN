@@ -723,10 +723,12 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                     {/* Content Area - Left Side in RTL */}
                                     <div className="flex-1 p-3.5 flex flex-col justify-between items-start text-right">
                                         <div className="w-full">
-                                            <h3 className="font-bold text-gray-900 text-[15px] mb-1 line-clamp-1">{itemName(item)}</h3>
-                                            <p className="text-gray-500 text-[12px] line-clamp-2 mb-3">
-                                                {isRTL ? (item.description_ar || '') : (item.description_en || item.description_ar || item.description || '')}
-                                            </p>
+                                            <h3 className="font-bold text-gray-900 text-[15px] mb-1 leading-tight">{itemName(item)}</h3>
+                                            {(item.description_ar || item.description_en || item.description) && (
+                                                <p className="text-gray-500 text-[12px] leading-relaxed mb-3 break-words">
+                                                    {isRTL ? (item.description_ar || '') : (item.description_en || item.description_ar || item.description || '')}
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="mt-auto flex items-end justify-between w-full gap-2 pt-2">
                                             <div className="flex flex-wrap gap-1.5 flex-1">
