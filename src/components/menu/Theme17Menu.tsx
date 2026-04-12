@@ -1003,25 +1003,11 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                             className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden shadow-2xl pb-safe border-t border-white/20"
                             onClick={e => e.stopPropagation()}
                         >
-                            {(showItemModal.item.image_url || showItemModal.cImage) && (
-                                <div className="w-full h-40 sm:h-52 flex-shrink-0 relative bg-gray-100 shrink-0">
-                                    <img src={showItemModal.item.image_url || showItemModal.cImage || ''} alt="Item" className="w-full h-full object-cover absolute inset-0" />
-                                    <button className="absolute top-4 right-4 w-10 h-10 bg-white shadow-md rounded-full flex items-center justify-center text-gray-800" onClick={() => setShowItemModal(null)}>
-                                        <X size={20} className="stroke-[2.5]" />
-                                    </button>
-                                </div>
-                            )}
-                            
                             <div className="p-6 overflow-y-auto">
-                                {!(showItemModal.item.image_url || showItemModal.cImage) && (
-                                    <div className="flex justify-between items-start mb-3">
-                                        <h3 className="font-black text-[#d32f2f] text-xl">{itemName(showItemModal.item)}</h3>
-                                        <button className="text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 ml-2" onClick={() => setShowItemModal(null)}><X size={18} className="stroke-[2]" /></button>
-                                    </div>
-                                )}
-                                {(showItemModal.item.image_url || showItemModal.cImage) && (
-                                    <h3 className="font-black text-[#d32f2f] text-xl mb-2">{itemName(showItemModal.item)}</h3>
-                                )}
+                                <div className="flex justify-between items-start mb-3">
+                                    <h3 className="font-black text-[#d32f2f] text-xl">{itemName(showItemModal.item)}</h3>
+                                    <button className="text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 ml-2" onClick={() => setShowItemModal(null)}><X size={18} className="stroke-[2]" /></button>
+                                </div>
                                 
                                 <p className="text-gray-600 text-sm mb-5 leading-relaxed font-medium">
                                     {isRTL ? (showItemModal.item.description_ar || '') : (showItemModal.item.description_en || showItemModal.item.description_ar || showItemModal.item.description || '')}
