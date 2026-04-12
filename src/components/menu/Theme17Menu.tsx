@@ -476,8 +476,8 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                             </div>
                                         )}
                                     </div>
-                                    <div className="p-3 w-full text-center bg-white border-t border-gray-100/50">
-                                        <h3 className="font-bold text-gray-800 text-sm truncate">{catName(cat)}</h3>
+                                    <div className="p-2 w-full text-center bg-white border-t border-gray-100/50 flex flex-col justify-center min-h-[48px]">
+                                        <h3 className="font-bold text-gray-800 text-[12px] sm:text-sm leading-tight break-words">{catName(cat)}</h3>
                                     </div>
                                 </SwiperSlide>
                             ))}
@@ -634,8 +634,8 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                         <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-full p-1 border border-gray-100 shadow-[0_5px_15px_rgba(0,0,0,0.08)] flex-shrink-0 overflow-hidden relative">
                             {config.logo_url && <img src={config.logo_url} className="w-full h-full object-contain rounded-full" alt="Logo"/>}
                         </div>
-                        <div className="flex flex-col pb-2">
-                            <h1 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
+                        <div className="flex flex-col pb-2 min-w-0">
+                            <h1 className="text-[14px] sm:text-base font-black text-gray-900 leading-tight whitespace-nowrap tracking-tight">
                                 {isRTL ? 'مطعم' : 'Restaurant'} {config.name}
                             </h1>
                             <p className="text-gray-500 text-[11px] mt-0.5">{isRTL ? 'الفرع الرئيسي' : 'Main Branch'}</p>
