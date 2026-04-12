@@ -39,6 +39,8 @@ type Item = {
     description_ar?: string;
     description_en?: string;
     description?: string;
+    desc_ar?: string;
+    desc_en?: string;
     prices: number[];
     size_labels: string[];
     image_url?: string;
@@ -724,9 +726,9 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                     <div className="flex-1 p-3.5 flex flex-col justify-between items-start text-right">
                                         <div className="w-full">
                                             <h3 className="font-bold text-gray-900 text-[15px] mb-1 leading-tight">{itemName(item)}</h3>
-                                            {(item.description_ar || item.description_en || item.description) && (
+                                            {(item.description_ar || item.desc_ar || item.description_en || item.desc_en || item.description) && (
                                                 <p className="text-gray-500 text-[12px] leading-relaxed mb-3 break-words">
-                                                    {isRTL ? (item.description_ar || '') : (item.description_en || item.description_ar || item.description || '')}
+                                                    {isRTL ? (item.description_ar || item.desc_ar || '') : (item.description_en || item.desc_en || item.description_ar || item.desc_ar || item.description || '')}
                                                 </p>
                                             )}
                                         </div>
@@ -1011,9 +1013,11 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                     <button className="text-gray-400 bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0 ml-2" onClick={() => setShowItemModal(null)}><X size={18} className="stroke-[2]" /></button>
                                 </div>
                                 
-                                <p className="text-gray-600 text-sm mb-5 leading-relaxed font-medium">
-                                    {isRTL ? (showItemModal.item.description_ar || '') : (showItemModal.item.description_en || showItemModal.item.description_ar || showItemModal.item.description || '')}
-                                </p>
+                                {(showItemModal.item.description_ar || showItemModal.item.desc_ar || showItemModal.item.description_en || showItemModal.item.desc_en || showItemModal.item.description) && (
+                                    <p className="text-gray-600 text-sm mb-5 leading-relaxed font-medium">
+                                        {isRTL ? (showItemModal.item.description_ar || showItemModal.item.desc_ar || '') : (showItemModal.item.description_en || showItemModal.item.desc_en || showItemModal.item.description_ar || showItemModal.item.desc_ar || showItemModal.item.description || '')}
+                                    </p>
+                                )}
 
                                 {showItemModal.item.prices && showItemModal.item.prices.length > 1 && (
                                     <div className="mb-6 bg-gray-50 p-4 rounded-[20px]">
