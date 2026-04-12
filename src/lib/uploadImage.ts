@@ -5,7 +5,7 @@ const BUCKET_NAME = 'menu-images';
 /**
  * Resizes and compresses an image using Canvas
  */
-async function compressImage(file: File | Blob, maxWidth = 600, quality = 0.6): Promise<Blob> {
+async function compressImage(file: File | Blob, maxWidth = 800, quality = 0.8): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -32,7 +32,7 @@ async function compressImage(file: File | Blob, maxWidth = 600, quality = 0.6): 
                         if (blob) resolve(blob);
                         else reject(new Error('Canvas to Blob failed'));
                     },
-                    'image/jpeg',
+                    'image/webp',
                     quality
                 );
             };
@@ -48,14 +48,14 @@ async function compressImage(file: File | Blob, maxWidth = 600, quality = 0.6): 
 export async function uploadImage(file: File | Blob, folder: string): Promise<string | null> {
     try {
         const compressedBlob = await compressImage(file);
-        const fileName = `${folder}/${crypto.randomUUID()}.jpg`;
+        const fileName = `${folder}/${crypto.randomUUID()}.webp`;
 
         const { error } = await supabase.storage
             .from(BUCKET_NAME)
             .upload(fileName, compressedBlob, {
                 cacheControl: '3600',
                 upsert: false,
-                contentType: 'image/jpeg'
+                contentType: 'image/webp'
             });
 
         if (error) {
