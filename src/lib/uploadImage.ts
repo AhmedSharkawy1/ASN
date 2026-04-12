@@ -5,7 +5,7 @@ const BUCKET_NAME = 'menu-images';
 /**
  * Resizes and compresses an image using Canvas
  */
-async function compressImage(file: File | Blob, maxWidth = 800, quality = 0.8): Promise<Blob> {
+async function compressImage(file: File | Blob, maxWidth = 1200, quality = 0.9): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
