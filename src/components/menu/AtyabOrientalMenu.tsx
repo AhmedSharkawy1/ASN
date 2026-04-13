@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { ShoppingCart, X, Phone } from "lucide-react";
-import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa";
+import { FaWhatsapp, FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import SharedMarquee from "./SharedMarquee";
 import CheckoutModal from "./CheckoutModal";
@@ -344,6 +344,14 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                                 <span>{isAr ? "انستجرام" : "Instagram"}</span>
                             </a>
                         )}
+                        {config.tiktok_url && (
+                            <a href={config.tiktok_url} target="_blank" rel="noopener noreferrer"
+                                className="flex-1 bg-[#000000] dark:bg-[#ffffff] hover:opacity-80 text-white dark:text-black font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border border-white/10">
+                                <FaTiktok className="w-5 h-5" />
+                                <span>{isAr ? "تيك توك" : "TikTok"}</span>
+                            </a>
+                        )}
+
                     </div>
                 </div>
             </header>
