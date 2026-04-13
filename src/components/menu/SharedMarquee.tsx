@@ -14,7 +14,7 @@ export default function SharedMarquee({
     text,
     bgColor = '#e74c3c',
     textColor = '#ffffff',
-    direction = 'rtl'
+    direction = 'ltr'
 }: SharedMarqueeProps) {
     if (!text) return null;
 
@@ -30,7 +30,7 @@ export default function SharedMarquee({
                 animate={{ x: direction === 'rtl' ? '-100%' : '100%' }}
                 transition={{
                     repeat: Infinity,
-                    duration: 15,
+                    duration: 40,
                     ease: 'linear',
                 }}
             >
