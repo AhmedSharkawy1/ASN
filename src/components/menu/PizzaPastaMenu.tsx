@@ -292,13 +292,13 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3 group">
                             {config.logo_url && (
-                                <div className="w-16 h-16 relative flex items-center justify-center overflow-hidden rounded-full border-2 border-rose-600 shadow-xl bg-white dark:bg-zinc-900 p-1 group-hover:rotate-12 transition-transform duration-500">
+                                <div className="w-16 h-16 shrink-0 relative flex items-center justify-center overflow-hidden rounded-full border-2 border-rose-600 shadow-xl bg-white dark:bg-zinc-900 p-1 group-hover:rotate-12 transition-transform duration-500">
                                     <img src={config.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" />
                                     <div className="absolute inset-0 bg-rose-500/20 blur-xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 </div>
                             )}
-                            <div className="flex flex-col">
-                                <h1 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tighter leading-none italic uppercase -mb-1">
+                            <div className="flex flex-col flex-1 min-w-0">
+                                <h1 className={`font-black text-zinc-900 dark:text-white tracking-tighter leading-none italic uppercase -mb-1 ${config.name.length > 15 ? "text-lg md:text-xl line-clamp-2" : "text-2xl md:text-3xl truncate"}`}>
                                     {config.name}
                                 </h1>
                                 <span className="text-rose-600 dark:text-rose-500 text-[10px] font-black uppercase tracking-[0.1em] mt-1">

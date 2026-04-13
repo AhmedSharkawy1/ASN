@@ -298,12 +298,12 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3 group">
                             {config.logo_url && (
-                                <div className="w-16 h-16 relative flex items-center justify-center overflow-hidden rounded-full border-2 border-[#eab308] shadow-xl bg-white dark:bg-zinc-900 transition-transform group-hover:rotate-12 duration-500 p-1">
+                                <div className="w-16 h-16 shrink-0 relative flex items-center justify-center overflow-hidden rounded-full border-2 border-[#eab308] shadow-xl bg-white dark:bg-zinc-900 transition-transform group-hover:rotate-12 duration-500 p-1">
                                     <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-110" loading="eager" />
                                 </div>
                             )}
-                            <div className="flex flex-col">
-                                <h1 className="text-3xl md:text-4xl font-black text-zinc-900 dark:text-white tracking-tighter leading-none italic uppercase -mb-1">
+                            <div className="flex flex-col flex-1 min-w-0">
+                                <h1 className={`font-black text-zinc-900 dark:text-white tracking-tighter leading-none italic uppercase -mb-1 ${config.name.length > 15 ? "text-xl md:text-2xl line-clamp-2" : "text-3xl md:text-4xl truncate"}`}>
                                     {config.name}
                                 </h1>
                                 {config.phone && (
