@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Download, ExternalLink, Copy, Utensils, Layers, Eye, QrCode, Palette, Settings, Zap } from "lucide-react";
+import { Download, ExternalLink, Copy, Utensils, Layers, Eye, QrCode, Palette, Settings, Zap, Crown, CalendarDays } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
@@ -14,6 +14,7 @@ export default function UserDashboardPage() {
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [restaurantName, setRestaurantName] = useState("");
     const [stats, setStats] = useState({ items: 0, categories: 0 });
+    const [subInfo, setSubInfo] = useState<{ plan: string | null; expiresAt: string | null }>({ plan: null, expiresAt: null });
     const qrRef = useRef<SVGSVGElement>(null);
     const [copied, setCopied] = useState(false);
 
@@ -25,14 +26,17 @@ export default function UserDashboardPage() {
             const impTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
             let rId: string | null = null;
             let rName = "";
+            let rPlan: string | null = null;
+            let rExpires: string | null = null;
 
             if (impTenant) {
-                const { data: rest } = await supabase.from('restaurants').select('id, name, slug').eq('id', impTenant).single();
-                if (rest) { rId = rest.id; rName = rest.name || ""; (window as any).rSlug = rest.slug; }
+                const { data: rest } = await supabase.from('restaurants').select('id, name, slug, subscription_plan, subscription_expires_at').eq('id', impTenant).single();
+                if (rest) { rId = rest.id; rName = rest.name || ""; (window as any).rSlug = rest.slug; rPlan = rest.subscription_plan; rExpires = rest.subscription_expires_at; }
             } else {
-                const { data: rest } = await supabase.from('restaurants').select('id, name, slug').eq('email', user.email).single();
+                const { data: rest } = await supabase.from('restaurants').select('id, name, slug, subscription_plan, subscription_expires_at').eq('email', user.email).single();
                 if (rest) {
                     rId = rest.id; rName = rest.name || ""; (window as any).rSlug = rest.slug;
+                    rPlan = rest.subscription_plan; rExpires = rest.subscription_expires_at;
                 } else {
                     // Fallback for staff users
                     const { data: staff } = await supabase.from('team_members').select('restaurant_id, restaurants(name, slug)').eq('auth_id', user.id).single();
@@ -47,6 +51,7 @@ export default function UserDashboardPage() {
             if (rId) {
                 setRestaurantId(rId);
                 setRestaurantName(rName);
+                setSubInfo({ plan: rPlan, expiresAt: rExpires });
 
                 const { count: catsCount } = await supabase.from('categories').select('*', { count: 'exact', head: true }).eq('restaurant_id', rId);
                 const { count: itemsCount } = await supabase.from('items').select('*, categories!inner(restaurant_id)', { count: 'exact', head: true }).eq('categories.restaurant_id', rId);
@@ -120,11 +125,52 @@ export default function UserDashboardPage() {
 
     const isAr = language === "ar";
 
+    // Subscription calculations
+    const getSubscriptionInfo = () => {
+        const { plan, expiresAt } = subInfo;
+        if (plan === 'lifetime') {
+            return {
+                label: isAr ? 'مدى الحياة' : 'Lifetime',
+                daysLeft: Infinity,
+                totalDays: Infinity,
+                expiryDate: null,
+                isLifetime: true,
+                isExpired: false,
+                planLabel: isAr ? 'مدى الحياة' : 'Lifetime',
+            };
+        }
+        if (!expiresAt) {
+            return {
+                label: isAr ? 'نشط' : 'Active',
+                daysLeft: 0,
+                totalDays: 0,
+                expiryDate: null,
+                isLifetime: false,
+                isExpired: false,
+                planLabel: plan === 'monthly' ? (isAr ? 'شهري' : 'Monthly') : plan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (isAr ? 'مجاني' : 'Free'),
+            };
+        }
+        const now = new Date();
+        const expiry = new Date(expiresAt);
+        const diff = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        const totalDays = plan === 'monthly' ? 30 : plan === 'yearly' ? 365 : 30;
+        return {
+            label: diff <= 0 ? (isAr ? 'منتهي' : 'Expired') : (isAr ? `${diff} يوم متبقي` : `${diff} days left`),
+            daysLeft: Math.max(diff, 0),
+            totalDays,
+            expiryDate: expiry.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
+            isLifetime: false,
+            isExpired: diff <= 0,
+            planLabel: plan === 'monthly' ? (isAr ? 'شهري' : 'Monthly') : plan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (isAr ? 'مجاني' : 'Free'),
+        };
+    };
+
+    const subData = getSubscriptionInfo();
+
     const statCards = [
         { label: isAr ? "عدد الأقسام" : "Categories", value: stats.categories, icon: Layers, gradientLight: "from-violet-50 to-purple-50", gradientDark: "dark:from-violet-600/20 dark:to-purple-600/20", borderLight: "border-violet-200", borderDark: "dark:border-violet-500/20", iconColor: "text-violet-500 dark:text-violet-400", iconBg: "bg-violet-100 dark:bg-black/20" },
         { label: isAr ? "إجمالي الأصناف" : "Total Items", value: stats.items, icon: Utensils, gradientLight: "from-emerald-50 to-teal-50", gradientDark: "dark:from-emerald-600/20 dark:to-teal-600/20", borderLight: "border-emerald-200", borderDark: "dark:border-glass-border", iconColor: "text-emerald-500 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-black/20" },
         { label: isAr ? "المشاهدات" : "Views", value: isAr ? "قريباً" : "Soon", icon: Eye, gradientLight: "from-amber-50 to-orange-50", gradientDark: "dark:from-amber-600/20 dark:to-orange-600/20", borderLight: "border-amber-200", borderDark: "dark:border-amber-500/20", iconColor: "text-amber-500 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-black/20" },
-        { label: isAr ? "حالة الاشتراك" : "Status", value: isAr ? "نشط" : "Active", icon: Zap, gradientLight: "from-emerald-50 to-cyan-50", gradientDark: "dark:from-emerald-500/30 dark:to-cyan-500/30", borderLight: "border-emerald-200", borderDark: "dark:border-glass-border", iconColor: "text-emerald-500 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-black/20", special: true },
     ];
 
     const quickLinks = [
@@ -161,12 +207,92 @@ export default function UserDashboardPage() {
                             <div className={`w-12 h-12 rounded-xl border border-white/50 dark:border-white/5 shadow-inner ${card.iconBg} flex items-center justify-center ${card.iconColor}`}>
                                 <card.icon className="w-6 h-6" />
                             </div>
-                            {card.special && <span className="text-[10px] font-bold uppercase tracking-widest bg-emerald-500 text-white px-2.5 py-1 rounded-full shadow-sm">{isAr ? "مفعل" : "Active"}</span>}
                         </div>
                         <h3 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white mb-1 drop-shadow-sm">{card.value}</h3>
                         <p className="text-[14px] text-slate-600 dark:text-zinc-400 font-extrabold tracking-wide">{card.label}</p>
                     </motion.div>
                 ))}
+
+                {/* Subscription Status Card */}
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+                    className={`relative overflow-hidden rounded-2xl bg-gradient-to-br p-5 group hover:scale-[1.02] transition-transform shadow-sm dark:shadow-none border
+                        ${subData.isLifetime
+                            ? 'from-purple-50 to-violet-50 dark:from-purple-500/20 dark:to-violet-500/20 border-purple-200 dark:border-purple-500/20'
+                            : subData.isExpired
+                            ? 'from-red-50 to-rose-50 dark:from-red-500/20 dark:to-rose-500/20 border-red-200 dark:border-red-500/20'
+                            : subData.daysLeft <= 7
+                            ? 'from-amber-50 to-orange-50 dark:from-amber-500/20 dark:to-orange-500/20 border-amber-200 dark:border-amber-500/20'
+                            : 'from-emerald-50 to-cyan-50 dark:from-emerald-500/30 dark:to-cyan-500/30 border-emerald-200 dark:border-glass-border'
+                        }
+                    `}>
+                    <div className="flex items-start justify-between mb-3">
+                        <div className={`w-12 h-12 rounded-xl border border-white/50 dark:border-white/5 shadow-inner flex items-center justify-center
+                            ${subData.isLifetime ? 'bg-purple-100 dark:bg-black/20 text-purple-500 dark:text-purple-400' :
+                              subData.isExpired ? 'bg-red-100 dark:bg-black/20 text-red-500 dark:text-red-400' :
+                              subData.daysLeft <= 7 ? 'bg-amber-100 dark:bg-black/20 text-amber-500 dark:text-amber-400' :
+                              'bg-emerald-100 dark:bg-black/20 text-emerald-500 dark:text-emerald-400'
+                            }`}>
+                            {subData.isLifetime ? <Crown className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                        </div>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm text-white
+                            ${subData.isLifetime ? 'bg-purple-500' :
+                              subData.isExpired ? 'bg-red-500' :
+                              subData.daysLeft <= 7 ? 'bg-amber-500' :
+                              'bg-emerald-500'
+                            }`}>
+                            {subData.isLifetime ? (isAr ? 'مدى الحياة' : 'Lifetime') :
+                             subData.isExpired ? (isAr ? 'منتهي' : 'Expired') :
+                             (isAr ? 'مفعل' : 'Active')}
+                        </span>
+                    </div>
+
+                    {subData.isLifetime ? (
+                        <>
+                            <h3 className="text-3xl md:text-4xl font-black text-purple-700 dark:text-purple-300 mb-1 drop-shadow-sm">∞</h3>
+                            <p className="text-[14px] text-purple-600 dark:text-purple-400 font-extrabold tracking-wide">{isAr ? 'حالة الاشتراك' : 'Subscription'}</p>
+                        </>
+                    ) : (
+                        <>
+                            <h3 className={`text-3xl md:text-4xl font-black mb-1 drop-shadow-sm
+                                ${subData.isExpired ? 'text-red-700 dark:text-red-300' :
+                                  subData.daysLeft <= 7 ? 'text-amber-700 dark:text-amber-300' :
+                                  'text-slate-800 dark:text-white'
+                                }`}>
+                                {subData.daysLeft > 0 ? subData.daysLeft : (isAr ? 'منتهي' : '0')}
+                            </h3>
+                            <p className="text-[14px] text-slate-600 dark:text-zinc-400 font-extrabold tracking-wide">
+                                {isAr ? 'حالة الاشتراك' : 'Subscription'}
+                            </p>
+                            <div className="mt-3">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
+                                        {subData.planLabel}
+                                    </span>
+                                    <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500">
+                                        {subData.label}
+                                    </span>
+                                </div>
+                                <div className="w-full h-2 rounded-full bg-white/60 dark:bg-black/30 overflow-hidden">
+                                    <div className={`h-full rounded-full transition-all duration-500
+                                        ${subData.isExpired ? 'bg-red-500' :
+                                          subData.daysLeft <= 7 ? 'bg-amber-500' :
+                                          'bg-emerald-500'
+                                        }`}
+                                        style={{ width: `${subData.totalDays > 0 ? Math.min((subData.daysLeft / subData.totalDays) * 100, 100) : 0}%` }}
+                                    />
+                                </div>
+                                {subData.expiryDate && (
+                                    <div className="flex items-center gap-1 mt-2">
+                                        <CalendarDays className="w-3 h-3 text-slate-400 dark:text-zinc-500" />
+                                        <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500">
+                                            {isAr ? `ينتهي: ${subData.expiryDate}` : `Expires: ${subData.expiryDate}`}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+                </motion.div>
             </div>
 
             {/* ===== QUICK ACCESS ===== */}

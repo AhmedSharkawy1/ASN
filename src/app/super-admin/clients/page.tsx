@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -46,6 +46,11 @@ export default function SuperAdminClientsPage() {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [newPassword, setNewPassword] = useState("");
     const [updatingPassword, setUpdatingPassword] = useState(false);
+
+    // Subscription Modal Options
+    const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+    const [subType, setSubType] = useState<string>("monthly");
+    const [savingSub, setSavingSub] = useState(false);
 
     const PAGE_GROUPS = [
         {
@@ -311,6 +316,73 @@ export default function SuperAdminClientsPage() {
         }
     };
 
+    // Subscription Modal Handlers
+    const handleOpenSubscription = (client: Client) => {
+        setSelectedClient(client);
+        setSubType(client.subscription_plan || "monthly");
+        setIsSubModalOpen(true);
+    };
+
+    const handleSaveSubscription = async () => {
+        if (!selectedClient) return;
+        setSavingSub(true);
+        try {
+            let expiresAt: string | null = null;
+            const now = new Date();
+
+            if (subType === 'monthly') {
+                const expiry = new Date(now);
+                expiry.setDate(expiry.getDate() + 30);
+                expiresAt = expiry.toISOString();
+            } else if (subType === 'yearly') {
+                const expiry = new Date(now);
+                expiry.setFullYear(expiry.getFullYear() + 1);
+                expiresAt = expiry.toISOString();
+            } else {
+                // lifetime
+                expiresAt = null;
+            }
+
+            const { error } = await supabase
+                .from('restaurants')
+                .update({
+                    subscription_plan: subType,
+                    subscription_expires_at: expiresAt,
+                })
+                .eq('id', selectedClient.id);
+
+            if (error) throw error;
+
+            toast.success(language === "ar" ? "تم تحديث الاشتراك بنجاح" : "Subscription updated successfully");
+            setIsSubModalOpen(false);
+            fetchClients();
+        } catch (err: unknown) {
+            console.error(err);
+            const message = err instanceof Error ? err.message : 'Failed to update subscription';
+            toast.error(message);
+        } finally {
+            setSavingSub(false);
+        }
+    };
+
+    const getRemainingDays = (expiresAt: string | null, plan: string | null) => {
+        if (plan === 'lifetime') return { days: Infinity, label: language === 'ar' ? 'مدى الحياة' : 'Lifetime' };
+        if (!expiresAt) return { days: 0, label: language === 'ar' ? 'غير محدد' : 'Not set' };
+        const now = new Date();
+        const expiry = new Date(expiresAt);
+        const diff = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        if (diff <= 0) return { days: 0, label: language === 'ar' ? 'منتهي' : 'Expired' };
+        return { days: diff, label: language === 'ar' ? `${diff} يوم متبقي` : `${diff} days left` };
+    };
+
+    const getSubTypeLabel = (plan: string | null) => {
+        if (!plan || plan === 'Free') return language === 'ar' ? 'مجاني' : 'Free';
+        if (plan === 'monthly') return language === 'ar' ? 'شهري' : 'Monthly';
+        if (plan === 'yearly') return language === 'ar' ? 'سنوي' : 'Yearly';
+        if (plan === 'lifetime') return language === 'ar' ? 'مدى الحياة' : 'Lifetime';
+        return plan;
+    };
+
     const filtered = clients.filter(c => 
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
         c.email?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -399,20 +471,46 @@ export default function SuperAdminClientsPage() {
                                                 )}
                                             </td>
                                             <td className="px-6 py-4">
-                                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase tracking-wider">
-                                                    {client.subscription_plan || 'Free'}
-                                                </span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider w-fit
+                                                        ${client.subscription_plan === 'lifetime' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400' :
+                                                          client.subscription_plan === 'yearly' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                                                          client.subscription_plan === 'monthly' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400' :
+                                                          'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'}
+                                                    `}>
+                                                        {client.subscription_plan === 'lifetime' && <Crown className="w-3 h-3" />}
+                                                        {getSubTypeLabel(client.subscription_plan)}
+                                                    </span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
-                                                {isExpired ? (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>Expired
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>Active
-                                                    </span>
-                                                )}
+                                                {(() => {
+                                                    const remaining = getRemainingDays(client.subscription_expires_at, client.subscription_plan);
+                                                    if (client.subscription_plan === 'lifetime') {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400">
+                                                                <Crown className="w-3 h-3" />{language === 'ar' ? 'مدى الحياة' : 'Lifetime'}
+                                                            </span>
+                                                        );
+                                                    }
+                                                    if (isExpired || remaining.days <= 0) {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>{language === 'ar' ? 'منتهي' : 'Expired'}
+                                                            </span>
+                                                        );
+                                                    }
+                                                    return (
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold
+                                                                ${remaining.days <= 7 ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'}
+                                                            `}>
+                                                                <div className={`w-1.5 h-1.5 rounded-full ${remaining.days <= 7 ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+                                                                {remaining.label}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-500 dark:text-zinc-400">
                                                 {new Date(client.created_at).toLocaleDateString()}
@@ -431,7 +529,7 @@ export default function SuperAdminClientsPage() {
                                                     <button onClick={() => handleToggleMarketing(client)} className={`p-2 rounded-lg transition-colors ${client.is_marketing_account ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10' : 'text-stone-400 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-500/10'}`} title="Toggle Marketing Status">
                                                         <Megaphone className="w-4 h-4" />
                                                     </button>
-                                                    <button className="p-2 text-stone-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-colors" title="Manage Subscription">
+                                                    <button onClick={() => handleOpenSubscription(client)} className="p-2 text-stone-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-colors" title="Manage Subscription">
                                                         <ShieldCheck className="w-4 h-4" />
                                                     </button>
                                                     <button onClick={() => handleOpenParentLink(client)} className="p-2 text-stone-400 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10 rounded-lg transition-colors" title="Link as Branch">
@@ -609,6 +707,116 @@ export default function SuperAdminClientsPage() {
                     </div>
                 </div>
             )}
+            {/* Subscription Modal */}
+            {isSubModalOpen && selectedClient && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSubModalOpen(false)} />
+                    <div className="bg-white dark:bg-[#131b26] rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden">
+                        <div className="flex items-center justify-between p-6 border-b border-stone-100 dark:border-stone-800 shrink-0">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Crown className="w-5 h-5 text-purple-500" />
+                                    {language === 'ar' ? 'إدارة الاشتراك' : 'Manage Subscription'}
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{selectedClient.name}</p>
+                            </div>
+                            <button onClick={() => setIsSubModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 rounded-xl hover:bg-stone-100 dark:hover:bg-[#1a2433] transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            {/* Current Status */}
+                            {selectedClient.subscription_plan && (
+                                <div className="p-4 rounded-xl bg-stone-50 dark:bg-[#0a0f16] border border-stone-100 dark:border-stone-800">
+                                    <div className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-2">
+                                        {language === 'ar' ? 'الحالة الحالية' : 'Current Status'}
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                                            {getSubTypeLabel(selectedClient.subscription_plan)}
+                                        </span>
+                                        <span className="text-sm text-slate-500 dark:text-zinc-400">
+                                            {selectedClient.subscription_plan === 'lifetime'
+                                                ? (language === 'ar' ? '∞ مدى الحياة' : '∞ Lifetime')
+                                                : selectedClient.subscription_expires_at
+                                                    ? getRemainingDays(selectedClient.subscription_expires_at, selectedClient.subscription_plan).label
+                                                    : (language === 'ar' ? 'غير محدد' : 'Not set')
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Subscription Type Selection */}
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
+                                    {language === 'ar' ? 'نوع الاشتراك' : 'Subscription Type'}
+                                </label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {[
+                                        { value: 'monthly', labelAr: 'شهري', labelEn: 'Monthly', icon: '📅', duration: language === 'ar' ? '30 يوم' : '30 days', color: 'cyan' },
+                                        { value: 'yearly', labelAr: 'سنوي', labelEn: 'Yearly', icon: '📆', duration: language === 'ar' ? '365 يوم' : '365 days', color: 'blue' },
+                                        { value: 'lifetime', labelAr: 'مدى الحياة', labelEn: 'Lifetime', icon: '👑', duration: language === 'ar' ? '∞ غير محدود' : '∞ Unlimited', color: 'purple' },
+                                    ].map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => setSubType(opt.value)}
+                                            className={`p-4 rounded-xl border-2 transition-all text-center flex flex-col items-center gap-2 hover:scale-[1.02] active:scale-95
+                                                ${subType === opt.value
+                                                    ? opt.color === 'cyan'
+                                                        ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-500/10 shadow-md shadow-cyan-500/10'
+                                                        : opt.color === 'blue'
+                                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/10'
+                                                        : 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 shadow-md shadow-purple-500/10'
+                                                    : 'border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
+                                                }
+                                            `}
+                                        >
+                                            <span className="text-2xl">{opt.icon}</span>
+                                            <span className="font-bold text-sm text-slate-800 dark:text-white">
+                                                {language === 'ar' ? opt.labelAr : opt.labelEn}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500">
+                                                {opt.duration}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Info */}
+                            <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10">
+                                <CalendarDays className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                                <p className="text-xs text-blue-700 dark:text-blue-400 font-bold leading-relaxed">
+                                    {subType === 'monthly'
+                                        ? (language === 'ar' ? 'سيتم تفعيل الاشتراك لمدة 30 يوم بدءاً من الآن' : 'Subscription will be activated for 30 days starting now')
+                                        : subType === 'yearly'
+                                        ? (language === 'ar' ? 'سيتم تفعيل الاشتراك لمدة سنة كاملة بدءاً من الآن' : 'Subscription will be activated for 1 full year starting now')
+                                        : (language === 'ar' ? 'سيتم تفعيل الاشتراك بشكل دائم بدون تاريخ انتهاء' : 'Subscription will be activated permanently with no expiry date')
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-black/20 flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsSubModalOpen(false)}
+                                className="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-stone-200 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                                {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                            </button>
+                            <button
+                                onClick={handleSaveSubscription}
+                                disabled={savingSub}
+                                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                {savingSub ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> : <Crown className="w-4 h-4" />}
+                                {language === 'ar' ? 'تفعيل الاشتراك' : 'Activate Subscription'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Password Update Modal */}
             {isPasswordModalOpen && selectedClient && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
