@@ -743,8 +743,9 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                             className="w-[85vw] max-w-[310px] bg-[#18181b] rounded-[2rem] shadow-2xl border border-white/10 overflow-hidden max-h-[85vh] flex flex-col mx-auto"
                             onClick={(e) => e.stopPropagation()}>
-                            <div className="p-6 text-center border-b border-white/5">
-                                <h3 className="text-xl font-black text-white">{isAr ? "أقسام المنيو" : "Menu Categories"}</h3>
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                <button onClick={() => setShowCategoriesGrid(false)} className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95 text-zinc-400 hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+                                <h3 className="text-xl font-black text-white text-right">{isAr ? "أقسام المنيو" : "Menu Categories"}</h3>
                             </div>
                             <div className="p-4 grid grid-cols-2 gap-3 max-h-[85vh] overflow-y-auto">
                                 {categories.map((cat) => (
