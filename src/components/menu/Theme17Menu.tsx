@@ -85,6 +85,7 @@ type RestaurantConfig = {
     address?: string;
     default_language?: string;
     currency?: string;
+    order_channel?: 'whatsapp' | 'website' | 'both';
 };
 
 type CartItem = {
@@ -1208,9 +1209,9 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                 restaurantName={config.name}
                 whatsappNumber={config.whatsapp_number}
                 currency={cur}
+                orderChannel={config.order_channel}
                 onOrderSuccess={() => {
                     setCart([]);
-                    setShowCheckout(false);
                 }}
             />
         </div>

@@ -190,7 +190,7 @@ export default function UserDashboardPage() {
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-stone-500/5 dark:bg-cyan-500/10 rounded-full blur-[80px]" />
                 <div className="relative z-10">
                     <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white mb-2" style={{ fontFamily: 'var(--font-outfit), sans-serif' }}>
-                        {isAr ? `أهلاً بك يا` : "Welcome back,"} <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-500 dark:from-emerald-400 dark:to-cyan-400">{restaurantName || "..."}</span> 👋
+                        {isAr ? `أهلاً بك فى` : "Welcome back,"} <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-600 to-emerald-500 dark:from-emerald-400 dark:to-cyan-400">{restaurantName || "..."}</span> 👋
                     </h1>
                     <p className="text-slate-600 dark:text-zinc-400 text-base font-medium">
                         {isAr ? "إليك ملخص أداء منيوك الإلكتروني" : "Here's your digital menu performance summary"}
