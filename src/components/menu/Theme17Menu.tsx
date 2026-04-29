@@ -400,11 +400,6 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
 
                     {/* Glowing Soft Icons */}
                     <div className="flex gap-4 mb-4 flex-wrap justify-center">
-                        {config.payment_methods && config.payment_methods.length > 0 && (
-                            <button onClick={() => setShowPaymentModal(true)} className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 hover:bg-emerald-500 hover:text-white hover:-translate-y-1 transition-all shadow-sm">
-                                <CreditCard size={20} strokeWidth={2.5}/>
-                            </button>
-                        )}
                         {config.phone_numbers && config.phone_numbers.length > 0 && (
                             <button onClick={() => setShowDeliveryModal(true)} className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-[#d32f2f] hover:bg-[#d32f2f] hover:text-white hover:-translate-y-1 transition-all shadow-sm">
                                 <Phone size={20} strokeWidth={2.5}/>
@@ -602,6 +597,11 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                     </div>
 
                     <div className="flex items-center gap-4">
+                        {config.payment_methods && config.payment_methods.length > 0 && (
+                            <button className="text-gray-800 hover:text-emerald-600 transition" aria-label="Payment Methods" onClick={() => setShowPaymentModal(true)}>
+                                <CreditCard className="w-6 h-6 stroke-[1.5]" />
+                            </button>
+                        )}
                         {config.orders_enabled !== false && (
                             <button className="w-8 h-8 rounded-full bg-[#d32f2f] text-white flex items-center justify-center relative shadow-sm" onClick={() => setIsCartOpen(true)}>
                                 <FaMotorcycle className="w-5 h-5" />
@@ -778,29 +778,15 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
 
 
 
-            {/* Floating Action Buttons */}
-            {view === 'menu' && (
-                <div className="fixed bottom-24 right-4 sm:right-10 z-[500] flex flex-col gap-3">
-                    {config.payment_methods && config.payment_methods.length > 0 && (
-                        <button 
-                            className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(16,185,129,0.4)] hover:bg-emerald-600 transition-colors animate-[bounce_2s_infinite]"
-                            onClick={() => setShowPaymentModal(true)}
-                            style={{ animationDelay: '0.2s' }}
-                            aria-label="Payment Methods"
-                        >
-                            <CreditCard size={26} />
-                        </button>
-                    )}
-                    {config.phone_numbers && config.phone_numbers.length > 0 && (
-                        <button 
-                            className="w-14 h-14 bg-red-500 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(239,68,68,0.4)] hover:bg-red-600 transition-colors animate-[bounce_2s_infinite]"
-                            onClick={() => setShowDeliveryModal(true)}
-                            aria-label="Delivery"
-                        >
-                            <Phone size={26} fill="currentColor" />
-                        </button>
-                    )}
-                </div>
+            {/* Floating Delivery Button */}
+            {view === 'menu' && (config.phone_numbers && config.phone_numbers.length > 0) && (
+                <button 
+                    className="fixed bottom-24 right-4 sm:right-10 z-[500] w-14 h-14 bg-red-500 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(239,68,68,0.4)] hover:bg-red-600 transition-colors animate-[bounce_2s_infinite]"
+                    onClick={() => setShowDeliveryModal(true)}
+                    aria-label="Delivery"
+                >
+                    <Phone size={26} fill="currentColor" />
+                </button>
             )}
 
             {/* Delivery Contact Modal */}
