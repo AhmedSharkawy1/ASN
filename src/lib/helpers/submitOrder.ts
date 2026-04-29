@@ -303,11 +303,23 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             customerId = newCustomer?.id;
         }
 
+        // 1.5 Calculate sequential order number for this specific restaurant
+        const { data: maxOrderData } = await supabase
+            .from('orders')
+            .select('order_number')
+            .eq('restaurant_id', restaurantId)
+            .order('order_number', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        const nextOrderNumber = (maxOrderData?.order_number || 0) + 1;
+
         // 2. Insert Order
         const { data: order, error: orderError } = await supabase
             .from('orders')
             .insert({
                 restaurant_id: restaurantId,
+                order_number: nextOrderNumber,
                 customer_id: customerId,
                 customer_name: customerName,
                 customer_phone: customerPhone,
