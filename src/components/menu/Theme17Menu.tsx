@@ -591,14 +591,25 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                         <button className="text-gray-800 hover:text-red-600 transition" aria-label="Search" onClick={() => setIsSearchOpen(true)}>
                             <Search className="w-6 h-6 stroke-[1.5]" />
                         </button>
-                        <button className="text-gray-800 hover:text-red-600 transition" aria-label="Share" onClick={() => setShowShareModal(true)}>
+                        <button className="text-gray-800 hover:text-red-600 transition" aria-label="Share" onClick={() => {
+                            if (navigator.share) {
+                                navigator.share({
+                                    title: config.name,
+                                    text: isRTL ? 'تفضل بزيارة قائمة طعامنا' : 'Check out our menu',
+                                    url: window.location.href,
+                                }).catch(console.error);
+                            } else {
+                                navigator.clipboard.writeText(window.location.href);
+                                alert(isRTL ? "تم نسخ الرابط!" : "Link copied!");
+                            }
+                        }}>
                             <Share2 className="w-6 h-6 stroke-[1.5]" />
                         </button>
                     </div>
 
                     <div className="flex items-center gap-4">
                         {config.payment_methods && config.payment_methods.length > 0 && (
-                            <button className="text-gray-800 hover:text-emerald-600 transition" aria-label="Payment Methods" onClick={() => setShowPaymentModal(true)}>
+                            <button className="text-emerald-600 hover:text-emerald-700 transition" aria-label="Payment Methods" onClick={() => setShowPaymentModal(true)}>
                                 <CreditCard className="w-6 h-6 stroke-[1.5]" />
                             </button>
                         )}
@@ -880,7 +891,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                             )}
                                             {pm.link && (
                                                 <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full bg-[#1877F2]/10 text-[#1877F2] font-black text-xs py-3 rounded-xl active:scale-95 transition-transform">
-                                                    {isRTL ? "رابط الدفع / انستا باي" : "Payment Link / InstaPay"}
+                                                    {isRTL ? `رابط الدفع ${pm.name_ar ? '- ' + pm.name_ar : ''}` : `Payment Link ${pm.name_en || pm.name_ar ? '- ' + (pm.name_en || pm.name_ar) : ''}`}
                                                 </a>
                                             )}
                                         </div>
