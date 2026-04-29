@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -320,7 +320,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
             return;
         }
 
-        let msg = `*🧾 طلب جديد - ${config.name}*\n\n`;
+        let msg = `🧾 *طلب جديد - ${config.name}*\n\n`;
         msg += `👤 * الاسم:* ${customerInfo.name} \n`;
         msg += `📞 * الموبايل:* ${customerInfo.phone} \n`;
         msg += `📍 * العنوان:* ${customerInfo.address} \n`;

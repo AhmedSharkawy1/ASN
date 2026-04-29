@@ -221,7 +221,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
     };
 
     const finalizeOrder = (selectedPaymentName?: string) => {
-        let message = `*🧾 فاتورة طلب جديدة - ${config.name}*\n`;
+        let message = `🧾 *فاتورة طلب جديدة - ${config.name}*\n`;
         message += `------------------------------\n`;
         message += `👤 *الاسم:* ${customerInfo.name}\n`;
         message += `📞 *الموبايل:* ${customerInfo.phone}\n`;
@@ -232,7 +232,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
         }
 
         message += `------------------------------\n`;
-        message += `*📋 الأصناف المطلوبة:*\n\n`;
+        message += `📋 *الأصناف المطلوبة:*\n\n`;
         cart.forEach((c, idx) => {
             message += `${idx + 1}. ✨ *${c.item.title_ar}*\n`;
             if (c.size_label && c.item.size_labels?.length > 1) message += `   📏 الحجم: ${c.size_label}\n`;
@@ -241,9 +241,9 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
             message += `   💰 المجموع: *${c.price * c.quantity} ج*\n\n`;
         });
         message += `------------------------------\n`;
-        message += `*💵 الإجمالي المطلوب: ${cartTotal} ج*\n`;
+        message += `💵 *الإجمالي المطلوب: ${cartTotal} ج*\n`;
         message += `------------------------------\n`;
-        message += `🚚 *تنبيه:* السعر غير شامل خدمة التوصيل.\n`;
+
 
         window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(message)}`, "_blank");
 

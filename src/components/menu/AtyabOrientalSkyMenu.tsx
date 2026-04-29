@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -228,18 +228,18 @@ export default function AtyabOrientalSkyMenu({ config, categories, language, res
     };
 
     const finalizeOrder = (selectedPaymentName?: string) => {
-        let msg = `*🧾 فاتورة طلب جديدة - ${config.name}*\n------------------------------\n`;
+        let msg = `🧾 *فاتورة طلب جديدة - ${config.name}*\n------------------------------\n`;
         msg += `👤 *الاسم:* ${customerInfo.name}\n📞 *الموبايل:* ${customerInfo.phone}\n📍 *العنوان:* ${customerInfo.address}\n`;
         if (selectedPaymentName) {
             msg += `💳 *طريقة الدفع:* ${selectedPaymentName}\n`;
         }
-        msg += `------------------------------\n*📋 الأصناف:*\n\n`;
+        msg += `------------------------------\n📋 *الأصناف:*\n\n`;
         cart.forEach((c, i) => {
             msg += `${i + 1}. ✨ *${isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar}*\n`;
             if (c.size_label !== "عادي") msg += `   📏 ${c.size_label}\n`;
             msg += `   💵 ${c.price} ج × ${c.quantity} = *${c.price * c.quantity} ج*\n\n`;
         });
-        msg += `------------------------------\n*💵 الإجمالي: ${cartTotal} ج*\n🚚 غير شامل التوصيل`;
+        msg += `------------------------------\n💵 *الإجمالي: ${cartTotal} ج*\n🚚 غير شامل التوصيل`;
 
         window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
 

@@ -641,13 +641,13 @@ function SmartMenuContent({
       return;
     }
 
-    let message = `*🧾 فاتورة طلب جديدة - ${config.name}*\n`;
+    let message = `🧾 *فاتورة طلب جديدة - ${config.name}*\n`;
     message += `------------------------------\n`;
     message += `👤 *الاسم:* ${customerInfo.name}\n`;
     message += `📞 *الموبايل:* ${customerInfo.phone}\n`;
     message += `📍 *العنوان:* ${customerInfo.address}\n`;
     message += `------------------------------\n`;
-    message += `*📋 الأصناف المطلوبة:*\n\n`;
+    message += `📋 *الأصناف المطلوبة:*\n\n`;
 
     cart.forEach((c, idx) => {
       message += `${idx + 1}. ✨ *${language === "ar" ? c.item.title_ar : c.item.title_en || c.item.title_ar}*\n`;
@@ -660,9 +660,9 @@ function SmartMenuContent({
     });
 
     message += `------------------------------\n`;
-    message += `*💵 الإجمالي المطلوب: ${cartTotal} ج*\n`;
+    message += `💵 *الإجمالي المطلوب: ${cartTotal} ج*\n`;
     message += `------------------------------\n`;
-    message += `🚚 *تنبيه:* السعر أعلاه غير شامل قيمة التوصيل إن وجدت.\n`;
+
 
     window.open(
       `https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}?text=${encodeURIComponent(message)}`,

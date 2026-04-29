@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
@@ -275,13 +275,13 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
             return;
         }
 
-        let message = `*🧾 فاتورة طلب جديدة - ${config.name}*\n`;
+        let message = `🧾 *فاتورة طلب جديدة - ${config.name}*\n`;
         message += `------------------------------\n`;
         message += `👤 *الاسم:* ${customerInfo.name}\n`;
         message += `📞 *الموبايل:* ${customerInfo.phone}\n`;
         message += `📍 *العنوان:* ${customerInfo.address}\n`;
         message += `------------------------------\n`;
-        message += `*📋 الأصناف المطلوبة:*\n\n`;
+        message += `📋 *الأصناف المطلوبة:*\n\n`;
 
         cart.forEach((c, idx) => {
             message += `${idx + 1}. ✨ *${itemName(c.item)}*\n`;
@@ -293,7 +293,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
         });
 
         message += `------------------------------\n`;
-        message += `*💵 الإجمالي المطلوب: ${cartTotal}*\n`;
+        message += `💵 *الإجمالي المطلوب: ${cartTotal}*\n`;
         message += `------------------------------\n`;
 
         const waNumber = config.social_links?.whatsapp || config.whatsapp_number || config.phone;

@@ -70,7 +70,7 @@ export function buildWhatsAppMessage(params: {
     } = params;
     const isAr = language === 'ar';
 
-    let msg = `*🧾 ${isAr ? 'فاتورة طلب جديدة' : 'New Order Invoice'} - ${restaurantName} 🍕🍝*\n`;
+    let msg = `🧾 *${isAr ? 'فاتورة طلب جديدة' : 'New Order Invoice'} - ${restaurantName} 🍕🍝*\n`;
     msg += `------------------------------\n`;
     msg += `👤 *${isAr ? 'الاسم:' : 'Name:'}* ${customerName}\n`;
     msg += `📞 *${isAr ? 'الموبايل:' : 'Phone:'}* ${customerPhone}\n`;
@@ -84,7 +84,7 @@ export function buildWhatsAppMessage(params: {
         msg += `📍 *${isAr ? 'منطقة التوصيل:' : 'Delivery Zone:'}* ${deliveryZoneName}\n`;
     }
     msg += `------------------------------\n`;
-    msg += `*📋 ${isAr ? 'الأصناف المطلوبة:' : 'Ordered Items:'}*\n\n`;
+    msg += `📋 *${isAr ? 'الأصناف المطلوبة:' : 'Ordered Items:'}*\n\n`;
 
     items.forEach((item, idx) => {
         const itemExtrasTotal = (item.extras || []).reduce((s, e) => s + e.price * e.qty, 0);
@@ -116,11 +116,9 @@ export function buildWhatsAppMessage(params: {
         msg += `🛒 ${isAr ? 'مجموع الأصناف:' : 'Items Subtotal:'} ${subtotal} ${currency}\n`;
         msg += `🚚 ${isAr ? 'خدمة التوصيل:' : 'Delivery Fee:'} ${deliveryFee} ${currency}\n`;
     }
-    msg += `*💵 ${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${currency}*\n`;
+    msg += `💵 *${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${currency}*\n`;
     msg += `------------------------------\n`;
-    if (orderType === 'delivery') {
-        msg += `🚚 *${isAr ? 'تنبيه:' : 'Note:'}* ${isAr ? 'السعر أعلاه غير شامل خدمة التوصيل.' : 'Price above does not include delivery fee.'}\n`;
-    }
+
     msg += `✅ *${isAr ? 'تأكيد:' : 'Confirmation:'}* ${isAr ? 'سيتم مراجعة الطلب من قبل المطعم وتأكيده معكم فوراً.' : 'Your order will be reviewed and confirmed shortly.'}\n`;
     msg += `❤️ ${isAr ? 'مع تحيات إدارة مطعم' : 'With love from'} *${restaurantName}*\n`;
     msg += `------------------------------\n`;

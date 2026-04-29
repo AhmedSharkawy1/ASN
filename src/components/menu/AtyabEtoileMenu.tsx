@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -176,13 +176,13 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
     };
 
     const finalizeOrder = (selectedPaymentName?: string) => {
-        let msg = `*🧾 فاتورة طلب جديدة - ${config.name}*\n------------------------------\n`;
+        let msg = `🧾 *فاتورة طلب جديدة - ${config.name}*\n------------------------------\n`;
         msg += `👤 *الاسم:* ${customerInfo.name}\n📞 *الموبايل:* ${customerInfo.phone}\n📍 *العنوان:* ${customerInfo.address}\n`;
 
         if (customerInfo.notes) msg += `📝 *ملاحظات:* ${customerInfo.notes}\n`;
         if (selectedPaymentName) msg += `💳 *طريقة الدفع:* ${selectedPaymentName}\n`;
 
-        msg += `------------------------------\n*📋 الأصناف:*\n\n`;
+        msg += `------------------------------\n📋 *الأصناف:*\n\n`;
 
         cart.forEach((c) => {
             msg += `▪️ ${isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar} (${c.size_label})\n`;
