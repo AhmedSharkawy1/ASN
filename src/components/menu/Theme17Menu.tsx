@@ -18,7 +18,9 @@ import {
     Menu as MenuIcon,
     Home,
     Clock,
-    MessageCircle
+    MessageCircle,
+    CreditCard,
+    Wallet
 } from 'lucide-react';
 import { FaWhatsapp, FaTwitter, FaInstagram, FaFacebookF, FaMotorcycle } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,6 +117,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
     const [itemSizeIdx, setItemSizeIdx] = useState(0);
     const [itemNote, setItemNote] = useState('');
     const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [showCheckout, setShowCheckout] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -397,6 +400,11 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
 
                     {/* Glowing Soft Icons */}
                     <div className="flex gap-4 mb-4 flex-wrap justify-center">
+                        {config.payment_methods && config.payment_methods.length > 0 && (
+                            <button onClick={() => setShowPaymentModal(true)} className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 hover:bg-emerald-500 hover:text-white hover:-translate-y-1 transition-all shadow-sm">
+                                <CreditCard size={20} strokeWidth={2.5}/>
+                            </button>
+                        )}
                         {config.phone_numbers && config.phone_numbers.length > 0 && (
                             <button onClick={() => setShowDeliveryModal(true)} className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-[#d32f2f] hover:bg-[#d32f2f] hover:text-white hover:-translate-y-1 transition-all shadow-sm">
                                 <Phone size={20} strokeWidth={2.5}/>
@@ -770,15 +778,29 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
 
 
 
-            {/* Floating Delivery Button */}
-            {view === 'menu' && (config.phone_numbers && config.phone_numbers.length > 0) && (
-                <button 
-                    className="fixed bottom-24 right-4 sm:right-10 z-[500] w-14 h-14 bg-red-500 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(239,68,68,0.4)] hover:bg-red-600 transition-colors animate-[bounce_2s_infinite]"
-                    onClick={() => setShowDeliveryModal(true)}
-                    aria-label="Delivery"
-                >
-                    <Phone size={26} fill="currentColor" />
-                </button>
+            {/* Floating Action Buttons */}
+            {view === 'menu' && (
+                <div className="fixed bottom-24 right-4 sm:right-10 z-[500] flex flex-col gap-3">
+                    {config.payment_methods && config.payment_methods.length > 0 && (
+                        <button 
+                            className="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(16,185,129,0.4)] hover:bg-emerald-600 transition-colors animate-[bounce_2s_infinite]"
+                            onClick={() => setShowPaymentModal(true)}
+                            style={{ animationDelay: '0.2s' }}
+                            aria-label="Payment Methods"
+                        >
+                            <CreditCard size={26} />
+                        </button>
+                    )}
+                    {config.phone_numbers && config.phone_numbers.length > 0 && (
+                        <button 
+                            className="w-14 h-14 bg-red-500 text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(239,68,68,0.4)] hover:bg-red-600 transition-colors animate-[bounce_2s_infinite]"
+                            onClick={() => setShowDeliveryModal(true)}
+                            aria-label="Delivery"
+                        >
+                            <Phone size={26} fill="currentColor" />
+                        </button>
+                    )}
+                </div>
             )}
 
             {/* Delivery Contact Modal */}
@@ -820,7 +842,54 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                     </div>
                 )}
             </AnimatePresence>
-
+            
+            {/* Payment Methods Modal */}
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <div className="fixed inset-0 bg-black/60 z-[1050] flex items-center justify-center p-4 backdrop-blur-[2px]" onClick={() => setShowPaymentModal(false)}>
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white rounded-[24px] w-full max-w-sm overflow-hidden shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between bg-white">
+                                <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                                    <CreditCard className="w-5 h-5 text-emerald-500" />
+                                    {isRTL ? 'وسائل الدفع' : 'Payment Methods'}
+                                </h3>
+                                <button className="text-gray-400 bg-gray-50 rounded-full p-2 hover:text-gray-600 hover:bg-gray-100 transition" onClick={() => setShowPaymentModal(false)}>
+                                    <X size={18} strokeWidth={3} />
+                                </button>
+                            </div>
+                            <div className="p-6 max-h-[60vh] overflow-y-auto bg-gray-50/50">
+                                {config.payment_methods && config.payment_methods.length > 0 ? (
+                                    config.payment_methods.map((pm: any, i: number) => (
+                                        <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 mb-3 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                                            {pm.logo_url ? (
+                                                <div className="w-12 h-12 rounded-xl bg-gray-50 p-2 flex-shrink-0 border border-gray-100">
+                                                    <img src={pm.logo_url} alt={pm.name} className="w-full h-full object-contain" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center flex-shrink-0">
+                                                    <Wallet size={24} />
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                <h4 className="font-bold text-gray-900">{pm.name}</h4>
+                                                {pm.details && <p className="text-sm text-gray-500 mt-1" dir="ltr">{pm.details}</p>}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500 text-center font-bold">{isRTL ? 'لا توجد وسائل دفع متاحة.' : 'No payment methods available.'}</p>
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
             {/* Search Modal */}
             <AnimatePresence>
                 {isSearchOpen && (
