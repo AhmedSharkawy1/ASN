@@ -849,23 +849,40 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                     <X size={18} strokeWidth={3} />
                                 </button>
                             </div>
-                            <div className="p-6 max-h-[60vh] overflow-y-auto bg-gray-50/50">
+                            <div className="p-4 max-h-[60vh] overflow-y-auto flex flex-col gap-3 bg-gray-50/50">
                                 {config.payment_methods && config.payment_methods.length > 0 ? (
                                     config.payment_methods.map((pm: any, i: number) => (
-                                        <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 mb-3 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                                            {pm.logo_url ? (
-                                                <div className="w-12 h-12 rounded-xl bg-gray-50 p-2 flex-shrink-0 border border-gray-100">
-                                                    <img src={pm.logo_url} alt={pm.name} className="w-full h-full object-contain" />
+                                        <div key={i} className="bg-white border border-gray-100 rounded-[1.5rem] p-4 text-right flex flex-col shadow-sm hover:shadow-md transition-all hover:border-emerald-500/50">
+                                            <div className="flex items-center gap-3 mb-2 flex-row-reverse">
+                                                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center flex-shrink-0">
+                                                    <Wallet size={20} />
                                                 </div>
-                                            ) : (
-                                                <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center flex-shrink-0">
-                                                    <Wallet size={24} />
+                                                <div className="flex-1 text-right">
+                                                    <h4 className="font-black text-lg text-gray-900">{isRTL ? pm.name_ar : pm.name_en || pm.name_ar}</h4>
+                                                </div>
+                                            </div>
+                                            {(pm.desc_ar || pm.desc_en) && (
+                                                <p className="text-xs font-bold text-gray-500 mb-3 text-right">{isRTL ? pm.desc_ar : pm.desc_en || pm.desc_ar}</p>
+                                            )}
+                                            {pm.number && (
+                                                <div className="flex items-center justify-between bg-gray-50 px-4 py-3 rounded-xl mb-3 border border-gray-100 group">
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(pm.number);
+                                                            alert(isRTL ? "تم نسخ الرقم!" : "Number copied!");
+                                                        }}
+                                                        className="text-emerald-600 text-xs font-black uppercase bg-emerald-50 px-3 py-1.5 rounded-lg active:scale-95 transition-transform"
+                                                    >
+                                                        {isRTL ? "نسخ" : "Copy"}
+                                                    </button>
+                                                    <span className="font-black tabular-nums text-sm tracking-widest text-gray-800" dir="ltr">{pm.number}</span>
                                                 </div>
                                             )}
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-gray-900">{pm.name}</h4>
-                                                {pm.details && <p className="text-sm text-gray-500 mt-1" dir="ltr">{pm.details}</p>}
-                                            </div>
+                                            {pm.link && (
+                                                <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full bg-[#1877F2]/10 text-[#1877F2] font-black text-xs py-3 rounded-xl active:scale-95 transition-transform">
+                                                    {isRTL ? "رابط الدفع / انستا باي" : "Payment Link / InstaPay"}
+                                                </a>
+                                            )}
                                         </div>
                                     ))
                                 ) : (
