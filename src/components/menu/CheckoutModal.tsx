@@ -219,21 +219,23 @@ export default function CheckoutModal({
             });
             setStep(hasAddons ? 5 : 4);
             onOrderSuccess?.();
-            // We removed the auto redirect here so the user can see the success step (Step 5)
-            // The success step has a button to send the WhatsApp message manually.
+            
+            if (orderChannel === 'whatsapp' || orderChannel === 'both') {
+                sendWhatsApp(result.orderNumber);
+            }
         } else {
             alert(result.error || (isAr ? "حدث خطأ" : "Something went wrong"));
         }
     };
 
-    const sendWhatsApp = () => {
+    const sendWhatsApp = (newOrderNum?: number) => {
         if (!whatsappNumber) return;
         const finalItems = finalizedOrderDetails ? finalizedOrderDetails.items : getFinalItems();
         const finalSubtotal = finalizedOrderDetails ? finalizedOrderDetails.subtotal + finalizedOrderDetails.extrasTotal : subtotal + extrasTotal;
         const finalTotal = finalizedOrderDetails ? finalizedOrderDetails.total : total;
 
         const msg = buildWhatsAppMessage({
-            orderNumber: orderNumber || 0,
+            orderNumber: newOrderNum || orderNumber || 0,
             restaurantName,
             customerName: name,
             customerPhone: phone,
@@ -245,7 +247,7 @@ export default function CheckoutModal({
             subtotal: finalSubtotal,
             total: finalTotal,
             notes: notes || undefined,
-            currency: currency.replace('.', ''),
+            currency: isAr ? 'ج' : currency.replace('.', ''),
             language,
         });
         window.open(`https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg)}`, '_blank');
