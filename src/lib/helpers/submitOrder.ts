@@ -44,6 +44,16 @@ export type SubmitOrderResult = {
 };
 
 /**
+ * Strip Unicode Variation Selector-16 (U+FE0F) from messages.
+ * Some browsers (especially Chrome on desktop) corrupt compound emojis
+ * containing VS16 when they pass through encodeURIComponent for WhatsApp URLs.
+ * Stripping VS16 keeps the base emoji intact and prevents question marks.
+ */
+function stripVS16(text: string): string {
+    return text.replace(/\uFE0F/g, '');
+}
+
+/**
  * Build beautifully formatted WhatsApp message matching the user's template.
  */
 export function buildWhatsAppMessage(params: {
@@ -124,7 +134,7 @@ export function buildWhatsAppMessage(params: {
     msg += `------------------------------\n`;
     msg += `${isAr ? 'شكراً لاختياركم' : 'Thank you for choosing'} ${restaurantName} 🍕🍝`;
 
-    return msg;
+    return stripVS16(msg);
 }
 
 /**

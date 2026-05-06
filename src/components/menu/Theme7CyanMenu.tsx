@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -156,7 +156,7 @@ export default function Theme7CyanMenu({ config, categories, restaurantId }: { c
             if (i.notes) msg += `  _ملاحظة: ${i.notes}_\n`;
         });
         msg += `\n*الإجمالي:* ${cartTotal} ${cur}`;
-        window.open(`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
+        window.open(`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
     };
 
     const toggleDark = () => {

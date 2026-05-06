@@ -294,7 +294,7 @@ export default function Theme9EmeraldMenu({ config, categories, restaurantId }: 
 
         const waNumber = config.social_links?.whatsapp || config.whatsapp_number || config.phone;
         const formattedNumber = waNumber.replace(/\+/g, '');
-        window.open(`https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`, '_blank');
+        window.open(`https://wa.me/${formattedNumber}?text=${encodeURIComponent(message.replace(/\uFE0F/g, ''))}`, '_blank');
     };
 
     // Body style

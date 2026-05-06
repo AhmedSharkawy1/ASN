@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -250,7 +250,7 @@ export default function CheckoutModal({
             currency: isAr ? 'ج' : currency.replace('.', ''),
             language,
         });
-        window.open(`https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg)}`, '_blank');
+        window.open(`https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
     };
 
     // Removed handlePrint here

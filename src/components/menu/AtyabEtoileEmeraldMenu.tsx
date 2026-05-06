@@ -192,7 +192,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
         msg += `\n------------------------------\n*💰 الإجمالي:* ${cartTotal} ${currency}\n`;
         msg += `*🛵 يضاف مصاريف التوصيل*\n------------------------------\n`;
 
-        const url = `https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg)}`;
+        const url = `https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
         window.open(url, "_blank");
 
         haptic(50);

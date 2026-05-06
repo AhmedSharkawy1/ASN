@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -245,7 +245,7 @@ export default function PizzaPastaEmeraldMenu({ config, categories, language, re
         message += `------------------------------\n`;
 
 
-        window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(message)}`, "_blank");
+        window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(message.replace(/\uFE0F/g, ''))}`, "_blank");
 
         setCart([]);
         setShowCart(false);

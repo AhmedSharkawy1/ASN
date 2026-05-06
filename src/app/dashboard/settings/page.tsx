@@ -192,6 +192,8 @@ export default function SettingsPage() {
                         marquee_text_ar: profile.marquee_text_ar || '',
                         marquee_text_en: profile.marquee_text_en || '',
                         orders_enabled: profile.orders_enabled ?? true,
+                        telegram_bot_token: profile.telegram_bot_token || '',
+                        telegram_chat_id: profile.telegram_chat_id || '',
                         auto_approve_website_orders: profile.auto_approve_website_orders || false,
                     })
                     .eq('id', profile.id);

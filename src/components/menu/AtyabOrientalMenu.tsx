@@ -241,7 +241,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
         });
         msg += `------------------------------\n💵 *الإجمالي: ${cartTotal} ج*\n🚚 غير شامل التوصيل`;
 
-        window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg)}`, "_blank");
+        window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, "_blank");
 
         setCart([]);
         setShowCart(false);

@@ -345,7 +345,7 @@ export default function Theme15SkyMenu({ config, categories, restaurantId }: { c
         msg += `*💰 الإجمالي المطلوب: ${cartTotal} ${cur}*\n`;
         msg += `(السعر لا يشمل رسوم التوصيل)\n`;
 
-        const waUrl = `https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(msg)}`;
+        const waUrl = `https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
         window.open(waUrl, '_blank');
         setCart([]);
         setIsCartOpen(false);
