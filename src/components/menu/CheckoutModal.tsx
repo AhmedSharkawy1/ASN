@@ -592,7 +592,14 @@ export default function CheckoutModal({
                                 {deliveryFee > 0 && (
                                     <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                                         <span>{isAr ? "رسوم التوصيل" : "Delivery Fee"}</span>
-                                        <span>{appliedPromo?.freeShipping ? <s className="text-zinc-400">{deliveryFee} {currency}</s> : `${deliveryFee} ${currency}`}</span>
+                                        {appliedPromo?.freeShipping ? (
+                                            <span className="flex items-center gap-2">
+                                                <span className="text-emerald-500 font-bold">0 {currency}</span>
+                                                <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 font-bold px-1.5 py-0.5 rounded">{isAr ? 'شحن مجاني' : 'Free'}</span>
+                                            </span>
+                                        ) : (
+                                            <span>{deliveryFee} {currency}</span>
+                                        )}
                                     </div>
                                 )}
                                 {appliedPromo && promoDiscount > 0 && (
@@ -699,7 +706,14 @@ export default function CheckoutModal({
                                 {deliveryFee > 0 && (
                                     <div className="flex justify-between text-zinc-500">
                                         <span>{isAr ? "رسوم التوصيل" : "Delivery Fee"}</span>
-                                        <span>{appliedPromo?.freeShipping ? <s className="text-zinc-400">{deliveryFee} {currency}</s> : `${deliveryFee} ${currency}`}</span>
+                                        {appliedPromo?.freeShipping ? (
+                                            <span className="flex items-center gap-2">
+                                                <span className="text-emerald-500 font-bold">0 {currency}</span>
+                                                <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 font-bold px-1.5 py-0.5 rounded">{isAr ? 'شحن مجاني' : 'Free'}</span>
+                                            </span>
+                                        ) : (
+                                            <span>{deliveryFee} {currency}</span>
+                                        )}
                                     </div>
                                 )}
                                 {appliedPromo && promoDiscount > 0 && (
