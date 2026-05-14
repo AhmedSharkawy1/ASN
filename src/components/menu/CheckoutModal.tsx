@@ -683,6 +683,36 @@ export default function CheckoutModal({
                                 </p>
                             </div>
 
+                            {/* Order Summary with Discount */}
+                            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-sm space-y-2 text-start">
+                                <div className="flex justify-between text-zinc-500">
+                                    <span>{isAr ? "المجموع الفرعي" : "Subtotal"}</span>
+                                    <span>{finalizedOrderDetails ? finalizedOrderDetails.subtotal + finalizedOrderDetails.extrasTotal : subtotal + extrasTotal} {currency}</span>
+                                </div>
+                                {deliveryFee > 0 && (
+                                    <div className="flex justify-between text-zinc-500">
+                                        <span>{isAr ? "رسوم التوصيل" : "Delivery Fee"}</span>
+                                        <span>{appliedPromo?.freeShipping ? <s className="text-zinc-400">{deliveryFee} {currency}</s> : `${deliveryFee} ${currency}`}</span>
+                                    </div>
+                                )}
+                                {appliedPromo && promoDiscount > 0 && (
+                                    <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-xl border border-amber-200 dark:border-amber-500/20 -mx-1">
+                                        <div className="flex items-center gap-1.5">
+                                            <Tag className="w-3.5 h-3.5 text-amber-500" />
+                                            <span className="text-amber-700 dark:text-amber-300 font-bold text-xs">
+                                                {isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)}
+                                                {appliedPromo.freeShipping && ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})`}
+                                            </span>
+                                        </div>
+                                        <span className="font-bold text-amber-600 text-sm">-{promoDiscount} {currency}</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between font-extrabold text-base text-zinc-900 dark:text-white pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                                    <span>{isAr ? "الإجمالي" : "Total"}</span>
+                                    <span className="text-emerald-500">{finalizedOrderDetails ? finalizedOrderDetails.total : total} {currency}</span>
+                                </div>
+                            </div>
+
                             <div className="flex flex-col gap-2 pt-2">
                                 {whatsappNumber && (
                                     <button
