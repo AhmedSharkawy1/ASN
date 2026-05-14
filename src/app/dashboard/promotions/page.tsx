@@ -335,12 +335,7 @@ export default function PromotionsPage() {
                     {selectedItems.map(si => (
                       <div key={si.item_id} className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-3 rounded-xl border border-amber-200 dark:border-amber-500/20">
                         <span className="font-bold text-sm text-amber-800 dark:text-amber-300">{si.item_title_ar}</span>
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-silver">{isAr?'الكمية:':'Qty:'}</label>
-                          <input type="number" value={si.qty} onChange={e => updateItemQty(si.item_id, parseInt(e.target.value)||1)} min={1}
-                            className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-zinc-800 border border-glass-border text-center font-bold text-sm" dir="ltr" />
-                          <button onClick={() => removeItem(si.item_id)} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"><X className="w-4 h-4" /></button>
-                        </div>
+                        <button onClick={() => removeItem(si.item_id)} className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg"><X className="w-4 h-4" /></button>
                       </div>
                     ))}
                   </div>
@@ -402,7 +397,7 @@ export default function PromotionsPage() {
                     <div className="flex flex-wrap gap-1.5">
                       {p.required_items.map((ri, i) => (
                         <span key={i} className="bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-bold px-2 py-1 rounded-lg">
-                          {ri.item_title_ar} ×{ri.qty}
+                          {ri.item_title_ar}
                         </span>
                       ))}
                     </div>

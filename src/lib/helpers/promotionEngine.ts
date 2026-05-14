@@ -67,8 +67,10 @@ export async function fetchActivePromotions(restaurantId: string): Promise<Promo
 }
 
 /**
- * Check if a promotion's required items are all present in the cart
- * with the required quantities.
+ * Check if a promotion applies to the current cart.
+ * Logic: at least ONE of the required items must be in the cart (any qty),
+ * AND the subtotal must meet min_order_amount.
+ * If no required items specified, only min_order_amount is checked.
  */
 function isPromotionApplicable(
     promotion: Promotion,
@@ -80,21 +82,19 @@ function isPromotionApplicable(
         return false;
     }
 
-    // Check each required item
+    // Check required items — at least ONE must be in the cart
     const requiredItems = promotion.required_items || [];
     if (requiredItems.length === 0) {
-        // No specific items required — only min_order_amount check
-        return promotion.min_order_amount > 0;
+        // No specific items required — applies if min_order_amount is met (or no min)
+        return true;
     }
 
-    for (const req of requiredItems) {
-        const cartItem = cartItems.find(ci => ci.id === req.item_id);
-        if (!cartItem || cartItem.qty < req.qty) {
-            return false;
-        }
-    }
+    // Check if ANY of the required items exist in the cart
+    const hasAtLeastOne = requiredItems.some(req => 
+        cartItems.some(ci => ci.id === req.item_id && ci.qty > 0)
+    );
 
-    return true;
+    return hasAtLeastOne;
 }
 
 /**
