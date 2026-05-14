@@ -367,7 +367,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
             return prev.map(c => {
                 if (c.id === id) {
                     const newQ = c.quantity + delta;
-                    return newQ > 0 ? { ...c, quantity: newQ } : c;
+                    return { ...c, quantity: newQ };
                 }
                 return c;
             }).filter(c => c.quantity > 0);
@@ -1199,7 +1199,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 
                                                 {c.item.image_url && (
                                                     <div className="w-20 h-20 bg-gray-100 rounded-2xl overflow-hidden flex-shrink-0 relative border border-gray-100">
-                                                        <Image src={c.item.image_url} alt="" fill className="object-cover" />
+                                                        <img src={c.item.image_url} alt="" className="w-full h-full object-cover" />
                                                     </div>
                                                 )}
                                                 <div className="flex-1 flex flex-col justify-between py-1">
