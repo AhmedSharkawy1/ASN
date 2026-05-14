@@ -72,9 +72,16 @@ export async function fetchActivePromotions(restaurantId: string): Promise<Promo
     })));
     
     const filtered = (data as Promotion[]).filter(p => {
-        if (p.starts_at && new Date(p.starts_at) > now) {
-            console.log('[PROMO] Skipped (not started yet):', p.name_ar);
-            return false;
+        if (p.starts_at) {
+            // Compare start of day — if today is the start date, promo is active
+            const startDate = new Date(p.starts_at);
+            startDate.setHours(0, 0, 0, 0);
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            if (startDate > todayStart) {
+                console.log('[PROMO] Skipped (not started yet):', p.name_ar);
+                return false;
+            }
         }
         if (p.ends_at) {
             // Compare end of day - set ends_at to 23:59:59 of that day
