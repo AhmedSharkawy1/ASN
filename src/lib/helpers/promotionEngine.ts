@@ -67,9 +67,24 @@ export async function fetchActivePromotions(restaurantId: string): Promise<Promo
 
     // Filter by date range in JavaScript
     const now = new Date();
+    console.log('[PROMO] Raw promos from DB:', data.length, (data as Promotion[]).map(p => ({
+        name: p.name_ar, starts_at: p.starts_at, ends_at: p.ends_at, now: now.toISOString()
+    })));
+    
     const filtered = (data as Promotion[]).filter(p => {
-        if (p.starts_at && new Date(p.starts_at) > now) return false;
-        if (p.ends_at && new Date(p.ends_at) < now) return false;
+        if (p.starts_at && new Date(p.starts_at) > now) {
+            console.log('[PROMO] Skipped (not started yet):', p.name_ar);
+            return false;
+        }
+        if (p.ends_at) {
+            // Compare end of day - set ends_at to 23:59:59 of that day
+            const endDate = new Date(p.ends_at);
+            endDate.setHours(23, 59, 59, 999);
+            if (endDate < now) {
+                console.log('[PROMO] Skipped (expired):', p.name_ar, 'ends_at:', p.ends_at);
+                return false;
+            }
+        }
         return true;
     });
 
