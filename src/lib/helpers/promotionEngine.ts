@@ -103,7 +103,7 @@ export async function fetchActivePromotions(restaurantId: string): Promise<Promo
  * Check if a promotion applies to the current cart.
  * Logic: at least ONE of the required items must be in the cart (any qty),
  * AND the subtotal must meet min_order_amount.
- * If no required items specified, only min_order_amount is checked.
+ * Required items MUST be specified — no items = no promotion.
  */
 function isPromotionApplicable(
     promotion: Promotion,
@@ -115,11 +115,11 @@ function isPromotionApplicable(
         return false;
     }
 
-    // Check required items — at least ONE must be in the cart
+    // Required items must be specified
     const requiredItems = promotion.required_items || [];
     if (requiredItems.length === 0) {
-        // No specific items required — applies if min_order_amount is met (or no min)
-        return true;
+        // No items specified — promotion doesn't apply
+        return false;
     }
 
     // Check if ANY of the required items exist in the cart
