@@ -198,13 +198,20 @@ export default function CheckoutModal({
     // Evaluate promotions against current cart
     useEffect(() => {
         if (promotions.length === 0) { setAppliedPromo(null); return; }
-        // Cart IDs are composite: "itemId-sizeIdx-extraIds". Extract the original UUID.
+        // Extract original item ID from cart items (handles all theme formats)
         const cartForPromo = cartItems.map(ci => {
-            // Try to extract original item ID (UUID) from composite cart ID
-            const parts = ci.id.split('-');
-            // UUIDs are 5 groups joined by hyphens (8-4-4-4-12), so rejoin first 5 parts
-            const originalId = parts.length >= 5 ? parts.slice(0, 5).join('-') : ci.id;
-            return { id: originalId, title: ci.title, qty: ci.qty, price: ci.price };
+            // 1) If theme spreads the full item object, use item.id directly
+            const itemObj = (ci as any).item;
+            if (itemObj?.id) {
+                return { id: String(itemObj.id), title: ci.title, qty: ci.qty, price: ci.price };
+            }
+            // 2) Try to extract UUID pattern from composite cart ID
+            const uuidMatch = ci.id.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+            if (uuidMatch) {
+                return { id: uuidMatch[1], title: ci.title, qty: ci.qty, price: ci.price };
+            }
+            // 3) Fallback: use raw id
+            return { id: ci.id, title: ci.title, qty: ci.qty, price: ci.price };
         });
         const result = evaluatePromotions(cartForPromo, promotions, subtotal + extrasTotal, deliveryFee);
         setAppliedPromo(result);
@@ -737,7 +744,7 @@ export default function CheckoutModal({
                             <div className="flex flex-col gap-2 pt-2">
                                 {whatsappNumber && (
                                     <button
-                                        onClick={sendWhatsApp}
+                                        onClick={() => sendWhatsApp()}
                                         className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#1da851] transition text-sm flex items-center justify-center gap-2"
                                     >
                                         <FaWhatsapp className="w-5 h-5" />
