@@ -278,8 +278,9 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                             {/* Delivery Branches/Numbers Only */}
                             {config.phone_numbers && config.phone_numbers.map((p, idx) => (
                                 <div key={idx} className="bg-[#1b2330] p-3 text-center rounded-lg border border-white/5 flex flex-col justify-center gap-1 hover:bg-white/5 transition">
-                                    {p.label && <span className="text-[11px] text-gray-400 font-bold">{p.label}</span>}
-                                    <a href={`tel:${p.number}`} className="text-white hover:text-white font-mono font-bold tracking-wider text-[15px]">{formatEgyptianPhone(p.number)}</a>
+                                    <a href={`tel:${p.number}`} className="text-white hover:text-white font-bold tracking-wider text-[15px]">
+                                        {p.label ? p.label : formatEgyptianPhone(p.number)}
+                                    </a>
                                 </div>
                             ))}
                         </div>
@@ -535,9 +536,8 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 
                                 {config.phone_numbers && config.phone_numbers.length > 0 && config.phone_numbers.map((ph, idx) => (
                                     <div key={idx} className="mb-4 last:mb-0">
-                                        <p className="text-xs text-gray-500 mb-1">{ph.label || (isRTL ? 'توصيل' : 'Delivery')}</p>
                                         <a href={`tel:${ph.number}`} className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
-                                            <span className="font-mono font-bold text-gray-900 tracking-wider text-lg" dir="ltr">{formatEgyptianPhone(ph.number)}</span>
+                                            <span className="font-bold text-gray-900 tracking-wider text-lg" dir={isRTL ? 'rtl' : 'ltr'}>{ph.label ? ph.label : formatEgyptianPhone(ph.number)}</span>
                                             <Phone className="w-5 h-5 text-gray-400 fill-current opacity-20" />
                                         </a>
                                     </div>
@@ -827,9 +827,8 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 
                                 {config.phone_numbers && config.phone_numbers.length > 0 && config.phone_numbers.map((ph, idx) => (
                                     <div key={idx} className="mb-4 last:mb-0">
-                                        <p className="text-xs text-gray-500 mb-1">{ph.label || (isRTL ? 'توصيل' : 'Delivery')}</p>
                                         <a href={`tel:${ph.number}`} className="flex items-center justify-between bg-gray-50 p-4 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors">
-                                            <span className="font-mono font-bold text-gray-900 tracking-wider text-lg" dir="ltr">{formatEgyptianPhone(ph.number)}</span>
+                                            <span className="font-bold text-gray-900 tracking-wider text-lg" dir={isRTL ? 'rtl' : 'ltr'}>{ph.label ? ph.label : formatEgyptianPhone(ph.number)}</span>
                                             <Phone className="w-5 h-5 text-gray-400 fill-current opacity-20" />
                                         </a>
                                     </div>

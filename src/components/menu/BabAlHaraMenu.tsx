@@ -533,8 +533,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                                 {config.phone_numbers?.map((p, i) => (
                                     <a key={i} href={`tel:${p.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
                                         <div className="flex flex-col">
-                                            <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums" dir="ltr">{p.number}</span>
-                                            <span className="text-[9px] text-zinc-400 font-bold">{p.label}</span>
+                                            <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums" dir={isAr ? "rtl" : "ltr"}>{p.label ? p.label : p.number}</span>
                                         </div>
                                         <div className="w-9 h-9 bg-white dark:bg-zinc-700 rounded-xl flex items-center justify-center" style={{ color: PRIMARY }}>☏</div>
                                     </a>

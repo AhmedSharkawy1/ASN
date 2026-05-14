@@ -634,11 +634,8 @@ export default function AtyabOrientalSkyMenu({ config, categories, language, res
                                             className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/80 border border-zinc-100 dark:border-zinc-700/50 rounded-3xl active:scale-[0.97] transition-all hover:bg-amber-50 dark:hover:bg-amber-500/5 group"
                                         >
                                             <div className="flex flex-col text-right flex-1 min-w-0">
-                                                <span className="font-bold text-zinc-400 dark:text-zinc-500 text-[11px] mb-1">
-                                                    {pn.label || (isAr ? `رقم ${idx + 1}` : `Line ${idx + 1}`)}
-                                                </span>
-                                                <span className="text-[17px] font-black text-[#eab308] dark:text-[#eab308] tabular-nums tracking-tight" dir="ltr">
-                                                    {pn.number}
+                                                <span className="text-[17px] font-black text-[#eab308] dark:text-[#eab308] tabular-nums tracking-tight" dir={isAr ? "rtl" : "ltr"}>
+                                                    {pn.label ? pn.label : pn.number}
                                                 </span>
                                             </div>
                                             <div className="w-11 h-11 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center shadow-sm text-lg border border-zinc-100 dark:border-white/5 group-hover:scale-110 transition-transform shrink-0 ml-3">

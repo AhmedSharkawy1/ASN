@@ -651,8 +651,7 @@ export default function Theme6CyanMenu({ config, categories, restaurantId }: { c
                                     {config.phone_numbers?.map((num: any, i: number) => (
                                         <a key={i} href={`tel:${num.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 rounded-3xl border border-zinc-100 dark:border-white/5 active:scale-95 transition-transform">
                                             <div className="flex flex-col">
-                                                <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums">{num.number}</span>
-                                                <span className="text-[9px] text-zinc-400 font-bold">{num.label}</span>
+                                                <span className="text-base font-black text-zinc-800 dark:text-white tabular-nums" dir={isAr ? "rtl" : "ltr"}>{num.label ? num.label : num.number}</span>
                                             </div>
                                             <div className="w-9 h-9 bg-white dark:bg-zinc-700 rounded-xl flex items-center justify-center" style={{ color: T6 }}>☏</div>
                                         </a>

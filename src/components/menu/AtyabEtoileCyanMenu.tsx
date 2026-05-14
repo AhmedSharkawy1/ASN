@@ -628,8 +628,7 @@ export default function AtyabEtoileCyanMenu({ config, categories, language, rest
                                 
                                 {config.phone_numbers?.map((p, i) => (
                                     <a key={i} href={`tel:${p.number}`} className="flex items-center justify-between px-6 py-4 border-b last:border-0 border-[#22d3ee] dark:border-[#333] active:bg-[#0891b2]/5 transition-colors group">
-                                        <span className="text-[12px] font-medium text-[#888] group-hover:text-[#0891b2]">{p.label}</span>
-                                        <span className="text-base font-bold tabular-nums" style={{ color: PRIMARY }}>{p.number}</span>
+                                        <span className="text-base font-bold tabular-nums" style={{ color: PRIMARY }} dir={isAr ? "rtl" : "ltr"}>{p.label ? p.label : p.number}</span>
                                     </a>
                                 ))}
                             </motion.div>

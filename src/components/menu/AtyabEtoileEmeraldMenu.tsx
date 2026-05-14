@@ -628,8 +628,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                                 
                                 {config.phone_numbers?.map((p, i) => (
                                     <a key={i} href={`tel:${p.number}`} className="flex items-center justify-between px-6 py-4 border-b last:border-0 border-[#34d399] dark:border-[#333] active:bg-[#059669]/5 transition-colors group">
-                                        <span className="text-[12px] font-medium text-[#888] group-hover:text-[#059669]">{p.label}</span>
-                                        <span className="text-base font-bold tabular-nums" style={{ color: PRIMARY }}>{p.number}</span>
+                                        <span className="text-base font-bold tabular-nums" style={{ color: PRIMARY }} dir={isAr ? "rtl" : "ltr"}>{p.label ? p.label : p.number}</span>
                                     </a>
                                 ))}
                             </motion.div>

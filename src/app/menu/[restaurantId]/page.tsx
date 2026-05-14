@@ -1279,8 +1279,9 @@ function SmartMenuContent({
                   globalDeliveryNumbers.map((pn, i) => (
                     <a key={i} href={`tel:${pn.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700/50 rounded-2xl active:scale-[0.97] transition-transform" dir="rtl">
                       <div className="flex flex-col text-right">
-                        <span className="font-bold text-zinc-400 dark:text-zinc-500 text-[11px] mb-1">{pn.label || (language === 'ar' ? `رقم ${i+1}` : `Line ${i+1}`)}</span>
-                        <span className="text-[17px] font-black text-rose-600 dark:text-rose-500 tabular-nums" dir="ltr">{pn.number}</span>
+                        <span className="text-[17px] font-black text-rose-600 dark:text-rose-500" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                            {pn.label ? pn.label : pn.number}
+                        </span>
                       </div>
                       <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center shadow-sm text-lg border border-zinc-100 dark:border-white/5">📞</div>
                     </a>
