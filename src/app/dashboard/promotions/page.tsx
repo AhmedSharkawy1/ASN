@@ -2,7 +2,7 @@
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Plus, Trash2, Edit2, Tag, X, Save, Loader2, ToggleLeft, ToggleRight, Search } from "lucide-react";
+import { Plus, Trash2, Edit2, Tag, X, Save, Loader2, ToggleLeft, ToggleRight, Search, Layers, CheckSquare } from "lucide-react";
 
 type RequiredItem = { item_id: string; item_title_ar: string; item_title_en?: string; qty: number };
 type Promotion = {
@@ -13,13 +13,15 @@ type Promotion = {
   bundle_price?: number; min_order_amount: number;
   is_active: boolean; starts_at?: string; ends_at?: string; created_at: string;
 };
-type MenuItem = { id: string; title_ar: string; title_en?: string; prices: number[]; category_name?: string };
+type MenuItem = { id: string; title_ar: string; title_en?: string; prices: number[]; category_name?: string; category_id?: string };
+type Category = { id: string; name_ar: string };
 
 export default function PromotionsPage() {
   const { language } = useLanguage();
   const isAr = language === "ar";
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -36,6 +38,8 @@ export default function PromotionsPage() {
   const [saving, setSaving] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string|null>(null);
+  const [filterCatId, setFilterCatId] = useState<string|null>(null);
+  const [showItemPicker, setShowItemPicker] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -51,6 +55,7 @@ export default function PromotionsPage() {
       ]);
       setPromos((p as Promotion[]) || []);
       if (cats && cats.length > 0) {
+        setCategories(cats as Category[]);
         const { data: items } = await supabase.from('items').select('id, title_ar, title_en, prices, category_id').in('category_id', cats.map(c => c.id));
         setMenuItems((items || []).map(i => ({ ...i, category_name: cats.find(c => c.id === i.category_id)?.name_ar })));
       }
@@ -107,7 +112,23 @@ export default function PromotionsPage() {
 
   const addItem = (item: MenuItem) => {
     if (selectedItems.find(s => s.item_id === item.id)) return;
-    setSelectedItems([...selectedItems, { item_id: item.id, item_title_ar: item.title_ar, item_title_en: item.title_en, qty: 1 }]);
+    setSelectedItems(prev => [...prev, { item_id: item.id, item_title_ar: item.title_ar, item_title_en: item.title_en, qty: 1 }]);
+  };
+
+  const addCategory = (catId: string) => {
+    const catItems = menuItems.filter(i => i.category_id === catId);
+    const newItems = catItems.filter(i => !selectedItems.find(s => s.item_id === i.id));
+    setSelectedItems(prev => [...prev, ...newItems.map(i => ({ item_id: i.id, item_title_ar: i.title_ar, item_title_en: i.title_en, qty: 1 }))]);
+  };
+
+  const addAllItems = () => {
+    const newItems = menuItems.filter(i => !selectedItems.find(s => s.item_id === i.id));
+    setSelectedItems(prev => [...prev, ...newItems.map(i => ({ item_id: i.id, item_title_ar: i.title_ar, item_title_en: i.title_en, qty: 1 }))]);
+  };
+
+  const removeCategoryItems = (catId: string) => {
+    const catItemIds = menuItems.filter(i => i.category_id === catId).map(i => i.id);
+    setSelectedItems(prev => prev.filter(s => !catItemIds.includes(s.item_id)));
   };
 
   const removeItem = (itemId: string) => setSelectedItems(selectedItems.filter(s => s.item_id !== itemId));
@@ -119,7 +140,11 @@ export default function PromotionsPage() {
     return isAr ? 'شحن مجاني' : 'Free Shipping';
   };
 
-  const filteredItems = menuItems.filter(i => !itemSearch || i.title_ar.includes(itemSearch) || (i.title_en||'').toLowerCase().includes(itemSearch.toLowerCase()));
+  const filteredItems = menuItems.filter(i => {
+    if (filterCatId && i.category_id !== filterCatId) return false;
+    if (!itemSearch) return true;
+    return i.title_ar.includes(itemSearch) || (i.title_en||'').toLowerCase().includes(itemSearch.toLowerCase());
+  });
 
   if (loading) return <div className="p-8 text-center text-silver animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
 
@@ -216,29 +241,97 @@ export default function PromotionsPage() {
               </div>
               {/* Required Items */}
               <div className="space-y-3">
-                <label className="text-sm font-bold text-silver">{isAr?'الأصناف المطلوبة للعرض':'Required Items for Offer'}</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 w-4 h-4 text-silver" />
-                  <input value={itemSearch} onChange={e => setItemSearch(e.target.value)} placeholder={isAr?'ابحث عن صنف...':'Search item...'}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-amber-500 outline-none text-sm" />
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-silver">{isAr?'الأصناف المطلوبة للعرض':'Required Items for Offer'}</label>
+                  <button onClick={() => setShowItemPicker(!showItemPicker)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 font-bold text-xs rounded-lg hover:bg-amber-100 dark:hover:bg-amber-500/20 transition">
+                    <Plus className="w-3.5 h-3.5" /> {isAr?'اختر أصناف':'Select Items'}
+                  </button>
                 </div>
-                {itemSearch && (
-                  <div className="max-h-40 overflow-y-auto bg-white dark:bg-zinc-900 rounded-xl border border-glass-border shadow-lg">
-                    {filteredItems.map(item => (
-                      <button key={item.id} onClick={() => { addItem(item); setItemSearch(""); }}
-                        className="w-full text-start px-4 py-2.5 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition flex justify-between items-center border-b border-glass-border last:border-0">
-                        <div>
-                          <span className="font-bold text-sm text-foreground">{item.title_ar}</span>
-                          {item.category_name && <span className="text-xs text-silver ms-2">({item.category_name})</span>}
+
+                {/* Quick Actions: Select All / Select by Category */}
+                {showItemPicker && (
+                  <div className="bg-slate-50 dark:bg-black/20 rounded-xl border border-glass-border p-4 space-y-3">
+                    {/* Select All Button */}
+                    <button onClick={addAllItems}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-amber-300 dark:border-amber-500/30 text-amber-600 font-bold text-sm hover:bg-amber-50 dark:hover:bg-amber-500/10 transition">
+                      <CheckSquare className="w-4 h-4" /> {isAr?'اختيار كل الأصناف':'Select All Items'}
+                    </button>
+
+                    {/* Category Chips */}
+                    {categories.length > 0 && (
+                      <div>
+                        <p className="text-xs font-bold text-silver mb-2 flex items-center gap-1"><Layers className="w-3.5 h-3.5" /> {isAr?'اختيار قسم كامل:':'Select entire category:'}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {categories.map(cat => {
+                            const catItemCount = menuItems.filter(i => i.category_id === cat.id).length;
+                            const selectedCount = menuItems.filter(i => i.category_id === cat.id && selectedItems.find(s => s.item_id === i.id)).length;
+                            const allSelected = selectedCount === catItemCount && catItemCount > 0;
+                            return (
+                              <button key={cat.id} onClick={() => allSelected ? removeCategoryItems(cat.id) : addCategory(cat.id)}
+                                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm font-bold transition-all ${allSelected ? 'border-amber-500 bg-amber-500 text-white shadow-md' : 'border-glass-border text-foreground hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10'}`}>
+                                {cat.name_ar}
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${allSelected ? 'bg-white/20 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-silver'}`}>{selectedCount}/{catItemCount}</span>
+                              </button>
+                            );
+                          })}
                         </div>
-                        <span className="text-xs font-bold text-amber-600">{item.prices?.[0]} {isAr?'ج':'EGP'}</span>
-                      </button>
-                    ))}
-                    {filteredItems.length === 0 && <p className="text-center text-silver text-sm py-3">{isAr?'لا توجد نتائج':'No results'}</p>}
+                      </div>
+                    )}
+
+                    {/* Search + Filter */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-silver flex items-center gap-1"><Search className="w-3.5 h-3.5" /> {isAr?'أو ابحث عن صنف معين:':'Or search for specific item:'}</p>
+                      {/* Category filter tabs */}
+                      <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                        <button onClick={() => setFilterCatId(null)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${!filterCatId ? 'bg-amber-500 text-white' : 'bg-white dark:bg-zinc-800 text-silver border border-glass-border hover:border-amber-300'}`}>
+                          {isAr?'الكل':'All'}
+                        </button>
+                        {categories.map(cat => (
+                          <button key={cat.id} onClick={() => setFilterCatId(filterCatId === cat.id ? null : cat.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition ${filterCatId === cat.id ? 'bg-amber-500 text-white' : 'bg-white dark:bg-zinc-800 text-silver border border-glass-border hover:border-amber-300'}`}>
+                            {cat.name_ar}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-2.5 w-4 h-4 text-silver" />
+                        <input value={itemSearch} onChange={e => setItemSearch(e.target.value)} placeholder={isAr?'ابحث عن صنف...':'Search item...'}
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-glass-border focus:border-amber-500 outline-none text-sm" />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto rounded-xl border border-glass-border bg-white dark:bg-zinc-900">
+                        {filteredItems.map(item => {
+                          const isSelected = !!selectedItems.find(s => s.item_id === item.id);
+                          return (
+                            <button key={item.id} onClick={() => isSelected ? removeItem(item.id) : addItem(item)}
+                              className={`w-full text-start px-4 py-2.5 transition flex justify-between items-center border-b border-glass-border last:border-0 ${isSelected ? 'bg-amber-50 dark:bg-amber-500/10' : 'hover:bg-slate-50 dark:hover:bg-zinc-800'}`}>
+                              <div className="flex items-center gap-2">
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${isSelected ? 'border-amber-500 bg-amber-500' : 'border-zinc-300 dark:border-zinc-600'}`}>
+                                  {isSelected && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-sm text-foreground">{item.title_ar}</span>
+                                  {item.category_name && <span className="text-xs text-silver ms-2">({item.category_name})</span>}
+                                </div>
+                              </div>
+                              <span className="text-xs font-bold text-amber-600">{item.prices?.[0]} {isAr?'ج':'EGP'}</span>
+                            </button>
+                          );
+                        })}
+                        {filteredItems.length === 0 && <p className="text-center text-silver text-sm py-3">{isAr?'لا توجد نتائج':'No results'}</p>}
+                      </div>
+                    </div>
                   </div>
                 )}
+
+                {/* Selected Items List */}
                 {selectedItems.length > 0 && (
                   <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-600">{isAr ? `${selectedItems.length} صنف مختار` : `${selectedItems.length} items selected`}</span>
+                      <button onClick={() => setSelectedItems([])} className="text-xs text-red-500 font-bold hover:underline">{isAr?'إزالة الكل':'Remove All'}</button>
+                    </div>
                     {selectedItems.map(si => (
                       <div key={si.item_id} className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-3 rounded-xl border border-amber-200 dark:border-amber-500/20">
                         <span className="font-bold text-sm text-amber-800 dark:text-amber-300">{si.item_title_ar}</span>
