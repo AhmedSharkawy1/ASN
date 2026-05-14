@@ -198,7 +198,14 @@ export default function CheckoutModal({
     // Evaluate promotions against current cart
     useEffect(() => {
         if (promotions.length === 0) { setAppliedPromo(null); return; }
-        const cartForPromo = cartItems.map(ci => ({ id: (ci as any).item?.id || ci.id, title: ci.title, qty: ci.qty, price: ci.price }));
+        // Cart IDs are composite: "itemId-sizeIdx-extraIds". Extract the original UUID.
+        const cartForPromo = cartItems.map(ci => {
+            // Try to extract original item ID (UUID) from composite cart ID
+            const parts = ci.id.split('-');
+            // UUIDs are 5 groups joined by hyphens (8-4-4-4-12), so rejoin first 5 parts
+            const originalId = parts.length >= 5 ? parts.slice(0, 5).join('-') : ci.id;
+            return { id: originalId, title: ci.title, qty: ci.qty, price: ci.price };
+        });
         const result = evaluatePromotions(cartForPromo, promotions, subtotal + extrasTotal, deliveryFee);
         setAppliedPromo(result);
     }, [cartItems, promotions, subtotal, extrasTotal, deliveryFee]);
