@@ -213,7 +213,10 @@ export default function CheckoutModal({
             // 3) Fallback: use raw id
             return { id: ci.id, title: ci.title, qty: ci.qty, price: ci.price };
         });
+        console.log('[PROMO DEBUG] Cart items for promo:', cartForPromo.map(c => ({ id: c.id, title: c.title })));
+        console.log('[PROMO DEBUG] Subtotal+extras:', subtotal + extrasTotal, 'deliveryFee:', deliveryFee);
         const result = evaluatePromotions(cartForPromo, promotions, subtotal + extrasTotal, deliveryFee);
+        console.log('[PROMO DEBUG] Result:', result ? { name: result.promotion.name_ar, discount: result.discountAmount, freeShipping: result.freeShipping } : 'NO MATCH');
         setAppliedPromo(result);
     }, [cartItems, promotions, subtotal, extrasTotal, deliveryFee]);
 
