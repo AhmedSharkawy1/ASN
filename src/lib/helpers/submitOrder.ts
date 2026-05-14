@@ -34,6 +34,10 @@ export type SubmitOrderParams = {
     total: number;
     paymentMethod?: string;
     restaurantName?: string;
+    promotionId?: string;
+    promotionName?: string;
+    discountAmount?: number;
+    discountType?: string;
 };
 
 export type SubmitOrderResult = {
@@ -71,12 +75,16 @@ export function buildWhatsAppMessage(params: {
     notes?: string;
     currency?: string;
     language?: string;
+    promotionName?: string;
+    discountAmount?: number;
+    discountType?: string;
 }): string {
     const {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         orderNumber, restaurantName, customerName, customerPhone,
         customerAddress, orderType, deliveryZoneName, deliveryFee,
-        items, subtotal, total, notes, currency = 'ج', language = 'ar'
+        items, subtotal, total, notes, currency = 'ج', language = 'ar',
+        promotionName, discountAmount, discountType
     } = params;
     const isAr = language === 'ar';
 
@@ -126,6 +134,10 @@ export function buildWhatsAppMessage(params: {
         msg += `🛒 ${isAr ? 'مجموع الأصناف:' : 'Items Subtotal:'} ${subtotal} ${currency}\n`;
         msg += `🚚 ${isAr ? 'خدمة التوصيل:' : 'Delivery Fee:'} ${deliveryFee} ${currency}\n`;
     }
+    if (promotionName && discountAmount && discountAmount > 0) {
+        msg += `🎁 *${isAr ? 'عرض مطبق:' : 'Promotion:'}* ${promotionName}\n`;
+        msg += `💰 *${isAr ? 'الخصم:' : 'Discount:'}* -${discountAmount} ${currency}${discountType === 'free_shipping' ? ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})` : ''}\n`;
+    }
     msg += `💵 *${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${currency}*\n`;
     msg += `------------------------------\n`;
 
@@ -154,11 +166,15 @@ function buildTelegramMessage(params: {
     total: number;
     notes?: string;
     currency?: string;
+    promotionName?: string;
+    discountAmount?: number;
+    discountType?: string;
 }): string {
     const {
         orderNumber, restaurantName, customerName, customerPhone,
         customerAddress, orderType, deliveryZoneName, deliveryFee,
-        items, subtotal, total, notes, currency = 'ج'
+        items, subtotal, total, notes, currency = 'ج',
+        promotionName, discountAmount, discountType
     } = params;
 
     let msg = `🧾 *فاتورة طلب جديد #${orderNumber} — ${restaurantName}*\n`;
@@ -207,6 +223,10 @@ function buildTelegramMessage(params: {
         msg += `🛒 مجموع الأصناف: ${subtotal} ${currency}\n`;
         msg += `🚚 خدمة التوصيل: ${deliveryFee} ${currency}\n`;
     }
+    if (promotionName && discountAmount && discountAmount > 0) {
+        msg += `🎁 *عرض مطبق:* ${promotionName}\n`;
+        msg += `💰 *الخصم:* -${discountAmount} ${currency}${discountType === 'free_shipping' ? ' (شحن مجاني)' : ''}\n`;
+    }
     msg += `💵 *الإجمالي المطلوب: ${total} ${currency}*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `⏰ ${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}\n`;
@@ -236,6 +256,9 @@ async function sendTelegramNotification(params: {
     total: number;
     notes?: string;
     currency?: string;
+    promotionName?: string;
+    discountAmount?: number;
+    discountType?: string;
 }): Promise<void> {
     try {
         // Fetch Telegram credentials for this restaurant
@@ -275,7 +298,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         const {
             restaurantId, customerName, customerPhone, customerAddress,
             notes, orderType, deliveryZoneId, deliveryZoneName, deliveryFee,
-            items, subtotal, total, paymentMethod, restaurantName
+            items, subtotal, total, paymentMethod, restaurantName,
+            promotionId, promotionName, discountAmount, discountType
         } = params;
 
         // 1. Upsert customer — find by phone + restaurant, or create new
@@ -356,6 +380,10 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 status: 'pending',
                 is_draft: false,
                 source: 'website',
+                promotion_id: promotionId || null,
+                promotion_name: promotionName || null,
+                discount_amount: discountAmount || 0,
+                discount_type: discountType || null,
             })
             .select('id, order_number')
             .single();
@@ -388,6 +416,9 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             subtotal,
             total,
             notes,
+            promotionName,
+            discountAmount,
+            discountType,
         });
 
         // 5. Log the order creation

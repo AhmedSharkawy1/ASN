@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { submitOrder, buildWhatsAppMessage, OrderItem, OrderItemExtra } from "@/lib/helpers/submitOrder";
+import { fetchActivePromotions, evaluatePromotions, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
 import { FaWhatsapp } from "react-icons/fa";
-import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus } from "lucide-react";
+import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag } from "lucide-react";
 
 type DeliveryZone = {
     id: string;
@@ -76,6 +77,10 @@ export default function CheckoutModal({
     const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
     const [zones, setZones] = useState<DeliveryZone[]>([]);
 
+    // Promotions state
+    const [promotions, setPromotions] = useState<Promotion[]>([]);
+    const [appliedPromo, setAppliedPromo] = useState<AppliedPromotion | null>(null);
+
     // Fetch addons
     useEffect(() => {
         if (!isOpen || !restaurantId) return;
@@ -101,6 +106,15 @@ export default function CheckoutModal({
                 .eq('is_active', true)
                 .order('name_ar');
             setZones((data as DeliveryZone[]) || []);
+        })();
+    }, [isOpen, restaurantId]);
+
+    // Fetch promotions
+    useEffect(() => {
+        if (!isOpen || !restaurantId) return;
+        (async () => {
+            const promos = await fetchActivePromotions(restaurantId);
+            setPromotions(promos);
         })();
     }, [isOpen, restaurantId]);
 
@@ -180,7 +194,17 @@ export default function CheckoutModal({
 
     const extrasTotal = getExtrasTotal();
     const deliveryFee = orderType === 'delivery' && selectedZone ? selectedZone.fee : 0;
-    const total = subtotal + extrasTotal + deliveryFee;
+
+    // Evaluate promotions against current cart
+    useEffect(() => {
+        if (promotions.length === 0) { setAppliedPromo(null); return; }
+        const cartForPromo = cartItems.map(ci => ({ id: (ci as any).item?.id || ci.id, title: ci.title, qty: ci.qty, price: ci.price }));
+        const result = evaluatePromotions(cartForPromo, promotions, subtotal + extrasTotal, deliveryFee);
+        setAppliedPromo(result);
+    }, [cartItems, promotions, subtotal, extrasTotal, deliveryFee]);
+
+    const promoDiscount = appliedPromo ? appliedPromo.discountAmount : 0;
+    const total = subtotal + extrasTotal + deliveryFee - promoDiscount;
 
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
     const canProceedStep3 = orderType === 'pickup' || (orderType === 'delivery' && selectedZone && address.trim().length > 0);
@@ -206,6 +230,10 @@ export default function CheckoutModal({
             items: finalItems,
             subtotal: subtotal + extrasTotal,
             total,
+            promotionId: appliedPromo?.promotion.id,
+            promotionName: appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined,
+            discountAmount: promoDiscount > 0 ? promoDiscount : undefined,
+            discountType: appliedPromo?.promotion.discount_type,
         });
 
         setLoading(false);
@@ -249,6 +277,9 @@ export default function CheckoutModal({
             notes: notes || undefined,
             currency: isAr ? 'ج' : currency.replace('.', ''),
             language,
+            promotionName: appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined,
+            discountAmount: promoDiscount > 0 ? promoDiscount : undefined,
+            discountType: appliedPromo?.promotion.discount_type,
         });
         window.open(`https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
     };
@@ -554,7 +585,16 @@ export default function CheckoutModal({
                                 {deliveryFee > 0 && (
                                     <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
                                         <span>{isAr ? "رسوم التوصيل" : "Delivery Fee"}</span>
-                                        <span>{deliveryFee} {currency}</span>
+                                        <span>{appliedPromo?.freeShipping ? <s className="text-zinc-400">{deliveryFee} {currency}</s> : `${deliveryFee} ${currency}`}</span>
+                                    </div>
+                                )}
+                                {appliedPromo && promoDiscount > 0 && (
+                                    <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-xl border border-amber-200 dark:border-amber-500/20">
+                                        <div className="flex items-center gap-1.5">
+                                            <Tag className="w-3.5 h-3.5 text-amber-500" />
+                                            <span className="text-amber-700 dark:text-amber-300 font-bold text-xs">{isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)}</span>
+                                        </div>
+                                        <span className="font-bold text-amber-600 text-sm">-{promoDiscount} {currency}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between font-extrabold text-lg text-zinc-900 dark:text-white pt-2 border-t border-zinc-200 dark:border-zinc-700">
