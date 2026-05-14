@@ -12,7 +12,7 @@ import {
     Factory, ScrollText, TrendingUp, Landmark, Users,
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
-    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud
+    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud, Tag
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -496,6 +496,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/menu", icon: Utensils, labelAr: "المنتجات", labelEn: "Products", key: "products" },
                 { href: "/dashboard/tables", icon: TableProperties, labelAr: "الطاولات", labelEn: "Tables", key: "tables" },
                 { href: "/dashboard/delivery", icon: Truck, labelAr: "الدليفري", labelEn: "Delivery", key: "delivery" },
+                { href: "/dashboard/promotions", icon: Tag, labelAr: "العروض والخصومات", labelEn: "Promotions", key: "promotions" },
             ]
         },
         {
