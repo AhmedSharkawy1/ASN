@@ -44,26 +44,37 @@ export type AppliedPromotion = {
 
 /**
  * Fetch all currently active promotions for a restaurant.
- * Filters by is_active, and date range (starts_at / ends_at).
+ * Fetches all active promos, then filters date range in JavaScript
+ * to avoid complex Supabase .or() chaining issues.
  */
 export async function fetchActivePromotions(restaurantId: string): Promise<Promotion[]> {
-    const now = new Date().toISOString();
-
     const { data, error } = await supabase
         .from('promotions')
         .select('*')
         .eq('restaurant_id', restaurantId)
         .eq('is_active', true)
-        .or(`starts_at.is.null,starts_at.lte.${now}`)
-        .or(`ends_at.is.null,ends_at.gte.${now}`)
         .order('created_at', { ascending: false });
 
     if (error) {
-        console.error('Error fetching promotions:', error);
+        console.error('[PROMO] Error fetching promotions:', error);
         return [];
     }
 
-    return (data as Promotion[]) || [];
+    if (!data || data.length === 0) {
+        console.log('[PROMO] No active promotions found for restaurant:', restaurantId);
+        return [];
+    }
+
+    // Filter by date range in JavaScript
+    const now = new Date();
+    const filtered = (data as Promotion[]).filter(p => {
+        if (p.starts_at && new Date(p.starts_at) > now) return false;
+        if (p.ends_at && new Date(p.ends_at) < now) return false;
+        return true;
+    });
+
+    console.log('[PROMO] Active promotions after date filter:', filtered.length, filtered.map(p => p.name_ar));
+    return filtered;
 }
 
 /**
