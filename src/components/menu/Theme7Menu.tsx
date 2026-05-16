@@ -38,6 +38,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
     const [selectedItem, setSelectedItem] = useState<{ item: any; catName: string; catImg?: string } | null>(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
+    const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false);
 
     // item modal
     const [qty, setQty] = useState(1);
@@ -263,16 +264,36 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                     </a>
                 )}
                 {(config.phone_numbers?.length > 0 || config.phone) && (
-                    <button onClick={(e) => {
-                        e.preventDefault();
-                        if (config.phone_numbers && config.phone_numbers.length > 0) {
-                            document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers }));
-                        } else if (config.phone) {
-                            window.location.href = `tel:${config.phone}`;
-                        }
-                    }} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                        <Phone className="w-5 h-5" />
-                    </button>
+                    <div className="relative">
+                        <button onClick={(e) => {
+                            e.preventDefault();
+                            if (config.phone_numbers && config.phone_numbers.length > 0) {
+                                setIsPhoneMenuOpen(!isPhoneMenuOpen);
+                            } else if (config.phone) {
+                                window.location.href = `tel:${config.phone}`;
+                            }
+                        }} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                            <Phone className="w-5 h-5" />
+                        </button>
+                        <AnimatePresence>
+                            {isPhoneMenuOpen && (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                    className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 bg-white rounded-xl shadow-[0_5px_20px_rgba(0,0,0,0.2)] border border-gray-100 py-2 z-[110] overflow-hidden"
+                                    style={{ background: isDarkMode ? '#1e293b' : '#fff', borderColor: isDarkMode ? '#334155' : '#f1f5f9' }}>
+                                    <div className="px-4 py-2 border-b text-xs font-bold uppercase text-center"
+                                        style={{ borderColor: isDarkMode ? '#334155' : '#f1f5f9', color: isDarkMode ? '#94a3b8' : '#64748b' }}>
+                                        {isAr ? 'أرقام الديلفري' : 'Delivery Numbers'}
+                                    </div>
+                                    {config.phone_numbers?.map((pn: any, idx: number) => (
+                                        <a key={idx} href={`tel:${pn.number}`} className="block px-4 py-3 text-center text-sm font-bold border-b last:border-0 transition-colors"
+                                            style={{ color: isDarkMode ? '#fff' : '#0f172a', borderColor: isDarkMode ? '#334155' : '#f1f5f9' }}>
+                                            {pn.label || pn.number}
+                                        </a>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 )}
             </div>
 
