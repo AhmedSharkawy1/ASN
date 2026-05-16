@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -262,11 +262,18 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                         <FaTiktok className="w-5 h-5" />
                     </a>
                 )}
-                {(config.phone_numbers && config.phone_numbers.length > 0) && (
-                        <button onClick={(e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers })); }} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
-                            <Phone className="w-5 h-5" />
-                        </button>
-                    )}
+                {(config.phone_numbers?.length > 0 || config.phone) && (
+                    <button onClick={(e) => {
+                        e.preventDefault();
+                        if (config.phone_numbers && config.phone_numbers.length > 0) {
+                            document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers }));
+                        } else if (config.phone) {
+                            window.location.href = `tel:${config.phone}`;
+                        }
+                    }} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                        <Phone className="w-5 h-5" />
+                    </button>
+                )}
             </div>
 
             {/* ─── STICKY NAV: TEXT TABS + CIRCULAR SUB-CATS ─── */}
@@ -409,7 +416,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
             <AnimatePresence>
                 {config.orders_enabled !== false && cartCount > 0 && !isCartOpen && (
                     <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl p-2 flex items-center justify-between backdrop-blur-md border max-h-[85vh] flex flex-col mx-auto"
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl p-2 flex items-center justify-between backdrop-blur-md border max-h-[85vh] flex-row-reverse mx-auto"
                         style={{
                             background: isDarkMode ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)',
                             borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
@@ -421,7 +428,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
                                 {cartCount}
                             </span>
                         </button>
-                        <div className="flex-1 flex justify-end px-4 text-right">
+                        <div className="flex-1 flex justify-start px-4 text-right">
                             <div className="flex flex-col">
                                 <span className="font-bold text-lg" style={{ color: isDarkMode ? '#fff' : '#0f172a' }}>{cartTotal.toFixed(2)} {cur}</span>
                                 <span className="text-[10px] uppercase tracking-wider" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isAr ? 'عرض السلة' : 'View Cart'}</span>
