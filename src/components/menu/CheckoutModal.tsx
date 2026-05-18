@@ -41,12 +41,14 @@ type CheckoutModalProps = {
     language: string;
     orderChannel?: "whatsapp" | "website" | "both";
     onOrderSuccess?: () => void;
+    branches?: string[];
 };
 
 export default function CheckoutModal({
     isOpen, onClose, cartItems, subtotal,
     restaurantId, restaurantName, whatsappNumber,
-    currency = "ج.م", language, orderChannel = "whatsapp", onOrderSuccess
+    currency = "ج.م", language, orderChannel = "whatsapp", onOrderSuccess,
+    branches: propBranches = []
 }: CheckoutModalProps) {
     const isAr = language === "ar";
     const printRef = useRef<HTMLDivElement>(null);
@@ -80,6 +82,40 @@ export default function CheckoutModal({
     // Promotions state
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [appliedPromo, setAppliedPromo] = useState<AppliedPromotion | null>(null);
+
+    // Branch state
+    const [localBranches, setLocalBranches] = useState<string[]>(propBranches);
+    const [selectedBranch, setSelectedBranch] = useState("");
+
+    // Sync propBranches with local state
+    useEffect(() => {
+        if (propBranches && propBranches.length > 0) {
+            setLocalBranches(propBranches);
+        }
+    }, [propBranches]);
+
+    // Fetch branches from DB if not provided by prop
+    useEffect(() => {
+        if (!isOpen || !restaurantId) return;
+        if (propBranches && propBranches.length > 0) return;
+
+        (async () => {
+            try {
+                const { data } = await supabase
+                    .from('restaurants')
+                    .select('branches_enabled, branches')
+                    .eq('id', restaurantId)
+                    .single();
+                if (data && data.branches_enabled && Array.isArray(data.branches)) {
+                    setLocalBranches(data.branches);
+                } else {
+                    setLocalBranches([]);
+                }
+            } catch (err) {
+                console.error("Error fetching branches in CheckoutModal:", err);
+            }
+        })();
+    }, [isOpen, restaurantId, propBranches]);
 
     // Fetch addons
     useEffect(() => {
@@ -126,6 +162,7 @@ export default function CheckoutModal({
             setOrderNumber(null);
             setItemExtras({});
             setFinalizedOrderDetails(null);
+            setSelectedBranch("");
         }
     }, [isOpen]);
 
@@ -224,7 +261,7 @@ export default function CheckoutModal({
     const total = subtotal + extrasTotal + deliveryFee - promoDiscount;
 
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
-    const canProceedStep3 = orderType === 'pickup' || (orderType === 'delivery' && selectedZone && address.trim().length > 0);
+    const canProceedStep3 = (orderType === 'pickup' || (orderType === 'delivery' && selectedZone && address.trim().length > 0)) && (localBranches && localBranches.length > 0 ? selectedBranch !== "" : true);
 
     const handleSubmit = async () => {
         setLoading(true);
@@ -251,6 +288,7 @@ export default function CheckoutModal({
             promotionName: appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined,
             discountAmount: promoDiscount > 0 ? promoDiscount : undefined,
             discountType: appliedPromo?.promotion.discount_type,
+            branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
 
         setLoading(false);
@@ -297,6 +335,7 @@ export default function CheckoutModal({
             promotionName: appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined,
             discountAmount: promoDiscount > 0 ? promoDiscount : undefined,
             discountType: appliedPromo?.promotion.discount_type,
+            branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
         window.open(`https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
     };
@@ -480,6 +519,33 @@ export default function CheckoutModal({
                                 </button>
                             </div>
 
+                            {/* Branch Selection */}
+                            {localBranches && localBranches.length > 0 && (
+                                <div className="space-y-2 mt-2">
+                                    <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 block mb-1">
+                                        🏢 {isAr ? "اختر الفرع" : "Select Branch"} <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto pr-1">
+                                        {localBranches.map((branchName, bIdx) => {
+                                            const isSelected = selectedBranch === branchName;
+                                            return (
+                                                <button
+                                                    key={bIdx}
+                                                    type="button"
+                                                    onClick={() => setSelectedBranch(branchName)}
+                                                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-start transition-all ${isSelected
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 text-zinc-700 dark:text-zinc-300'}`}
+                                                >
+                                                    <span className="text-sm">{branchName}</span>
+                                                    {isSelected && <span className="text-emerald-500">✓</span>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Delivery Zone Selection */}
                             {orderType === 'delivery' && (
                                 <div className="space-y-3 mt-2">
@@ -643,6 +709,12 @@ export default function CheckoutModal({
                                         {orderType === 'delivery' ? (isAr ? `🏍️ دليفري — ${selectedZone?.name_ar}` : `🏍️ Delivery — ${selectedZone?.name_en || selectedZone?.name_ar}`) : (isAr ? "🏪 استلام من المطعم" : "🏪 Pickup")}
                                     </span>
                                 </div>
+                                {localBranches && localBranches.length > 0 && selectedBranch && (
+                                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg col-span-2">
+                                        <span className="text-zinc-400 block">{isAr ? "الفرع" : "Branch"}</span>
+                                        <span className="font-bold text-zinc-700 dark:text-zinc-200">🏢 {selectedBranch}</span>
+                                    </div>
+                                )}
                                 {orderType === 'delivery' && address && (
                                     <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg col-span-2">
                                         <span className="text-zinc-400 block">{isAr ? "العنوان" : "Address"}</span>

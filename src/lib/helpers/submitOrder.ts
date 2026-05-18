@@ -38,6 +38,7 @@ export type SubmitOrderParams = {
     promotionName?: string;
     discountAmount?: number;
     discountType?: string;
+    branchName?: string;
 };
 
 export type SubmitOrderResult = {
@@ -78,13 +79,14 @@ export function buildWhatsAppMessage(params: {
     promotionName?: string;
     discountAmount?: number;
     discountType?: string;
+    branchName?: string;
 }): string {
     const {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         orderNumber, restaurantName, customerName, customerPhone,
         customerAddress, orderType, deliveryZoneName, deliveryFee,
         items, subtotal, total, notes, currency = 'ج', language = 'ar',
-        promotionName, discountAmount, discountType
+        promotionName, discountAmount, discountType, branchName
     } = params;
     const isAr = language === 'ar';
 
@@ -100,6 +102,9 @@ export function buildWhatsAppMessage(params: {
     }
     if (orderType === 'delivery' && deliveryZoneName) {
         msg += `📍 *${isAr ? 'منطقة التوصيل:' : 'Delivery Zone:'}* ${deliveryZoneName}\n`;
+    }
+    if (branchName) {
+        msg += `🏢 *${isAr ? 'الفرع:' : 'Branch:'}* ${branchName}\n`;
     }
     msg += `------------------------------\n`;
     msg += `📋 *${isAr ? 'الأصناف المطلوبة:' : 'Ordered Items:'}*\n\n`;
@@ -169,12 +174,13 @@ function buildTelegramMessage(params: {
     promotionName?: string;
     discountAmount?: number;
     discountType?: string;
+    branchName?: string;
 }): string {
     const {
         orderNumber, restaurantName, customerName, customerPhone,
         customerAddress, orderType, deliveryZoneName, deliveryFee,
         items, subtotal, total, notes, currency = 'ج',
-        promotionName, discountAmount, discountType
+        promotionName, discountAmount, discountType, branchName
     } = params;
 
     let msg = `🧾 *فاتورة طلب جديد #${orderNumber} — ${restaurantName}*\n`;
@@ -189,6 +195,9 @@ function buildTelegramMessage(params: {
     }
     if (orderType === 'delivery' && deliveryZoneName) {
         msg += `📍 *منطقة التوصيل:* ${deliveryZoneName}\n`;
+    }
+    if (branchName) {
+        msg += `🏢 *الفرع:* ${branchName}\n`;
     }
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `📋 *الأصناف المطلوبة:*\n\n`;
@@ -259,6 +268,7 @@ async function sendTelegramNotification(params: {
     promotionName?: string;
     discountAmount?: number;
     discountType?: string;
+    branchName?: string;
 }): Promise<void> {
     try {
         // Fetch Telegram credentials for this restaurant
@@ -299,7 +309,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             restaurantId, customerName, customerPhone, customerAddress,
             notes, orderType, deliveryZoneId, deliveryZoneName, deliveryFee,
             items, subtotal, total, paymentMethod, restaurantName,
-            promotionId, promotionName, discountAmount, discountType
+            promotionId, promotionName, discountAmount, discountType, branchName
         } = params;
 
         // 1. Upsert customer — find by phone + restaurant, or create new
@@ -384,6 +394,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 promotion_name: promotionName || null,
                 discount_amount: discountAmount || 0,
                 discount_type: discountType || null,
+                branch_name: branchName || null,
             })
             .select('id, order_number')
             .single();
@@ -419,6 +430,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             promotionName,
             discountAmount,
             discountType,
+            branchName,
         });
 
         // 5. Log the order creation

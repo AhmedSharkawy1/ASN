@@ -65,6 +65,8 @@ type RestaurantProfile = {
     };
     auto_approve_website_orders?: boolean;
     currency?: string;
+    branches_enabled?: boolean;
+    branches?: string[];
 };
 
 export default function SettingsPage() {
@@ -75,6 +77,7 @@ export default function SettingsPage() {
     const [successMessage, setSuccessMessage] = useState("");
     const [phoneNumbers, setPhoneNumbers] = useState<PhoneEntry[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodEntry[]>([]);
+    const [branches, setBranches] = useState<string[]>([]);
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [uploadingReceiptLogo, setUploadingReceiptLogo] = useState(false);
     const [uploadingCover, setUploadingCover] = useState(false);
@@ -93,7 +96,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches')
                 .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
@@ -101,7 +104,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
@@ -114,6 +117,7 @@ export default function SettingsPage() {
                 setPhoneNumbers(finalData.phone_numbers || []);
                 setPaymentMethods(finalData.payment_methods || []);
                 setCoverImages(finalData.cover_images || []);
+                setBranches(finalData.branches || []);
             }
             setLoading(false);
         };
@@ -166,6 +170,8 @@ export default function SettingsPage() {
                     },
                     auto_approve_website_orders: profile.auto_approve_website_orders || false,
                     currency: profile.currency || '',
+                    branches_enabled: profile.branches_enabled || false,
+                    branches: branches.filter(b => b.trim()),
                 })
                 .eq('id', profile.id);
 
@@ -198,6 +204,8 @@ export default function SettingsPage() {
                         telegram_chat_id: profile.telegram_chat_id || '',
                         auto_approve_website_orders: profile.auto_approve_website_orders || false,
                         currency: profile.currency || '',
+                        branches_enabled: profile.branches_enabled || false,
+                        branches: branches.filter(b => b.trim()),
                     })
                     .eq('id', profile.id);
                 error = fallbackUpdate.error;
@@ -290,6 +298,12 @@ export default function SettingsPage() {
     const removePaymentMethod = (idx: number) => setPaymentMethods(paymentMethods.filter((_, i) => i !== idx));
     const updatePaymentMethod = (idx: number, field: keyof PaymentMethodEntry, val: string) => {
         setPaymentMethods(paymentMethods.map((p, i) => i === idx ? { ...p, [field]: val } : p));
+    };
+
+    const addBranch = () => setBranches([...branches, ""]);
+    const removeBranch = (idx: number) => setBranches(branches.filter((_, i) => i !== idx));
+    const updateBranch = (idx: number, val: string) => {
+        setBranches(branches.map((b, i) => i === idx ? val : b));
     };
 
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري التحميل..." : "Loading..."}</div>;
@@ -510,6 +524,52 @@ export default function SettingsPage() {
                                     className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" placeholder="e.g., Special offer for a limited time!" />
                             </div>
                         </div>
+                    )}
+                </div>
+
+                {/* Branches Section */}
+                <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
+                    <h2 className="text-xl font-bold mb-6 flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                            <span className="text-2xl">🏢</span>
+                            {language === "ar" ? "الفروع" : "Branches"}
+                        </span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={profile.branches_enabled || false} onChange={e => setProfile({ ...profile, branches_enabled: e.target.checked })} />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
+                        </label>
+                    </h2>
+                    {profile.branches_enabled && (
+                        <>
+                            <p className="text-sm text-silver mb-4">
+                                {language === "ar"
+                                    ? "أضف أسماء الفروع ليختار العميل الفرع المطلوب أثناء الطلب. اسم الفرع سيظهر في رسائل الواتساب والتليجرام."
+                                    : "Add branch names so customers can select their preferred branch during checkout. The branch name will appear in WhatsApp and Telegram messages."}
+                            </p>
+                            <div className="flex items-center justify-end mb-4">
+                                <button type="button" onClick={addBranch}
+                                    className="flex items-center gap-1 px-3 py-2 bg-blue/10 text-blue font-bold text-sm rounded-xl hover:bg-blue/20 transition-colors">
+                                    <Plus className="w-4 h-4" />
+                                    {language === "ar" ? "إضافة فرع" : "Add Branch"}
+                                </button>
+                            </div>
+                            {branches.length === 0 ? (
+                                <p className="text-base text-silver text-center py-4">{language === "ar" ? "لم تتم إضافة فروع بعد." : "No branches added yet."}</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {branches.map((b, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
+                                            <span className="text-lg">🏢</span>
+                                            <input type="text" value={b} onChange={e => updateBranch(idx, e.target.value)} placeholder={language === "ar" ? `اسم الفرع ${idx + 1} (مثال: فرع المعادي)` : `Branch ${idx + 1} name (e.g. Maadi Branch)`}
+                                                className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" />
+                                            <button type="button" onClick={() => removeBranch(idx)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                                                <Trash2 className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
