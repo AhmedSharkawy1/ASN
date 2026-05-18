@@ -289,6 +289,7 @@ export default function CheckoutModal({
             discountAmount: promoDiscount > 0 ? promoDiscount : undefined,
             discountType: appliedPromo?.promotion.discount_type,
             branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
+            currency: currency,
         });
 
         setLoading(false);
@@ -330,7 +331,7 @@ export default function CheckoutModal({
             subtotal: finalSubtotal,
             total: finalTotal,
             notes: notes || undefined,
-            currency: isAr ? 'ج' : currency.replace('.', ''),
+            currency: currency,
             language,
             promotionName: appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined,
             discountAmount: promoDiscount > 0 ? promoDiscount : undefined,

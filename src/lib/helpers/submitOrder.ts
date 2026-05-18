@@ -39,6 +39,7 @@ export type SubmitOrderParams = {
     discountAmount?: number;
     discountType?: string;
     branchName?: string;
+    currency?: string;
 };
 
 export type SubmitOrderResult = {
@@ -309,7 +310,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             restaurantId, customerName, customerPhone, customerAddress,
             notes, orderType, deliveryZoneId, deliveryZoneName, deliveryFee,
             items, subtotal, total, paymentMethod, restaurantName,
-            promotionId, promotionName, discountAmount, discountType, branchName
+            promotionId, promotionName, discountAmount, discountType, branchName,
+            currency
         } = params;
 
         // 1. Upsert customer — find by phone + restaurant, or create new
@@ -407,7 +409,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         await supabase.from('notifications').insert({
             restaurant_id: restaurantId,
             title: `طلب جديد #${order.order_number}`,
-            body: `${customerName} — ${items.length} أصناف — ${total} ج.م — ${orderType === 'delivery' ? 'دليفري' : 'استلام'}`,
+            body: `${customerName} — ${items.length} أصناف — ${total} ${currency || 'ج.م'} — ${orderType === 'delivery' ? 'دليفري' : 'استلام'}`,
             type: 'order',
             is_read: false,
         });
@@ -431,6 +433,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             discountAmount,
             discountType,
             branchName,
+            currency,
         });
 
         // 5. Log the order creation
