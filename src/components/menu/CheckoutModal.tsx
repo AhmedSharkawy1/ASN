@@ -47,11 +47,19 @@ type CheckoutModalProps = {
 export default function CheckoutModal({
     isOpen, onClose, cartItems, subtotal,
     restaurantId, restaurantName, whatsappNumber,
-    currency = "ج.م", language, orderChannel = "whatsapp", onOrderSuccess,
+    currency: propCurrency = "ج.م", language, orderChannel = "whatsapp", onOrderSuccess,
     branches: propBranches = []
 }: CheckoutModalProps) {
     const isAr = language === "ar";
     const printRef = useRef<HTMLDivElement>(null);
+    const [currency, setCurrency] = useState(propCurrency);
+
+    // Sync propCurrency with local state
+    useEffect(() => {
+        if (propCurrency) {
+            setCurrency(propCurrency);
+        }
+    }, [propCurrency]);
 
     // Steps: 1=extras, 2=customer info, 3=order type, 4=summary, 5=success
     const [step, setStep] = useState(1);
@@ -94,25 +102,32 @@ export default function CheckoutModal({
         }
     }, [propBranches]);
 
-    // Fetch branches from DB if not provided by prop
+    // Fetch branches and currency from DB
     useEffect(() => {
         if (!isOpen || !restaurantId) return;
-        if (propBranches && propBranches.length > 0) return;
 
         (async () => {
             try {
                 const { data } = await supabase
                     .from('restaurants')
-                    .select('branches_enabled, branches')
+                    .select('branches_enabled, branches, currency')
                     .eq('id', restaurantId)
                     .single();
-                if (data && data.branches_enabled && Array.isArray(data.branches)) {
-                    setLocalBranches(data.branches);
-                } else {
-                    setLocalBranches([]);
+                if (data) {
+                    if (propBranches && propBranches.length > 0) {
+                        // Keep prop branches
+                    } else if (data.branches_enabled && Array.isArray(data.branches)) {
+                        setLocalBranches(data.branches);
+                    } else {
+                        setLocalBranches([]);
+                    }
+
+                    if (data.currency) {
+                        setCurrency(data.currency);
+                    }
                 }
             } catch (err) {
-                console.error("Error fetching branches in CheckoutModal:", err);
+                console.error("Error fetching restaurant config in CheckoutModal:", err);
             }
         })();
     }, [isOpen, restaurantId, propBranches]);

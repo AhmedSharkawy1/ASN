@@ -41,6 +41,10 @@ export default function OrdersPage() {
     const { restaurantId, restaurant } = useRestaurant();
     const isAr = language === "ar";
 
+    const formatOrderCurrency = useCallback((amount: number) => {
+        return formatCurrency(amount, restaurant?.currency || "ج.م");
+    }, [restaurant]);
+
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -341,11 +345,11 @@ export default function OrdersPage() {
                                     
                                     <div className="flex items-center justify-between sm:justify-end gap-4 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-zinc-800/20">
                                         <div className="flex flex-col items-end">
-                                            <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">{formatCurrency(order.total)}</span>
+                                            <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">{formatOrderCurrency(order.total)}</span>
                                             {order.total - order.deposit_amount > 0 ? (
                                                 <div className="flex flex-col items-end">
-                                                    <span className="text-[10px] font-bold text-emerald-600">{isAr ? "عربون: " : "Dep: "}{formatCurrency(order.deposit_amount)}</span>
-                                                    <span className="text-[10px] font-bold text-red-500">{isAr ? "متبقي: " : "Rem: "}{formatCurrency(order.total - order.deposit_amount)}</span>
+                                                    <span className="text-[10px] font-bold text-emerald-600">{isAr ? "عربون: " : "Dep: "}{formatOrderCurrency(order.deposit_amount)}</span>
+                                                    <span className="text-[10px] font-bold text-red-500">{isAr ? "متبقي: " : "Rem: "}{formatOrderCurrency(order.total - order.deposit_amount)}</span>
                                                 </div>
                                             ) : (
                                                 <span className="text-[10px] font-bold text-emerald-500 opacity-60">
@@ -393,21 +397,21 @@ export default function OrdersPage() {
                                                                 </span>
                                                                 {item.category && <span className="text-xs text-slate-500 dark:text-zinc-500">🗂️ {item.category}</span>}
                                                             </div>
-                                                            <span className="text-slate-500 dark:text-zinc-400 font-bold">{formatCurrency(item.price * item.qty)}</span>
+                                                            <span className="text-slate-500 dark:text-zinc-400 font-bold">{formatOrderCurrency(item.price * item.qty)}</span>
                                                         </div>
                                                     ))}
                                                     <div className="flex justify-between pt-2 mt-2 border-t border-slate-300 dark:border-zinc-700/50 text-base font-extrabold">
                                                         <span className="text-slate-500 dark:text-zinc-400">{isAr ? "الإجمالي" : "Total"}</span>
-                                                        <span className="text-emerald-600 dark:text-emerald-400">{formatCurrency(order.total)}</span>
+                                                        <span className="text-emerald-600 dark:text-emerald-400">{formatOrderCurrency(order.total)}</span>
                                                     </div>
                                                     <div className="flex justify-between text-xs font-bold mt-1">
                                                         <span className="text-slate-500 dark:text-zinc-400">{isAr ? "المدفوع (العربون)" : "Paid (Deposit)"}</span>
-                                                        <span className="text-blue-500">{formatCurrency(order.deposit_amount)}</span>
+                                                        <span className="text-blue-500">{formatOrderCurrency(order.deposit_amount)}</span>
                                                     </div>
                                                     {order.total - order.deposit_amount > 0 && (
                                                         <div className="flex justify-between text-xs font-bold mt-0.5">
                                                             <span className="text-slate-500 dark:text-zinc-400">{isAr ? "المتبقي" : "Remaining"}</span>
-                                                            <span className="text-red-500">{formatCurrency(order.total - order.deposit_amount)}</span>
+                                                            <span className="text-red-500">{formatOrderCurrency(order.total - order.deposit_amount)}</span>
                                                         </div>
                                                     )}
                                                 </div>
