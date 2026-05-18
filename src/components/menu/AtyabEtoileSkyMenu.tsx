@@ -39,6 +39,7 @@ type Category = {
 };
 
 type RestaurantConfig = {
+    currency?: string;
     name: string;
     theme: string;
     phone?: string;
@@ -286,7 +287,7 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
         e.currentTarget.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop";
     };
 
-    const currency = isAr ? "ج.م" : "EGP";
+    const currency = config.currency || (isAr ? "ج.م" : "EGP");
     const PRIMARY = "#0284c7";
 
     return (
@@ -875,7 +876,7 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
                 restaurantId={restaurantId}
                 restaurantName={config.name}
                 whatsappNumber={config.whatsapp_number || config.phone}
-                currency={isAr ? 'ج.م' : 'EGP'}
+                currency={config.currency || (isAr ? 'ج.م' : 'EGP')}
                 language={isAr ? 'ar' : 'en'}
                 orderChannel={config.order_channel}
                 onOrderSuccess={() => { setCart([]); setShowCart(false); }}

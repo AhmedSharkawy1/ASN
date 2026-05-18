@@ -43,6 +43,7 @@ export default function MenuBuilderPage() {
     const [previewKey, setPreviewKey] = useState(0);
     const [editingItem, setEditingItem] = useState<string | null>(null);
     const [editingCat, setEditingCat] = useState<string | null>(null);
+    const [currency, setCurrency] = useState("");
     const [showAddCategory, setShowAddCategory] = useState(false);
     const [addingItemToCat, setAddingItemToCat] = useState<string | null>(null);
     const [collapsedCats, setCollapsedCats] = useState<Set<string>>(new Set());
@@ -59,16 +60,17 @@ export default function MenuBuilderPage() {
 
                 const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
                 let { data: restaurant } = await supabase
-                    .from('restaurants').select('id').eq(impersonatingTenant ? 'id' : 'email', impersonatingTenant || user.email).single();
-
+                    .from('restaurants').select('id, currency').eq(impersonatingTenant ? 'id' : 'email', impersonatingTenant || user.email).single();
+                
                 if (!restaurant && !impersonatingTenant) {
                     const { data: newRest } = await supabase
-                        .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id').single();
+                        .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency').single();
                     restaurant = newRest;
                 }
 
                 if (restaurant) {
                     setRestaurantId(restaurant.id);
+                    setCurrency(restaurant.currency || "");
                     const { data: catsData } = await supabase
                         .from('categories').select('*').eq('restaurant_id', restaurant.id).order('sort_order', { ascending: true });
 
@@ -303,7 +305,7 @@ export default function MenuBuilderPage() {
                                                 {cat.items.map((item, iIdx) => (
                                                     <div key={item.id} className="group rounded-2xl border border-glass-border bg-slate-50/50 dark:bg-card p-4 hover:border-blue/30 transition-colors">
                                                         {editingItem === item.id ? (
-                                                            <ItemEditor item={item} language={language}
+                                                            <ItemEditor item={item} language={language} currency={currency}
                                                                 onUpdate={(u) => updateItem(cat.id, item.id, u)}
                                                                 onImageUpload={(f) => handleItemImageUpload(cat.id, item.id, f)}
                                                                 onClose={() => setEditingItem(null)} />
@@ -314,7 +316,8 @@ export default function MenuBuilderPage() {
                                                                 isFirst={iIdx === 0}
                                                                 isLast={iIdx === cat.items.length - 1}
                                                                 onMoveUp={() => handleMoveItem(cat.id, iIdx, 'up')}
-                                                                onMoveDown={() => handleMoveItem(cat.id, iIdx, 'down')} />
+                                                                onMoveDown={() => handleMoveItem(cat.id, iIdx, 'down')}
+                                                                currency={currency} />
                                                         )}
                                                     </div>
                                                 ))}
@@ -322,7 +325,7 @@ export default function MenuBuilderPage() {
                                                 {/* ADD ITEM PANEL */}
                                                 <AnimatePresence>
                                                     {addingItemToCat === cat.id && (
-                                                        <AddItemPanel catId={cat.id} language={language}
+                                                        <AddItemPanel catId={cat.id} language={language} currency={currency}
                                                             onCreated={(newItem) => {
                                                                 setCategories(categories.map(c => c.id === cat.id ? { ...c, items: [...c.items, newItem] } : c));
                                                                 setAddingItemToCat(null);
@@ -474,10 +477,11 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
 }
 
 // ===================== ADD ITEM PANEL =====================
-function AddItemPanel({ catId, language, onCreated, onCancel }: {
+function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
     catId: string; language: string;
     onCreated: (item: Item) => void;
     onCancel: () => void;
+    currency?: string;
 }) {
     const [titleAr, setTitleAr] = useState('');
     const [titleEn, setTitleEn] = useState('');
@@ -575,7 +579,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
                                 placeholder={language === "ar" ? "اسم الحجم" : "Size"} className="flex-1 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-base font-bold" />
                             <input type="number" value={p || ''} onChange={e => { const np = [...prices]; np[idx] = parseFloat(e.target.value) || 0; setPrices(np); }}
                                 placeholder="0" className="w-24 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
-                            <span className="text-sm text-silver">{language === "ar" ? "ج.م" : "EGP"}</span>
+                            <span className="text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
                             {prices.length > 1 && (
                                 <button onClick={() => { setPrices(prices.filter((_, i) => i !== idx)); setSizeLabels(sizeLabels.filter((_, i) => i !== idx)); }}
                                     className="p-1 text-red-500 hover:bg-red-500/10 rounded transition"><X className="w-4 h-4" /></button>
@@ -635,11 +639,12 @@ function AddItemPanel({ catId, language, onCreated, onCancel }: {
 }
 
 // ===================== ITEM ROW (read-only) =====================
-function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, onMoveDown }: {
+function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, onMoveDown, currency }: {
     item: Item; language: string;
     onEdit: () => void; onDelete: () => void;
     isFirst?: boolean; isLast?: boolean;
     onMoveUp?: () => void; onMoveDown?: () => void;
+    currency?: string;
 }) {
     return (
         <>
@@ -674,7 +679,7 @@ function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, 
                 {(item.prices || []).map((price, pIdx) => (
                     <div key={pIdx} className="bg-white dark:bg-black/40 border border-glass-border rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
                         <span className="text-sm text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
-                        <span className="font-bold text-foreground text-base">{price} {language === "ar" ? "ج.م" : "EGP"}</span>
+                        <span className="font-bold text-foreground text-base">{price} {currency || (language === "ar" ? "ج.م" : "EGP")}</span>
                     </div>
                 ))}
             </div>
@@ -741,11 +746,12 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
 }
 
 // ===================== ITEM EDITOR =====================
-function ItemEditor({ item, language, onUpdate, onImageUpload, onClose }: {
+function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency }: {
     item: Item; language: string;
     onUpdate: (updates: Partial<Item>) => Promise<void>;
     onImageUpload: (file: File) => Promise<void>;
     onClose: () => void;
+    currency?: string;
 }) {
     const [titleAr, setTitleAr] = useState(item.title_ar);
     const [titleEn, setTitleEn] = useState(item.title_en || '');
@@ -805,7 +811,7 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose }: {
                             placeholder={language === "ar" ? "الحجم" : "Size"} className="flex-1 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-base font-bold" />
                         <input type="number" value={price} onChange={e => { const np = [...localPrices]; np[idx] = parseFloat(e.target.value) || 0; setLocalPrices(np); }}
                             className="w-24 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
-                        <span className="text-sm text-silver">{language === "ar" ? "ج.م" : "EGP"}</span>
+                        <span className="text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
                         {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); }} className="p-1 text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 ))}

@@ -36,6 +36,7 @@ type Category = {
 };
 
 type RestaurantConfig = {
+    currency?: string;
     name: string;
     theme: string;
     phone?: string;
@@ -113,7 +114,7 @@ export default function Theme5CyanMenu({ config, categories, language, restauran
     const categoryNavRef = useRef<HTMLDivElement>(null);
     const isManualScroll = useRef(false);
 
-    const currency = isAr ? "ج.م" : "EGP";
+    const currency = config.currency || (isAr ? "ج.م" : "EGP");
 
     const filteredCategories = categories.map(cat => ({
         ...cat,

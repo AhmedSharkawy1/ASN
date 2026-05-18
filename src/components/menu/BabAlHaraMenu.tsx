@@ -40,6 +40,7 @@ type Category = {
 };
 
 type RestaurantConfig = {
+    currency?: string;
     name: string;
     theme: string;
     phone?: string;
@@ -205,7 +206,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
 
     const qtyInCart = (item: Item, sizeLabel: string) => cart.find(c => c.item.id === item.id && c.size_label === sizeLabel)?.quantity || 0;
 
-    const currency = isAr ? "ج.م" : "EGP";
+    const currency = config.currency || (isAr ? "ج.م" : "EGP");
     const PRIMARY = "#e31e24";
 
     const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {

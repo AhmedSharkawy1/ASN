@@ -64,6 +64,7 @@ type RestaurantProfile = {
         settings?: boolean;
     };
     auto_approve_website_orders?: boolean;
+    currency?: string;
 };
 
 export default function SettingsPage() {
@@ -92,7 +93,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency')
                 .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
@@ -100,7 +101,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
@@ -164,6 +165,7 @@ export default function SettingsPage() {
                         settings: true,
                     },
                     auto_approve_website_orders: profile.auto_approve_website_orders || false,
+                    currency: profile.currency || '',
                 })
                 .eq('id', profile.id);
 
@@ -195,6 +197,7 @@ export default function SettingsPage() {
                         telegram_bot_token: profile.telegram_bot_token || '',
                         telegram_chat_id: profile.telegram_chat_id || '',
                         auto_approve_website_orders: profile.auto_approve_website_orders || false,
+                        currency: profile.currency || '',
                     })
                     .eq('id', profile.id);
                 error = fallbackUpdate.error;
@@ -464,8 +467,13 @@ export default function SettingsPage() {
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-green-500"><MessageCircle className="w-5 h-5" /></div>
                                 <input type="tel" value={profile.whatsapp_number || ''} onChange={e => setProfile({ ...profile, whatsapp_number: e.target.value })} dir="ltr"
-                                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-green-500 outline-none transition-all text-base" placeholder="+201..." />
+                                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-green-500 outline-none transition-all text-base" placeholder="+201xxxxxxxxx" />
                             </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "عملة المطعم" : "Restaurant Currency"}</label>
+                            <input type="text" value={profile.currency || ''} onChange={e => setProfile({ ...profile, currency: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" placeholder={language === "ar" ? "مثال: ج.م، ر.س، درهم، $" : "e.g., EGP, SAR, AED, $"} />
                         </div>
                         <div className="space-y-2 md:col-span-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "أوقات العمل" : "Working Hours"}</label>
@@ -528,7 +536,7 @@ export default function SettingsPage() {
                                 <div key={idx} className="flex items-center gap-3 bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
                                     <input type="text" value={p.label} onChange={e => updatePhone(idx, 'label', e.target.value)} placeholder={language === "ar" ? "التسمية (مثال: رقم 1)" : "Label (e.g. Line 1)"}
                                         className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" />
-                                    <input type="tel" value={p.number} onChange={e => updatePhone(idx, 'number', e.target.value)} placeholder="01xxxxxxxxx" dir="ltr"
+                                    <input type="tel" value={p.number} onChange={e => updatePhone(idx, 'number', e.target.value)} placeholder="+123456789" dir="ltr"
                                         className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold tabular-nums" />
                                     <button type="button" onClick={() => removePhone(idx)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
                                         <Trash2 className="w-5 h-5" />

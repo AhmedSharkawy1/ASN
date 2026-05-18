@@ -75,7 +75,7 @@ export default function Theme10CyanMenu({ config, categories, restaurantId }: Th
 
     const isAr = config.default_language === 'ar' || true; // Defaulting to true for now since design is RTL primary
     const isDark = mounted && theme === 'dark';
-    const cur = '';
+    const cur = config.currency || (isAr ? "ج.م" : "EGP");
 
     // Theme Variables - matching HTML
     const bgBody = isDark ? '#0891b2' : '#f8fafc'; // slate-900 / slate-50

@@ -79,7 +79,7 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
 
     const isAr = config.default_language === 'ar';
     const isDark = mounted && theme === 'dark';
-    const cur = ''; // Removed SAR per user request
+    const cur = config.currency || (isAr ? "ج.م" : "EGP"); // Removed SAR per user request
 
     // Theme Variables
     const bgBody = isDark ? '#0f172a' : '#fafafa';

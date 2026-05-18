@@ -39,6 +39,7 @@ type Category = {
 };
 
 type RestaurantConfig = {
+    currency?: string;
     name: string;
     slogan_ar?: string;
     slogan_en?: string;
@@ -253,7 +254,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const filteredItems = activeCatData?.items || [];
 
-    const currency = isAr ? "ج" : "EGP";
+    const currency = config.currency || (isAr ? "ج" : "EGP");
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-zinc-200 antialiased selection:bg-yellow-500/30" style={{ fontFamily: "'Cairo', sans-serif" }}>
@@ -546,7 +547,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                                         <button key={idx} onClick={() => { setTempSizeIdx(idx); haptic(5); }}
                                             className={`p-4 rounded-3xl border-2 transition-all flex flex-col items-center gap-1 ${tempSizeIdx === idx ? "border-[#eab308] bg-[#eab308]/10" : "border-transparent bg-zinc-100 dark:bg-white/5"}`}>
                                             <span className={`text-[10px] font-black uppercase ${tempSizeIdx === idx ? "text-[#eab308]" : "opacity-60"}`}>{selectedItem.item.size_labels?.[idx] || "عادي"}</span>
-                                            <span className="text-lg font-black tabular-nums">{p} {isAr ? "ج.م" : "EGP"}</span>
+                                            <span className="text-lg font-black tabular-nums">{p} {config.currency || (isAr ? "ج" : "EGP")}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -556,7 +557,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                                 <button onClick={addToCart}
                                     className="w-full bg-[#eab308] text-black font-black py-4 rounded-3xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-lg">
                                     <ShoppingCart className="w-5 h-5" />
-                                    {isAr ? "إضافة للطلب - " : "Add to Order - "}{selectedItem.item.prices?.[tempSizeIdx] || 0} {isAr ? "ج.م" : "EGP"}
+                                    {isAr ? "إضافة للطلب - " : "Add to Order - "}{selectedItem.item.prices?.[tempSizeIdx] || 0} {config.currency || (isAr ? "ج" : "EGP")}
                                 </button>
                             </div>
                         </motion.div>
@@ -604,7 +605,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
 
                             <div className="p-6 border-t border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-white/5">
                                 <div className="flex items-center justify-between mb-4 px-2">
-                                    <span className="text-2xl font-black tabular-nums text-[#eab308]">{cartTotal} {isAr ? "ج.م" : "EGP"}</span>
+                                    <span className="text-2xl font-black tabular-nums text-[#eab308]">{cartTotal} {config.currency || (isAr ? "ج" : "EGP")}</span>
                                     <span className="text-[9px] font-black opacity-60 uppercase tracking-widest">{isAr ? "إجمالي الحساب" : "Total"}</span>
                                 </div>
                                 <button onClick={() => { setShowCart(false); setShowCheckout(true); }}
@@ -678,7 +679,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                 restaurantId={restaurantId}
                 restaurantName={config.name}
                 whatsappNumber={config.whatsapp_number || config.phone}
-                currency={isAr ? 'ج.م' : 'EGP'}
+                currency={config.currency || (isAr ? 'ج.م' : 'EGP')}
                 language={isAr ? 'ar' : 'en'}
                 orderChannel={config.order_channel}
                 onOrderSuccess={() => { setCart([]); setShowCart(false); }}
