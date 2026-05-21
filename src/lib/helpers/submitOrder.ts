@@ -139,6 +139,8 @@ export function buildWhatsAppMessage(params: {
     if (deliveryFee && deliveryFee > 0) {
         msg += `🛒 ${isAr ? 'مجموع الأصناف:' : 'Items Subtotal:'} ${subtotal} ${currency}\n`;
         msg += `🚚 ${isAr ? 'خدمة التوصيل:' : 'Delivery Fee:'} ${deliveryFee} ${currency}\n`;
+    } else if (orderType === 'delivery' && !deliveryZoneName) {
+        msg += `⚠️ *${isAr ? 'ملاحظة: السعر غير شامل خدمة التوصيل' : 'Note: Price does not include delivery fee'}*\n`;
     }
     if (promotionName && discountAmount && discountAmount > 0) {
         msg += `🎁 *${isAr ? 'عرض مطبق:' : 'Promotion:'}* ${promotionName}\n`;
@@ -232,6 +234,8 @@ function buildTelegramMessage(params: {
     if (deliveryFee && deliveryFee > 0) {
         msg += `🛒 مجموع الأصناف: ${subtotal} ${currency}\n`;
         msg += `🚚 خدمة التوصيل: ${deliveryFee} ${currency}\n`;
+    } else if (orderType === 'delivery' && !deliveryZoneName) {
+        msg += `⚠️ *ملاحظة: السعر غير شامل خدمة التوصيل*\n`;
     }
     if (promotionName && discountAmount && discountAmount > 0) {
         msg += `🎁 *عرض مطبق:* ${promotionName}\n`;

@@ -276,7 +276,7 @@ export default function CheckoutModal({
     const total = subtotal + extrasTotal + deliveryFee - promoDiscount;
 
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
-    const canProceedStep3 = (orderType === 'pickup' || (orderType === 'delivery' && selectedZone && address.trim().length > 0)) && (localBranches && localBranches.length > 0 ? selectedBranch !== "" : true);
+    const canProceedStep3 = (orderType === 'pickup' || (orderType === 'delivery' && address.trim().length > 0)) && (localBranches && localBranches.length > 0 ? selectedBranch !== "" : true);
 
     const handleSubmit = async () => {
         setLoading(true);
@@ -565,40 +565,46 @@ export default function CheckoutModal({
                             {/* Delivery Zone Selection */}
                             {orderType === 'delivery' && (
                                 <div className="space-y-3 mt-2">
+                                    {zones.length > 0 && (
                                     <div>
                                         <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 block mb-1.5">
                                             <MapPin className="w-3.5 h-3.5 inline-block me-1" />
-                                            {isAr ? "اختر منطقة التوصيل" : "Select Delivery Zone"} <span className="text-red-500">*</span>
+                                            {isAr ? "اختر منطقة التوصيل (اختياري)" : "Select Delivery Zone (optional)"}
                                         </label>
-                                        {zones.length === 0 ? (
-                                            <p className="text-xs text-zinc-400 py-3 text-center">{isAr ? "لا توجد مناطق توصيل متاحة" : "No delivery zones available"}</p>
-                                        ) : (
-                                            <div className="space-y-2 max-h-40 overflow-y-auto">
-                                                {zones.map(zone => (
-                                                    <button
-                                                        key={zone.id}
-                                                        onClick={() => setSelectedZone(zone)}
-                                                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-start ${selectedZone?.id === zone.id
-                                                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                                                            : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
-                                                    >
-                                                        <div>
-                                                            <p className={`font-bold text-sm ${selectedZone?.id === zone.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
-                                                                {isAr ? zone.name_ar : (zone.name_en || zone.name_ar)}
-                                                            </p>
-                                                            <p className="text-[10px] text-zinc-400 flex items-center gap-2 mt-0.5">
-                                                                <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{zone.estimated_time} {isAr ? "دقيقة" : "min"}</span>
-                                                                {zone.min_order > 0 && <span>{isAr ? "حد أدنى:" : "Min:"} {zone.min_order} {currency}</span>}
-                                                            </p>
-                                                        </div>
-                                                        <span className={`font-bold text-sm ${selectedZone?.id === zone.id ? 'text-emerald-500' : 'text-zinc-500'}`}>
-                                                            {zone.fee > 0 ? `${zone.fee} ${currency}` : (isAr ? "مجاناً" : "Free")}
-                                                        </span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
+                                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                                            {zones.map(zone => (
+                                                <button
+                                                    key={zone.id}
+                                                    onClick={() => setSelectedZone(selectedZone?.id === zone.id ? null : zone)}
+                                                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all text-start ${selectedZone?.id === zone.id
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
+                                                >
+                                                    <div>
+                                                        <p className={`font-bold text-sm ${selectedZone?.id === zone.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-700 dark:text-zinc-300'}`}>
+                                                            {isAr ? zone.name_ar : (zone.name_en || zone.name_ar)}
+                                                        </p>
+                                                        <p className="text-[10px] text-zinc-400 flex items-center gap-2 mt-0.5">
+                                                            <span className="flex items-center gap-0.5"><Clock className="w-3 h-3" />{zone.estimated_time} {isAr ? "دقيقة" : "min"}</span>
+                                                            {zone.min_order > 0 && <span>{isAr ? "حد أدنى:" : "Min:"} {zone.min_order} {currency}</span>}
+                                                        </p>
+                                                    </div>
+                                                    <span className={`font-bold text-sm ${selectedZone?.id === zone.id ? 'text-emerald-500' : 'text-zinc-500'}`}>
+                                                        {zone.fee > 0 ? `${zone.fee} ${currency}` : (isAr ? "مجاناً" : "Free")}
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
+                                    )}
+                                    {!selectedZone && (
+                                        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl">
+                                            <span className="text-amber-500 text-base">⚠️</span>
+                                            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                                                {isAr ? "السعر غير شامل رسوم التوصيل" : "Price does not include delivery fee"}
+                                            </p>
+                                        </div>
+                                    )}
 
                                     <div>
                                         <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 block mb-1.5">
