@@ -1,17 +1,30 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowLeft, Mail, Lock, LogIn } from "lucide-react";
-import StarsBackground from "@/components/ui/StarsBackground";
-import LightBackgroundAnimation from "@/components/ui/LightBackgroundAnimation";
 import Image from "next/image";
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { useState } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { posDb } from "@/lib/pos-db";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+
+// Lazy load heavy components - they're purely decorative and not needed for first paint
+const StarsBackground = lazy(() => import("@/components/ui/StarsBackground"));
+const LightBackgroundAnimation = lazy(() => import("@/components/ui/LightBackgroundAnimation"));
+
+// Lazy load posDb only when needed (offline scenarios)
+let posDbPromise: Promise<typeof import("@/lib/pos-db")> | null = null;
+function getPosDb() {
+    if (!posDbPromise) {
+        posDbPromise = import("@/lib/pos-db");
+    }
+    return posDbPromise;
+}
+
+// Simple CSS-based fade-in instead of framer-motion (~40KB saved)
+const fadeInStyle = (delay: number = 0): React.CSSProperties => ({
+    animation: `loginFadeIn 0.5s ease-out ${delay}s both`,
+});
 
 function LoginContent() {
     const { language } = useLanguage();
@@ -25,8 +38,10 @@ function LoginContent() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [resData, setResData] = useState<{ name: string; logo: string } | null>(null);
+    const [bgReady, setBgReady] = useState(false);
 
-    useState(() => {
+    // Fetch restaurant data properly with useEffect
+    useEffect(() => {
         if (rid) {
             supabase
                 .from('restaurants')
@@ -42,9 +57,22 @@ function LoginContent() {
                     }
                 });
         }
-    });
+    }, [rid]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Defer background animations - load after main content is interactive
+    useEffect(() => {
+        const timer = requestIdleCallback
+            ? requestIdleCallback(() => setBgReady(true))
+            : setTimeout(() => setBgReady(true), 100);
+        return () => {
+            if (typeof timer === 'number') {
+                if (requestIdleCallback) cancelIdleCallback(timer);
+                else clearTimeout(timer);
+            }
+        };
+    }, []);
+
+    const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
@@ -56,6 +84,7 @@ function LoginContent() {
             // OFFLINE-FIRST: Try local login first when offline
             // ═══════════════════════════════════════════
             if (!navigator.onLine) {
+                const { posDb } = await getPosDb();
                 // Try by username
                 let staff = await posDb.pos_users.where('username').equals(input).first();
                 // Also try by email stored in username field
@@ -176,6 +205,7 @@ function LoginContent() {
 
                 // Save to pos_users for offline login
                 if (restaurantId) {
+                    const { posDb } = await getPosDb();
                     await posDb.pos_users.put({
                         id: userId,
                         restaurant_id: restaurantId,
@@ -206,6 +236,7 @@ function LoginContent() {
             
             // Try offline fallback even if online login failed (network issue)
             try {
+                const { posDb } = await getPosDb();
                 let staff = await posDb.pos_users.where('username').equals(usernameOrEmail.trim()).first();
                 if (!staff) {
                     staff = await posDb.pos_users.filter(u => u.name === usernameOrEmail.trim()).first();
@@ -240,15 +271,20 @@ function LoginContent() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [usernameOrEmail, password, language, router]);
 
 
     return (
         <main className="min-h-screen bg-slate-300/80 dark:bg-background relative overflow-hidden flex items-center justify-center p-6">
-            <StarsBackground />
-            <LightBackgroundAnimation />
+            {/* Defer background animations - load after form is interactive */}
+            {bgReady && (
+                <Suspense fallback={null}>
+                    <StarsBackground />
+                    <LightBackgroundAnimation />
+                </Suspense>
+            )}
 
-            {/* Cinematic Background Elements */}
+            {/* Cinematic Background Elements - pure CSS, renders immediately */}
             <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="absolute top-1/4 left-1/4 w-[40%] h-[40%] bg-blue/20 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen opacity-50 dark:opacity-80 animate-pulse-glow" />
                 <div className="absolute bottom-1/4 right-1/4 w-[30%] h-[50%] bg-cyan-500/10 rounded-full blur-[120px] mix-blend-multiply dark:mix-blend-screen opacity-40 dark:opacity-70" />
@@ -266,10 +302,9 @@ function LoginContent() {
 
                     {/* Top Branding */}
                     <Link href="/" className="relative z-10 w-fit">
-                        <motion.div
-                            className="flex items-center gap-3 group"
-                            whileHover={{ scale: 1.05 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        <div
+                            className="flex items-center gap-3 group login-hover-scale"
+                            style={fadeInStyle(0)}
                         >
                             <div className="relative w-12 h-12 rounded-full overflow-hidden border border-white/30 shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-white/10 flex items-center justify-center">
                                 {resData?.logo ? (
@@ -280,21 +315,20 @@ function LoginContent() {
                                         alt="ASN Technology Logo"
                                         fill
                                         className="object-cover"
+                                        priority
                                     />
                                 )}
                             </div>
                             <span className="text-2xl font-bold tracking-tighter text-white drop-shadow-md">
                                 {resData?.name || "ASN Technology"}
                             </span>
-                        </motion.div>
+                        </div>
                     </Link>
 
                     {/* Middle Content */}
                     <div className="relative z-10 mt-auto mb-auto">
-                        <motion.h1
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
+                        <h1
+                            style={fadeInStyle(0.15)}
                             className="text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-6 drop-shadow-lg"
                         >
                             {language === "ar" ? (
@@ -312,17 +346,15 @@ function LoginContent() {
                                     </span>
                                 </span>
                             )}
-                        </motion.h1>
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.4 }}
+                        </h1>
+                        <p
+                            style={fadeInStyle(0.3)}
                             className={`text-lg text-white/80 font-light ${language === "ar" ? "text-right" : "text-left"}`}
                         >
                             {language === "ar"
                                 ? "قم بتسجيل الدخول للوصول إلى لوحة التحكم والبيانات الخاصة بك، وإدارة أعمالك بسلاسة."
                                 : "Log in to access your dashboard, data analytics, and manage your business operations seamlessly."}
-                        </motion.p>
+                        </p>
                     </div>
 
                     {/* Bottom Links */}
@@ -343,7 +375,7 @@ function LoginContent() {
                             {resData?.logo ? (
                                 <img src={resData.logo} alt={resData.name} className="w-full h-full object-cover" />
                             ) : (
-                                <Image src="/logo.png" alt="Logo" fill className="object-cover" />
+                                <Image src="/logo.png" alt="Logo" fill className="object-cover" priority />
                             )}
                         </div>
                         <Link href="/" className="text-sm font-medium text-silver hover:text-foreground flex items-center gap-1">
@@ -353,9 +385,8 @@ function LoginContent() {
                     </div>
 
                     <div className="max-w-md w-full mx-auto">
-                        <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
+                        <div
+                            style={fadeInStyle(0)}
                             className="mb-10 text-center"
                         >
                             <h2 className="text-3xl font-bold mb-3 text-foreground tracking-tight">
@@ -364,22 +395,19 @@ function LoginContent() {
                             <p className="text-silver/80">
                                 {language === "ar" ? "أدخل بياناتك للمتابعة إلى حسابك" : "Enter your credentials to access your account"}
                             </p>
-                        </motion.div>
+                        </div>
 
                         {error && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
+                            <div
+                                style={fadeInStyle(0)}
                                 className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center font-medium"
                             >
                                 {error}
-                            </motion.div>
+                            </div>
                         )}
 
-                        <motion.form
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
+                        <form
+                            style={fadeInStyle(0.1)}
                             onSubmit={handleSubmit}
                             className="space-y-6"
                         >
@@ -445,17 +473,17 @@ function LoginContent() {
                                     ) : (
                                         <>
                                             {language === "ar" ? "دخول" : "Sign In"}
-                                            <motion.span
-                                                animate={{ x: isHovered ? (language === "ar" ? -5 : 5) : 0 }}
-                                                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                                            <span
+                                                className="inline-block transition-transform duration-200"
+                                                style={{ transform: isHovered ? `translateX(${language === "ar" ? "-5px" : "5px"})` : "translateX(0)" }}
                                             >
                                                 <LogIn className={`w-5 h-5 ${language === "ar" ? "scale-x-[-1]" : ""}`} />
-                                            </motion.span>
+                                            </span>
                                         </>
                                     )}
                                 </span>
                             </button>
-                        </motion.form>
+                        </form>
 
                         <div className="mt-10 text-center border-t border-glass-border pt-6">
                             <p className="text-silver/80 text-sm">
@@ -469,13 +497,31 @@ function LoginContent() {
                 </div>
 
             </div>
+
+            {/* CSS animations - replaces framer-motion entirely */}
+            <style jsx>{`
+                @keyframes loginFadeIn {
+                    from { opacity: 0; transform: translateY(12px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                .login-hover-scale {
+                    transition: transform 0.2s ease;
+                }
+                .login-hover-scale:hover {
+                    transform: scale(1.05);
+                }
+            `}</style>
         </main>
     );
 }
 
 export default function LoginPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>}>
+        <Suspense fallback={
+            <div className="min-h-screen bg-slate-300/80 dark:bg-background flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-blue border-t-transparent rounded-full animate-spin" />
+            </div>
+        }>
             <LoginContent />
         </Suspense>
     );
