@@ -166,7 +166,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
         setCart(prev => prev.map(c => {
             if (c.id === id && c.notes === itemNotes) {
                 const n = c.quantity + delta;
-                return n > 0 ? { ...c, quantity: n } : c;
+                return n > 0 ? { ...c, quantity: n } : { ...c, quantity: 0 };
             }
             return c;
         }).filter(c => c.quantity > 0));

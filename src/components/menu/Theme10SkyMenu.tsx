@@ -166,7 +166,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
         setCart(prev => prev.map(c => {
             if (c.id === id && c.notes === itemNotes) {
                 const n = c.quantity + delta;
-                return n > 0 ? { ...c, quantity: n } : c;
+                return n > 0 ? { ...c, quantity: n } : { ...c, quantity: 0 };
             }
             return c;
         }).filter(c => c.quantity > 0));
