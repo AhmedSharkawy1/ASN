@@ -648,38 +648,41 @@ function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, 
 }) {
     return (
         <>
-            <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4 flex-1">
-                    <div className="w-16 h-16 rounded-xl bg-glass-light flex items-center justify-center flex-shrink-0 border border-glass-border overflow-hidden">
+            {/* Main content: stacks vertically on mobile, horizontal on sm+ */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-glass-light flex items-center justify-center flex-shrink-0 border border-glass-border overflow-hidden">
                         {item.image_url ? <img src={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" /> : <ImageIcon className="w-6 h-6 text-silver/50" />}
                     </div>
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className="font-bold text-foreground text-xl truncate">{item.title_ar}</h4>
+                            <h4 className="font-bold text-foreground text-lg sm:text-xl truncate">{item.title_ar}</h4>
                             {item.is_popular && <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {language === "ar" ? "مميز" : "Popular"}</span>}
                             {item.is_spicy && <span className="text-red-500 text-base">🌶️</span>}
                             {item.sell_by_weight && <span className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1">⚖️ {language === "ar" ? "وزن" : "Weight"} ({item.weight_unit || 'كجم'})</span>}
                         </div>
                         {item.title_en && <p className="text-sm text-silver mb-1">{item.title_en}</p>}
-                        <p className="text-base text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
+                        <p className="text-sm sm:text-base text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
                     </div>
                 </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                {/* Action buttons: horizontal bar on mobile, vertical column on sm+ */}
+                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1.5 shrink-0">
                     <div className="flex items-center bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border">
-                        <button onClick={onMoveUp} disabled={isFirst} className="p-1 px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-4 h-4" /></button>
-                        <button onClick={onMoveDown} disabled={isLast} className="p-1 px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-4 h-4" /></button>
+                        <button onClick={onMoveUp} disabled={isFirst} className="p-1.5 sm:p-1 px-1.5 sm:px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-4 h-4" /></button>
+                        <button onClick={onMoveDown} disabled={isLast} className="p-1.5 sm:p-1 px-1.5 sm:px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-4 h-4" /></button>
                     </div>
                     <div className="flex gap-1">
-                        <button onClick={onEdit} className="p-1.5 text-blue hover:bg-blue/10 rounded-lg transition"><Edit2 className="w-4 h-4" /></button>
-                        <button onClick={onDelete} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-4 h-4" /></button>
+                        <button onClick={onEdit} className="p-2 sm:p-1.5 text-blue hover:bg-blue/10 rounded-lg transition"><Edit2 className="w-5 h-5 sm:w-4 sm:h-4" /></button>
+                        <button onClick={onDelete} className="p-2 sm:p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-5 h-5 sm:w-4 sm:h-4" /></button>
                     </div>
                 </div>
             </div>
+            {/* Prices & Sizes - always visible with wrapping */}
             <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-glass-border border-dashed">
                 {(item.prices || []).map((price, pIdx) => (
                     <div key={pIdx} className="bg-white dark:bg-black/40 border border-glass-border rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
-                        <span className="text-sm text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
-                        <span className="font-bold text-foreground text-base">{price} {currency || (language === "ar" ? "ج.م" : "EGP")}</span>
+                        <span className="text-xs sm:text-sm text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
+                        <span className="font-bold text-foreground text-sm sm:text-base">{price} {currency || (language === "ar" ? "ج.م" : "EGP")}</span>
                     </div>
                 ))}
             </div>
@@ -806,18 +809,18 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
             <div className="space-y-2">
                 <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الأحجام والأسعار" : "Sizes & Prices"}</label>
                 {localPrices.map((price, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-white dark:bg-black/30 p-2 rounded-lg border border-glass-border">
+                    <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-white dark:bg-black/30 p-2 rounded-lg border border-glass-border">
                         <input value={localLabels[idx] || ''} onChange={e => { const nl = [...localLabels]; nl[idx] = e.target.value; setLocalLabels(nl); }}
-                            placeholder={language === "ar" ? "الحجم" : "Size"} className="flex-1 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-base font-bold" />
+                            placeholder={language === "ar" ? "الحجم" : "Size"} className="flex-1 min-w-[80px] px-2 py-1.5 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold" />
                         <input type="number" value={price} onChange={e => { const np = [...localPrices]; np[idx] = parseFloat(e.target.value) || 0; setLocalPrices(np); }}
-                            className="w-24 px-2 py-1 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
-                        <span className="text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
+                            className="w-20 sm:w-24 px-2 py-1.5 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold tabular-nums text-center" dir="ltr" />
+                        <span className="text-xs sm:text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
                         {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); }} className="p-1 text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 ))}
                 <button onClick={() => { setLocalPrices([...localPrices, 0]); setLocalLabels([...localLabels, '']); }} className="text-sm text-blue font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}</button>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => onUpdate({ is_popular: !item.is_popular })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_popular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver'}`}>⭐ {language === "ar" ? (item.is_popular ? "إلغاء" : "مميز") : (item.is_popular ? "Remove" : "Popular")}</button>
                 <button type="button" onClick={() => onUpdate({ is_spicy: !item.is_spicy })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_spicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver'}`}>🌶️ {language === "ar" ? (item.is_spicy ? "إلغاء" : "حار") : (item.is_spicy ? "Remove" : "Spicy")}</button>
                 <button type="button" onClick={() => { setSellByWeight(!sellByWeight); onUpdate({ sell_by_weight: !sellByWeight, weight_unit: !sellByWeight ? weightUnit : undefined }); }} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${sellByWeight ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500' : 'border-glass-border text-silver'}`}>⚖️ {language === "ar" ? (sellByWeight ? "إلغاء الوزن" : "وزن") : (sellByWeight ? "Remove Weight" : "Weight")}</button>
