@@ -61,15 +61,8 @@ function LoginContent() {
 
     // Defer background animations - load after main content is interactive
     useEffect(() => {
-        const timer = requestIdleCallback
-            ? requestIdleCallback(() => setBgReady(true))
-            : setTimeout(() => setBgReady(true), 100);
-        return () => {
-            if (typeof timer === 'number') {
-                if (requestIdleCallback) cancelIdleCallback(timer);
-                else clearTimeout(timer);
-            }
-        };
+        const timer = setTimeout(() => setBgReady(true), 150);
+        return () => clearTimeout(timer);
     }, []);
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
