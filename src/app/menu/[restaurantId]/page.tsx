@@ -241,7 +241,8 @@ function SmartMenuContent({
             .from("items")
             .select("*")
             .in("category_id", catIds)
-            .eq("is_available", true);
+            .eq("is_available", true)
+            .order("sort_order", { ascending: true });
 
           const formattedData: Category[] = catsData.map((cat) => ({
             id: cat.id,
