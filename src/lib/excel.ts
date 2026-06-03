@@ -7,7 +7,8 @@ export const exportMenuToExcel = async (restaurantId: string) => {
         const { data: cats } = await supabase
             .from('categories')
             .select('*')
-            .eq('restaurant_id', restaurantId);
+            .eq('restaurant_id', restaurantId)
+            .order('sort_order', { ascending: true });
 
         if (!cats) return false;
 
@@ -15,7 +16,8 @@ export const exportMenuToExcel = async (restaurantId: string) => {
         const { data: items } = await supabase
             .from('items')
             .select('*')
-            .in('category_id', catIds);
+            .in('category_id', catIds)
+            .order('sort_order', { ascending: true });
 
         // Map to rows
         const rows: Record<string, string | number>[] = [];
