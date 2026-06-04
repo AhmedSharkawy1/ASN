@@ -5,8 +5,9 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
-import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown } from "lucide-react";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
+import { exportMenuImages, importMenuImages } from "@/lib/menuImages";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Item = {
@@ -51,6 +52,10 @@ export default function MenuBuilderPage() {
     const [isImporting, setIsImporting] = useState(false);
     const [deletingCatId, setDeletingCatId] = useState<string | null>(null);
     const [deletingItemObj, setDeletingItemObj] = useState<{ catId: string, itemId: string } | null>(null);
+    const [isExportingImages, setIsExportingImages] = useState(false);
+    const [isImportingImages, setIsImportingImages] = useState(false);
+    const [imageProgress, setImageProgress] = useState<string | null>(null);
+    const importImagesRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchMenuData = async () => {
@@ -214,6 +219,38 @@ export default function MenuBuilderPage() {
                             alert(res.message);
                             if (res.success) window.location.reload();
                             setIsImporting(false);
+                        }} />
+                    </label>
+                    <button
+                        onClick={async () => {
+                            if (!restaurantId) return;
+                            setIsExportingImages(true);
+                            setImageProgress('جاري التجهيز...');
+                            await exportMenuImages(restaurantId, (msg) => setImageProgress(msg));
+                            setTimeout(() => { setIsExportingImages(false); setImageProgress(null); }, 2000);
+                        }}
+                        disabled={isExportingImages}
+                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-purple-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-purple-500/60 transition-all disabled:opacity-50 active:scale-95 text-sm"
+                    >
+                        {isExportingImages ? <Loader2 className="w-5 h-5 text-purple-500 animate-spin" /> : <ImageDown className="w-5 h-5 text-purple-500" />}
+                        {language === "ar" ? "تصدير الصور" : "Export Images"}
+                    </button>
+                    <label className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-orange-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-orange-500/60 transition-all cursor-pointer active:scale-95 text-sm">
+                        {isImportingImages ? <Loader2 className="w-5 h-5 text-orange-500 animate-spin" /> : <ImageUp className="w-5 h-5 text-orange-500" />}
+                        {language === "ar" ? "استيراد الصور" : "Import Images"}
+                        <input ref={importImagesRef} type="file" accept=".zip" className="hidden" disabled={isImportingImages} onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !restaurantId) return;
+                            setIsImportingImages(true);
+                            setImageProgress('جاري قراءة ملف ZIP...');
+                            const res = await importMenuImages(restaurantId, file, (msg) => setImageProgress(msg));
+                            setImageProgress(res.message);
+                            if (res.success) {
+                                setTimeout(() => { window.location.reload(); }, 2500);
+                            } else {
+                                setTimeout(() => { setIsImportingImages(false); setImageProgress(null); }, 3000);
+                            }
+                            if (importImagesRef.current) importImagesRef.current.value = '';
                         }} />
                     </label>
                     <button onClick={() => { setShowAddCategory(true); setEditingCat(null); setEditingItem(null); setAddingItemToCat(null); }}
@@ -382,6 +419,45 @@ export default function MenuBuilderPage() {
                     </div>
                 </div>
             )}
+
+            {/* IMAGE EXPORT/IMPORT PROGRESS MODAL */}
+            <AnimatePresence>
+                {(isExportingImages || isImportingImages) && imageProgress && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-300/80 dark:bg-black/70 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-card rounded-3xl shadow-2xl p-8 max-w-md w-full text-center"
+                        >
+                            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-orange-500/20 flex items-center justify-center">
+                                {isExportingImages ? (
+                                    <ImageDown className="w-8 h-8 text-purple-500 animate-pulse" />
+                                ) : (
+                                    <ImageUp className="w-8 h-8 text-orange-500 animate-pulse" />
+                                )}
+                            </div>
+                            <h3 className="text-lg font-bold text-foreground mb-3">
+                                {isExportingImages
+                                    ? (language === "ar" ? "جاري تصدير صور المنيو" : "Exporting Menu Images")
+                                    : (language === "ar" ? "جاري استيراد صور المنيو" : "Importing Menu Images")
+                                }
+                            </h3>
+                            <p className="text-silver text-sm whitespace-pre-line leading-relaxed">{imageProgress}</p>
+                            <div className="mt-5">
+                                <div className="h-1.5 bg-slate-100 dark:bg-black/30 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-purple-500 to-orange-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
             </div>
 
         </div>
