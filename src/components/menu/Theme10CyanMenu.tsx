@@ -334,30 +334,6 @@ export default function Theme10CyanMenu({ config, categories, restaurantId }: Th
                                         <PhoneCall className="w-4 h-4 md:w-4.5 md:h-4.5" />
                                     </button>
 
-                                    <AnimatePresence>
-                                        {isPhoneMenuOpen && (
-                                            <>
-                                            <div className="fixed inset-0 z-[299] bg-black/40 backdrop-blur-[4px]" onClick={() => setIsPhoneMenuOpen(false)} />
-                                            <motion.div
-                                                initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[360px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[300] overflow-hidden"
-                                            >
-                                                <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center">
-                                                    أرقام الديلفري
-                                                </div>
-                                                {config.phone_numbers?.map((pn: {label?: string; number: string}, idx: number) => (
-                                                    <a
-                                                        key={idx}
-                                                        href={`tel:${pn.number}`}
-                                                        className="block px-4 py-3 text-center text-base font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors" dir="ltr"
-                                                    >
-                                                        {pn.label || pn.number}
-                                                    </a>
-                                                ))}
-                                            </motion.div>
-                                            </>
-                                        )}
-                                    </AnimatePresence>
                                 </div>
                             )}
                         </div>
@@ -534,6 +510,31 @@ export default function Theme10CyanMenu({ config, categories, restaurantId }: Th
             </main>
 
 
+
+                                    <AnimatePresence>
+                                        {isPhoneMenuOpen && (
+                                            <>
+                                            <div className="fixed inset-0 z-[299] bg-black/40 backdrop-blur-[4px]" onClick={() => setIsPhoneMenuOpen(false)} />
+                                            <motion.div
+                                                initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[360px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[300] overflow-hidden"
+                                            >
+                                                <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center">
+                                                    أرقام الديلفري
+                                                </div>
+                                                {config.phone_numbers?.map((pn: {label?: string; number: string}, idx: number) => (
+                                                    <a
+                                                        key={idx}
+                                                        href={`tel:${pn.number}`}
+                                                        className="block px-4 py-3 text-center text-base font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors" dir="ltr"
+                                                    >
+                                                        {pn.label || pn.number}
+                                                    </a>
+                                                ))}
+                                            </motion.div>
+                                            </>
+                                        )}
+                                    </AnimatePresence>
 
             {/* Modal */}
             <AnimatePresence>
