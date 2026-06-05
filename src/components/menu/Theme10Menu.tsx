@@ -659,10 +659,11 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                                                 <Plus className="w-4 h-4" />
                                             </button>
                                         </div>
-                                        <button onClick={addToCart} className="flex-1 h-11 rounded-full text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-md hover:shadow-lg"
+                                        <button onClick={addToCart} className="flex-1 min-h-[44px] py-2 px-3 rounded-full text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md hover:shadow-lg whitespace-nowrap overflow-hidden"
                                             style={{ backgroundColor: primaryColor }}>
-                                            <ShoppingCart className="w-5 h-5" />
-                                            {isAr ? 'إضافة إلى السلة' : 'Add to Cart'} — {cur}{(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed?.(0)}
+                                            <ShoppingCart className="w-4 h-4 shrink-0" />
+                                            <span className="truncate">{isAr ? 'أضف للسلة' : 'Add'}</span>
+                                            <span className="shrink-0">{cur}{(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed?.(0)}</span>
                                         </button>
                                     </div>
                                 </div>
