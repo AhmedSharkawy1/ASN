@@ -18,6 +18,8 @@ type MenuItem = {
     title_en?: string;
     description_ar?: string;
     description_en?: string;
+    desc_ar?: string;
+    desc_en?: string;
     image?: string;
     image_url?: string;
     prices: number[];
@@ -495,9 +497,9 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                             <h3 className="font-bold text-sm sm:text-base leading-snug line-clamp-2 mb-1">
                                                 {itemName(item)}
                                             </h3>
-                                            {(item.description_ar || item.description_en) && (
+                                            {(item.desc_ar || item.desc_en || item.description_ar || item.description_en) && (
                                                 <p className="text-xs sm:text-sm line-clamp-2 mb-2 leading-tight" style={{ color: textMuted }}>
-                                                    {isAr ? item.description_ar : (item.description_en || item.description_ar)}
+                                                    {isAr ? (item.desc_ar || item.description_ar) : (item.desc_en || item.description_en || item.desc_ar || item.description_ar)}
                                                 </p>
                                             )}
 
@@ -557,9 +559,11 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
 
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                     <h2 className="text-xl sm:text-2xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>
+                                    {(selectedItem.item.desc_ar || selectedItem.item.desc_en || selectedItem.item.description_ar || selectedItem.item.description_en) && (
                                     <p className="text-white/90 text-sm sm:text-base font-bold drop-shadow-sm line-clamp-2">
-                                        {isAr ? selectedItem.item.description_ar : (selectedItem.item.description_en || selectedItem.item.description_ar)}
+                                        {isAr ? (selectedItem.item.desc_ar || selectedItem.item.description_ar) : (selectedItem.item.desc_en || selectedItem.item.description_en || selectedItem.item.desc_ar || selectedItem.item.description_ar)}
                                     </p>
+                                    )}
                                 </div>
                             </div>
 
