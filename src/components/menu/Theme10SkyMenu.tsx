@@ -339,7 +339,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                             <div className="fixed inset-0 z-[299] bg-black/40 backdrop-blur-[4px]" onClick={() => setIsPhoneMenuOpen(false)} />
                                             <motion.div
                                                 initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[85vw] max-w-[310px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[300] overflow-hidden"
+                                                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[360px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[300] overflow-hidden"
                                             >
                                                 <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center">
                                                     أرقام الديلفري
@@ -348,7 +348,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                                     <a
                                                         key={idx}
                                                         href={`tel:${pn.number}`}
-                                                        className="block px-4 py-2.5 text-center text-sm font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
+                                                        className="block px-4 py-3 text-center text-base font-bold text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors" dir="ltr"
                                                     >
                                                         {pn.label || pn.number}
                                                     </a>
@@ -498,7 +498,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                                 {itemName(item)}
                                             </h3>
                                             {(item.desc_ar || item.desc_en || item.description_ar || item.description_en) && (
-                                                <p className="text-xs sm:text-sm line-clamp-2 mb-2 leading-tight" style={{ color: textMuted }}>
+                                                <p className="text-xs sm:text-sm mb-2 leading-relaxed" style={{ color: textMuted }}>
                                                     {isAr ? (item.desc_ar || item.description_ar) : (item.desc_en || item.description_en || item.desc_ar || item.description_ar)}
                                                 </p>
                                             )}
@@ -560,7 +560,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                     <h2 className="text-xl sm:text-2xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>
                                     {(selectedItem.item.desc_ar || selectedItem.item.desc_en || selectedItem.item.description_ar || selectedItem.item.description_en) && (
-                                    <p className="text-white/90 text-sm sm:text-base font-bold drop-shadow-sm line-clamp-2">
+                                    <p className="text-white/90 text-sm sm:text-base font-bold drop-shadow-sm">
                                         {isAr ? (selectedItem.item.desc_ar || selectedItem.item.description_ar) : (selectedItem.item.desc_en || selectedItem.item.description_en || selectedItem.item.desc_ar || selectedItem.item.description_ar)}
                                     </p>
                                     )}
