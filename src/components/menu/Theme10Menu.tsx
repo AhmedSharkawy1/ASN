@@ -511,11 +511,11 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
 
                                     <AnimatePresence>
                                         {isPhoneMenuOpen && (
-                                            <>
-                                            <div className="fixed inset-0 z-[299] bg-black/40 backdrop-blur-[4px]" onClick={() => setIsPhoneMenuOpen(false)} />
+                                            <div className="fixed inset-0 z-[299] bg-black/40 backdrop-blur-[4px] flex items-center justify-center p-4" onClick={() => setIsPhoneMenuOpen(false)}>
                                             <motion.div
                                                 initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                                                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-[360px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[300] overflow-hidden"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="relative w-full max-w-[360px] bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 py-2 overflow-hidden mx-auto"
                                             >
                                                 <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center">
                                                     أرقام الديلفري
@@ -530,7 +530,7 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                                                     </a>
                                                 ))}
                                             </motion.div>
-                                            </>
+                                            </div>
                                         )}
                                     </AnimatePresence>
 
