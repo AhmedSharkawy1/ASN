@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -316,7 +316,7 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
                         {/* Logo */}
                         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                             {config.logo_url && (
-                                <div className="w-10 h-10 md:w-12 md:h-12 relative flex items-center justify-center overflow-hidden rounded-full bg-[#FDFBF7] dark:bg-[#1E1E1E] shadow-sm border border-[#38bdf8] dark:border-[#333] p-1">
+                                <div className="w-14 h-14 md:w-16 md:h-16 relative flex items-center justify-center overflow-hidden rounded-full bg-[#FDFBF7] dark:bg-[#1E1E1E] shadow-sm border border-[#38bdf8] dark:border-[#333] p-1">
                                     <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15] rounded-full" />
                                 </div>
                             )}
@@ -350,7 +350,7 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
 
             {/* ═══════ HERO BANNER SLIDER ═══════ */}
             <section className="relative w-full max-w-4xl mx-auto mt-4 px-4 overflow-hidden">
-                <div className="relative rounded-3xl overflow-hidden shadow-sm h-24 md:h-[300px]">
+                <div className="relative rounded-3xl overflow-hidden shadow-sm h-48 md:h-[400px]">
                     <Swiper
                         modules={[Autoplay, EffectFade]}
                         effect="fade"
@@ -666,8 +666,11 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
                             className="w-[85vw] max-w-[310px] bg-[#FDFBF7] dark:bg-[#1E1E1E] rounded-[2rem] shadow-2xl border border-[#38bdf8] dark:border-[#333] overflow-hidden max-h-[85vh] flex flex-col mx-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="p-6 text-center border-b border-[#38bdf8] dark:border-[#333]">
-                                <h3 className="text-2xl font-bold uppercase">{isAr ? "أقسام المنيو" : "Menu Categories"}</h3>
+                            <div className="px-6 py-4 flex items-center justify-between border-b border-[#38bdf8] dark:border-[#333]">
+                                <h3 className="text-xl font-bold uppercase">{isAr ? "أقسام المنيو" : "Menu Categories"}</h3>
+                                <button onClick={() => setShowCategoriesMenu(false)} className="w-8 h-8 rounded-full bg-[#FDFBF7] dark:bg-[#1E1E1E] border border-[#38bdf8] dark:border-[#333] flex items-center justify-center text-[#888] hover:text-[#0284c7] hover:bg-[#0284c7]/5 active:scale-95 transition-all">
+                                    <X className="w-4 h-4" />
+                                </button>
                             </div>
                             <div className="p-4 grid grid-cols-2 gap-3 max-h-[85vh] overflow-y-auto etoile-no-scrollbar">
                                 {categories.map((cat) => (
