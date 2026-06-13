@@ -577,6 +577,9 @@ export default function SuperAdminClientsPage() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <div className="flex items-center justify-end gap-2 opacity-100 transition-opacity">
+                                                    <button onClick={() => handleOpenDeleteModal(client)} className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 rounded-lg transition-colors" title="Delete Client">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
                                                     <button onClick={() => handleOpenPasswordModal(client)} className="p-2 text-stone-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors" title="Change Password">
                                                         <Key className="w-4 h-4" />
                                                     </button>
@@ -600,9 +603,6 @@ export default function SuperAdminClientsPage() {
                                                     </button>
                                                     <button className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors">
                                                         <MoreVertical className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => handleOpenDeleteModal(client)} className="p-2 text-stone-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors" title="Delete Client">
-                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </td>
