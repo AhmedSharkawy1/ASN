@@ -132,14 +132,8 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
         })).filter((c: any) => c.items && c.items.length > 0);
     }, [categories, searchQuery]);
 
-    const activeCatList = (activeCategory === 'all' || searchQuery)
-        ? [{
-            id: 'all_items_merged',
-            name_ar: 'الكل',
-            name_en: 'All',
-            items: filteredCategories.flatMap((c: any) => c.items || [])
-        }]
-        : filteredCategories.filter((c: any) => c.id === activeCategory);
+    // Always render all filtered categories so continuous scroll works
+    const activeCatList = filteredCategories;
 
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
@@ -147,7 +141,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
     // Sync scroll
     // Sync scroll with IntersectionObserver
     useEffect(() => {
-        if (searchQuery || activeCategory !== 'all') return;
+        if (searchQuery) return;
 
         const observerOptions = {
             root: null,
