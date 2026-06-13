@@ -276,7 +276,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
     }, [activeCategory]);
 
     // Get all featured items (assuming items with is_featured flag or just taking the first 4 from all categories)
-    const featuredItems = categories.flatMap(c => c.items || []).slice(0, 6);
+    const featuredItems = categories.flatMap(c => c.items || []).filter(item => item.is_popular);
 
     if (!mounted) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900" />;
 
@@ -648,7 +648,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                         <span className="text-[10px] md:text-xs font-semibold">{isAr ? 'السلة' : 'Cart'}</span>
                     </button>
                 )}
-                <button onClick={(e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers })); }} className="flex flex-col items-center gap-1 px-4 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                <button onClick={(e) => { e.preventDefault(); setIsPhoneMenuOpen(true); }} className="flex flex-col items-center gap-1 px-4 py-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     style={{ color: textMuted }}
                 >
                             <PhoneCall className="w-5 h-5 md:w-6 md:h-6" />
