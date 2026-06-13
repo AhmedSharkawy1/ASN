@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
@@ -77,7 +77,8 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
-    const isAr = config.default_language === 'ar';
+    const [lang, setLang] = useState<'ar' | 'en'>(config.default_language === 'en' ? 'en' : 'ar');
+    const isAr = lang === 'ar';
     const isDark = mounted && theme === 'dark';
     const cur = config.currency || (isAr ? "ج.م" : "EGP"); // Removed SAR per user request
 
@@ -441,17 +442,16 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
                             </div>
 
                             {/* Diablo Style Item Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                            <div className="flex flex-col gap-3 md:gap-4">
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                                 {cat.items?.filter((i: any) => i.is_available !== false).map((item: any) => {
-                                    const hasMultiSizes = item.prices.length > 1;
                                     return (
                                         <div key={item.id} onClick={() => setSelectedItem({ item, catName: catName(cat), catImg: cat.image_url || cat.image })}
-                                            className={`relative rounded-[14px] rounded-[2rem] overflow-hidden cursor-pointer group transition-all duration-300 transform hover:-translate-y-1 ${hasMultiSizes ? 'col-span-2 flex flex-row' : 'flex flex-col'}`}
+                                            className={`relative rounded-[14px] md:rounded-[2rem] overflow-hidden cursor-pointer group transition-all duration-300 transform hover:-translate-y-1 flex flex-row min-h-[8rem]`}
                                             style={{ background: bgWhite, boxShadow: isDark ? '0 4px 20px rgba(0,0,0,0.3)' : '0 2px 12px rgba(0,0,0,0.06)', border: `1px solid ${borderColor}` }}>
 
                                             {/* Top Image Box */}
-                                            <div className={`overflow-hidden bg-gray-100 relative shrink-0 ${hasMultiSizes ? 'w-32 md:w-44' : 'w-full h-32 md:h-32'}`}>
+                                            <div className={`overflow-hidden bg-gray-100 relative shrink-0 w-32 md:w-44`}>
                                                 <img src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
                                                     alt={itemName(item)}
                                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
@@ -463,8 +463,8 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
                                             </div>
 
                                             {/* Body */}
-                                            <div className={`p-3 md:p-5 flex-1 flex flex-col ${hasMultiSizes ? 'text-right min-w-0' : 'text-center'}`}>
-                                                <h3 className={`font-extrabold ${hasMultiSizes ? 'text-[14px] md:text-lg' : 'text-[13px] md:text-base'} mb-1 md:mb-2 line-clamp-1 leading-tight`} style={{ color: textDark }}>
+                                            <div className={`p-3 md:p-4 flex-1 flex flex-col text-right min-w-0`} dir={isAr ? 'rtl' : 'ltr'}>
+                                                <h3 className={`font-extrabold text-[14px] md:text-lg mb-1 md:mb-2 line-clamp-1 leading-tight`} style={{ color: textDark }}>
                                                     {itemName(item)}
                                                 </h3>
                                                 {item.desc_ar && (
@@ -769,12 +769,13 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
                                 {[
                                     { label: isAr ? 'الرئيسية' : 'Home', icon: <Home className="w-5 h-5" />, action: () => { window.scrollTo(0, 0); setIsDrawerOpen(false); } },
                                     { label: isAr ? 'المنيو' : 'Menu', icon: <UtensilsCrossed className="w-5 h-5" />, action: () => { document.querySelector('nav')?.scrollIntoView(); setIsDrawerOpen(false); } },
-                                    { label: isAr ? 'تسجيل الدخول' : 'Login', icon: <User className="w-5 h-5" />, action: () => { } },
+
                                     {
                                         label: isDark ? (isAr ? 'الوضع الفاتح' : 'Light Mode') : (isAr ? 'الوضع الداكن' : 'Dark Mode'),
                                         icon: isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />,
                                         action: () => setTheme(isDark ? 'light' : 'dark')
-                                    }
+                                    },
+                                    { label: isAr ? 'English' : 'العربية', icon: <Globe className="w-5 h-5" />, action: () => { setLang(isAr ? 'en' : 'ar'); setIsDrawerOpen(false); } }
                                 ].map((lnk, i) => (
                                     <button key={i} onClick={lnk.action}
                                         className="w-full flex items-center gap-4 py-4 border-b transition-colors font-bold text-sm"

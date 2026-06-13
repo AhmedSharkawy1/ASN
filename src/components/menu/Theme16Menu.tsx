@@ -556,7 +556,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                     <div className="store-branding">
                         {config.logo_url && (
                             <div className="store-logo">
-                                <Image src={config.logo_url} alt="Logo" width={40} height={40} />
+                                <Image quality={95} src={config.logo_url} alt="Logo" width={40} height={40} />
                             </div>
                         )}
                         <div className="store-info">
@@ -664,7 +664,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                                     <div className="menu-item" key={item.id}>
                                         <span className="item-badge">{cName}</span>
                                         <div className="item-image" onClick={() => openModal(item, cName, cImage || '')}>
-                                            <Image src={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
+                                            <Image quality={95} src={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
                                         </div>
                                         <div className="item-content">
                                             <div className="item-header">
@@ -778,7 +778,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                         </div>
                         <div className="p-5 flex flex-col gap-4">
                             <div className="flex gap-4 p-4 bg-gray-50 rounded-lg items-center">
-                                <Image src={config.logo_url || ''} width={50} height={50} alt="Logo" className="rounded-md object-cover" />
+                                <Image quality={95} src={config.logo_url || ''} width={50} height={50} alt="Logo" className="rounded-md object-cover" />
                                 <div>
                                     <h4 className="font-bold">{config.name}</h4>
                                     <p className="text-xs text-gray-500">{window.location.href}</p>
@@ -846,7 +846,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                 <div className="modal-overlay open" onClick={closeModal}>
                     <div className="modal-content-sheet w-[85vw] max-w-[310px] w-full max-h-[85vh] flex flex-col mx-auto" onClick={e => e.stopPropagation()}>
                         <div className="relative h-32 w-full bg-gray-100">
-                            <Image src={selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover " />
+                            <Image quality={95} src={selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover " />
                             <button onClick={closeModal} className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-md">
                                 <X size={18} />
                             </button>
@@ -962,7 +962,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                                         {cart.map((c, i) => (
                                             <div key={i} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex gap-4 relative">
                                                 <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                                    <Image src={c.item.image_url || '/placeholder.jpg'} alt="Item" width={64} height={64} className="object-cover w-full h-full" />
+                                                    <Image quality={95} src={c.item.image_url || '/placeholder.jpg'} alt="Item" width={64} height={64} className="object-cover w-full h-full" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-start mb-1">
