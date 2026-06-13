@@ -133,8 +133,13 @@ export default function Theme9EmeraldMenu({ config, categories, restaurantId }: 
     }, [categories, searchQuery]);
 
     const activeCatList = (activeCategory === 'all' || searchQuery)
-        ? filteredCategories
-        : filteredCategories.filter(c => c.id === activeCategory);
+        ? [{
+            id: 'all_items_merged',
+            name_ar: 'الكل',
+            name_en: 'All',
+            items: filteredCategories.flatMap((c: any) => c.items || [])
+        }]
+        : filteredCategories.filter((c: any) => c.id === activeCategory);
 
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
