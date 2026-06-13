@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -51,6 +51,13 @@ export default function SuperAdminClientsPage() {
     const [isSubModalOpen, setIsSubModalOpen] = useState(false);
     const [subType, setSubType] = useState<string>("monthly");
     const [savingSub, setSavingSub] = useState(false);
+    const [customStartDate, setCustomStartDate] = useState("");
+    const [customEndDate, setCustomEndDate] = useState("");
+
+    // Delete Modal Options
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletePassword, setDeletePassword] = useState("");
+    const [deletingClient, setDeletingClient] = useState(false);
 
     const PAGE_GROUPS = [
         {
@@ -320,6 +327,17 @@ export default function SuperAdminClientsPage() {
     const handleOpenSubscription = (client: Client) => {
         setSelectedClient(client);
         setSubType(client.subscription_plan || "monthly");
+        
+        const now = new Date();
+        setCustomStartDate(now.toISOString().split('T')[0]);
+        if (client.subscription_expires_at) {
+            setCustomEndDate(new Date(client.subscription_expires_at).toISOString().split('T')[0]);
+        } else {
+            const nextMonth = new Date(now);
+            nextMonth.setDate(nextMonth.getDate() + 30);
+            setCustomEndDate(nextMonth.toISOString().split('T')[0]);
+        }
+        
         setIsSubModalOpen(true);
     };
 
@@ -337,6 +355,14 @@ export default function SuperAdminClientsPage() {
             } else if (subType === 'yearly') {
                 const expiry = new Date(now);
                 expiry.setFullYear(expiry.getFullYear() + 1);
+                expiresAt = expiry.toISOString();
+            } else if (subType === 'custom') {
+                if (!customEndDate || !customStartDate) {
+                    toast.error(language === "ar" ? "يرجى تحديد تواريخ الاشتراك" : "Please select subscription dates");
+                    setSavingSub(false);
+                    return;
+                }
+                const expiry = new Date(customEndDate);
                 expiresAt = expiry.toISOString();
             } else {
                 // lifetime
@@ -380,7 +406,41 @@ export default function SuperAdminClientsPage() {
         if (plan === 'monthly') return language === 'ar' ? 'شهري' : 'Monthly';
         if (plan === 'yearly') return language === 'ar' ? 'سنوي' : 'Yearly';
         if (plan === 'lifetime') return language === 'ar' ? 'مدى الحياة' : 'Lifetime';
+        if (plan === 'custom') return language === 'ar' ? 'مخصص' : 'Custom';
         return plan;
+    };
+
+    const handleOpenDeleteModal = (client: Client) => {
+        setSelectedClient(client);
+        setDeletePassword("");
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleDeleteClient = async () => {
+        if (!selectedClient) return;
+        if (deletePassword !== "38026427AHMED$") {
+            toast.error(language === "ar" ? "كلمة المرور غير صحيحة" : "Incorrect password");
+            return;
+        }
+
+        setDeletingClient(true);
+        try {
+            const { error } = await supabase
+                .from('restaurants')
+                .delete()
+                .eq('id', selectedClient.id);
+            
+            if (error) throw error;
+            
+            toast.success(language === "ar" ? "تم الحذف بنجاح" : "Deleted successfully");
+            setIsDeleteModalOpen(false);
+            fetchClients();
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error(language === "ar" ? "حدث خطأ أثناء الحذف" : "Failed to delete");
+        } finally {
+            setDeletingClient(false);
+        }
     };
 
     const filtered = clients.filter(c => 
@@ -540,6 +600,9 @@ export default function SuperAdminClientsPage() {
                                                     </button>
                                                     <button className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg transition-colors">
                                                         <MoreVertical className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => handleOpenDeleteModal(client)} className="p-2 text-stone-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors" title="Delete Client">
+                                                        <Trash2 className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             </td>
@@ -757,6 +820,7 @@ export default function SuperAdminClientsPage() {
                                         { value: 'monthly', labelAr: 'شهري', labelEn: 'Monthly', icon: '📅', duration: language === 'ar' ? '30 يوم' : '30 days', color: 'cyan' },
                                         { value: 'yearly', labelAr: 'سنوي', labelEn: 'Yearly', icon: '📆', duration: language === 'ar' ? '365 يوم' : '365 days', color: 'blue' },
                                         { value: 'lifetime', labelAr: 'مدى الحياة', labelEn: 'Lifetime', icon: '👑', duration: language === 'ar' ? '∞ غير محدود' : '∞ Unlimited', color: 'purple' },
+                                        { value: 'custom', labelAr: 'مخصص', labelEn: 'Custom', icon: '✏️', duration: language === 'ar' ? 'تحديد فترة' : 'Select period', color: 'emerald' },
                                     ].map(opt => (
                                         <button
                                             key={opt.value}
@@ -767,6 +831,8 @@ export default function SuperAdminClientsPage() {
                                                         ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-500/10 shadow-md shadow-cyan-500/10'
                                                         : opt.color === 'blue'
                                                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/10'
+                                                        : opt.color === 'emerald'
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 shadow-md shadow-emerald-500/10'
                                                         : 'border-purple-500 bg-purple-50 dark:bg-purple-500/10 shadow-md shadow-purple-500/10'
                                                     : 'border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
                                                 }
@@ -784,6 +850,34 @@ export default function SuperAdminClientsPage() {
                                 </div>
                             </div>
 
+                            {/* Custom Date Selection */}
+                            {subType === 'custom' && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                            {language === 'ar' ? 'تاريخ البداية' : 'Start Date'}
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={customStartDate}
+                                            onChange={(e) => setCustomStartDate(e.target.value)}
+                                            className="w-full p-3 bg-stone-50 dark:bg-[#0a0f16] border border-stone-200 dark:border-stone-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                            {language === 'ar' ? 'تاريخ النهاية' : 'End Date'}
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={customEndDate}
+                                            onChange={(e) => setCustomEndDate(e.target.value)}
+                                            className="w-full p-3 bg-stone-50 dark:bg-[#0a0f16] border border-stone-200 dark:border-stone-700 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Info */}
                             <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10">
                                 <CalendarDays className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
@@ -792,6 +886,8 @@ export default function SuperAdminClientsPage() {
                                         ? (language === 'ar' ? 'سيتم تفعيل الاشتراك لمدة 30 يوم بدءاً من الآن' : 'Subscription will be activated for 30 days starting now')
                                         : subType === 'yearly'
                                         ? (language === 'ar' ? 'سيتم تفعيل الاشتراك لمدة سنة كاملة بدءاً من الآن' : 'Subscription will be activated for 1 full year starting now')
+                                        : subType === 'custom'
+                                        ? (language === 'ar' ? 'سيتم تفعيل الاشتراك بناءً على التواريخ المحددة وسيتم احتساب الأيام المتبقية تلقائياً' : 'Subscription will be activated based on selected dates and remaining days will be calculated automatically')
                                         : (language === 'ar' ? 'سيتم تفعيل الاشتراك بشكل دائم بدون تاريخ انتهاء' : 'Subscription will be activated permanently with no expiry date')
                                     }
                                 </p>
@@ -866,6 +962,61 @@ export default function SuperAdminClientsPage() {
                             >
                                 {updatingPassword ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> : null}
                                 {language === 'ar' ? "حفظ وتغيير" : "Update Password"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Client Modal */}
+            {isDeleteModalOpen && selectedClient && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsDeleteModalOpen(false)} />
+                    <div className="bg-white dark:bg-[#131b26] rounded-2xl shadow-xl w-full max-w-sm relative z-10 overflow-hidden">
+                        <div className="flex items-center justify-between p-6 border-b border-stone-100 dark:border-stone-800 shrink-0">
+                            <div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Trash2 className="w-5 h-5 text-red-500" />
+                                    {language === 'ar' ? "حذف العميل" : "Delete Client"}
+                                </h3>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 mt-1">{selectedClient.name}</p>
+                            </div>
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="p-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-300 rounded-xl hover:bg-stone-100 dark:hover:bg-[#1a2433] transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6">
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                {language === 'ar' ? "أدخل كلمة المرور لتأكيد الحذف" : "Enter password to confirm deletion"}
+                            </label>
+                            <input 
+                                type="password"
+                                value={deletePassword}
+                                onChange={(e) => setDeletePassword(e.target.value)}
+                                placeholder="••••••••"
+                                autoComplete="off"
+                                className="w-full pl-4 pr-4 py-3 bg-stone-50 dark:bg-[#0a0f16] border border-red-200 dark:border-red-900 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all dark:text-white font-mono"
+                            />
+                            <p className="text-xs text-red-500 font-bold mt-3">
+                                {language === 'ar' 
+                                  ? "تنبيه: سيتم حذف العميل وكافة البيانات المرتبطة به نهائياً ولا يمكن التراجع عن هذا الإجراء." 
+                                  : "Warning: The client and all associated data will be permanently deleted. This action cannot be undone."}
+                            </p>
+                        </div>
+                        <div className="p-6 border-t border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-black/20 flex justify-end gap-3">
+                            <button 
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-stone-200 dark:hover:bg-stone-800 rounded-xl transition-colors"
+                            >
+                                {language === 'ar' ? "إلغاء" : "Cancel"}
+                            </button>
+                            <button 
+                                onClick={handleDeleteClient}
+                                disabled={deletingClient || !deletePassword}
+                                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-md transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                {deletingClient ? <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span> : <Trash2 className="w-4 h-4" />}
+                                {language === 'ar' ? "حذف نهائي" : "Delete Permanently"}
                             </button>
                         </div>
                     </div>
