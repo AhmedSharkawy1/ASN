@@ -42,6 +42,8 @@ type RestaurantConfig = {
     currency?: string;
     name: string;
     theme: string;
+    slogan_ar?: string;
+    slogan_en?: string;
     phone?: string;
     whatsapp_number?: string;
     facebook_url?: string;
