@@ -449,7 +449,7 @@ export default function SuperAdminClientsPage() {
     );
 
     return (
-        <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto w-full">
+        <div className="space-y-6 lg:space-y-8 w-full">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white tracking-tight">Clients & Tenants</h1>
