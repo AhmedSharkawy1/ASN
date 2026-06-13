@@ -375,9 +375,11 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
                         <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 leading-tight drop-shadow-md">
                             {config.name}
                         </h2>
-                        <p className="text-white/90 text-sm md:text-base font-medium drop-shadow-sm">
-                            {isAr ? "أشهى الأطعمة بين يديك" : "Delicious food at your fingertips"}
-                        </p>
+                        {(isAr ? config.slogan_ar : (config.slogan_en || config.slogan_ar)) && (
+                            <p className="text-white/90 text-sm md:text-base font-medium drop-shadow-sm">
+                                {isAr ? config.slogan_ar : (config.slogan_en || config.slogan_ar)}
+                            </p>
+                        )}
                     </div>
                 </div>
             </section>
