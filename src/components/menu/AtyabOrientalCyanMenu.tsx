@@ -347,6 +347,13 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                                 <span>{isAr ? "انستجرام" : "Instagram"}</span>
                             </a>
                         )}
+                        {config.tiktok_url && (
+                            <a href={config.tiktok_url} target="_blank" rel="noopener noreferrer"
+                                className="flex-1 bg-[#000000] dark:bg-[#ffffff] hover:opacity-80 text-white dark:text-black font-black py-4 rounded-3xl flex items-center justify-center gap-2 transition-all active:scale-[0.96] shadow-xl text-[14px] border border-white/10">
+                                <FaTiktok className="w-5 h-5" />
+                                <span>{isAr ? "تيك توك" : "TikTok"}</span>
+                            </a>
+                        )}
                     </div>
                 </div>
             </header>

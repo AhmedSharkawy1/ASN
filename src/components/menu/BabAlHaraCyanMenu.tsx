@@ -261,8 +261,8 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
                     {/* Logo - Centered */}
                     <div className="w-full max-w-4xl flex items-center justify-center relative z-10">
                         {config.logo_url && (
-                            <div className="w-36 h-36 md:w-48 md:h-32 rounded-full border-[8px] border-white/30 bg-white shadow-[0_25px_60px_rgba(0,0,0,0.7)] overflow-hidden p-0.5 transform transition-transform hover:scale-110 duration-500">
-                                <div className="w-full h-full bg-white flex items-center justify-center rounded-full overflow-hidden">
+                            <div className="w-36 h-36 md:w-48 md:h-48 rounded-full border-[8px] border-white/30 bg-transparent shadow-[0_25px_60px_rgba(0,0,0,0.7)] overflow-hidden p-0.5 transform transition-transform hover:scale-110 duration-500">
+                                <div className="w-full h-full bg-transparent flex items-center justify-center rounded-full overflow-hidden">
                                     <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15]" />
                                 </div>
                             </div>
