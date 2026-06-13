@@ -533,19 +533,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                                                     alt={itemName(item)}
                                                     className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
                                                 />
-                                                {/* Action Buttons Overlay */}
-                                                <div className="absolute top-2 left-2 z-20 flex gap-2">
-                                                    <button
-                                                        className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm text-white flex items-center justify-center text-xs hover:scale-110 transition-transform shadow-sm"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigator.clipboard.writeText(window.location.href);
-                                                            showToast(isAr ? 'تم نسخ الرابط' : 'Link copied');
-                                                        }}
-                                                    >
-                                                        <LinkIcon className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
+                                                
                                             </div>
 
                                             <div className="p-3 flex flex-col justify-between flex-1">
