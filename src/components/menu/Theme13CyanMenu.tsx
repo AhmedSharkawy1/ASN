@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UtensilsCrossed, AlertCircle, ShoppingCart, Plus, Minus, Trash2, X, FileText, MapPin as MapIcon, PhoneCall, Link as LinkIcon, Star, Share2 } from 'lucide-react';
-import { FaWhatsapp, FaFacebookF, FaInstagram, FaSnapchatGhost } from 'react-icons/fa';
+import { FaWhatsapp, FaFacebookF, FaInstagram, FaSnapchatGhost , FaTiktok } from 'react-icons/fa';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -307,6 +307,12 @@ export default function Theme13CyanMenu({ config, categories, restaurantId }: Th
                             <MapIcon className="w-4 h-4" />
                         </a>
                     )}
+
+                            {(config.social_links?.tiktok || config.tiktok_url) && (
+                                <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700">
+                                    <FaTiktok className="text-sm md:text-base" />
+                                </a>
+                            )}
                     {(config.social_links?.facebook || config.facebook_url) && (
                         <a href={config.social_links?.facebook || config.facebook_url} target="_blank" rel="noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md text-white hover:bg-[#1877f2] transition-colors border border-white/30">
                             <FaFacebookF className="text-sm md:text-base" />

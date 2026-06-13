@@ -8,7 +8,7 @@ import {
     Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X,
     Home, UtensilsCrossed, User, Globe, PhoneCall
 } from 'lucide-react';
-import { FaWhatsapp, FaInstagram, FaFacebookF } from 'react-icons/fa';
+import { FaWhatsapp, FaInstagram, FaFacebookF , FaTiktok} from 'react-icons/fa';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -823,6 +823,18 @@ export default function Theme9EmeraldMenu({ config, categories, restaurantId }: 
                     {(config.social_links?.whatsapp || config.whatsapp_number) && (
                         <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#25D366] hover:bg-green-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
                             <FaWhatsapp className="text-xl" />
+                        </a>
+                    )}
+
+                    {(config.social_links?.instagram || config.instagram_url) && (
+                        <a href={config.social_links?.instagram || config.instagram_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#E1306C] hover:bg-pink-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                            <FaInstagram className="text-lg" />
+                        </a>
+                    )}
+
+                    {(config.social_links?.tiktok || config.tiktok_url) && (
+                        <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                            <FaTiktok className="text-lg" />
                         </a>
                     )}
 

@@ -22,7 +22,7 @@ import {
     CreditCard,
     Wallet
 } from 'lucide-react';
-import { FaWhatsapp, FaTwitter, FaInstagram, FaFacebookF, FaMotorcycle } from 'react-icons/fa';
+import { FaWhatsapp, FaTwitter, FaInstagram, FaFacebookF, FaMotorcycle, FaTiktok } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, EffectCoverflow } from 'swiper/modules';
@@ -65,6 +65,7 @@ type RestaurantConfig = {
     whatsapp_number?: string;
     facebook_url?: string;
     instagram_url?: string;
+    tiktok_url?: string;
     map_link?: string;
     logo_url?: string;
     cover_url?: string;
@@ -82,6 +83,7 @@ type RestaurantConfig = {
         snapchat?: string;
         telegram?: string;
         twitter?: string;
+        tiktok?: string;
     };
     phone_numbers?: { label?: string, number: string }[];
     address?: string;
@@ -260,6 +262,11 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                             <FaFacebookF size={22} />
                         </a>
                     )}
+                    {(config.social_links?.tiktok || config.tiktok_url) && (
+                        <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-[16px] bg-[#1a1f26] border border-white/5 flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-transform shadow-sm">
+                            <FaTiktok size={22} />
+                        </a>
+                    )}
                 </div>
             </div>
 
@@ -426,6 +433,12 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 <FaFacebookF size={20} />
                             </a>
                         )}
+                        {(config.social_links?.tiktok || config.tiktok_url) && (
+                            <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-800 hover:bg-gray-800 hover:text-white hover:-translate-y-1 transition-all shadow-sm">
+                                <FaTiktok size={20} />
+                            </a>
+                        )}
+
                     </div>
                 </div>
 

@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Share2, Bike, X, Moon, Sun, ShoppingBag, Plus as PlusIcon, Minus, LayoutGrid } from 'lucide-react';
-import { FaWhatsapp, FaFacebook, FaInstagram } from 'react-icons/fa';
+import { FaWhatsapp, FaFacebook, FaInstagram, FaTiktok } from 'react-icons/fa';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -103,6 +103,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
     // Modals
     const [selectedItem, setSelectedItem] = useState<{ item: Item; cName: string; catImg?: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    const [itemNotes, setItemNotes] = useState('');
     const [showCart, setShowCart] = useState(false);
     const [showCategoriesModal, setShowCategoriesModal] = useState(false);
 
@@ -218,6 +219,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
         if (config.orders_enabled === false) return;
         setSelectedItem({ item, cName, catImg });
         setTempSizeIdx(0);
+        setItemNotes('');
         haptic(10);
     };
 
@@ -226,13 +228,14 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
         const { item, cName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || (isAr ? "عادي" : "Regular");
-        const cartId = `${item.id}-${sizeLabel}`;
+        const cartId = `${item.id}-${sizeLabel}-${itemNotes}`;
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
-            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName }];
+            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, notes: itemNotes, category_name: cName }];
         });
         setSelectedItem(null);
+        setItemNotes('');
         haptic(20);
     };
 
@@ -547,6 +550,14 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "انستجرام" : "Instagram"}</span>
                     </a>
                 )}
+                {config.tiktok_url && (
+                    <a href={config.tiktok_url} target="_blank" className="flex flex-col items-center gap-1 flex-1">
+                        <div className="w-9 h-9 flex items-center justify-center bg-[#010101]/10 text-[#010101] dark:bg-white/10 dark:text-white rounded-xl active:scale-90 transition-transform">
+                            <FaTiktok className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-black text-zinc-500">{isAr ? "تيك توك" : "TikTok"}</span>
+                    </a>
+                )}
 
                 <div onClick={() => setShowCallMenu(true)} className="flex flex-col items-center gap-1 flex-1 cursor-pointer">
                     <div className="w-9 h-9 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-zinc-600 rounded-xl active:scale-90 transition-transform">
@@ -602,7 +613,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
             <AnimatePresence>
                 {/* Item Select Modal */}
                 {selectedItem && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md py-16 px-6 mb-safe" onClick={() => setSelectedItem(null)}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md py-16 px-6 mb-safe" onClick={() => { setSelectedItem(null); setItemNotes(''); }}>
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-[85vw] max-w-[310px] bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col h-auto max-h-[85vh] shadow-2xl mx-auto" onClick={e => e.stopPropagation()}>
                             <div className="relative h-32 bg-zinc-100 dark:bg-zinc-800">
                                 {(selectedItem.item.image_url || selectedItem.catImg) ? (
@@ -610,7 +621,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">{selectedItem.item.is_spicy ? "🌶️" : "🍽️"}</div>
                                 )}
-                                <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center"><X className="w-5 h-5" /></button>
+                                <button onClick={() => { setSelectedItem(null); setItemNotes(''); }} className="absolute top-4 right-4 w-10 h-10 bg-black/50 text-white rounded-full flex items-center justify-center"><X className="w-5 h-5" /></button>
                             </div>
                             <div className="p-6 pb-2">
                                 <h3 className="text-2xl font-bold mb-1 text-right">{selectedItem.cName}</h3>
@@ -633,6 +644,17 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                                             </div>
                                         );
                                     })}
+                                </div>
+                                {/* Notes Textarea */}
+                                <div className="mt-4">
+                                    <textarea
+                                        value={itemNotes}
+                                        onChange={(e) => setItemNotes(e.target.value)}
+                                        placeholder={isAr ? "أضف ملاحظات للطلب..." : "Add notes to your order..."}
+                                        className="w-full p-3 rounded-xl border-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm text-zinc-800 dark:text-zinc-200 placeholder-zinc-400 dark:placeholder-zinc-500 outline-none focus:border-[#4ba3e3] transition-colors resize-none"
+                                        rows={2}
+                                        dir={isAr ? "rtl" : "ltr"}
+                                    />
                                 </div>
                             </div>
                             {config.orders_enabled !== false && (

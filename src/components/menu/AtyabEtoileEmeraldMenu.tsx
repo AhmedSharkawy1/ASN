@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { X, MapPin, ShoppingCart } from "lucide-react";
-import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa";
+import { FaWhatsapp, FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
@@ -119,6 +119,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: Item; cName: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    const [itemNotes, setItemNotes] = useState('');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "", notes: "" });
 
@@ -133,6 +134,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
         if (config.orders_enabled === false) return;
         setSelectedItem({ item, cName });
         setTempSizeIdx(0);
+        setItemNotes('');
         haptic(10);
     };
 
@@ -141,13 +143,13 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
         const { item, cName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || (isAr ? "عادي" : "Regular");
-        const cartId = `${item.id}-${sizeLabel}`;
+        const cartId = `${item.id}-${sizeLabel}-${itemNotes}`;
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
             return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName }];
         });
-        setSelectedItem(null);
+        setSelectedItem(null); setItemNotes('');
         haptic(20);
     };
 
@@ -556,6 +558,11 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                                     <FaInstagram className="w-5 h-5" />
                                 </a>
                             )}
+                            {config.tiktok_url && (
+                                <a href={config.tiktok_url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white flex items-center justify-center hover:bg-white hover:text-[#059669] transition-colors">
+                                    <FaTiktok className="w-5 h-5" />
+                                </a>
+                            )}
                         </div>
 
                         {/* QR Code */}
@@ -703,11 +710,11 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
             {/* ═══════ ITEM SELECT MODAL ═══════ */}
             <AnimatePresence>
                 {selectedItem && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex bg-black/60 items-center justify-center backdrop-blur-md py-16 px-6 mb-safe" onClick={() => setSelectedItem(null)}>
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex bg-black/60 items-center justify-center backdrop-blur-md py-16 px-6 mb-safe" onClick={() => { setSelectedItem(null); setItemNotes(''); }}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="w-[85vw] max-w-[310px] mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden  max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                             <div className="relative aspect-video bg-gray-100 dark:bg-black overflow-hidden">
                                 <img src={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-cover" onError={handleImageError} />
-                                <button onClick={() => setSelectedItem(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
+                                <button onClick={() => { setSelectedItem(null); setItemNotes(''); }} className="absolute top-4 right-4 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 text-white text-right">
@@ -738,6 +745,16 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                                 </div>
                             </div>
                             <div className="p-4 bg-gray-50 dark:bg-black/20 border-t border-[#34d399] dark:border-[#333]">
+                                
+                                {/* Notes */}
+                                <textarea value={itemNotes} onChange={e => setItemNotes(e.target.value)}
+                                    placeholder={isAr ? 'ملاحظات خاصة (اختياري)' : 'Special notes (optional)'}
+                                    className="w-full rounded-xl p-3 text-sm text-right outline-none resize-none h-20 mt-3 border transition-colors focus:border-opacity-50"
+                                    style={{
+                                        background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                                        borderColor: isDark ? '#27272a' : '#e2e8f0',
+                                        color: isDark ? '#fff' : '#0f172a',
+                                    }} />
                                 <button onClick={addToCart} className="w-full text-white py-3 rounded-xl font-bold shadow-md hover:opacity-90 active:scale-95 transition-all" style={{ backgroundColor: PRIMARY }}>
                                     {isAr ? "إضافة للسلة" : "Add to Cart"} = {selectedItem.item.prices[tempSizeIdx]} {currency}
                                 </button>

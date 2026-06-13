@@ -77,6 +77,7 @@ type CartItem = {
     size_label: string;
     quantity: number;
     category_name: string;
+    notes?: string;
 };
 
 interface Props {
@@ -96,6 +97,7 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: Item; catName: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    const [itemNotes, setItemNotes] = useState('');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
     const [showBottomCallModal, setShowBottomCallModal] = useState(false);
@@ -175,6 +177,7 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
         triggerHaptic(20);
         setSelectedItem({ item, catName });
         setTempSizeIdx(priceIdx);
+        setItemNotes('');
     };
 
     const addToCart = () => {
@@ -182,11 +185,12 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
         const { item, catName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || "عادي";
-        const cartId = `${item.id}-${sizeLabel}`;
+        const notesKey = itemNotes.trim() ? `-${itemNotes.trim().slice(0, 20)}` : '';
+        const cartId = `${item.id}-${sizeLabel}${notesKey}`;
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
-            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: catName }];
+            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: catName, notes: itemNotes.trim() || undefined }];
         });
         setSelectedItem(null);
         triggerHaptic(20);
@@ -544,7 +548,7 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
                     <motion.div
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 md: backdrop-blur-md py-16 px-6 mb-safe"
-                        onClick={() => setSelectedItem(null)}
+                        onClick={() => { setSelectedItem(null); setItemNotes(''); }}
                     >
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
@@ -553,7 +557,7 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
                             onClick={(e) => e.stopPropagation()}
                         >
                             <div className="p-6 border-b border-zinc-100 dark:border-white/5 flex items-center justify-between">
-                                <button onClick={() => setSelectedItem(null)} className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black transition-all active:scale-90 hover:bg-cyan-600 hover:text-white">✕</button>
+                                <button onClick={() => { setSelectedItem(null); setItemNotes(''); }} className="w-10 h-10 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center font-black transition-all active:scale-90 hover:bg-cyan-600 hover:text-white">✕</button>
                                 <div className="text-right">
                                     <h3 className="text-xl font-black text-zinc-900 dark:text-white leading-none">{isAr ? selectedItem.item.title_ar : (selectedItem.item.title_en || selectedItem.item.title_ar)}</h3>
                                     <p className="text-[10px] text-cyan-600 font-black mt-1 uppercase tracking-widest">{selectedItem.catName}</p>
@@ -576,6 +580,18 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+                                {/* Notes Textarea */}
+                                <div>
+                                    <h4 className="text-[11px] font-black text-right mb-3 text-zinc-400 uppercase tracking-widest">{isAr ? "ملاحظات" : "Notes"}</h4>
+                                    <textarea
+                                        value={itemNotes}
+                                        onChange={(e) => setItemNotes(e.target.value)}
+                                        placeholder={isAr ? "أضف ملاحظاتك هنا... (مثال: بدون بصل)" : "Add your notes here... (e.g. no onions)"}
+                                        className="w-full bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 rounded-2xl p-3 text-sm text-right font-bold text-zinc-700 dark:text-zinc-300 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500 dark:focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 resize-none transition-colors"
+                                        rows={2}
+                                        dir="rtl"
+                                    />
                                 </div>
                             </div>
                             <div className="p-6 bg-zinc-50 dark:bg-white/5 border-t border-zinc-100 dark:border-white/5">

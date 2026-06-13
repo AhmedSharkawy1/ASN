@@ -112,6 +112,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
     const [showCart, setShowCart] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: Item; cName: string } | null>(null);
     const [tempSizeIdx, setTempSizeIdx] = useState(0);
+    const [itemNotes, setItemNotes] = useState('');
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [customerInfo, setCustomerInfo] = useState({ name: "", phone: "", address: "" });
     const [showBottomCallModal, setShowBottomCallModal] = useState(false);
@@ -185,6 +186,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
         if (config.orders_enabled === false) return; // Prevent opening if orders are disabled
         setSelectedItem({ item, cName });
         setTempSizeIdx(0);
+        setItemNotes('');
         haptic(10);
     };
 
@@ -193,13 +195,13 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
         const { item, cName } = selectedItem;
         const price = item.prices ? parseFloat(item.prices[tempSizeIdx]?.toString()) : 0;
         const sizeLabel = item.size_labels?.[tempSizeIdx] || "عادي";
-        const cartId = `${item.id}-${sizeLabel}`;
+        const cartId = `${item.id}-${sizeLabel}-${itemNotes}`;
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
             return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName }];
         });
-        setSelectedItem(null);
+        setSelectedItem(null); setItemNotes('');
         haptic(20);
     };
 
@@ -522,13 +524,13 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                 {selectedItem && config.orders_enabled !== false && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 sm: backdrop-blur-md py-16 px-6 mb-safe"
-                        onClick={() => setSelectedItem(null)}>
+                        onClick={() => { setSelectedItem(null); setItemNotes(''); }}>
                         <motion.div
                             initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} transition={{ type: "spring", damping: 25, stiffness: 300 }}
                             className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white w-[85vw] max-w-[310px] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-auto max-h-[85vh] border border-zinc-200 dark:border-white/10 mx-auto"
                             onClick={(e) => e.stopPropagation()}>
                             <div className="p-6 border-b border-zinc-200 dark:border-white/10 flex items-center justify-between">
-                                <button onClick={() => setSelectedItem(null)} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
+                                <button onClick={() => { setSelectedItem(null); setItemNotes(''); }} className="w-10 h-10 bg-zinc-100 dark:bg-white/5 rounded-full flex items-center justify-center font-bold active:scale-95"><X className="w-5 h-5" /></button>
                                 <div className="text-right">
                                     <h3 className="text-xl font-black text-[#eab308]">{isAr ? selectedItem.item.title_ar : selectedItem.item.title_en || selectedItem.item.title_ar}</h3>
                                     <p className="text-[10px] text-[#eab308]/60 font-black uppercase tracking-widest">{selectedItem.cName}</p>
@@ -554,6 +556,16 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                             </div>
 
                             <div className="p-6 bg-zinc-50 dark:bg-white/5 border-t border-zinc-200 dark:border-white/10">
+                                
+                                {/* Notes */}
+                                <textarea value={itemNotes} onChange={e => setItemNotes(e.target.value)}
+                                    placeholder={isAr ? 'ملاحظات خاصة (اختياري)' : 'Special notes (optional)'}
+                                    className="w-full rounded-xl p-3 text-sm text-right outline-none resize-none h-20 mt-3 border transition-colors focus:border-opacity-50"
+                                    style={{
+                                        background: isDark ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                                        borderColor: isDark ? '#27272a' : '#e2e8f0',
+                                        color: isDark ? '#fff' : '#0f172a',
+                                    }} />
                                 <button onClick={addToCart}
                                     className="w-full bg-[#eab308] text-black font-black py-4 rounded-3xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition-all text-lg">
                                     <ShoppingCart className="w-5 h-5" />

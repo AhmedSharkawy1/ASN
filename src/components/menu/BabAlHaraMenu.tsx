@@ -4,7 +4,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "next-themes";
 // lucide-react icons used elsewhere
-import { FaWhatsapp, FaFacebook, FaInstagram } from "react-icons/fa";
+import { FaWhatsapp, FaFacebook, FaInstagram, FaTiktok } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Plus, Minus } from "lucide-react";
 import SharedMarquee from "./SharedMarquee";
@@ -78,6 +78,7 @@ type CartItem = {
     quantity: number;
     categoryType?: "savory" | "sweet";
     category_name: string;
+    notes?: string;
 };
 
 type Props = {
@@ -205,6 +206,10 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
     };
 
     const qtyInCart = (item: Item, sizeLabel: string) => cart.find(c => c.item.id === item.id && c.size_label === sizeLabel)?.quantity || 0;
+
+    const updateCartNote = (cartId: string, note: string) => {
+        setCart(prev => prev.map(c => c.id === cartId ? { ...c, notes: note } : c));
+    };
 
     const currency = config.currency || (isAr ? "ج.م" : "EGP");
     const PRIMARY = "#e31e24";
@@ -468,6 +473,16 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                             <FaInstagram className="w-5 h-5" />
                         </div>
                         <span className="text-[9px] font-black text-zinc-500">{isAr ? "انستجرام" : "Instagram"}</span>
+                    </a>
+                )}
+
+
+                {config.tiktok_url && (
+                    <a href={config.tiktok_url} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1 flex-1">
+                        <div className="w-9 h-9 flex items-center justify-center bg-black/10 dark:bg-white/10 text-black dark:text-white rounded-xl active:scale-90 transition-transform">
+                            <FaTiktok className="w-5 h-5" />
+                        </div>
+                        <span className="text-[9px] font-black text-zinc-500">{isAr ? "تيك توك" : "TikTok"}</span>
                     </a>
                 )}
 
