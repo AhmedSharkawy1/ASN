@@ -561,7 +561,7 @@ export default function Theme13CyanMenu({ config, categories, restaurantId }: Th
                                                 </div>
 
                                                 <div className="flex justify-between items-end mt-2 pt-2 border-t" style={{ borderColor }}>
-                                                    <div className="flex flex-col gap-1 w-full max-h-[70px] overflow-y-auto pr-1 custom-scrollbar">
+                                                    <div className="flex flex-col gap-1 w-full pr-1">
                                                         {item.prices.map((p, pIdx) => (
                                                             <div key={pIdx} className="flex items-center gap-2">
                                                                 <span className="font-bold text-sm md:text-base whitespace-nowrap" style={{ color: primaryColor }}>

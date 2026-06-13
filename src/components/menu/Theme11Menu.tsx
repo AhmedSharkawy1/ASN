@@ -501,7 +501,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                                             </div>
 
                                             <div className=" pt-2 flex flex-col justify-end gap-y-1">
-                                                <div className="max-h-[60px] overflow-y-auto pr-1 flex flex-col gap-1 custom-scrollbar">
+                                                <div className="flex flex-col gap-1 pr-1">
                                                     {item.prices.map((price, pIdx) => (
                                                         <div key={pIdx} className="flex flex-row items-center gap-2">
                                                             {item.size_labels?.[pIdx] && (
