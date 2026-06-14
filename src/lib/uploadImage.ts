@@ -5,7 +5,7 @@ const BUCKET_NAME = 'menu-images';
 /**
  * Resizes and compresses an image using Canvas
  */
-async function compressImage(file: File | Blob, maxWidth = 1200, quality = 0.9): Promise<Blob> {
+async function compressImage(file: File | Blob, maxWidth = 600, quality = 0.75): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -53,7 +53,7 @@ export async function uploadImage(file: File | Blob, folder: string): Promise<st
         const { error } = await supabase.storage
             .from(BUCKET_NAME)
             .upload(fileName, compressedBlob, {
-                cacheControl: '3600',
+                cacheControl: '31536000',
                 upsert: false,
                 contentType: 'image/webp'
             });

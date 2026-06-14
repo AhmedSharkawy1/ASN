@@ -848,6 +848,8 @@ function SmartMenuContent({
               src={activeCatData.image_url}
               alt="Category Cover"
               className="w-full h-full object-cover"
+              loading="eager"
+              decoding="async"
             />
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
               <h2 className="text-white text-2xl font-black">
@@ -898,6 +900,10 @@ function SmartMenuContent({
                             src={item.image_url}
                             alt={item.title_ar}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                            width={100}
+                            height={100}
                           />
                         </div>
                       ) : (
@@ -1012,6 +1018,7 @@ function SmartMenuContent({
                       src={selectedItem.item.image_url}
                       alt=""
                       className="w-full h-full object-cover"
+                      decoding="async"
                     />
                   </div>
                 )}
