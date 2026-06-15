@@ -720,7 +720,7 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex bg-black/60 items-center justify-center backdrop-blur-md py-16 px-6 mb-safe" onClick={() => { setSelectedItem(null); setItemNotes(''); }}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="w-[85vw] max-w-[310px] mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden  max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                             <div className="relative aspect-video bg-gray-100 dark:bg-black overflow-hidden">
-                                <img src={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-cover" onError={handleImageError} />
+                                <img src={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-contain" onError={handleImageError} />
                                 <button onClick={() => { setSelectedItem(null); setItemNotes(''); }} className="absolute top-4 right-4 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>

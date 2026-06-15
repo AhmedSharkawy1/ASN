@@ -1017,7 +1017,7 @@ function SmartMenuContent({
                     <img
                       src={selectedItem.item.image_url}
                       alt=""
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       decoding="async"
                     />
                   </div>

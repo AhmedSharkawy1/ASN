@@ -668,7 +668,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                             <div className="w-full h-[35vh] md:h-24 shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
                                 <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
-                                    alt={itemName(selectedItem.item)} className="w-full h-full object-cover" />
+                                    alt={itemName(selectedItem.item)} className="w-full h-full object-contain" />
 
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                     <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow-md mb-1 leading-tight">{itemName(selectedItem.item)}</h2>

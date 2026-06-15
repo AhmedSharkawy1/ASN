@@ -540,7 +540,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
                             <div className="flex-1 overflow-y-auto p-6">
                                 {selectedItem.item.image_url && (
                                     <div className="w-full h-40 rounded-[1.5rem] overflow-hidden mb-6 shadow-md">
-                                        <img src={selectedItem.item.image_url} alt="" className="w-full h-full object-cover" />
+                                        <img src={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" />
                                     </div>
                                 )}
                                 <h4 className="text-sm font-black text-right mb-4 opacity-70 uppercase tracking-widest">{isAr ? "اختر الحجم / السعر" : "Select Size / Variation"}</h4>
