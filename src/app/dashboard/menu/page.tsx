@@ -5,7 +5,7 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
-import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen } from "lucide-react";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
 import { exportMenuImages, importMenuImages } from "@/lib/menuImages";
 import { motion, AnimatePresence } from "framer-motion";
@@ -478,6 +478,26 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
     const [saving, setSaving] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
+    const handlePasteClick = async () => {
+        try {
+            const clipboardItems = await navigator.clipboard.read();
+            for (const clipboardItem of clipboardItems) {
+                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
+                for (const imageType of imageTypes) {
+                    const blob = await clipboardItem.getType(imageType);
+                    const file = new File([blob], "pasted-image.png", { type: imageType });
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    return;
+                }
+            }
+            alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
+        } catch (err) {
+            console.error(err);
+            alert(language === "ar" ? "لم نتمكن من قراءة الصورة. يرجى التأكد من إعطاء الصلاحية للمتصفح." : "Could not read clipboard. Please ensure you allow clipboard access.");
+        }
+    };
+
     const handlePaste = (e: React.ClipboardEvent) => {
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
@@ -552,6 +572,10 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
                         className="flex items-center gap-2 px-4 py-2.5 bg-blue/10 text-blue font-bold text-base rounded-xl hover:bg-blue/20 transition-colors">
                         <Upload className="w-5 h-5" /> {language === "ar" ? "رفع صورة غلاف" : "Upload Cover"}
                     </button>
+                    <button type="button" onClick={handlePasteClick}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-base rounded-xl hover:bg-purple-500/20 transition-colors" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
+                        <ClipboardPaste className="w-5 h-5" /> {language === "ar" ? "لصق صورة" : "Paste Image"}
+                    </button>
                     {imagePreview && <img src={imagePreview} alt="" className="w-14 h-14 rounded-xl object-cover border border-glass-border" />}
                 </div>
                 <div className="flex items-center gap-3 pt-2 border-t border-glass-border">
@@ -588,6 +612,26 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
+
+    const handlePasteClick = async () => {
+        try {
+            const clipboardItems = await navigator.clipboard.read();
+            for (const clipboardItem of clipboardItems) {
+                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
+                for (const imageType of imageTypes) {
+                    const blob = await clipboardItem.getType(imageType);
+                    const file = new File([blob], "pasted-image.png", { type: imageType });
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    return;
+                }
+            }
+            alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
+        } catch (err) {
+            console.error(err);
+            alert(language === "ar" ? "لم نتمكن من قراءة الصورة. يرجى التأكد من إعطاء الصلاحية للمتصفح." : "Could not read clipboard. Please ensure you allow clipboard access.");
+        }
+    };
 
     const handlePaste = (e: React.ClipboardEvent) => {
         const items = e.clipboardData.items;
@@ -727,6 +771,10 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
                             className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 font-bold text-xs rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition">
                             <Upload className="w-3 h-3" /> {language === "ar" ? "رفع صورة" : "Upload Image"}
                         </button>
+                        <button type="button" onClick={handlePasteClick}
+                            className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs rounded-xl hover:bg-purple-500/20 transition" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
+                            <ClipboardPaste className="w-3 h-3" /> {language === "ar" ? "لصق" : "Paste"}
+                        </button>
                         {imagePreview && <img src={imagePreview} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
                     </div>
                 </div>
@@ -811,6 +859,27 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
 
     const handleSave = async () => { await onUpdate({ name_ar: nameAr, name_en: nameEn || nameAr, emoji }); onClose(); };
 
+    const handlePasteClick = async () => {
+        try {
+            const clipboardItems = await navigator.clipboard.read();
+            for (const clipboardItem of clipboardItems) {
+                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
+                for (const imageType of imageTypes) {
+                    const blob = await clipboardItem.getType(imageType);
+                    const file = new File([blob], "pasted-image.png", { type: imageType });
+                    setUploading(true);
+                    await onImageUpload(file);
+                    setUploading(false);
+                    return;
+                }
+            }
+            alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
+        } catch (err) {
+            console.error(err);
+            alert(language === "ar" ? "لم نتمكن من قراءة الصورة. يرجى التأكد من إعطاء الصلاحية للمتصفح." : "Could not read clipboard. Please ensure you allow clipboard access.");
+        }
+    };
+
     const handlePaste = async (e: React.ClipboardEvent) => {
         const items = e.clipboardData.items;
         for (let i = 0; i < items.length; i++) {
@@ -857,11 +926,15 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
                     <input value={emoji} onChange={e => setEmoji(e.target.value)} maxLength={4} className="w-full px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base text-center font-bold" />
                 </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                     className="flex items-center gap-2 px-3 py-2 bg-blue/10 text-blue font-bold text-sm rounded-lg disabled:opacity-50">
                     <Upload className="w-4 h-4" /> {uploading ? "..." : (language === "ar" ? "رفع صورة غلاف" : "Upload Cover")}
+                </button>
+                <button type="button" onClick={handlePasteClick} disabled={uploading}
+                    className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-sm rounded-lg disabled:opacity-50" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
+                    <ClipboardPaste className="w-4 h-4" /> {language === "ar" ? "لصق" : "Paste"}
                 </button>
                 {cat.image_url && <img src={cat.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
             </div>
@@ -891,6 +964,27 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
     const handleSave = async () => {
         await onUpdate({ title_ar: titleAr, title_en: titleEn, desc_ar: descAr, desc_en: descEn, prices: localPrices, size_labels: localLabels, sell_by_weight: sellByWeight, weight_unit: sellByWeight ? weightUnit : undefined });
         onClose();
+    };
+
+    const handlePasteClick = async () => {
+        try {
+            const clipboardItems = await navigator.clipboard.read();
+            for (const clipboardItem of clipboardItems) {
+                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
+                for (const imageType of imageTypes) {
+                    const blob = await clipboardItem.getType(imageType);
+                    const file = new File([blob], "pasted-image.png", { type: imageType });
+                    setUploading(true);
+                    await onImageUpload(file);
+                    setUploading(false);
+                    return;
+                }
+            }
+            alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
+        } catch (err) {
+            console.error(err);
+            alert(language === "ar" ? "لم نتمكن من قراءة الصورة. يرجى التأكد من إعطاء الصلاحية للمتصفح." : "Could not read clipboard. Please ensure you allow clipboard access.");
+        }
     };
 
     const handlePaste = async (e: React.ClipboardEvent) => {
@@ -968,11 +1062,15 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
                         className="w-full mt-1 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" placeholder="كجم" />
                 </div>
             )}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                     className="flex items-center gap-2 px-3 py-2 bg-blue/10 text-blue font-bold text-sm rounded-lg disabled:opacity-50">
                     <Upload className="w-4 h-4" /> {uploading ? "..." : (language === "ar" ? "رفع صورة" : "Upload Image")}
+                </button>
+                <button type="button" onClick={handlePasteClick} disabled={uploading}
+                    className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-sm rounded-lg disabled:opacity-50" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
+                    <ClipboardPaste className="w-4 h-4" /> {language === "ar" ? "لصق" : "Paste"}
                 </button>
                 {item.image_url && <img src={item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
             </div>
