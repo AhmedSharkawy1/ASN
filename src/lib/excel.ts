@@ -152,24 +152,39 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     existingInv.forEach(i => invMap.set(i.name.trim().toLowerCase(), { id: i.id, unit: i.unit || 'كيلو' }));
                 }
 
+                let catOrderCounter = 1;
+                const processedCats = new Set<string>();
+
                 // Process categories
                 for (const row of rows) {
                     const catAr = String(row['Category AR'] || '').trim();
                     if (!catAr) continue;
 
-                    if (!catMap.has(catAr)) {
-                        const { data: newCat } = await supabase.from('categories').insert({
-                            restaurant_id: restaurantId,
-                            name_ar: catAr,
-                            name_en: String(row['Category EN'] || '').trim() || catAr,
-                            emoji: String(row['Emoji'] || '').trim() || '🍽️'
-                        }).select('id').single();
+                    if (!processedCats.has(catAr)) {
+                        processedCats.add(catAr);
 
-                        if (newCat) {
-                            catMap.set(catAr, newCat.id);
+                        if (!catMap.has(catAr)) {
+                            const { data: newCat } = await supabase.from('categories').insert({
+                                restaurant_id: restaurantId,
+                                name_ar: catAr,
+                                name_en: String(row['Category EN'] || '').trim() || catAr,
+                                emoji: String(row['Emoji'] || '').trim() || '🍽️',
+                                sort_order: catOrderCounter++
+                            }).select('id').single();
+
+                            if (newCat) {
+                                catMap.set(catAr, newCat.id);
+                            }
+                        } else {
+                            // Update sort_order for existing category to match file order
+                            await supabase.from('categories')
+                                .update({ sort_order: catOrderCounter++ })
+                                .eq('id', catMap.get(catAr));
                         }
                     }
                 }
+
+                let itemOrderCounter = 1;
 
                 // Process items sequentially to handle relational linking reliably
                 for (const row of rows) {
@@ -303,7 +318,8 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                         weight_unit: String(row['الوحدة'] || 'كجم').trim() || null,
                         is_available: true,
                         inventory_item_id: inventoryItemId,
-                        recipe_id: recipeId
+                        recipe_id: recipeId,
+                        sort_order: itemOrderCounter++
                     });
 
                     if (!itemError) {
