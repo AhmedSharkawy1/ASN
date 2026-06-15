@@ -345,8 +345,8 @@ export default function Theme9CyanMenu({ config, categories, restaurantId }: The
                 <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-6 md:p-12">
                     <div className="flex items-center gap-6 w-full max-w-6xl mx-auto">
                         <img src={config.logo_url} alt="Logo" className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 shadow-xl flex-shrink-0" style={{ borderColor: T9_RED }} />
-                        <div>
-                            <h1 className="text-white text-3xl md:text-5xl font-black drop-shadow-md mb-2 tracking-tight">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-white text-2xl md:text-4xl font-black drop-shadow-md mb-2 tracking-tight whitespace-normal break-words">
                                 {config.name}
                             </h1>
                             <p className="text-white/90 text-sm md:text-lg font-medium drop-shadow-sm line-clamp-2 max-w-2xl">
@@ -871,10 +871,16 @@ export default function Theme9CyanMenu({ config, categories, restaurantId }: The
                 {/* Phone Dropdown Modal (outsided scroll container) */}
                 <AnimatePresence>
                     {isPhoneMenuOpen && (
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="fixed bottom-[80px] left-1/2 -translate-x-1/2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-[0_-5px_20px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-slate-700 py-2 z-[110] overflow-hidden"
-                        >
+                        <>
+                            <motion.div 
+                                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+                                className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm"
+                                onClick={() => setIsPhoneMenuOpen(false)}
+                            />
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-700 py-2 z-[110] overflow-hidden"
+                            >
                             <div className="px-4 py-2 border-b border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-500 uppercase text-center" dir={isAr ? 'rtl' : 'ltr'}>
                                 أرقام الديلفري
                             </div>
@@ -888,6 +894,7 @@ export default function Theme9CyanMenu({ config, categories, restaurantId }: The
                                                     </a>
                                                 ))}
                         </motion.div>
+                        </>
                     )}
                 </AnimatePresence>
             </div>
