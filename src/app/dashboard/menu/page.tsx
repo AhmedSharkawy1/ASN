@@ -5,6 +5,7 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
+import { getBestImageFromClipboard, getBestImageFromPasteEvent } from "@/lib/clipboardImage";
 import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
 import { exportMenuImages, importMenuImages } from "@/lib/menuImages";
@@ -480,16 +481,11 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
 
     const handlePasteClick = async () => {
         try {
-            const clipboardItems = await navigator.clipboard.read();
-            for (const clipboardItem of clipboardItems) {
-                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
-                for (const imageType of imageTypes) {
-                    const blob = await clipboardItem.getType(imageType);
-                    const file = new File([blob], "pasted-image.png", { type: imageType });
-                    setImageFile(file);
-                    setImagePreview(URL.createObjectURL(file));
-                    return;
-                }
+            const file = await getBestImageFromClipboard();
+            if (file) {
+                setImageFile(file);
+                setImagePreview(URL.createObjectURL(file));
+                return;
             }
             alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
         } catch (err) {
@@ -498,17 +494,11 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
         }
     };
 
-    const handlePaste = (e: React.ClipboardEvent) => {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const file = items[i].getAsFile();
-                if (file) {
-                    setImageFile(file);
-                    setImagePreview(URL.createObjectURL(file));
-                    break;
-                }
-            }
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const file = await getBestImageFromPasteEvent(e);
+        if (file) {
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
         }
     };
 
@@ -615,16 +605,11 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
 
     const handlePasteClick = async () => {
         try {
-            const clipboardItems = await navigator.clipboard.read();
-            for (const clipboardItem of clipboardItems) {
-                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
-                for (const imageType of imageTypes) {
-                    const blob = await clipboardItem.getType(imageType);
-                    const file = new File([blob], "pasted-image.png", { type: imageType });
-                    setImageFile(file);
-                    setImagePreview(URL.createObjectURL(file));
-                    return;
-                }
+            const file = await getBestImageFromClipboard();
+            if (file) {
+                setImageFile(file);
+                setImagePreview(URL.createObjectURL(file));
+                return;
             }
             alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
         } catch (err) {
@@ -633,17 +618,11 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
         }
     };
 
-    const handlePaste = (e: React.ClipboardEvent) => {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const file = items[i].getAsFile();
-                if (file) {
-                    setImageFile(file);
-                    setImagePreview(URL.createObjectURL(file));
-                    break;
-                }
-            }
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const file = await getBestImageFromPasteEvent(e);
+        if (file) {
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
         }
     };
 
@@ -861,17 +840,12 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
 
     const handlePasteClick = async () => {
         try {
-            const clipboardItems = await navigator.clipboard.read();
-            for (const clipboardItem of clipboardItems) {
-                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
-                for (const imageType of imageTypes) {
-                    const blob = await clipboardItem.getType(imageType);
-                    const file = new File([blob], "pasted-image.png", { type: imageType });
-                    setUploading(true);
-                    await onImageUpload(file);
-                    setUploading(false);
-                    return;
-                }
+            const file = await getBestImageFromClipboard();
+            if (file) {
+                setUploading(true);
+                await onImageUpload(file);
+                setUploading(false);
+                return;
             }
             alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
         } catch (err) {
@@ -881,17 +855,11 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
     };
 
     const handlePaste = async (e: React.ClipboardEvent) => {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const file = items[i].getAsFile();
-                if (file) {
-                    setUploading(true);
-                    await onImageUpload(file);
-                    setUploading(false);
-                    break;
-                }
-            }
+        const file = await getBestImageFromPasteEvent(e);
+        if (file) {
+            setUploading(true);
+            await onImageUpload(file);
+            setUploading(false);
         }
     };
 
@@ -968,17 +936,12 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
 
     const handlePasteClick = async () => {
         try {
-            const clipboardItems = await navigator.clipboard.read();
-            for (const clipboardItem of clipboardItems) {
-                const imageTypes = clipboardItem.types.filter(type => type.startsWith('image/'));
-                for (const imageType of imageTypes) {
-                    const blob = await clipboardItem.getType(imageType);
-                    const file = new File([blob], "pasted-image.png", { type: imageType });
-                    setUploading(true);
-                    await onImageUpload(file);
-                    setUploading(false);
-                    return;
-                }
+            const file = await getBestImageFromClipboard();
+            if (file) {
+                setUploading(true);
+                await onImageUpload(file);
+                setUploading(false);
+                return;
             }
             alert(language === "ar" ? "لم يتم العثور على صورة في الحافظة." : "No image found in clipboard.");
         } catch (err) {
@@ -988,17 +951,11 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
     };
 
     const handlePaste = async (e: React.ClipboardEvent) => {
-        const items = e.clipboardData.items;
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf('image') !== -1) {
-                const file = items[i].getAsFile();
-                if (file) {
-                    setUploading(true);
-                    await onImageUpload(file);
-                    setUploading(false);
-                    break;
-                }
-            }
+        const file = await getBestImageFromPasteEvent(e);
+        if (file) {
+            setUploading(true);
+            await onImageUpload(file);
+            setUploading(false);
         }
     };
 
