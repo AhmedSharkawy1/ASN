@@ -5,7 +5,7 @@ const BUCKET_NAME = 'menu-images';
 /**
  * Resizes and compresses an image using Canvas
  */
-async function compressImage(file: File | Blob, maxWidth = 1200, quality = 0.90): Promise<Blob> {
+async function compressImage(file: File | Blob, maxWidth = 1200, defaultQuality = 0.90): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -27,13 +27,16 @@ async function compressImage(file: File | Blob, maxWidth = 1200, quality = 0.90)
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
+                // If image file size is less than 500KB (512000 bytes), use 100% quality
+                const finalQuality = (file.size < 500 * 1024) ? 1.0 : defaultQuality;
+
                 canvas.toBlob(
                     (blob) => {
                         if (blob) resolve(blob);
                         else reject(new Error('Canvas to Blob failed'));
                     },
                     'image/webp',
-                    quality
+                    finalQuality
                 );
             };
         };
