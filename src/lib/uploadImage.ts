@@ -50,15 +50,30 @@ async function compressImage(file: File | Blob, maxWidth = 1200, defaultQuality 
  */
 export async function uploadImage(file: File | Blob, folder: string): Promise<string | null> {
     try {
-        const compressedBlob = await compressImage(file);
-        const fileName = `${folder}/${crypto.randomUUID()}.webp`;
+        let finalBlob: Blob = file;
+        let ext = 'webp';
+        let contentType = 'image/webp';
+
+        // If image file size is less than 500KB (512000 bytes), skip compression to preserve 100% quality
+        if (file.size < 500 * 1024) {
+            finalBlob = file;
+            contentType = file.type || 'image/jpeg';
+            if (contentType === 'image/png') ext = 'png';
+            else if (contentType === 'image/jpeg') ext = 'jpg';
+            else if (contentType === 'image/gif') ext = 'gif';
+            else ext = contentType.split('/')[1] || 'png';
+        } else {
+            finalBlob = await compressImage(file);
+        }
+
+        const fileName = `${folder}/${crypto.randomUUID()}.${ext}`;
 
         const { error } = await supabase.storage
             .from(BUCKET_NAME)
-            .upload(fileName, compressedBlob, {
+            .upload(fileName, finalBlob, {
                 cacheControl: '31536000',
                 upsert: false,
-                contentType: 'image/webp'
+                contentType: contentType
             });
 
         if (error) {
