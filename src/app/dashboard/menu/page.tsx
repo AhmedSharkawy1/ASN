@@ -478,6 +478,20 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
     const [saving, setSaving] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    break;
+                }
+            }
+        }
+    };
+
     const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)); }
@@ -505,6 +519,7 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
 
     return (
         <motion.div initial={{ opacity: 0, y: -20, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -20, height: 0 }}
+            onPaste={handlePaste}
             className="bg-white dark:bg-card border-2 border-blue/30 rounded-2xl overflow-hidden shadow-lg">
             <div className="bg-blue/5 px-6 py-4 border-b border-blue/20 flex items-center justify-between">
                 <h3 className="font-bold text-blue text-lg flex items-center gap-2">
@@ -574,6 +589,20 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
     const [saving, setSaving] = useState(false);
     const fileRef = useRef<HTMLInputElement>(null);
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    break;
+                }
+            }
+        }
+    };
+
     const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)); }
@@ -609,6 +638,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
 
     return (
         <motion.div initial={{ opacity: 0, y: 20, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: 20, height: 0 }}
+            onPaste={handlePaste}
             className="bg-white dark:bg-card border-2 border-slate-200 dark:border-glass-border rounded-2xl overflow-hidden shadow-lg">
             <div className="bg-slate-50 dark:bg-glass-dark px-6 py-4 border-b border-slate-200 dark:border-glass-border flex items-center justify-between">
                 <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2">
@@ -781,6 +811,21 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
 
     const handleSave = async () => { await onUpdate({ name_ar: nameAr, name_en: nameEn || nameAr, emoji }); onClose(); };
 
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    setUploading(true);
+                    await onImageUpload(file);
+                    setUploading(false);
+                    break;
+                }
+            }
+        }
+    };
+
     const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -790,7 +835,7 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
     };
 
     return (
-        <div className="space-y-4 bg-blue/5 p-4 rounded-xl border border-blue/20">
+        <div onPaste={handlePaste} className="space-y-4 bg-blue/5 p-4 rounded-xl border border-blue/20">
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل القسم" : "Edit Category"}</h3>
                 <div className="flex gap-2">
@@ -848,13 +893,28 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
         onClose();
     };
 
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    setUploading(true);
+                    await onImageUpload(file);
+                    setUploading(false);
+                    break;
+                }
+            }
+        }
+    };
+
     const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]; if (!file) return;
         setUploading(true); await onImageUpload(file); setUploading(false);
     };
 
     return (
-        <div className="space-y-4 bg-blue/5 p-4 rounded-xl border border-blue/20">
+        <div onPaste={handlePaste} className="space-y-4 bg-blue/5 p-4 rounded-xl border border-blue/20">
             <div className="flex items-center justify-between">
                 <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل الصنف" : "Edit Item"}</h3>
                 <div className="flex gap-2">
