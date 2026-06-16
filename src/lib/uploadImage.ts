@@ -6,7 +6,7 @@ const BUCKET_NAME = 'menu-images';
  * Resizes and compresses an image using Canvas.
  * Targets ~30-60KB per image while maintaining good visual quality.
  */
-async function compressImage(file: File | Blob, maxWidth = 800, quality = 0.82): Promise<Blob> {
+async function compressImage(file: File | Blob, maxWidth = 800, quality = 0.70): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
