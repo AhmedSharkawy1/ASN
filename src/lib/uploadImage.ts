@@ -3,9 +3,10 @@ import { supabase } from './supabase/client';
 const BUCKET_NAME = 'menu-images';
 
 /**
- * Resizes and compresses an image using Canvas
+ * Resizes and compresses an image using Canvas.
+ * Targets ~30-60KB per image while maintaining good visual quality.
  */
-async function compressImage(file: File | Blob, maxWidth = 1200, defaultQuality = 0.90): Promise<Blob> {
+async function compressImage(file: File | Blob, maxWidth = 800, quality = 0.82): Promise<Blob> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -27,16 +28,13 @@ async function compressImage(file: File | Blob, maxWidth = 1200, defaultQuality 
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
-                // If image file size is less than 500KB (512000 bytes), use 100% quality
-                const finalQuality = (file.size < 500 * 1024) ? 1.0 : defaultQuality;
-
                 canvas.toBlob(
                     (blob) => {
                         if (blob) resolve(blob);
                         else reject(new Error('Canvas to Blob failed'));
                     },
                     'image/webp',
-                    finalQuality
+                    quality
                 );
             };
         };
@@ -46,25 +44,13 @@ async function compressImage(file: File | Blob, maxWidth = 1200, defaultQuality 
 
 /**
  * Upload an image to Supabase Storage and return the public URL.
- * Automatically compresses the image to save space.
+ * Always compresses to WebP for optimal file size.
  */
 export async function uploadImage(file: File | Blob, folder: string): Promise<string | null> {
     try {
-        let finalBlob: Blob = file;
-        let ext = 'webp';
-        let contentType = 'image/webp';
-
-        // If image file size is less than 500KB (512000 bytes), skip compression to preserve 100% quality
-        if (file.size < 500 * 1024) {
-            finalBlob = file;
-            contentType = file.type || 'image/jpeg';
-            if (contentType === 'image/png') ext = 'png';
-            else if (contentType === 'image/jpeg') ext = 'jpg';
-            else if (contentType === 'image/gif') ext = 'gif';
-            else ext = contentType.split('/')[1] || 'png';
-        } else {
-            finalBlob = await compressImage(file);
-        }
+        const finalBlob = await compressImage(file);
+        const ext = 'webp';
+        const contentType = 'image/webp';
 
         const fileName = `${folder}/${crypto.randomUUID()}.${ext}`;
 
