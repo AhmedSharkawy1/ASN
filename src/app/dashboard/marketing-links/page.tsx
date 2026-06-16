@@ -39,6 +39,7 @@ const MarketingThemes = [
     { key: "theme9-cyan", nameEn: "Diablo Modern - Cyan", nameAr: "ديابلو العصري - سماوي" },
     { key: "theme9-emerald", nameEn: "Diablo Modern - Emerald", nameAr: "ديابلو العصري - زمردي" },
     { key: "theme9-sky", nameEn: "Diablo Modern - Sky", nameAr: "ديابلو العصري - سماوي فاتح" },
+    { key: "theme9-pink", nameEn: "Diablo Modern - Pink", nameAr: "ديابلو العصري - بمبى وردي" },
     { key: "theme10", nameEn: "Orange Glow", nameAr: "الوهج البرتقالي" },
     { key: "theme10-cyan", nameEn: "Orange Glow - Cyan", nameAr: "الوهج البرتقالي - سماوي" },
     { key: "theme10-emerald", nameEn: "Orange Glow - Emerald", nameAr: "الوهج البرتقالي - زمردي" },
