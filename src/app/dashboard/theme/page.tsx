@@ -168,6 +168,12 @@ const THEMES = [
     { id: "theme13-emerald", name_ar: "ثيم 13 (Emerald)", name_en: "Theme13 (Emerald)", description_ar: "نفس التصميم ثيم 13 بلون Emerald", description_en: "Theme13 design with Emerald color", preview_color: "#059669" },
     { id: "theme13-sky", name_ar: "ثيم 13 (Sky)", name_en: "Theme13 (Sky)", description_ar: "نفس التصميم ثيم 13 بلون Sky", description_en: "Theme13 design with Sky color", preview_color: "#0284c7" },
     { id: "theme15-sky", name_ar: "ثيم 15 (Sky)", name_en: "Theme15 (Sky)", description_ar: "نفس التصميم ثيم 15 بلون Sky", description_en: "Theme15 design with Sky color", preview_color: "#0284c7" },
+    // ===== Theme 18 Color Variations =====
+    { id: "theme18-red", name_ar: "ثيم 18 (أحمر)", name_en: "Theme18 (Red)", description_ar: "نفس التصميم ثيم 18 بلون أحمر", description_en: "Theme18 design with Red color", preview_color: "#ef4444" },
+    { id: "theme18-cyan", name_ar: "ثيم 18 (Cyan)", name_en: "Theme18 (Cyan)", description_ar: "نفس التصميم ثيم 18 بلون Cyan", description_en: "Theme18 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme18-emerald", name_ar: "ثيم 18 (Emerald)", name_en: "Theme18 (Emerald)", description_ar: "نفس التصميم ثيم 18 بلون Emerald", description_en: "Theme18 design with Emerald color", preview_color: "#059669" },
+    { id: "theme18-sky", name_ar: "ثيم 18 (Sky)", name_en: "Theme18 (Sky)", description_ar: "نفس التصميم ثيم 18 بلون Sky", description_en: "Theme18 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme18-pink", name_ar: "ثيم 18 (وردي)", name_en: "Theme18 (Pink)", description_ar: "نفس التصميم ثيم 18 بلون وردي", description_en: "Theme18 design with Pink color", preview_color: "#ec4899" },
 ];
 
 const DEFAULT_COLORS = {
