@@ -283,7 +283,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                             </div>
                                         </div>
                                         <div className="p-4 flex flex-col justify-between h-[100px]">
-                                            <h3 className="font-bold text-lg mb-1 leading-tight line-clamp-2">{itemName(item)}</h3>
+                                            <h3 className="font-bold text-lg mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
                                             <div className="text-left mt-auto" dir="ltr">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <span className="font-black text-xl">{item.prices?.[0]} {cur}</span>
@@ -393,9 +393,9 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                             
                                             {/* Content */}
                                             <div className="p-3 pt-6 flex flex-col flex-1">
-                                                <h3 className="font-bold text-[0.95rem] mb-1 leading-tight line-clamp-1">{itemName(item)}</h3>
+                                                <h3 className="font-bold text-[0.95rem] mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
                                                 {(item.description_ar || item.desc_ar) && (
-                                                    <p className="text-[11px] mb-2 line-clamp-1" style={{ color: textMuted }}>
+                                                    <p className="text-[11px] mb-2 line-clamp-2" style={{ color: textMuted }}>
                                                         {isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}
                                                     </p>
                                                 )}
@@ -556,7 +556,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                                 </div>
                                                             </div>
                                                             <div className="p-3 text-center">
-                                                                <h4 className="font-bold text-[11px] mb-1 line-clamp-1">{itemName(item)}</h4>
+                                                                <h4 className="font-bold text-[11px] mb-1 line-clamp-2">{itemName(item)}</h4>
                                                                 <div className="flex items-center justify-center gap-1" dir="ltr">
                                                                     <span className="font-black text-[12px]" style={{ color: primaryColor }}>{item.prices?.[0]}</span>
                                                                     {item.prices?.[0] && <span className="text-[9px] line-through" style={{ color: textMuted }}>{Math.round(item.prices[0] * 1.3)}</span>}
@@ -605,7 +605,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                 <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
                                                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                                                     <div className="flex justify-between items-start">
-                                                        <h4 className="font-bold text-sm line-clamp-1">{itemName(c.item)}</h4>
+                                                        <h4 className="font-bold text-sm line-clamp-2">{itemName(c.item)}</h4>
                                                         <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
                                                     <div className="flex justify-between items-center mt-3">
