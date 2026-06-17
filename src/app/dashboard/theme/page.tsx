@@ -120,6 +120,14 @@ const THEMES = [
         description_en: "Attractive red design featuring Coverflow categories swiper and modern side-layout product cards.",
         preview_color: "#d32f2f", // Lusha Red
     },
+    {
+        id: "theme18",
+        name_ar: "منيو مصر المطابق",
+        name_en: "MenuMasr Replica",
+        description_ar: "تصميم مستوحى من منيو مصر الشهير، سريع وعملي.",
+        description_en: "Design inspired by the famous MenuMasr, fast and practical.",
+        preview_color: "#2563eb",
+    },
     // ===== PizzaPasta Color Variations =====
     { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#0891b2" },
     { id: "pizzapasta-emerald", name_ar: "PizzaPasta (Emerald)", name_en: "PizzaPasta (Emerald)", description_ar: "نفس التصميم PizzaPasta بلون Emerald", description_en: "PizzaPasta design with Emerald color", preview_color: "#059669" },

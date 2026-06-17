@@ -23,6 +23,7 @@ const ALL_THEMES = [
     { id: "theme13", name_ar: "لوكس الذهبي (ثيم 13)", name_en: "Luxe Gold (Theme 13)", preview_color: "#d4af37" },
     { id: "theme16", name_ar: "كلاسيك أحمر (ثيم 16)", name_en: "Classic Red (Theme 16)", preview_color: "#af0a13" },
     { id: "theme17", name_ar: "لوشا (الأحمر المميز - ثيم 17)", name_en: "Lusha (Premium Red - Theme 17)", preview_color: "#d32f2f" },
+    { id: "theme18", name_ar: "منيو مصر المطابق", name_en: "MenuMasr Replica", preview_color: "#e74c3c" },
     // Color Variations
     { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", preview_color: "#0891b2" },
     { id: "pizzapasta-emerald", name_ar: "PizzaPasta (Emerald)", name_en: "PizzaPasta (Emerald)", preview_color: "#059669" },

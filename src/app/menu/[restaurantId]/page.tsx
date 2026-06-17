@@ -33,6 +33,7 @@ const Theme12Menu = dynamic(() => import("@/components/Theme12Menu/Theme12Menu")
 const Theme13Menu = dynamic(() => import("@/components/menu/Theme13Menu"));
 const Theme16Menu = dynamic(() => import("@/components/menu/Theme16Menu"));
 const Theme17Menu = dynamic(() => import("@/components/menu/Theme17Menu"));
+const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
 const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
 const PizzaPastaEmeraldMenu = dynamic(() => import("@/components/menu/PizzaPastaEmeraldMenu"));
 const PizzaPastaSkyMenu = dynamic(() => import("@/components/menu/PizzaPastaSkyMenu"));
@@ -399,6 +400,10 @@ function SmartMenuContent({
   // If Theme 17 (Lusha Theme)
   if (config?.theme === "theme17") {
     return <Theme17Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme 18 (MenuMasr Replica)
+  if (config?.theme === "theme18") {
+    return <Theme18Menu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {

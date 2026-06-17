@@ -44,6 +44,8 @@ const MarketingThemes = [
     { key: "theme10-cyan", nameEn: "Orange Glow - Cyan", nameAr: "الوهج البرتقالي - سماوي" },
     { key: "theme10-emerald", nameEn: "Orange Glow - Emerald", nameAr: "الوهج البرتقالي - زمردي" },
     { key: "theme10-sky", nameEn: "Orange Glow - Sky", nameAr: "الوهج البرتقالي - سماوي فاتح" },
+    { key: "theme17", nameEn: "Lusha", nameAr: "لوشا" },
+    { key: "theme18", nameEn: "MenuMasr Replica", nameAr: "منيو مصر المطابق" },
     { key: "theme11", nameEn: "Luxe Minimal", nameAr: "التصميم البسيط" },
     { key: "theme11-cyan", nameEn: "Luxe Minimal - Cyan", nameAr: "التصميم البسيط - سماوي" },
     { key: "theme11-emerald", nameEn: "Luxe Minimal - Emerald", nameAr: "التصميم البسيط - زمردي" },
