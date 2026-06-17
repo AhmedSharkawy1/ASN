@@ -88,6 +88,7 @@ type Item = {
   is_spicy: boolean;
   image_url?: string;
   is_available: boolean;
+  old_prices?: number[];
 };
 
 type Category = {
@@ -258,7 +259,25 @@ function SmartMenuContent({
             emoji: cat.emoji,
             image_url: cat.image_url,
             items: itemsData
-              ? itemsData.filter((i) => i.category_id === cat.id)
+              ? itemsData.filter((i) => i.category_id === cat.id).map(item => {
+                  if (item.size_labels && item.size_labels.some((l: string) => l && l.includes('::'))) {
+                      const newLabels: string[] = [];
+                      const oldPrices: number[] = [];
+                      item.size_labels.forEach((l: string) => {
+                          if (l && l.includes('::')) {
+                              const parts = l.split('::');
+                              newLabels.push(parts[0]);
+                              const parsed = parseFloat(parts[1]);
+                              oldPrices.push(isNaN(parsed) ? 0 : parsed);
+                          } else {
+                              newLabels.push(l);
+                              oldPrices.push(0);
+                          }
+                      });
+                      return { ...item, size_labels: newLabels, old_prices: oldPrices };
+                  }
+                  return item;
+              })
               : [],
           }));
 

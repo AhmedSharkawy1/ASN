@@ -89,7 +89,25 @@ export default function MenuBuilderPage() {
                         setCategories(catsData.map(cat => ({
                             id: cat.id, name_ar: cat.name_ar, name_en: cat.name_en,
                             emoji: cat.emoji, image_url: cat.image_url,
-                            items: itemsData ? itemsData.filter(i => i.category_id === cat.id) : []
+                            items: itemsData ? itemsData.filter(i => i.category_id === cat.id).map(item => {
+                                if (item.size_labels && item.size_labels.some((l: string) => l && l.includes('::'))) {
+                                    const newLabels: string[] = [];
+                                    const oldPrices: number[] = [];
+                                    item.size_labels.forEach((l: string) => {
+                                        if (l && l.includes('::')) {
+                                            const parts = l.split('::');
+                                            newLabels.push(parts[0]);
+                                            const parsed = parseFloat(parts[1]);
+                                            oldPrices.push(isNaN(parsed) ? 0 : parsed);
+                                        } else {
+                                            newLabels.push(l);
+                                            oldPrices.push(0);
+                                        }
+                                    });
+                                    return { ...item, size_labels: newLabels, old_prices: oldPrices };
+                                }
+                                return item;
+                            }) : []
                         })));
                     }
                 }
@@ -593,6 +611,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
     const [descAr, setDescAr] = useState('');
     const [descEn, setDescEn] = useState('');
     const [prices, setPrices] = useState<number[]>([0]);
+    const [oldPrices, setOldPrices] = useState<number[]>([0]);
     const [sizeLabels, setSizeLabels] = useState<string[]>(['عادي']);
     const [isPopular, setIsPopular] = useState(false);
     const [isSpicy, setIsSpicy] = useState(false);
@@ -642,7 +661,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
                     title_ar: titleAr, title_en: titleEn || undefined,
                     desc_ar: descAr || undefined, desc_en: descEn || undefined,
                     price: prices[0] || 0,
-                    prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0),
+                    prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0).map((lbl, i) => oldPrices[i] > 0 ? `${lbl}::${oldPrices[i]}` : lbl),
                     is_popular: isPopular, is_spicy: isSpicy, is_available: true,
                     sell_by_weight: sellByWeight,
                     weight_unit: sellByWeight ? weightUnit : null
@@ -710,12 +729,12 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
                                 placeholder="0" className="w-24 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
                             <span className="text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
                             {prices.length > 1 && (
-                                <button onClick={() => { setPrices(prices.filter((_, i) => i !== idx)); setSizeLabels(sizeLabels.filter((_, i) => i !== idx)); }}
+                                <button onClick={() => { setPrices(prices.filter((_, i) => i !== idx)); setSizeLabels(sizeLabels.filter((_, i) => i !== idx)); setOldPrices(oldPrices.filter((_, i) => i !== idx)); }}
                                     className="p-1 text-red-500 hover:bg-red-500/10 rounded transition"><X className="w-4 h-4" /></button>
                             )}
                         </div>
                     ))}
-                    <button onClick={() => { setPrices([...prices, 0]); setSizeLabels([...sizeLabels, '']); }}
+                    <button onClick={() => { setPrices([...prices, 0]); setSizeLabels([...sizeLabels, '']); setOldPrices([...oldPrices, 0]); }}
                         className="text-sm text-emerald-500 font-bold px-2 flex items-center gap-1 hover:text-emerald-400">
                         <Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}
                     </button>
@@ -923,6 +942,7 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
     const [descAr, setDescAr] = useState(item.desc_ar || '');
     const [descEn, setDescEn] = useState(item.desc_en || '');
     const [localPrices, setLocalPrices] = useState([...item.prices]);
+    const [localOldPrices, setLocalOldPrices] = useState<number[]>(item.old_prices ? [...item.old_prices] : Array(item.prices.length).fill(0));
     const [localLabels, setLocalLabels] = useState([...(item.size_labels || [])]);
     const [sellByWeight, setSellByWeight] = useState(item.sell_by_weight || false);
     const [weightUnit, setWeightUnit] = useState(item.weight_unit || 'كجم');
@@ -930,7 +950,7 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
     const fileRef = useRef<HTMLInputElement>(null);
 
     const handleSave = async () => {
-        await onUpdate({ title_ar: titleAr, title_en: titleEn, desc_ar: descAr, desc_en: descEn, prices: localPrices, size_labels: localLabels, sell_by_weight: sellByWeight, weight_unit: sellByWeight ? weightUnit : undefined });
+        await onUpdate({ title_ar: titleAr, title_en: titleEn, desc_ar: descAr, desc_en: descEn, prices: localPrices, size_labels: localLabels.map((lbl, idx) => localOldPrices[idx] > 0 ? `${lbl}::${localOldPrices[idx]}` : lbl), sell_by_weight: sellByWeight, weight_unit: sellByWeight ? weightUnit : undefined });
         onClose();
     };
 
@@ -1002,10 +1022,10 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
                         <input type="number" value={price} onChange={e => { const np = [...localPrices]; np[idx] = parseFloat(e.target.value) || 0; setLocalPrices(np); }}
                             className="w-20 sm:w-24 px-2 py-1.5 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold tabular-nums text-center" dir="ltr" />
                         <span className="text-xs sm:text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
-                        {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); }} className="p-1 text-red-500"><X className="w-4 h-4" /></button>}
+                        {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); setLocalOldPrices(localOldPrices.filter((_, i) => i !== idx)); }} className="p-1 text-red-500"><X className="w-4 h-4" /></button>}
                     </div>
                 ))}
-                <button onClick={() => { setLocalPrices([...localPrices, 0]); setLocalLabels([...localLabels, '']); }} className="text-sm text-blue font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}</button>
+                <button onClick={() => { setLocalPrices([...localPrices, 0]); setLocalLabels([...localLabels, '']); setLocalOldPrices([...localOldPrices, 0]); }} className="text-sm text-blue font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}</button>
             </div>
             <div className="flex flex-wrap gap-2">
                 <button type="button" onClick={() => onUpdate({ is_popular: !item.is_popular })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_popular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver'}`}>⭐ {language === "ar" ? (item.is_popular ? "إلغاء" : "مميز") : (item.is_popular ? "Remove" : "Popular")}</button>

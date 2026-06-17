@@ -296,9 +296,9 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                                {item.prices?.length === 1 && (
-                                                                    <span className="text-sm line-through opacity-50">{Math.round(price * 1.3)}</span>
-                                                                )}
+                                                                {item.old_prices?.[pIdx] ? (
+                                                                    <span className="text-sm line-through opacity-50">{item.old_prices[pIdx]}</span>
+                                                                ) : null}
                                                                 <span className="font-black text-lg">{price} {cur}</span>
                                                             </div>
                                                         </div>
@@ -435,9 +435,9 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                                {item.prices?.length === 1 && (
-                                                                    <span className="text-[10px] line-through" style={{ color: textMuted }}>{Math.round(price * 1.3)}</span>
-                                                                )}
+                                                                {item.old_prices?.[pIdx] ? (
+                                                                    <span className="text-[10px] line-through" style={{ color: textMuted }}>{item.old_prices[pIdx]}</span>
+                                                                ) : null}
                                                                 <span className="font-black text-[1.05rem]" style={{ color: primaryColor }}>{price} {cur}</span>
                                                             </div>
                                                         </div>
@@ -550,7 +550,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         <span className="font-bold">{isAr ? 'السعر' : 'Price'}</span>
                                         <div className="flex gap-2 items-center" dir="ltr">
                                             <span className="text-3xl font-black" style={{ color: primaryColor }}>{selectedItem.item.prices?.[0]} {cur}</span>
-                                            {selectedItem.item.prices?.[0] && <span className="text-lg line-through" style={{ color: textMuted }}>{Math.round(selectedItem.item.prices[0] * 1.3)} {cur}</span>}
+                                            {selectedItem.item.old_prices?.[0] ? <span className="text-lg line-through" style={{ color: textMuted }}>{selectedItem.item.old_prices[0]} {cur}</span> : null}
                                         </div>
                                     </div>
                                 </div>
@@ -606,9 +606,9 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                                                 )}
                                                                             </div>
                                                                             <div className="flex items-center gap-1 shrink-0 ml-1">
-                                                                                {item.prices?.length === 1 && (
-                                                                                    <span className="text-[9px] line-through" style={{ color: textMuted }}>{Math.round(price * 1.3)}</span>
-                                                                                )}
+                                                                                {item.old_prices?.[pIdx] ? (
+                                                                                    <span className="text-[9px] line-through" style={{ color: textMuted }}>{item.old_prices[pIdx]}</span>
+                                                                                ) : null}
                                                                                 <span className="font-black text-[12px]" style={{ color: primaryColor }}>{price}</span>
                                                                             </div>
                                                                         </div>
