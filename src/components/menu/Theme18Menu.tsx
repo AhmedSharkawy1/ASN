@@ -400,9 +400,11 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                     className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} 
                                                 />
                                                 {/* Special Offer Badge */}
-                                                <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
-                                                    {isAr ? 'عرض خاص' : 'Offer'}
-                                                </div>
+                                                {item.is_popular && (
+                                                    <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                                        {isAr ? 'عرض خاص' : 'Offer'}
+                                                    </div>
+                                                )}
                                                 {/* Plus Button */}
                                                 {config.orders_enabled !== false && (
                                                     <div 
@@ -639,9 +641,11 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                         >
                                                             <div className="relative h-[120px]">
                                                                 <img src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
-                                                                <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
-                                                                    {isAr ? 'عرض خاص' : 'Offer'}
-                                                                </div>
+                                                                {item.is_popular && (
+                                                                    <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
+                                                                        {isAr ? 'عرض خاص' : 'Offer'}
+                                                                    </div>
+                                                                )}
                                                                 <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}>
                                                                     <Plus className="w-4 h-4" />
                                                                 </div>
