@@ -11,7 +11,6 @@ import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from './CheckoutModal';
 import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram, FaTiktok, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
 
-
 type MenuItem = {
     id: string | number;
     title_ar: string;
@@ -80,8 +79,6 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
     const primaryColor = config.theme_colors?.primary || T18_PRIMARY;
     
     // Theme colors matching the screenshots
-    // In light mode: background is slightly off-white, cards are white.
-    // In dark mode: background is very dark (almost black), cards are slightly lighter.
     const bgBody = isDark ? '#111111' : '#f9fafb';
     const bgCard = isDark ? '#1c1c1e' : '#ffffff';
     const textMain = isDark ? '#ffffff' : '#000000';
@@ -227,7 +224,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
             {/* --- BANNER --- */}
             {config.cover_images && config.cover_images.length > 0 && !searchQuery && (
                 <div className="px-5 mb-8">
-                    <Swiper modules={[Autoplay]} autoplay={{ delay: 3000 }} className="w-full rounded-2xl overflow-hidden shadow-sm">
+                    <Swiper key={isAr ? 'rtl' : 'ltr'} modules={[Autoplay]} autoplay={{ delay: 3000 }} className="w-full rounded-2xl overflow-hidden shadow-sm">
                         {config.cover_images.map((img, i) => (
                             <SwiperSlide key={i}>
                                 <img src={img} alt="Offer" className="w-full h-[180px] object-cover" />
@@ -241,11 +238,11 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
             {!searchQuery && featuredItems.length > 0 && (
                 <div className="mb-8">
                     <div className="px-5 flex items-center gap-2 mb-4">
-                        <h2 className="text-xl font-bold">عروض مميزة</h2>
+                        <h2 className="text-xl font-bold">{isAr ? 'عروض مميزة' : 'Featured Offers'}</h2>
                         <Tag className="w-6 h-6" style={{ color: primaryColor }} />
                     </div>
-                    <div className="pr-5 overflow-hidden" dir="rtl">
-                        <Swiper spaceBetween={15} slidesPerView={1.5} className="w-full" modules={[Autoplay]} autoplay={{ delay: 2500, disableOnInteraction: false }} loop={featuredItems.length > 2}>
+                    <div className="pr-5 overflow-hidden" dir={isAr ? "rtl" : "ltr"}>
+                        <Swiper key={isAr ? 'rtl' : 'ltr'} spaceBetween={15} slidesPerView={1.5} className="w-full" modules={[Autoplay]} autoplay={{ delay: 2500, disableOnInteraction: false }} loop={featuredItems.length > 2}>
                             {featuredItems.map((item, idx) => (
                                 <SwiperSlide key={idx} className="pb-4">
                                     <div 
@@ -257,7 +254,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                             <img src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                             {/* Offer Badge */}
                                             <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                                                <span>عرض خاص</span>
+                                                <span>{isAr ? 'عرض خاص' : 'Special Offer'}</span>
                                             </div>
                                         </div>
                                         <div className="p-4 flex flex-col justify-between h-[100px]">
@@ -281,13 +278,13 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
             <div className="px-5">
                 {!searchQuery && (
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold">الأصناف</h2>
+                        <h2 className="text-xl font-bold">{isAr ? 'الأصناف' : 'Categories'}</h2>
                     </div>
                 )}
                 
                 {/* Categories Bar */}
                 {!searchQuery && (
-                    <div className="flex gap-3 overflow-x-auto pb-4 mb-4 scrollbar-hide" dir="rtl">
+                    <div className="flex gap-3 overflow-x-auto pb-4 mb-4 scrollbar-hide" dir={isAr ? 'rtl' : 'ltr'}>
                         <button 
                             onClick={() => setActiveCategory('all')}
                             className="px-6 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-colors shrink-0"
@@ -297,7 +294,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 border: `1px solid ${activeCategory === 'all' ? primaryColor : borderColor}`
                             }}
                         >
-                            الكل
+                            {isAr ? 'الكل' : 'All'}
                         </button>
                         {categories.map((cat) => (
                             <button 
@@ -352,7 +349,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                 />
                                                 {/* Special Offer Badge */}
                                                 <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
-                                                    عرض خاص
+                                                    {isAr ? 'عرض خاص' : 'Offer'}
                                                 </div>
                                                 {/* Plus Button */}
                                                 {config.orders_enabled !== false && (
@@ -393,14 +390,14 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
 
             {/* --- FLOATING BOTTOM NAV --- */}
             <div className="fixed bottom-6 left-0 right-0 z-40 px-5 pointer-events-none">
-                <div className="max-w-[400px] mx-auto bg-white/90 dark:bg-[#1c1c1e]/90 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border dark:border-zinc-800 p-1 flex justify-between items-center pointer-events-auto" dir="rtl">
+                <div className="max-w-[400px] mx-auto bg-white/90 dark:bg-[#1c1c1e]/90 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border dark:border-zinc-800 p-1 flex justify-between items-center pointer-events-auto" dir={isAr ? 'rtl' : 'ltr'}>
                     <button 
-                        onClick={() => { setNavTab('menu'); setIsCartOpen(false); setShowCheckout(false); }}
+                        onClick={() => { setNavTab('menu'); setIsCartOpen(false); setShowCheckout(false); setShowMenuCategories(true); }}
                         className="flex-1 flex flex-col items-center justify-center py-2 rounded-full transition-all"
                         style={{ color: navTab === 'menu' && !isCartOpen ? primaryColor : textMuted, backgroundColor: navTab === 'menu' && !isCartOpen ? `${primaryColor}15` : 'transparent' }}
                     >
                         <Home className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-bold">المنيو</span>
+                        <span className="text-[10px] font-bold">{isAr ? 'المنيو' : 'Menu'}</span>
                     </button>
                     
                     <button 
@@ -418,12 +415,12 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                     </button>
 
                     <button 
-                        onClick={() => { setNavTab('contact'); /* Handled later */ }}
+                        onClick={() => { setNavTab('contact'); setShowContactModal(true); setIsCartOpen(false); setShowCheckout(false); }}
                         className="flex-1 flex flex-col items-center justify-center py-2 rounded-full transition-all"
                         style={{ color: navTab === 'contact' && !isCartOpen ? primaryColor : textMuted, backgroundColor: navTab === 'contact' && !isCartOpen ? `${primaryColor}15` : 'transparent' }}
                     >
                         <User className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-bold">تواصل</span>
+                        <span className="text-[10px] font-bold">{isAr ? 'تواصل' : 'Contact'}</span>
                     </button>
 
                     <button 
@@ -449,7 +446,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         style={{ backgroundColor: bgBody }}
                     >
                         {/* Header actions */}
-                        <div className="absolute top-6 left-5 right-5 z-10 flex justify-between items-center pointer-events-none">
+                        <div className="absolute top-6 left-5 right-5 z-10 flex justify-between items-center pointer-events-none" dir={isAr ? 'rtl' : 'ltr'}>
                             <div className="flex gap-3 pointer-events-auto">
                                 <button onClick={() => setIsCartOpen(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white relative">
                                     <ShoppingCart className="w-5 h-5" />
@@ -464,7 +461,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 </button>
                             </div>
                             <button onClick={closeModal} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white pointer-events-auto">
-                                <ArrowRight className="w-5 h-5" />
+                                {isAr ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
                             </button>
                         </div>
 
@@ -485,7 +482,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         </p>
                                     )}
                                     <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
-                                        <span className="font-bold">السعر</span>
+                                        <span className="font-bold">{isAr ? 'السعر' : 'Price'}</span>
                                         <div className="flex gap-2 items-center" dir="ltr">
                                             <span className="text-3xl font-black" style={{ color: primaryColor }}>{selectedItem.item.prices?.[0]} {cur}</span>
                                             {selectedItem.item.prices?.[0] && <span className="text-lg line-through" style={{ color: textMuted }}>{Math.round(selectedItem.item.prices[0] * 1.3)} {cur}</span>}
@@ -501,7 +498,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         style={{ backgroundColor: primaryColor }}
                                     >
                                         <div className="flex-1 text-center font-bold text-xl text-white">
-                                            أضف للسلة
+                                            {isAr ? 'أضف للسلة' : 'Add to Cart'}
                                         </div>
                                         <div className="h-[48px] w-[64px] rounded-xl flex items-center justify-center bg-black/10 text-white font-bold" dir="ltr">
                                             {selectedItem.item.prices?.[0]} {cur}
@@ -513,10 +510,10 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 {featuredItems.length > 0 && (
                                     <div>
                                         <div className="flex items-center gap-2 mb-4">
-                                            <h3 className="font-bold text-lg">قد يعجبك أيضاً</h3>
+                                            <h3 className="font-bold text-lg">{isAr ? 'قد يعجبك أيضاً' : 'You might also like'}</h3>
                                         </div>
-                                        <div className="overflow-hidden" dir="rtl">
-                                            <Swiper spaceBetween={15} slidesPerView={2.2} className="w-full pb-4">
+                                        <div className="overflow-hidden" dir={isAr ? "rtl" : "ltr"}>
+                                            <Swiper key={isAr ? 'rtl' : 'ltr'} spaceBetween={15} slidesPerView={2.2} className="w-full pb-4">
                                                 {featuredItems.map((item, idx) => (
                                                     <SwiperSlide key={idx}>
                                                         <div 
@@ -527,7 +524,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                             <div className="relative h-[120px]">
                                                                 <img src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                                                 <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
-                                                                    عرض خاص
+                                                                    {isAr ? 'عرض خاص' : 'Offer'}
                                                                 </div>
                                                                 <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}>
                                                                     <Plus className="w-4 h-4" />
@@ -563,18 +560,18 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                             className="relative w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl"
                             style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()}>
-                            <div className="p-5 flex justify-between items-center text-white shadow-md z-10 sticky top-0" style={{ backgroundColor: primaryColor }}>
+                            <div className="p-5 flex justify-between items-center text-white shadow-md z-10 sticky top-0" style={{ backgroundColor: primaryColor }} dir={isAr ? 'rtl' : 'ltr'}>
                                 <div className="flex flex-col">
-                                    <span className="font-bold text-lg leading-none mb-1">عربة التسوق</span>
-                                    <span className="text-xs opacity-90">{cartCount} عناصر</span>
+                                    <span className="font-bold text-lg leading-none mb-1">{isAr ? 'عربة التسوق' : 'Shopping Cart'}</span>
+                                    <span className="text-xs opacity-90">{cartCount} {isAr ? 'عناصر' : 'items'}</span>
                                 </div>
                                 <button onClick={() => setIsCartOpen(false)} className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                             </div>
-                            <div className="flex-1 overflow-y-auto" style={{ backgroundColor: bgBody }}>
+                            <div className="flex-1 overflow-y-auto" style={{ backgroundColor: bgBody }} dir={isAr ? 'rtl' : 'ltr'}>
                                 {cart.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4" style={{ color: textMuted }}>
                                         <ShoppingCart className="w-10 h-10 opacity-40 mb-4" />
-                                        <p className="font-bold text-lg mb-2">سلتك فارغة</p>
+                                        <p className="font-bold text-lg mb-2">{isAr ? 'سلتك فارغة' : 'Your cart is empty'}</p>
                                     </div>
                                 ) : (
                                     <div className="p-4 space-y-4">
@@ -587,8 +584,8 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                         <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
                                                     <div className="flex justify-between items-center mt-3">
-                                                        <span className="font-black" style={{ color: primaryColor }}>{cur}{(c.price * c.quantity).toFixed?.(0)}</span>
-                                                        <div className="flex items-center rounded-full h-8 px-1 border" style={{ borderColor }}>
+                                                        <span className="font-black" style={{ color: primaryColor }} dir="ltr">{cur}{(c.price * c.quantity).toFixed?.(0)}</span>
+                                                        <div className="flex items-center rounded-full h-8 px-1 border" style={{ borderColor }} dir="ltr">
                                                             <button onClick={() => updateQty(c.id, c.notes, -1)} className="w-6 h-6 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
                                                             <span className="w-6 text-center text-sm font-bold">{c.quantity}</span>
                                                             <button onClick={() => updateQty(c.id, c.notes, 1)} className="w-6 h-6 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
@@ -601,13 +598,13 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 )}
                             </div>
                             {cart.length > 0 && (
-                                <div className="p-5 border-t z-20" style={{ backgroundColor: bgCard, borderColor }}>
+                                <div className="p-5 border-t z-20" style={{ backgroundColor: bgCard, borderColor }} dir={isAr ? 'rtl' : 'ltr'}>
                                     <div className="flex justify-between items-center mb-4 text-sm font-bold">
-                                        <span>الإجمالي</span>
-                                        <span className="text-2xl font-black" style={{ color: primaryColor }}>{cur}{cartTotal.toFixed?.(0)}</span>
+                                        <span>{isAr ? 'الإجمالي' : 'Total'}</span>
+                                        <span className="text-2xl font-black" style={{ color: primaryColor }} dir="ltr">{cur}{cartTotal.toFixed?.(0)}</span>
                                     </div>
                                     <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full h-14 rounded-2xl text-white font-bold text-lg bg-[#10b981] shadow-lg">
-                                        إتمام الطلب
+                                        {isAr ? 'إتمام الطلب' : 'Checkout'}
                                     </button>
                                 </div>
                             )}
@@ -616,29 +613,142 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 )}
             </AnimatePresence>
 
-            {/* Checkout Modal (Stubbed as simple text due to size limits, integrate real CheckoutModal later if needed) */}
+            {/* Contact Modal */}
             <AnimatePresence>
-                {showCheckout && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="w-full max-w-md rounded-3xl p-6" style={{ backgroundColor: bgCard }}>
-                            <h2 className="text-2xl font-bold mb-4">إتمام الطلب عبر واتساب</h2>
-                            <p className="mb-6 text-sm" style={{ color: textMuted }}>سيتم تحويلك إلى تطبيق واتساب لإرسال الطلب مباشرة للمطعم.</p>
-                            <div className="flex gap-3">
-                                <button onClick={() => setShowCheckout(false)} className="flex-1 py-3 rounded-2xl border font-bold" style={{ borderColor }}>إلغاء</button>
-                                <button onClick={() => {
-                                    let txt = `طلب جديد من ${config.name}%0A%0A`;
-                                    cart.forEach(c => txt += `${c.quantity}x ${itemName(c.item)} - ${c.price * c.quantity} ${cur}%0A`);
-                                    txt += `%0Aالإجمالي: ${cartTotal} ${cur}`;
-                                    const tel = (config.phone || '').replace(/\D/g, '');
-                                    window.open(`https://wa.me/${tel}?text=${txt}`, '_blank');
-                                    setShowCheckout(false);
-                                    setCart([]);
-                                }} className="flex-1 py-3 rounded-2xl text-white font-bold" style={{ backgroundColor: '#25D366' }}>إرسال الطلب</button>
+                {showContactModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex justify-center py-16 px-5 mb-safe"
+                        onClick={() => setShowContactModal(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-[400px] rounded-[2rem] mx-auto flex flex-col shadow-2xl p-6"
+                            style={{ backgroundColor: bgCard, maxHeight: 'max-content', marginTop: 'auto', marginBottom: 'auto' }}
+                            onClick={e => e.stopPropagation()} dir={isAr ? 'rtl' : 'ltr'}>
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-bold">{isAr ? 'تواصل معنا' : 'Contact Us'}</h2>
+                                <button onClick={() => setShowContactModal(false)} className="w-8 h-8 flex items-center justify-center bg-black/5 dark:bg-white/10 rounded-full"><X className="w-5 h-5" /></button>
                             </div>
-                        </div>
+                            
+                            <div className="space-y-4">
+                                {(config.phone || (config.phone_numbers && config.phone_numbers.length > 0)) && (
+                                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5">
+                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}><FaPhoneAlt /></div>
+                                        <div>
+                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'رقم الهاتف' : 'Phone Number'}</p>
+                                            <a href={`tel:${config.phone || config.phone_numbers[0]}`} className="font-bold block" dir="ltr">{config.phone || config.phone_numbers[0]}</a>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {config.address && (
+                                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5">
+                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}><FaMapMarkerAlt /></div>
+                                        <div>
+                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'العنوان' : 'Address'}</p>
+                                            <p className="font-bold">{config.address}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {config.social_media && Object.keys(config.social_media).length > 0 && (
+                                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                                        <p className="text-center font-bold mb-4">{isAr ? 'تابعنا على' : 'Follow Us'}</p>
+                                        <div className="flex justify-center gap-4 flex-wrap">
+                                            {config.social_media.facebook && (
+                                                <a href={config.social_media.facebook} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#1877F2] transition-transform hover:scale-110"><FaFacebookF /></a>
+                                            )}
+                                            {config.social_media.instagram && (
+                                                <a href={config.social_media.instagram} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] transition-transform hover:scale-110"><FaInstagram /></a>
+                                            )}
+                                            {config.social_media.snapchat && (
+                                                <a href={config.social_media.snapchat} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-black text-xl bg-[#FFFC00] transition-transform hover:scale-110"><FaSnapchatGhost /></a>
+                                            )}
+                                            {config.social_media.tiktok && (
+                                                <a href={config.social_media.tiktok} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#000000] dark:border dark:border-zinc-700 transition-transform hover:scale-110"><FaTiktok /></a>
+                                            )}
+                                            {config.social_media.whatsapp && (
+                                                <a href={config.social_media.whatsapp} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#25D366] transition-transform hover:scale-110"><FaWhatsapp /></a>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Menu Categories Modal/Drawer */}
+            <AnimatePresence>
+                {showMenuCategories && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex justify-center py-16 px-5 mb-safe"
+                        onClick={() => setShowMenuCategories(false)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-[400px] max-h-[70vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl mt-auto"
+                            style={{ backgroundColor: bgCard }}
+                            onClick={e => e.stopPropagation()} dir={isAr ? 'rtl' : 'ltr'}>
+                            <div className="p-5 flex justify-between items-center text-white shadow-md z-10 sticky top-0" style={{ backgroundColor: primaryColor }}>
+                                <span className="font-bold text-lg">{isAr ? 'أقسام المنيو' : 'Menu Categories'}</span>
+                                <button onClick={() => setShowMenuCategories(false)} className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                                <button
+                                    onClick={() => {
+                                        setActiveCategory('all');
+                                        setShowMenuCategories(false);
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
+                                    className="w-full text-start px-4 py-4 rounded-xl font-bold transition-colors"
+                                    style={{ backgroundColor: activeCategory === 'all' ? `${primaryColor}20` : 'transparent', color: activeCategory === 'all' ? primaryColor : textMain }}
+                                >
+                                    {isAr ? 'الكل' : 'All'}
+                                </button>
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => {
+                                            setActiveCategory(cat.id.toString());
+                                            setShowMenuCategories(false);
+                                            const el = document.getElementById(cat.id.toString());
+                                            if(el) {
+                                                const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                                                window.scrollTo({ top: y, behavior: 'smooth' });
+                                            }
+                                        }}
+                                        className="w-full text-start px-4 py-4 rounded-xl font-bold transition-colors"
+                                        style={{ backgroundColor: activeCategory === cat.id.toString() ? `${primaryColor}20` : 'transparent', color: activeCategory === cat.id.toString() ? primaryColor : textMain }}
+                                    >
+                                        {catName(cat)}
+                                    </button>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <CheckoutModal 
+                isOpen={showCheckout} 
+                onClose={() => setShowCheckout(false)} 
+                cartItems={cart.map(c => ({
+                    id: c.id,
+                    title: itemName(c.item),
+                    qty: c.quantity,
+                    price: c.price,
+                    size: c.sizeLabel,
+                    category: c.catName,
+                    notes: c.notes,
+                    extras: []
+                }))}
+                subtotal={cartTotal}
+                restaurantId={restaurantId}
+                restaurantName={config.name}
+                whatsappNumber={config.phone || (config.phone_numbers && config.phone_numbers.length > 0 ? config.phone_numbers[0] : '')}
+                currency={cur} 
+                language={currentLang} 
+                orderChannel={config.order_channel}
+                onOrderSuccess={() => { setCart([]); setIsCartOpen(false); setShowCheckout(false); }}
+            />
 
             {/* Hidden Footer from Theme config if any */}
             <ASNFooter show={config.show_asn_branding !== false} />
