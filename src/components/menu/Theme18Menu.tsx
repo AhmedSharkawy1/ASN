@@ -8,8 +8,8 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import ASNFooter from '@/components/menu/ASNFooter';
-import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
+import SharedMarquee from './SharedMarquee';
 import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram, FaTiktok, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
 
 type MenuItem = {
@@ -157,11 +157,28 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
         }).filter(c => c.quantity > 0));
     };
 
+    const handleShare = async () => {
+        const shareData = {
+            title: config.name,
+            text: isAr ? `تصفح منيو ${config.name}` : `Check out ${config.name}'s menu`,
+            url: window.location.href,
+        };
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                console.error("Share failed:", err);
+            }
+        } else {
+            navigator.clipboard.writeText(window.location.href);
+            alert(isAr ? 'تم نسخ الرابط!' : 'Link copied to clipboard!');
+        }
+    };
+
     const activeCatList = categories;
 
     // Flatten all items for search & featured
     const allItems = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c)})));
-    // Simple mock featured items (in reality you'd filter by an is_featured flag or similar)
     const featuredItems = allItems.slice(0, 6); 
 
     const searchedCategories = categories.map(cat => ({
@@ -182,18 +199,19 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                     <SharedMarquee text={isAr ? (config.marquee_text_ar || '') : (config.marquee_text_en || config.marquee_text_ar || '')} />
                 </div>
             )}
+
             {/* --- HEADER --- */}
             <div className="px-5 pt-8 pb-4" style={{ backgroundColor: bgBody }}>
                 <div className="flex justify-between items-center mb-6">
-                    <button className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
+                    {/* Share button on the right side of the logo (left in LTR, right in RTL) */}
+                    <button onClick={handleShare} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
                         <Share2 className="w-5 h-5" />
                     </button>
                     {config.logo_url && (
                         <img src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm" />
                     )}
-                    <button className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
-                        <LogOut className="w-5 h-5" />
-                    </button>
+                    {/* Replaced LogOut button with an empty div for spacing balance */}
+                    <div className="w-10 h-10"></div>
                 </div>
 
                 {/* Language Toggle */}
@@ -463,7 +481,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         </span>
                                     )}
                                 </button>
-                                <button className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white">
+                                <button onClick={handleShare} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white">
                                     <Share2 className="w-5 h-5" />
                                 </button>
                             </div>
