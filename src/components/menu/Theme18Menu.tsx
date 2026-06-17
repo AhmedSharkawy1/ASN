@@ -630,23 +630,23 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                             
                             <div className="space-y-4">
                                 {(config.phone || (config.phone_numbers && config.phone_numbers.length > 0)) && (
-                                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5">
+                                    <a href={`tel:${config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}`} className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
                                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}><FaPhoneAlt /></div>
                                         <div>
-                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'رقم الهاتف' : 'Phone Number'}</p>
-                                            <a href={`tel:${config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}`} className="font-bold block" dir="ltr">{config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}</a>
+                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'رقم الدليفري' : 'Delivery Number'}</p>
+                                            <span className="font-bold block" dir="ltr">{config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}</span>
                                         </div>
-                                    </div>
+                                    </a>
                                 )}
                                 
                                 {config.address && (
-                                    <div className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5">
+                                    <a href={config.location_link || `https://maps.google.com/?q=${encodeURIComponent(config.address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
                                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}><FaMapMarkerAlt /></div>
                                         <div>
-                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'العنوان' : 'Address'}</p>
-                                            <p className="font-bold">{config.address}</p>
+                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'الموقع على الخريطة' : 'Location on Map'}</p>
+                                            <p className="font-bold line-clamp-2">{config.address}</p>
                                         </div>
-                                    </div>
+                                    </a>
                                 )}
 
                                 {config.social_media && Object.keys(config.social_media).length > 0 && (
