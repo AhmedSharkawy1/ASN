@@ -179,7 +179,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
 
     // Flatten all items for search & featured
     const allItems = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c)})));
-    const featuredItems = allItems.slice(0, 6); 
+    const featuredItems = allItems.filter(item => item.is_popular); 
 
     const searchedCategories = categories.map(cat => ({
         ...cat,
