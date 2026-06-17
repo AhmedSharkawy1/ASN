@@ -25,6 +25,7 @@ const THEME_SUBDOMAINS = [
     'theme10-cyan', 'theme10-emerald', 'theme10-sky',
     'theme11-cyan', 'theme11-emerald', 'theme11-sky',
     'theme13-cyan', 'theme13-emerald', 'theme13-sky',
+    'theme18', 'theme18-red', 'theme18-cyan', 'theme18-emerald', 'theme18-sky', 'theme18-pink',
     'theme15-sky' // just keeping historical ones in case
 ];
 

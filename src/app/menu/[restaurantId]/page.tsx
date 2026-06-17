@@ -34,6 +34,11 @@ const Theme13Menu = dynamic(() => import("@/components/menu/Theme13Menu"));
 const Theme16Menu = dynamic(() => import("@/components/menu/Theme16Menu"));
 const Theme17Menu = dynamic(() => import("@/components/menu/Theme17Menu"));
 const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
+const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
+const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
+const Theme18EmeraldMenu = dynamic(() => import("@/components/menu/Theme18EmeraldMenu"));
+const Theme18SkyMenu = dynamic(() => import("@/components/menu/Theme18SkyMenu"));
+const Theme18PinkMenu = dynamic(() => import("@/components/menu/Theme18PinkMenu"));
 const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
 const PizzaPastaEmeraldMenu = dynamic(() => import("@/components/menu/PizzaPastaEmeraldMenu"));
 const PizzaPastaSkyMenu = dynamic(() => import("@/components/menu/PizzaPastaSkyMenu"));
@@ -404,6 +409,21 @@ function SmartMenuContent({
   // If Theme 18 (MenuMasr Replica)
   if (config?.theme === "theme18") {
     return <Theme18Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme18-red") {
+    return <Theme18RedMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme18-cyan") {
+    return <Theme18CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme18-emerald") {
+    return <Theme18EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme18-sky") {
+    return <Theme18SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme18-pink") {
+    return <Theme18PinkMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {

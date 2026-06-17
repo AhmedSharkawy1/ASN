@@ -23,6 +23,11 @@ const ALL_THEMES = [
     { id: "theme13", name_ar: "لوكس الذهبي (ثيم 13)", name_en: "Luxe Gold (Theme 13)", preview_color: "#d4af37" },
     { id: "theme16", name_ar: "كلاسيك أحمر (ثيم 16)", name_en: "Classic Red (Theme 16)", preview_color: "#af0a13" },
     { id: "theme17", name_ar: "لوشا (الأحمر المميز - ثيم 17)", name_en: "Lusha (Premium Red - Theme 17)", preview_color: "#d32f2f" },
+        { id: "theme18-red", name_ar: "ثيم 18 (أحمر)", name_en: "Theme 18 (Red)", preview_color: "#dc2626" },
+    { id: "theme18-cyan", name_ar: "ثيم 18 (سماوي)", name_en: "Theme 18 (Cyan)", preview_color: "#06b6d4" },
+    { id: "theme18-emerald", name_ar: "ثيم 18 (زمردي)", name_en: "Theme 18 (Emerald)", preview_color: "#10b981" },
+    { id: "theme18-sky", name_ar: "ثيم 18 (سماوي فاتح)", name_en: "Theme 18 (Sky)", preview_color: "#0ea5e9" },
+    { id: "theme18-pink", name_ar: "ثيم 18 (وردي)", name_en: "Theme 18 (Pink)", preview_color: "#ec4899" },
     { id: "theme18", name_ar: "منيو مصر المطابق", name_en: "MenuMasr Replica", preview_color: "#e74c3c" },
     // Color Variations
     { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", preview_color: "#0891b2" },
