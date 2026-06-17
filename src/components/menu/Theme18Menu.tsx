@@ -292,7 +292,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 )}
                 <h1 className="text-[2em] font-black text-center">{config.name}</h1>
                 <p className="text-[#999999] text-[0.9em] mt-1">
-                    {(config.phone || config.phone_numbers?.[0]) && `📞 ${config.phone || config.phone_numbers?.[0]}`}
+                    {(config.phone || config.phone_numbers?.[0]?.number || config.phone_numbers?.[0]) && `📞 ${config.phone || config.phone_numbers?.[0]?.number || config.phone_numbers?.[0]}`}
                     {config.address && ` • 📍 ${config.address}`}
                 </p>
                 <p className="text-[#999999] text-[0.9em] mt-1">
@@ -310,7 +310,8 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                     const items = category.items || [];
                     if (items.length === 0) return null;
 
-                                        <div key={category.id} id={category.id.toString()} className="mb-10">
+                    return (
+                        <div key={category.id} id={category.id.toString()} className="mb-10">
                             <h2 className="text-[1.5em] font-bold text-[#f97316] mt-[2em] border-b-2 border-[#f97316] pb-2 mb-4">
                                 {catName(category)}
                             </h2>
