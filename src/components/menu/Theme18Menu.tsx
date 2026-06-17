@@ -341,7 +341,8 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 ))}
                             </div>
                         </div>
-                                })}
+                    );
+                })}
             </main>
 
             {/* Target Footer Replica */}
