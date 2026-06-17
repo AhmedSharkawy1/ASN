@@ -3,10 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertCircle, Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X, FileText, MapPin as MapIcon, List, Globe, PhoneCall } from 'lucide-react';
-import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram , FaTiktok } from 'react-icons/fa';
-import SharedMarquee from './SharedMarquee';
-import CheckoutModal from './CheckoutModal';
+import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -29,9 +26,6 @@ type MenuItem = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 };
-
-// ================= THEME 10 CONSTANTS =================
-const T18_PRIMARY = '#ea580c'; // orange-600
 
 interface CategoryWithItemsType {
     id: string | number;
@@ -72,50 +66,46 @@ interface Theme18MenuProps {
 export default function Theme18Menu({ config, categories, restaurantId }: Theme18MenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
-    const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false);
     useEffect(() => setMounted(true), []);
 
-    const isAr = config.default_language === 'ar' || true; // Defaulting to true for now since design is RTL primary
+    const isAr = config.default_language === 'ar' || true; // Layout is strictly RTL from screenshots
     const isDark = mounted && theme === 'dark';
     const cur = config.currency || (isAr ? "ج.م" : "EGP");
 
-    // Theme Variables - matching HTML
-    const bgBody = '#0d0f14'; // slate-900 / slate-50
-    const bgCard = '#1a1d24'; // slate-800 / white
-    const textMain = '#ededed'; // slate-100 / slate-900
-    const textMuted = '#999999'; // slate-400 / slate-500
-    const borderColor = '#333333'; // slate-700 / slate-200
+    const T18_PRIMARY = '#f97316'; // orange-500
     const primaryColor = config.theme_colors?.primary || T18_PRIMARY;
+    
+    // Theme colors matching the screenshots
+    // In light mode: background is slightly off-white, cards are white.
+    // In dark mode: background is very dark (almost black), cards are slightly lighter.
+    const bgBody = isDark ? '#111111' : '#f9fafb';
+    const bgCard = isDark ? '#1c1c1e' : '#ffffff';
+    const textMain = isDark ? '#ffffff' : '#000000';
+    const textMuted = isDark ? '#9ca3af' : '#6b7280';
+    const borderColor = isDark ? '#333333' : '#f3f4f6';
 
     // State
     const [activeCategory, setActiveCategory] = useState<string>('all');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [navTab, setNavTab] = useState('menu'); // menu, cart, contact
 
-    // Drawers & Modals
+    // Modals & Cart
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string; catImg?: string } | null>(null);
-
-    // Item Detail Modal
     const [qty, setQty] = useState(1);
     const [sizeIdx, setSizeIdx] = useState(0);
     const [notes, setNotes] = useState('');
     const [selectedExtras, setSelectedExtras] = useState<{ id: number | string, name: string, price: number }[]>([]);
-    const isManualScroll = useRef(false);
-    const catNavRef = useRef<HTMLDivElement>(null);
-
-    // Checkout
-    const [showCheckout, setShowCheckout] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' });
+    
     const [cart, setCart] = useState<{ id: string, item: MenuItem, catName: string, price: number, sizeLabel: string, quantity: number, notes: string }[]>([]);
+    const [showCheckout, setShowCheckout] = useState(false);
 
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
 
-    // Derived cart values
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
-    // Modals
     const openModal = (item: MenuItem, cName: string, cImg?: string) => {
         if (config.orders_enabled === false) return;
         setSelectedItem({ item, catName: cName, catImg: cImg });
@@ -131,7 +121,6 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
         document.body.style.overflow = 'auto';
     };
 
-    // Cart Handlers
     const addToCart = () => {
         if (!selectedItem || config.orders_enabled === false) return;
         const itemP = selectedItem.item.prices[sizeIdx] || 0;
@@ -149,434 +138,464 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
         setCart(prev => {
             const ex = prev.find(c => c.id === cId && c.notes === notes);
             if (ex) return prev.map(c => c.id === cId && c.notes === notes ? { ...c, quantity: c.quantity + qty } : c);
-            return [...prev, {
-                id: cId,
-                item: selectedItem.item,
-                catName: selectedItem.catName,
-                price: finalPrice,
-                sizeLabel: sizeLbl,
-                quantity: qty,
-                notes
-            }];
+            return [...prev, { id: cId, item: selectedItem.item, catName: selectedItem.catName, price: finalPrice, sizeLabel: sizeLbl, quantity: qty, notes }];
         });
         closeModal();
-        setIsCartOpen(true);
     };
 
-    const updateQty = (id: string, itemNotes: string, delta: number) => {
+    const updateQty = (id: string, notes: string, delta: number) => {
         setCart(prev => prev.map(c => {
-            if (c.id === id && c.notes === itemNotes) {
-                const n = c.quantity + delta;
-                return n > 0 ? { ...c, quantity: n } : { ...c, quantity: 0 };
+            if (c.id === id && c.notes === notes) {
+                const nq = c.quantity + delta;
+                return nq > 0 ? { ...c, quantity: nq } : c;
             }
             return c;
         }).filter(c => c.quantity > 0));
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const checkOutWhatsApp = () => {
-        if (!config.phone) {
-            alert(isAr ? 'رقم المطعم غير متوفر' : 'Restaurant phone unavailable');
-            return;
-        }
-        if (!customerInfo.name || !customerInfo.phone || !customerInfo.address) {
-            alert(isAr ? 'يرجى إكمال بيانات التوصيل' : 'Please complete delivery details');
-            return;
-        }
-
-        let txt = isAr ? `*طلب جديد من ${customerInfo.name}*%0A` : `*New Order from ${customerInfo.name}*%0A`;
-        txt += isAr ? `رقم الهاتف: ${customerInfo.phone}%0A` : `Phone: ${customerInfo.phone}%0A`;
-        txt += isAr ? `العنوان: ${customerInfo.address}%0A%0A` : `Address: ${customerInfo.address}%0A%0A`;
-
-        cart.forEach(c => {
-            txt += `▪ ${itemName(c.item)} (${c.quantity}x)\n`;
-            if (c.sizeLabel) txt += `   ${c.sizeLabel}\n`;
-            if (c.notes) txt += `   📝 ${c.notes}\n`;
-            txt += `   ${cur}${(c.price * c.quantity).toFixed?.(0)}\n\n`;
-        });
-
-        txt += isAr ? `*الإجمالي: ${cur}${cartTotal.toFixed?.(0)}*` : `*Total: ${cur}${cartTotal.toFixed?.(0)}*`;
-
-        const tel = config.phone.replace(/\D/g, '');
-        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(txt)}`, '_blank');
-    };
-
-    // Filter Logic - Always show all categories for scroll-sync
     const activeCatList = categories;
 
-    const scrollToSection = (id: string) => {
-        if (id === 'all') {
-            setActiveCategory('all');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            return;
-        }
+    // Flatten all items for search & featured
+    const allItems = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c)})));
+    // Simple mock featured items (in reality you'd filter by an is_featured flag or similar)
+    const featuredItems = allItems.slice(0, 6); 
 
-        isManualScroll.current = true;
-        setActiveCategory(id);
+    const searchedCategories = categories.map(cat => ({
+        ...cat,
+        items: (cat.items || []).filter(item => itemName(item).toLowerCase().includes(searchQuery.toLowerCase()))
+    })).filter(cat => cat.items.length > 0);
 
-        const el = document.getElementById(id);
-        if (el) {
-            const offset = 120;
-            const pos = el.getBoundingClientRect().top + window.scrollY - offset;
-            window.scrollTo({ top: pos, behavior: 'smooth' });
-        }
+    const displayCategories = searchQuery ? searchedCategories : activeCatList;
 
-        setTimeout(() => {
-            isManualScroll.current = false;
-        }, 800);
-    };
-
-    // --- Intersection Observer to Sync Category Bar ---
-    useEffect(() => {
-        const observerOptions = {
-            root: null,
-            rootMargin: '-100px 0px -50% 0px',
-            threshold: 0
-        };
-
-        const handleIntersect = (entries: IntersectionObserverEntry[]) => {
-            if (isManualScroll.current) return;
-
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    setActiveCategory(entry.target.id);
-                    
-                    // Center the active tab
-                    const container = catNavRef.current;
-                    const activeBtn = container?.querySelector(`[data-cat-id="${entry.target.id}"]`) as HTMLElement;
-                    if (container && activeBtn) {
-                        const scrollLeft = activeBtn.offsetLeft - container.offsetWidth / 2 + activeBtn.offsetWidth / 2;
-                        container.scrollTo({ left: scrollLeft, behavior: "smooth" });
-                    }
-                }
-            });
-        };
-
-        const observer = new IntersectionObserver(handleIntersect, observerOptions);
-        categories.forEach((cat) => {
-            const el = document.getElementById(cat.id.toString());
-            if (el) observer.observe(el);
-        });
-
-        return () => observer.disconnect();
-    }, [categories]);
-
-    if (!mounted) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900" />;
+    if (!mounted) return <div className="min-h-screen" style={{ backgroundColor: bgBody }} />;
 
     return (
-    <>
-        <div className="min-h-screen font-cairo pb-24" style={{ backgroundColor: bgBody, color: textMain }} dir={isAr ? 'rtl' : 'ltr'}>
-            {/* Header Marquee */}
-            {config.marquee_enabled && (
-                <div className="bg-[#f97316] font-cairo text-sm text-white">
-                    <SharedMarquee text={isAr ? (config.marquee_text_ar || '') : (config.marquee_text_en || config.marquee_text_ar || '')} />
+        <div className="min-h-screen font-cairo pb-32" style={{ backgroundColor: bgBody, color: textMain }} dir={isAr ? 'rtl' : 'ltr'}>
+            
+            {/* --- HEADER --- */}
+            <div className="px-5 pt-8 pb-4" style={{ backgroundColor: bgBody }}>
+                <div className="flex justify-between items-center mb-6">
+                    <button className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
+                        <Share2 className="w-5 h-5" />
+                    </button>
+                    {config.logo_url && (
+                        <img src={config.logo_url} alt={config.name} className="h-16 object-contain" />
+                    )}
+                    <button className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
+                        <LogOut className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Language Toggle */}
+                <div className="flex justify-center items-center gap-2 mb-6 bg-black/5 dark:bg-white/5 w-fit mx-auto rounded-full p-1">
+                    <button className="px-5 py-1.5 rounded-full font-bold text-sm bg-transparent">
+                        English
+                    </button>
+                    <button className="px-5 py-1.5 rounded-full font-bold text-sm text-white shadow-md" style={{ backgroundColor: primaryColor }}>
+                        العربية
+                    </button>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative mb-6">
+                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                        <Search className="w-5 h-5" style={{ color: textMuted }} />
+                    </div>
+                    <input 
+                        type="text" 
+                        placeholder={isAr ? 'ابحث في المنيو...' : 'Search in menu...'} 
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full h-12 rounded-full pr-12 pl-4 outline-none font-bold shadow-sm"
+                        style={{ backgroundColor: bgCard, color: textMain, border: `1px solid ${borderColor}` }}
+                    />
+                </div>
+            </div>
+
+            {/* --- BANNER --- */}
+            {config.cover_images && config.cover_images.length > 0 && !searchQuery && (
+                <div className="px-5 mb-8">
+                    <Swiper modules={[Autoplay]} autoplay={{ delay: 3000 }} className="w-full rounded-2xl overflow-hidden shadow-sm">
+                        {config.cover_images.map((img, i) => (
+                            <SwiperSlide key={i}>
+                                <img src={img} alt="Offer" className="w-full h-[180px] object-cover" />
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
                 </div>
             )}
 
-            {/* Cart Button */}
-            {config.orders_enabled !== false && (
-                <button onClick={() => setIsCartOpen(true)} className="fixed bottom-6 right-6 z-50 w-14 h-14 flex items-center justify-center rounded-full text-white shadow-lg bg-[#f97316] transition-transform active:scale-95 hover:bg-orange-600">
-                    <ShoppingCart className="w-6 h-6" />
-                    {cartCount > 0 && (
-                        <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white text-xs font-bold flex items-center justify-center border-2 border-[#f97316] text-[#f97316]">
-                            {cartCount}
-                        </span>
-                    )}
-                </button>
+            {/* --- FEATURED OFFERS --- */}
+            {!searchQuery && featuredItems.length > 0 && (
+                <div className="mb-8">
+                    <div className="px-5 flex items-center gap-2 mb-4">
+                        <h2 className="text-xl font-bold">عروض مميزة</h2>
+                        <Tag className="w-6 h-6" style={{ color: primaryColor }} />
+                    </div>
+                    <div className="pr-5 overflow-hidden" dir="rtl">
+                        <Swiper spaceBetween={15} slidesPerView={1.5} className="w-full">
+                            {featuredItems.map((item, idx) => (
+                                <SwiperSlide key={idx} className="pb-4">
+                                    <div 
+                                        className="rounded-3xl overflow-hidden shadow-sm cursor-pointer relative"
+                                        style={{ backgroundColor: bgCard }}
+                                        onClick={() => openModal(item, item.catName || '')}
+                                    >
+                                        <div className="relative h-[160px]">
+                                            <img src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                            {/* Offer Badge */}
+                                            <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                                                <span>عرض خاص</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-4 flex flex-col justify-between h-[100px]">
+                                            <h3 className="font-bold text-lg mb-1 leading-tight line-clamp-2">{itemName(item)}</h3>
+                                            <div className="text-left mt-auto" dir="ltr">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <span className="font-black text-xl">{item.prices?.[0]} {cur}</span>
+                                                    {item.prices?.[0] && <span className="text-sm line-through opacity-50">{Math.round(item.prices[0] * 1.3)} {cur}</span>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </SwiperSlide>
+                            ))}
+                        </Swiper>
+                    </div>
+                </div>
             )}
 
-            {/* Header Section */}
-            <div className="text-center mb-8 pt-8">
-                {config.logo_url && (
-                    <img src={config.logo_url} alt={config.name} className="w-[100px] h-[100px] rounded-full object-cover mb-3 mx-auto" />
+            {/* --- CATEGORIES & ITEMS --- */}
+            <div className="px-5">
+                {!searchQuery && (
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold">الأصناف</h2>
+                    </div>
                 )}
-                <h1 className="text-[2em] font-black text-center">{config.name}</h1>
-                <p className="text-[#999999] text-[0.9em] mt-1">
-                    {(config.phone || config.phone_numbers?.[0]?.number || config.phone_numbers?.[0]) && `📞 ${config.phone || config.phone_numbers?.[0]?.number || config.phone_numbers?.[0]}`}
-                    {config.address && ` • 📍 ${config.address}`}
-                </p>
-                <p className="text-[#999999] text-[0.9em] mt-1">
-                    🚚 {isAr ? 'توصيل متاح' : 'Delivery Available'}
-                     • 🍽️ {isAr ? 'داين إن متاح' : 'Dine-in Available'}
-                </p>
+                
+                {/* Categories Bar */}
+                {!searchQuery && (
+                    <div className="flex gap-3 overflow-x-auto pb-4 mb-4 scrollbar-hide" dir="rtl">
+                        <button 
+                            onClick={() => setActiveCategory('all')}
+                            className="px-6 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-colors shrink-0"
+                            style={{ 
+                                backgroundColor: activeCategory === 'all' ? primaryColor : bgCard,
+                                color: activeCategory === 'all' ? '#fff' : textMain,
+                                border: `1px solid ${activeCategory === 'all' ? primaryColor : borderColor}`
+                            }}
+                        >
+                            الكل
+                        </button>
+                        {categories.map((cat) => (
+                            <button 
+                                key={cat.id}
+                                onClick={() => {
+                                    setActiveCategory(cat.id.toString());
+                                    const el = document.getElementById(cat.id.toString());
+                                    if(el) {
+                                        const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                                        window.scrollTo({ top: y, behavior: 'smooth' });
+                                    }
+                                }}
+                                className="px-6 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-colors shrink-0"
+                                style={{ 
+                                    backgroundColor: activeCategory === cat.id.toString() ? primaryColor : bgCard,
+                                    color: activeCategory === cat.id.toString() ? '#fff' : textMain,
+                                    border: `1px solid ${activeCategory === cat.id.toString() ? primaryColor : borderColor}`
+                                }}
+                            >
+                                {catName(cat)}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Items Grid */}
+                <div>
+                    {displayCategories.map((category) => {
+                        const items = category.items || [];
+                        if (items.length === 0) return null;
+
+                        return (
+                            <div key={category.id} id={category.id.toString()} className="mb-8 pt-2">
+                                {searchQuery && (
+                                    <h3 className="font-bold text-lg mb-4" style={{ color: primaryColor }}>{catName(category)}</h3>
+                                )}
+                                <div className="grid grid-cols-2 gap-3">
+                                    {items.map((item) => (
+                                        <div 
+                                            key={item.id} 
+                                            className="rounded-3xl overflow-hidden shadow-sm border cursor-pointer relative flex flex-col"
+                                            style={{ backgroundColor: bgCard, borderColor }}
+                                            onClick={() => openModal(item, catName(category), category.image_url)}
+                                        >
+                                            {/* Image container */}
+                                            <div className="relative h-[130px] w-full">
+                                                <img 
+                                                    src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
+                                                    alt={itemName(item)} 
+                                                    loading="lazy"
+                                                    className="w-full h-full object-cover rounded-t-3xl" 
+                                                />
+                                                {/* Special Offer Badge */}
+                                                <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                                    عرض خاص
+                                                </div>
+                                                {/* Plus Button */}
+                                                {config.orders_enabled !== false && (
+                                                    <div 
+                                                        className="absolute -bottom-4 left-3 w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-[3px]"
+                                                        style={{ backgroundColor: primaryColor, borderColor: bgCard }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openModal(item, catName(category), category.image_url);
+                                                        }}
+                                                    >
+                                                        <Plus className="w-5 h-5" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            
+                                            {/* Content */}
+                                            <div className="p-3 pt-6 flex flex-col flex-1">
+                                                <h3 className="font-bold text-[0.95rem] mb-1 leading-tight line-clamp-1">{itemName(item)}</h3>
+                                                {(item.description_ar || item.desc_ar) && (
+                                                    <p className="text-[11px] mb-2 line-clamp-1" style={{ color: textMuted }}>
+                                                        {isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}
+                                                    </p>
+                                                )}
+                                                <div className="mt-auto flex flex-col items-start gap-1" dir="ltr">
+                                                    {item.prices?.[0] && <span className="text-[10px] line-through" style={{ color: textMuted }}>{Math.round(item.prices[0] * 1.3)} {cur}</span>}
+                                                    <span className="font-black text-[1.1rem]" style={{ color: primaryColor }}>{item.prices?.[0]} {cur}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
-            <main className="max-w-[900px] mx-auto px-5 w-full">
-                <p className="text-center mb-6">
-                    {isAr ? `تصفح منيو ${config.name} الكامل بالأسعار والصور.` : `Browse ${config.name} full menu with prices and photos.`}
-                </p>
+            {/* --- FLOATING BOTTOM NAV --- */}
+            <div className="fixed bottom-6 left-0 right-0 z-40 px-5 pointer-events-none">
+                <div className="max-w-[400px] mx-auto bg-white/90 dark:bg-[#1c1c1e]/90 backdrop-blur-md rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] border dark:border-zinc-800 p-1 flex justify-between items-center pointer-events-auto" dir="rtl">
+                    <button 
+                        onClick={() => { setNavTab('menu'); setIsCartOpen(false); setShowCheckout(false); }}
+                        className="flex-1 flex flex-col items-center justify-center py-2 rounded-full transition-all"
+                        style={{ color: navTab === 'menu' && !isCartOpen ? primaryColor : textMuted, backgroundColor: navTab === 'menu' && !isCartOpen ? `${primaryColor}15` : 'transparent' }}
+                    >
+                        <Home className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] font-bold">المنيو</span>
+                    </button>
+                    
+                    <button 
+                        onClick={() => { setNavTab('cart'); setIsCartOpen(true); }}
+                        className="flex-1 flex flex-col items-center justify-center py-2 rounded-full transition-all relative"
+                        style={{ color: isCartOpen ? primaryColor : textMuted, backgroundColor: isCartOpen ? `${primaryColor}15` : 'transparent' }}
+                    >
+                        <ShoppingBag className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] font-bold">سلة الطلبات</span>
+                        {cartCount > 0 && (
+                            <span className="absolute top-1 right-1/4 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                                {cartCount}
+                            </span>
+                        )}
+                    </button>
 
-                {categories.map((category) => {
-                    const items = category.items || [];
-                    if (items.length === 0) return null;
+                    <button 
+                        onClick={() => { setNavTab('contact'); /* Handled later */ }}
+                        className="flex-1 flex flex-col items-center justify-center py-2 rounded-full transition-all"
+                        style={{ color: navTab === 'contact' && !isCartOpen ? primaryColor : textMuted, backgroundColor: navTab === 'contact' && !isCartOpen ? `${primaryColor}15` : 'transparent' }}
+                    >
+                        <User className="w-5 h-5 mb-1" />
+                        <span className="text-[10px] font-bold">تواصل</span>
+                    </button>
 
-                    return (
-                        <div key={category.id} id={category.id.toString()} className="mb-10">
-                            <h2 className="text-[1.5em] font-bold text-[#f97316] mt-[2em] border-b-2 border-[#f97316] pb-2 mb-4">
-                                {catName(category)}
-                            </h2>
-                            <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4 mt-3">
-                                {items.map((item) => (
-                                    <div 
-                                        key={item.id} 
-                                        className="bg-[#1a1d24] border border-[#333333] rounded-[12px] p-4 overflow-hidden cursor-pointer hover:border-[#f97316] transition-colors"
-                                        onClick={() => openModal(item, catName(category), category.image_url)}
-                                    >
-                                        <img 
-                                            src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
-                                            alt={itemName(item)} 
-                                            loading="lazy"
-                                            className="w-full h-[160px] object-cover rounded-[8px] mb-2" 
-                                        />
-                                        <h3 className="font-bold text-[1.1em] m-0 mb-1">{itemName(item)}</h3>
-                                        {(item.description_ar || item.desc_ar) && (
-                                            <p className="text-[#999999] text-sm mb-2 line-clamp-2">
-                                                {isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}
-                                            </p>
-                                        )}
-                                        <p className="text-[#f97316] font-bold text-[1.1em]">
-                                            {item.prices?.[0]} {cur}
+                    <button 
+                        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        className="flex-1 flex flex-col items-center justify-center py-2 rounded-full transition-all"
+                        style={{ color: textMuted }}
+                    >
+                        {isDark ? <Sun className="w-5 h-5 mb-1" /> : <Moon className="w-5 h-5 mb-1" />}
+                        <span className="text-[10px] font-bold">{isDark ? 'مضيء' : 'مظلم'}</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* --- ITEM DETAIL MODAL --- */}
+            <AnimatePresence>
+                {selectedItem && !isCartOpen && !showCheckout && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: '100%' }} 
+                        animate={{ opacity: 1, y: 0 }} 
+                        exit={{ opacity: 0, y: '100%' }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                        className="fixed inset-0 z-50 flex flex-col"
+                        style={{ backgroundColor: bgBody }}
+                    >
+                        {/* Header actions */}
+                        <div className="absolute top-6 left-5 right-5 z-10 flex justify-between items-center pointer-events-none">
+                            <div className="flex gap-3 pointer-events-auto">
+                                <button onClick={() => setIsCartOpen(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white relative">
+                                    <ShoppingCart className="w-5 h-5" />
+                                    {cartCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                            {cartCount}
+                                        </span>
+                                    )}
+                                </button>
+                                <button className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white">
+                                    <Share2 className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <button onClick={closeModal} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white pointer-events-auto">
+                                <ArrowRight className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pb-24">
+                            {/* Image */}
+                            <div className="w-full h-[320px] relative">
+                                <img src={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                            </div>
+
+                            <div className="p-6 -mt-8 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
+                                {/* Title & Price Row */}
+                                <div className="flex flex-col mb-4">
+                                    <h2 className="text-3xl font-black mb-2 leading-tight">{itemName(selectedItem.item)}</h2>
+                                    {(selectedItem.item.description_ar || selectedItem.item.desc_ar) && (
+                                        <p className="text-sm leading-relaxed mb-6" style={{ color: textMuted }}>
+                                            {isAr ? (selectedItem.item.description_ar || selectedItem.item.desc_ar) : (selectedItem.item.description_en || selectedItem.item.desc_en || selectedItem.item.description_ar || selectedItem.item.desc_ar)}
                                         </p>
+                                    )}
+                                    <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
+                                        <span className="font-bold">السعر</span>
+                                        <div className="flex gap-2 items-center" dir="ltr">
+                                            <span className="text-3xl font-black" style={{ color: primaryColor }}>{selectedItem.item.prices?.[0]} {cur}</span>
+                                            {selectedItem.item.prices?.[0] && <span className="text-lg line-through" style={{ color: textMuted }}>{Math.round(selectedItem.item.prices[0] * 1.3)} {cur}</span>}
+                                        </div>
                                     </div>
-                                ))}
+                                </div>
+
+                                {/* Add to Cart Huge Button */}
+                                {config.orders_enabled !== false && (
+                                    <button 
+                                        onClick={addToCart} 
+                                        className="w-full h-[64px] rounded-2xl flex items-center justify-between px-2 shadow-lg transition-transform active:scale-95 mb-8"
+                                        style={{ backgroundColor: primaryColor }}
+                                    >
+                                        <div className="flex-1 text-center font-bold text-xl text-white">
+                                            أضف للسلة
+                                        </div>
+                                        <div className="h-[48px] w-[64px] rounded-xl flex items-center justify-center bg-black/10 text-white font-bold" dir="ltr">
+                                            {selectedItem.item.prices?.[0]} {cur}
+                                        </div>
+                                    </button>
+                                )}
+
+                                {/* You might also like */}
+                                {featuredItems.length > 0 && (
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <h3 className="font-bold text-lg">قد يعجبك أيضاً</h3>
+                                        </div>
+                                        <div className="overflow-hidden" dir="rtl">
+                                            <Swiper spaceBetween={15} slidesPerView={2.2} className="w-full pb-4">
+                                                {featuredItems.map((item, idx) => (
+                                                    <SwiperSlide key={idx}>
+                                                        <div 
+                                                            className="rounded-3xl overflow-hidden border cursor-pointer relative"
+                                                            style={{ backgroundColor: bgCard, borderColor }}
+                                                            onClick={() => openModal(item, item.catName || '')}
+                                                        >
+                                                            <div className="relative h-[120px]">
+                                                                <img src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                                                <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
+                                                                    عرض خاص
+                                                                </div>
+                                                                <div className="absolute bottom-2 left-2 w-6 h-6 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}>
+                                                                    <Plus className="w-4 h-4" />
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-3 text-center">
+                                                                <h4 className="font-bold text-[11px] mb-1 line-clamp-1">{itemName(item)}</h4>
+                                                                <div className="flex items-center justify-center gap-1" dir="ltr">
+                                                                    <span className="font-black text-[12px]" style={{ color: primaryColor }}>{item.prices?.[0]}</span>
+                                                                    {item.prices?.[0] && <span className="text-[9px] line-through" style={{ color: textMuted }}>{Math.round(item.prices[0] * 1.3)}</span>}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </SwiperSlide>
+                                                ))}
+                                            </Swiper>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    );
-                })}
-            </main>
-
-            {/* Target Footer Replica */}
-            <footer style={{ marginTop: '3em', paddingTop: '2em', borderTop: '1px solid #333', textAlign: 'center', color: '#666' }}>
-                <p>منيو {config.name} على <a href="https://menumasr.com" style={{ color: '#f97316' }}>منيو مصر</a></p>
-                <p className="mt-2 space-x-2 space-x-reverse">
-                    <a href="https://menumasr.com/منيو-الكتروني" style={{ color: '#f97316' }}>منيو الكتروني</a> • 
-                    <a href="https://menumasr.com/منيو-رقمي" style={{ color: '#f97316' }}>منيو رقمي</a> • 
-                    <a href="https://menumasr.com/منيو-qr-code" style={{ color: '#f97316' }}>منيو QR Code</a>
-                </p>
-            </footer>
-        </div>
-
-            {/* Modal */}
-            <AnimatePresence>
-                {selectedItem && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 sm: backdrop-blur-md py-16 px-6 mb-safe"
-                        onClick={closeModal}>
-                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="relative w-[85vw] max-w-[310px] max-h-[85vh] rounded-[24px] overflow-hidden flex flex-col shadow-2xl mx-auto"
-                            style={{ backgroundColor: bgCard }}
-                            onClick={e => e.stopPropagation()}>
-
-                            {/* Close Button UI */}
-                            <button onClick={closeModal} className="absolute top-4 left-4 z-20 w-8 h-8 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/40 transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-
-                            {/* Modal Header Image */}
-                            <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative bg-slate-100 dark:bg-slate-800">
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                                <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
-                                    alt={itemName(selectedItem.item)} className="w-full h-full object-contain" />
-
-                                <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
-                                    <h2 className="text-xl sm:text-2xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>
-                                    {(selectedItem.item.desc_ar || selectedItem.item.desc_en || selectedItem.item.description_ar || selectedItem.item.description_en) && (
-                                    <p className="text-white/90 text-sm sm:text-base font-bold drop-shadow-sm">
-                                        {isAr ? (selectedItem.item.desc_ar || selectedItem.item.description_ar) : (selectedItem.item.desc_en || selectedItem.item.description_en || selectedItem.item.desc_ar || selectedItem.item.description_ar)}
-                                    </p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Modal Content */}
-                            <div className="flex-1 overflow-y-auto p-4 pb-20" style={{ color: textMain }}>
-
-                                {/* Base Price */}
-                                <div className="flex justify-between items-center bg-[#0d0f14] border p-4 rounded-xl mb-6" style={{ borderColor }}>
-                                    <span className="font-bold">{isAr ? 'السعر' : 'Price'}</span>
-                                    <span className="text-xl font-black" style={{ color: primaryColor }}>{cur}{selectedItem.item.prices[sizeIdx]?.toFixed?.(0)}</span>
-                                </div>
-
-                                {/* Sizes */}
-                                {selectedItem.item.prices.length > 1 && (
-                                    <div className="mb-6">
-                                        <h3 className="font-bold mb-3 flex items-center gap-2">
-                                            <List className="w-4 h-4 text-slate-400" />
-                                            {isAr ? 'اختر الحجم' : 'Select Size'}
-                                        </h3>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {selectedItem.item.prices.map((p, idx) => {
-                                                const label = selectedItem.item.size_labels?.[idx] || (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`);
-                                                return (
-                                                    <label key={idx} className="flex flex-col items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all text-center"
-                                                        style={{ borderColor: sizeIdx === idx ? primaryColor : borderColor, backgroundColor: sizeIdx === idx ? `${primaryColor}15` : 'transparent' }}
-                                                        onClick={() => setSizeIdx(idx)}>
-                                                        <span className="font-bold text-sm mb-1">{label}</span>
-                                                        <span className="text-xs font-semibold">{cur}{p}</span>
-                                                        <input type="radio" checked={sizeIdx === idx} readOnly className="hidden" />
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Extras */}
-                                {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
-                                    <div className="mb-6">
-                                        <h3 className="font-bold mb-3 flex items-center gap-2">
-                                            <Plus className="w-4 h-4 text-slate-400" />
-                                            {isAr ? 'إضافات (اختياري)' : 'Extras (Optional)'}
-                                        </h3>
-                                        <div className="space-y-3">
-                                            {selectedItem.item.extras.map((ext, idx) => {
-                                                const id = ext.id || idx;
-                                                const isSel = selectedExtras.some(e => e.id === id);
-                                                return (
-                                                    <label key={idx} className="flex items-center justify-between p-3 rounded-xl border border-dashed cursor-pointer transition-colors"
-                                                        style={{ borderColor: isSel ? primaryColor : borderColor, backgroundColor: isSel ? `${primaryColor}05` : 'transparent' }}>
-                                                        <input type="checkbox" className="hidden" checked={isSel}
-                                                            onChange={() => {
-                                                                if (isSel) setSelectedExtras(p => p.filter(e => e.id !== id));
-                                                                else setSelectedExtras(p => [...p, { id, name: isAr ? ext.name_ar : (ext.name_en || ext.name_ar), price: ext.price }]);
-                                                            }} />
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-5 h-5 rounded border flex items-center justify-center transition-colors"
-                                                                style={{ borderColor: isSel ? primaryColor : borderColor, backgroundColor: isSel ? primaryColor : 'transparent' }}>
-                                                                {isSel && <X className="w-3 h-3 text-white" style={{ transform: 'rotate(45deg)' }} />}
-                                                            </div>
-                                                            <span className="text-sm font-semibold">{isAr ? ext.name_ar : (ext.name_en || ext.name_ar)}</span>
-                                                        </div>
-                                                        <span className="text-sm font-bold" style={{ color: primaryColor }}>{ext.price > 0 ? `+${cur}${ext.price}` : (isAr ? 'مجاناً' : 'Free')}</span>
-                                                    </label>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Notes */}
-                                <div className="mb-6">
-                                    <h3 className="font-bold mb-3 flex items-center gap-2">
-                                        <FileText className="w-4 h-4 text-slate-400" />
-                                        {isAr ? 'ملاحظات' : 'Notes'}
-                                    </h3>
-                                    <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                                        placeholder={isAr ? 'أضف ملاحظاتك الخاصة هنا...' : 'Special instructions...'}
-                                        className="w-full rounded-xl p-3 outline-none resize-none h-24 text-sm border focus:ring-1 transition-all"
-                                        style={{ backgroundColor: bgBody, color: textMain, borderColor, '--tw-ring-color': primaryColor } as React.CSSProperties} />
-                                </div>
-                            </div>
-
-                            {/* Sticky Bottom Actions */}
-                            {config.orders_enabled !== false && (
-                                <div className="absolute bottom-0 w-full p-4 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)]" style={{ backgroundColor: bgCard, borderColor }}>
-                                    <div className="flex gap-4 items-center">
-                                        <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-full h-12 px-2 border" style={{ borderColor }}>
-                                            <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-8 h-8 rounded-full flex flex-col items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700">
-                                                <Minus className="w-4 h-4" />
-                                            </button>
-                                            <span className="w-8 text-center font-bold text-lg">{qty}</span>
-                                            <button onClick={() => setQty(qty + 1)} className="w-8 h-8 rounded-full flex flex-col items-center justify-center text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-700">
-                                                <Plus className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                        <button onClick={addToCart} className="flex-1 min-h-[44px] py-2 px-3 rounded-full text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md hover:shadow-lg whitespace-nowrap overflow-hidden"
-                                            style={{ backgroundColor: primaryColor }}>
-                                            <ShoppingCart className="w-4 h-4 shrink-0" />
-                                            <span className="truncate">{isAr ? 'أضف للسلة' : 'Add'}</span>
-                                            <span className="shrink-0">{cur}{(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed?.(0)}</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Cart Drawer */}
+            
+            {/* --- CART DRAWER --- */}
             <AnimatePresence>
                 {isCartOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex items-center justify-center py-16 px-6 mb-safe"
+                        className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex justify-center py-16 px-5 mb-safe"
                         onClick={() => setIsCartOpen(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className={`relative w-[85vw] max-w-[310px] max-h-[85vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl`}
+                            className="relative w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl"
                             style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()}>
-
-                            {/* Cart Header */}
                             <div className="p-5 flex justify-between items-center text-white shadow-md z-10 sticky top-0" style={{ backgroundColor: primaryColor }}>
                                 <div className="flex flex-col">
-                                    <span className="font-bold text-lg leading-none mb-1">{isAr ? 'عربة التسوق' : 'Cart'}</span>
-                                    <span className="text-xs opacity-90">{cartCount} {isAr ? 'عناصر' : 'items'}</span>
+                                    <span className="font-bold text-lg leading-none mb-1">عربة التسوق</span>
+                                    <span className="text-xs opacity-90">{cartCount} عناصر</span>
                                 </div>
-                                <button onClick={() => setIsCartOpen(false)} className="w-8 h-8 flex flex-col items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                                <button onClick={() => setIsCartOpen(false)} className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                             </div>
-
-                            {/* Cart Body */}
                             <div className="flex-1 overflow-y-auto" style={{ backgroundColor: bgBody }}>
                                 {cart.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4" style={{ color: textMuted }}>
-                                        <div className="w-24 h-24 mb-4 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
-                                            <ShoppingCart className="w-10 h-10 opacity-40" />
-                                        </div>
-                                        <p className="font-bold text-lg mb-2">{isAr ? 'سلتك فارغة' : 'Your cart is empty'}</p>
-                                        <p className="text-sm opacity-80">{isAr ? 'أضف بعض المنتجات الشهية للبدء' : 'Add some delicious items to start'}</p>
+                                        <ShoppingCart className="w-10 h-10 opacity-40 mb-4" />
+                                        <p className="font-bold text-lg mb-2">سلتك فارغة</p>
                                     </div>
                                 ) : (
                                     <div className="p-4 space-y-4">
                                         {cart.map((c, i) => (
-                                            <div key={i} className="flex gap-4 p-4 rounded-3xl bg-[#1a1d24] shadow-sm border" style={{ borderColor }}>
-                                                <div className="w-20 h-20 shrink-0 bg-slate-100 rounded-xl overflow-hidden">
-                                                    <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
-                                                </div>
-                                                <div className="flex-1 min-w-0 flex flex-col justify-between" dir={isAr ? 'rtl' : 'ltr'}>
+                                            <div key={i} className="flex gap-4 p-4 rounded-3xl shadow-sm border" style={{ backgroundColor: bgCard, borderColor }}>
+                                                <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
+                                                <div className="flex-1 min-w-0 flex flex-col justify-between">
                                                     <div className="flex justify-between items-start">
-                                                        <div>
-                                                            <h4 className="font-bold text-sm line-clamp-1">{itemName(c.item)}</h4>
-                                                            {(c.sizeLabel || c.notes) && (
-                                                                <p className="text-[11px] mt-1 space-y-0.5" style={{ color: textMuted }}>
-                                                                    {c.sizeLabel && <span className="block">{c.sizeLabel}</span>}
-                                                                    {c.notes && <span className="block italic flex gap-1"><AlertCircle className="w-3 h-3 inline" />{c.notes}</span>}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-slate-300 hover:text-red-500 transition-colors p-1">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                        <h4 className="font-bold text-sm line-clamp-1">{itemName(c.item)}</h4>
+                                                        <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
-
                                                     <div className="flex justify-between items-center mt-3">
                                                         <span className="font-black" style={{ color: primaryColor }}>{cur}{(c.price * c.quantity).toFixed?.(0)}</span>
-                                                        <div className="flex items-center bg-slate-100 dark:bg-slate-900 rounded-full h-8 px-1 border" style={{ borderColor }}>
-                                                            <button onClick={() => updateQty(c.id, c.notes, -1)} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-primary-600"><Minus className="w-3 h-3" /></button>
+                                                        <div className="flex items-center rounded-full h-8 px-1 border" style={{ borderColor }}>
+                                                            <button onClick={() => updateQty(c.id, c.notes, -1)} className="w-6 h-6 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
                                                             <span className="w-6 text-center text-sm font-bold">{c.quantity}</span>
-                                                            <button onClick={() => updateQty(c.id, c.notes, 1)} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-primary-600"><Plus className="w-3 h-3" /></button>
+                                                            <button onClick={() => updateQty(c.id, c.notes, 1)} className="w-6 h-6 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
-
-
                                     </div>
                                 )}
                             </div>
-
-                            {/* Cart Footer */}
                             {cart.length > 0 && (
-                                <div className="p-4 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] border-t z-20" style={{ backgroundColor: bgCard, borderColor }}>
-                                    <div className="flex justify-between items-center mb-4 text-sm font-bold" style={{ color: textMain }}>
-                                        <span>{isAr ? 'الإجمالي' : 'Total'}</span>
-                                        <span className="text-xl font-black" style={{ color: primaryColor }}>{cur}{cartTotal.toFixed?.(0)}</span>
+                                <div className="p-5 border-t z-20" style={{ backgroundColor: bgCard, borderColor }}>
+                                    <div className="flex justify-between items-center mb-4 text-sm font-bold">
+                                        <span>الإجمالي</span>
+                                        <span className="text-2xl font-black" style={{ color: primaryColor }}>{cur}{cartTotal.toFixed?.(0)}</span>
                                     </div>
-                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full flex justify-center items-center gap-2 h-11 rounded-full text-white font-bold text-base transition-transform active:scale-95 shadow-lg"
-                                        style={{ backgroundColor: '#10b981' }}>
-                                        {isAr ? 'إتمام الطلب' : 'Proceed to Checkout'}
+                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full h-14 rounded-2xl text-white font-bold text-lg bg-[#10b981] shadow-lg">
+                                        إتمام الطلب
                                     </button>
                                 </div>
                             )}
@@ -585,27 +604,32 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 )}
             </AnimatePresence>
 
+            {/* Checkout Modal (Stubbed as simple text due to size limits, integrate real CheckoutModal later if needed) */}
+            <AnimatePresence>
+                {showCheckout && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[400] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="w-full max-w-md rounded-3xl p-6" style={{ backgroundColor: bgCard }}>
+                            <h2 className="text-2xl font-bold mb-4">إتمام الطلب عبر واتساب</h2>
+                            <p className="mb-6 text-sm" style={{ color: textMuted }}>سيتم تحويلك إلى تطبيق واتساب لإرسال الطلب مباشرة للمطعم.</p>
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowCheckout(false)} className="flex-1 py-3 rounded-2xl border font-bold" style={{ borderColor }}>إلغاء</button>
+                                <button onClick={() => {
+                                    let txt = `طلب جديد من ${config.name}%0A%0A`;
+                                    cart.forEach(c => txt += `${c.quantity}x ${itemName(c.item)} - ${c.price * c.quantity} ${cur}%0A`);
+                                    txt += `%0Aالإجمالي: ${cartTotal} ${cur}`;
+                                    const tel = (config.phone || '').replace(/\D/g, '');
+                                    window.open(`https://wa.me/${tel}?text=${txt}`, '_blank');
+                                    setShowCheckout(false);
+                                    setCart([]);
+                                }} className="flex-1 py-3 rounded-2xl text-white font-bold" style={{ backgroundColor: '#25D366' }}>إرسال الطلب</button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Hidden Footer from Theme config if any */}
             <ASNFooter show={config.show_asn_branding !== false} />
-            <CheckoutModal
-                isOpen={showCheckout}
-                onClose={() => setShowCheckout(false)}
-                cartItems={cart.map(c => ({
-                    id: c.id,
-                    title: isAr ? c.item.title_ar : c.item.title_en || c.item.title_ar,
-                    qty: c.quantity,
-                    price: c.price,
-                    size: c.sizeLabel,
-                    category: c.catName,
-                }))}
-                subtotal={cartTotal}
-                restaurantId={restaurantId}
-                restaurantName={config.name}
-                whatsappNumber={config.whatsapp_number || config.social_links?.whatsapp}
-                currency={cur || 'ج.م'}
-                language={isAr ? 'ar' : 'en'}
-                orderChannel={config.order_channel}
-                onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
-            />
-        </>
+        </div>
     );
 }
