@@ -8,6 +8,9 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import ASNFooter from '@/components/menu/ASNFooter';
+import CheckoutModal from './CheckoutModal';
+import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram, FaTiktok, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
+
 
 type MenuItem = {
     id: string | number;
@@ -68,7 +71,8 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
-    const isAr = config.default_language === 'ar' || true; // Layout is strictly RTL from screenshots
+    const [currentLang, setCurrentLang] = useState<'ar'|'en'>(config.default_language === 'en' ? 'en' : 'ar');
+    const isAr = currentLang === 'ar';
     const isDark = mounted && theme === 'dark';
     const cur = config.currency || (isAr ? "ج.م" : "EGP");
 
@@ -99,6 +103,8 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
     
     const [cart, setCart] = useState<{ id: string, item: MenuItem, catName: string, price: number, sizeLabel: string, quantity: number, notes: string }[]>([]);
     const [showCheckout, setShowCheckout] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
+    const [showMenuCategories, setShowMenuCategories] = useState(false);
 
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
@@ -179,7 +185,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         <Share2 className="w-5 h-5" />
                     </button>
                     {config.logo_url && (
-                        <img src={config.logo_url} alt={config.name} className="h-16 object-contain" />
+                        <img src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm" />
                     )}
                     <button className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
                         <LogOut className="w-5 h-5" />
@@ -187,11 +193,17 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 </div>
 
                 {/* Language Toggle */}
-                <div className="flex justify-center items-center gap-2 mb-6 bg-black/5 dark:bg-white/5 w-fit mx-auto rounded-full p-1">
-                    <button className="px-5 py-1.5 rounded-full font-bold text-sm bg-transparent">
+                <div className="flex justify-center items-center gap-2 mb-6 bg-black/5 dark:bg-white/5 w-fit mx-auto rounded-full p-1" dir="ltr">
+                    <button 
+                        onClick={() => setCurrentLang('en')}
+                        className="px-5 py-1.5 rounded-full font-bold text-sm transition-all"
+                        style={{ backgroundColor: !isAr ? primaryColor : 'transparent', color: !isAr ? '#fff' : textMain, boxShadow: !isAr ? '0 4px 6px -1px rgb(0 0 0 / 0.1)' : 'none' }}>
                         English
                     </button>
-                    <button className="px-5 py-1.5 rounded-full font-bold text-sm text-white shadow-md" style={{ backgroundColor: primaryColor }}>
+                    <button 
+                        onClick={() => setCurrentLang('ar')}
+                        className="px-5 py-1.5 rounded-full font-bold text-sm transition-all"
+                        style={{ backgroundColor: isAr ? primaryColor : 'transparent', color: isAr ? '#fff' : textMain, boxShadow: isAr ? '0 4px 6px -1px rgb(0 0 0 / 0.1)' : 'none' }}>
                         العربية
                     </button>
                 </div>
@@ -233,7 +245,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         <Tag className="w-6 h-6" style={{ color: primaryColor }} />
                     </div>
                     <div className="pr-5 overflow-hidden" dir="rtl">
-                        <Swiper spaceBetween={15} slidesPerView={1.5} className="w-full">
+                        <Swiper spaceBetween={15} slidesPerView={1.5} className="w-full" modules={[Autoplay]} autoplay={{ delay: 2500, disableOnInteraction: false }} loop={featuredItems.length > 2}>
                             {featuredItems.map((item, idx) => (
                                 <SwiperSlide key={idx} className="pb-4">
                                     <div 
@@ -397,7 +409,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         style={{ color: isCartOpen ? primaryColor : textMuted, backgroundColor: isCartOpen ? `${primaryColor}15` : 'transparent' }}
                     >
                         <ShoppingBag className="w-5 h-5 mb-1" />
-                        <span className="text-[10px] font-bold">سلة الطلبات</span>
+                        <span className="text-[10px] font-bold">{isAr ? 'السلة' : 'Cart'}</span>
                         {cartCount > 0 && (
                             <span className="absolute top-1 right-1/4 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
                                 {cartCount}
@@ -420,7 +432,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         style={{ color: textMuted }}
                     >
                         {isDark ? <Sun className="w-5 h-5 mb-1" /> : <Moon className="w-5 h-5 mb-1" />}
-                        <span className="text-[10px] font-bold">{isDark ? 'مضيء' : 'مظلم'}</span>
+                        <span className="text-[10px] font-bold">{isDark ? (isAr ? 'مضيء' : 'Light') : (isAr ? 'مظلم' : 'Dark')}</span>
                     </button>
                 </div>
             </div>
