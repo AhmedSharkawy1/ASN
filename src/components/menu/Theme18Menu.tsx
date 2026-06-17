@@ -273,7 +273,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                             {featuredItems.map((item, idx) => (
                                 <SwiperSlide key={idx} className="pb-4">
                                     <div 
-                                        className="rounded-3xl overflow-hidden shadow-sm cursor-pointer relative"
+                                        className="rounded-3xl overflow-hidden shadow-sm cursor-pointer relative flex flex-col h-full"
                                         style={{ backgroundColor: bgCard }}
                                         onClick={() => openModal(item, item.catName || '')}
                                     >
@@ -284,7 +284,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                 <span>{isAr ? 'عرض خاص' : 'Special Offer'}</span>
                                             </div>
                                         </div>
-                                        <div className="p-4 flex flex-col justify-between h-[100px]">
+                                        <div className="p-4 flex flex-col justify-between flex-1 min-h-[100px]">
                                             <h3 className="font-bold text-lg mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
                                             <div className="text-left mt-auto" dir="ltr">
                                                 <div className="flex items-center justify-end gap-2">
