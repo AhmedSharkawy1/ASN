@@ -286,10 +286,23 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         </div>
                                         <div className="p-4 flex flex-col justify-between flex-1 min-h-[100px]">
                                             <h3 className="font-bold text-lg mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
-                                            <div className="text-left mt-auto" dir="ltr">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <span className="font-black text-xl">{item.prices?.[0]} {cur}</span>
-                                                    {item.prices?.[0] && <span className="text-sm line-through opacity-50">{Math.round(item.prices[0] * 1.3)} {cur}</span>}
+                                            <div className="text-left mt-auto w-full pt-2" dir="ltr">
+                                                <div className="flex flex-col gap-1.5 w-full">
+                                                    {item.prices?.map((price, pIdx) => (
+                                                        <div key={pIdx} className="flex items-center justify-between w-full">
+                                                            <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                {item.size_labels?.[pIdx] && (
+                                                                    <span className="text-xs font-bold opacity-70 truncate block">{item.size_labels[pIdx]}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                                {item.prices?.length === 1 && (
+                                                                    <span className="text-sm line-through opacity-50">{Math.round(price * 1.3)}</span>
+                                                                )}
+                                                                <span className="font-black text-lg">{price} {cur}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
@@ -413,9 +426,22 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                         {isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}
                                                     </p>
                                                 )}
-                                                <div className="mt-auto flex flex-col items-start gap-1" dir="ltr">
-                                                    {item.prices?.[0] && <span className="text-[10px] line-through" style={{ color: textMuted }}>{Math.round(item.prices[0] * 1.3)} {cur}</span>}
-                                                    <span className="font-black text-[1.1rem]" style={{ color: primaryColor }}>{item.prices?.[0]} {cur}</span>
+                                                <div className="mt-auto flex flex-col w-full gap-1 pt-2" dir="ltr">
+                                                    {item.prices?.map((price, pIdx) => (
+                                                        <div key={pIdx} className="flex items-center justify-between w-full">
+                                                            <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                {item.size_labels?.[pIdx] && (
+                                                                    <span className="text-[10px] font-bold opacity-70 truncate block">{item.size_labels[pIdx]}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                                {item.prices?.length === 1 && (
+                                                                    <span className="text-[10px] line-through" style={{ color: textMuted }}>{Math.round(price * 1.3)}</span>
+                                                                )}
+                                                                <span className="font-black text-[1.05rem]" style={{ color: primaryColor }}>{price} {cur}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         </div>
@@ -571,9 +597,22 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                             </div>
                                                             <div className="p-3 text-center">
                                                                 <h4 className="font-bold text-[11px] mb-1 line-clamp-2">{itemName(item)}</h4>
-                                                                <div className="flex items-center justify-center gap-1" dir="ltr">
-                                                                    <span className="font-black text-[12px]" style={{ color: primaryColor }}>{item.prices?.[0]}</span>
-                                                                    {item.prices?.[0] && <span className="text-[9px] line-through" style={{ color: textMuted }}>{Math.round(item.prices[0] * 1.3)}</span>}
+                                                                <div className="flex flex-col gap-1 mt-auto w-full pt-1" dir="ltr">
+                                                                    {item.prices?.map((price, pIdx) => (
+                                                                        <div key={pIdx} className="flex items-center justify-between w-full">
+                                                                            <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                                {item.size_labels?.[pIdx] && (
+                                                                                    <span className="text-[9px] font-bold opacity-70 truncate block">{item.size_labels[pIdx]}</span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                                                                                {item.prices?.length === 1 && (
+                                                                                    <span className="text-[9px] line-through" style={{ color: textMuted }}>{Math.round(price * 1.3)}</span>
+                                                                                )}
+                                                                                <span className="font-black text-[12px]" style={{ color: primaryColor }}>{price}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
                                                             </div>
                                                         </div>
