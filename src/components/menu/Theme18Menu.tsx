@@ -634,7 +634,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}><FaPhoneAlt /></div>
                                         <div>
                                             <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'رقم الهاتف' : 'Phone Number'}</p>
-                                            <a href={`tel:${config.phone || config.phone_numbers[0]}`} className="font-bold block" dir="ltr">{config.phone || config.phone_numbers[0]}</a>
+                                            <a href={`tel:${config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}`} className="font-bold block" dir="ltr">{config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}</a>
                                         </div>
                                     </div>
                                 )}
@@ -743,7 +743,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 subtotal={cartTotal}
                 restaurantId={restaurantId}
                 restaurantName={config.name}
-                whatsappNumber={config.phone || (config.phone_numbers && config.phone_numbers.length > 0 ? config.phone_numbers[0] : '')}
+                whatsappNumber={config.phone || (config.phone_numbers && config.phone_numbers.length > 0 ? (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0]) : '')}
                 currency={cur} 
                 language={currentLang} 
                 orderChannel={config.order_channel}
