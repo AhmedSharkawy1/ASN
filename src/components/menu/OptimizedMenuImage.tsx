@@ -67,7 +67,7 @@ export default function OptimizedMenuImage({
   // Next.js Image component wrapper to handle styling and click events properly
   return (
     <div 
-      className={`relative overflow-hidden w-full h-full ${className}`} 
+      className={`relative overflow-hidden ${className}`} 
       onClick={onClick}
       style={style}
     >
