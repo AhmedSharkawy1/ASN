@@ -1,4 +1,5 @@
 "use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 
 import { useEffect, useState, Suspense } from "react";
@@ -829,21 +830,13 @@ function SmartMenuContent({
       <div className="pt-8 pb-6 px-4 md:px-6 bg-[#171717] shadow-sm relative z-10 rounded-b-[2.5rem] overflow-hidden">
         {config.cover_url && (
           <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <img
-              src={config.cover_url}
-              alt="Cover"
-              className="w-full h-full object-cover"
-            />
+            <OptimizedMenuImage src={config.cover_url} alt="Cover" className="w-full h-full object-cover" useOriginal={true} />
           </div>
         )}
         <div className="max-w-3xl mx-auto relative z-20 flex flex-col items-center text-center">
           {config.logo_url && (
             <div className="w-24 h-24 rounded-full border-4 border-white/10 bg-white shadow-xl overflow-hidden mb-4 p-1">
-              <img
-                src={config.logo_url}
-                alt="Logo"
-                className="w-full h-full object-contain"
-              />
+              <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-contain" useOriginal={true} />
             </div>
           )}
           <h1 className="text-3xl font-black mb-2 tracking-tight">
@@ -948,13 +941,7 @@ function SmartMenuContent({
         {/* Active Category Image Header */}
         {!searchQuery && activeCatData?.image_url && (
           <div className="w-full h-32 md:h-48 rounded-[2rem] overflow-hidden mb-6 relative shadow-lg">
-            <img
-              src={activeCatData.image_url}
-              alt="Category Cover"
-              className="w-full h-full object-cover"
-              loading="eager"
-              decoding="async"
-            />
+            <OptimizedMenuImage src={activeCatData.image_url} alt="Category Cover" className="w-full h-full object-cover" />
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
               <h2 className="text-white text-2xl font-black">
                 {language === "ar"
@@ -1000,15 +987,7 @@ function SmartMenuContent({
                     <div className="relative shrink-0">
                       {item.image_url ? (
                         <div className="w-[100px] h-[100px] rounded-2xl bg-gray-200 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-500">
-                          <img
-                            src={item.image_url}
-                            alt={item.title_ar}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            decoding="async"
-                            width={100}
-                            height={100}
-                          />
+                          <OptimizedMenuImage src={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" width={100} height={100} fill={false} />
                         </div>
                       ) : (
                         <div className="w-[100px] h-[100px] rounded-2xl bg-gray-800 flex items-center justify-center border border-white/5 opacity-80">
@@ -1118,12 +1097,7 @@ function SmartMenuContent({
               <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
                 {selectedItem.item.image_url && (
                   <div className="w-full h-40 rounded-[1.5rem] overflow-hidden mb-6 shadow-md">
-                    <img
-                      src={selectedItem.item.image_url}
-                      alt=""
-                      className="w-full h-full object-contain"
-                      decoding="async"
-                    />
+                    <OptimizedMenuImage src={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" useOriginal={true} />
                   </div>
                 )}
 

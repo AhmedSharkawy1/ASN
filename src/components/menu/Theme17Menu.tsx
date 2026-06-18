@@ -1,4 +1,5 @@
 "use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 
 import React, {  useState, useEffect, useRef  } from 'react';
 import { useTheme } from 'next-themes';
@@ -330,7 +331,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                 {/* Add QR Code Here */}
                 <div className="flex flex-col items-center justify-center pt-8 border-t border-white/5 mt-8 pb-4">
                     <div className="bg-white p-3 rounded-[24px] shadow-[0_5px_20px_rgba(0,0,0,0.25)] mb-4 border-[4px] border-white/90">
-                        <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'https://menu.asn-technology.com/menu/' + restaurantId)}&margin=1`} alt="QR Code" className="w-[180px] h-[180px] rounded-lg" />
+                        <OptimizedMenuImage src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'https://menu.asn-technology.com/menu/' + restaurantId)}&margin=1`} alt="QR Code" className="w-[180px] h-[180px] rounded-lg" />
                     </div>
                     <p className="font-bold text-gray-300 text-[15px] tracking-wide">
                         {isRTL ? 'شارك المنيو مع الاصحاب' : 'Share menu with friends'}
@@ -667,7 +668,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                 <div className="px-4 -mt-10 relative z-10 flex items-end justify-between">
                     <div className="flex items-end gap-3 flex-1 relative z-20">
                         <div className="w-24 h-24 sm:w-28 sm:h-28 bg-white rounded-full p-1 border border-gray-100 shadow-[0_5px_15px_rgba(0,0,0,0.08)] flex-shrink-0 overflow-hidden relative">
-                            {config.logo_url && <img src={config.logo_url} className="w-full h-full object-contain rounded-full" alt="Logo"/>}
+                            {config.logo_url && <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" useOriginal={true} />}
                         </div>
                         <div className="flex flex-col pb-2 min-w-0">
                             <h1 className="text-[14px] sm:text-base font-black text-gray-900 leading-tight whitespace-nowrap tracking-tight">
@@ -751,7 +752,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                     {/* Image Area - Standard <img> tag to bypass domain issues */}
                                     {(item.image_url || cat.image_url) && (
                                         <div className="w-[110px] sm:w-[130px] flex-shrink-0 bg-gray-100 border-l border-gray-100 relative self-stretch min-h-[110px]">
-                                            <img src={item.image_url || cat.image_url || ''} alt={itemName(item)} className="w-full h-full object-cover absolute inset-0" />
+                                            <OptimizedMenuImage src={item.image_url || cat.image_url || ''} alt={itemName(item)} className="w-full h-full object-cover absolute inset-0" />
                                         </div>
                                     )}
 
@@ -958,7 +959,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                             >
                                                 {(item.image_url || item.catImage) ? (
                                                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 relative">
-                                                        <img src={item.image_url || item.catImage || ''} alt="" className="object-cover rounded-lg w-full h-full" />
+                                                        <OptimizedMenuImage src={item.image_url || item.catImage || ''} alt="" className="object-cover rounded-lg w-full h-full" />
                                                     </div>
                                                 ) : (
                                                     <div className="w-16 h-16 bg-red-50 rounded-lg flex-shrink-0 flex items-center justify-center">
@@ -1212,7 +1213,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 
                                                 {c.item.image_url && (
                                                     <div className="w-20 h-20 bg-gray-100 rounded-2xl overflow-hidden flex-shrink-0 relative border border-gray-100">
-                                                        <img src={c.item.image_url} alt="" className="w-full h-full object-cover" />
+                                                        <OptimizedMenuImage src={c.item.image_url} alt="" className="w-full h-full object-cover" />
                                                     </div>
                                                 )}
                                                 <div className="flex-1 flex flex-col justify-between py-1">

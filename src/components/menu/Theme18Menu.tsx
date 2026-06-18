@@ -1,4 +1,5 @@
 'use client';
+import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
@@ -210,7 +211,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         <Share2 className="w-5 h-5" />
                     </button>
                     {config.logo_url && (
-                        <img src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm" />
+                        <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm" useOriginal={true} />
                     )}
                     {/* Replaced LogOut button with an empty div for spacing balance */}
                     <div className="w-10 h-10"></div>
@@ -254,7 +255,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                     <Swiper key={isAr ? 'rtl' : 'ltr'} modules={[Autoplay]} autoplay={{ delay: 3000 }} className="w-full rounded-2xl overflow-hidden shadow-sm">
                         {config.cover_images.map((img, i) => (
                             <SwiperSlide key={i}>
-                                <img src={img} alt="Offer" className="w-full h-[180px] object-cover" />
+                                <OptimizedMenuImage src={img} alt="Offer" className="w-full h-[180px] object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
@@ -278,7 +279,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         onClick={() => openModal(item, item.catName || '')}
                                     >
                                         <div className="relative h-[160px]">
-                                            <img src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                            <OptimizedMenuImage src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                             {/* Offer Badge */}
                                             <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                                                 <span>{isAr ? 'عرض خاص' : 'Special Offer'}</span>
@@ -393,12 +394,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         >
                                             {/* Image container */}
                                             <div className={`relative shrink-0 ${viewMode === 'list' ? 'h-24 w-24 rounded-2xl overflow-hidden' : 'h-[130px] w-full'}`}>
-                                                <img 
-                                                    src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
-                                                    alt={itemName(item)} 
-                                                    loading="lazy"
-                                                    className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} 
-                                                />
+                                                <OptimizedMenuImage src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} />
                                                 {/* Special Offer Badge */}
                                                 {item.is_popular && (
                                                     <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
@@ -535,7 +531,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         <div className="flex-1 overflow-y-auto pb-24">
                             {/* Image */}
                             <div className="w-full h-[320px] relative">
-                                <img src={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                             </div>
 
@@ -640,7 +636,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                             onClick={() => openModal(item, item.catName || '')}
                                                         >
                                                             <div className="relative h-[120px]">
-                                                                <img src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                                                <OptimizedMenuImage src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                                                 {item.is_popular && (
                                                                     <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
                                                                         {isAr ? 'عرض خاص' : 'Offer'}
@@ -710,7 +706,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                     <div className="p-4 space-y-4">
                                         {cart.map((c, i) => (
                                             <div key={i} className="flex gap-4 p-4 rounded-3xl shadow-sm border" style={{ backgroundColor: bgCard, borderColor }}>
-                                                <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
+                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
                                                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                                                     <div className="flex justify-between items-start">
                                                         <h4 className="font-bold text-sm line-clamp-2">{itemName(c.item)}</h4>

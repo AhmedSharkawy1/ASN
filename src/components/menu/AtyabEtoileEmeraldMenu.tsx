@@ -1,4 +1,5 @@
 "use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -319,7 +320,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
                             {config.logo_url && (
                                 <div className="w-14 h-14 md:w-16 md:h-16 relative flex items-center justify-center overflow-hidden rounded-full bg-[#FDFBF7] dark:bg-[#1E1E1E] shadow-sm border border-[#34d399] dark:border-[#333] p-1">
-                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15] rounded-full" />
+                                    <OptimizedMenuImage src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15] rounded-full" useOriginal={true} />
                                 </div>
                             )}
                             <div className="hidden md:flex flex-col">
@@ -362,12 +363,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                     >
                         {BANNER_IMAGES.map((img: string, idx: number) => (
                             <SwiperSlide key={idx}>
-                                <img
-                                    src={img}
-                                    alt={`Banner ${idx + 1}`}
-                                    className="w-full h-full object-cover"
-                                    onError={handleImageError}
-                                />
+                                <OptimizedMenuImage src={img} alt={`Banner ${idx + 1}`} className="w-full h-full object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
@@ -437,13 +433,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                                     >
                                         {/* Item Image */}
                                         <div className={`overflow-hidden relative shrink-0 ${hasManyPrices ? 'w-28 md:w-36 rounded-xl' : 'w-full h-32 md:h-40'}`} style={{ backgroundColor: '#FDFBF7' }}>
-                                            <img
-                                                src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop"}
-                                                alt={isAr ? item.title_ar : item.title_en || item.title_ar}
-                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                loading="lazy"
-                                                onError={handleImageError}
-                                            />
+                                            <OptimizedMenuImage src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop"} alt={isAr ? item.title_ar : item.title_en || item.title_ar} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                             {/* Badges */}
                                             <div className="absolute top-2 left-2 flex flex-col gap-1">
                                                 {item.is_popular && (
@@ -572,11 +562,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                         {/* QR Code */}
                         <div className="flex flex-col items-center gap-3">
                             <div className="p-3 bg-white rounded-3xl shadow-lg">
-                                <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`}
-                                    alt="QR Code"
-                                    className="w-32 h-32"
-                                />
+                                <OptimizedMenuImage src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`} alt="QR Code" className="w-32 h-32" />
                             </div>
                             <p className="text-[10px] font-bold uppercase tracking-widest opacity-70">{isAr ? "امسح لمشاركة المنيو" : "Scan to share menu"}</p>
                         </div>
@@ -720,7 +706,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex bg-black/60 items-center justify-center backdrop-blur-md py-16 px-6 mb-safe" onClick={() => { setSelectedItem(null); setItemNotes(''); }}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="w-[85vw] max-w-[310px] mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden  max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                             <div className="relative aspect-video bg-gray-100 dark:bg-black overflow-hidden">
-                                <img src={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-contain" onError={handleImageError} />
+                                <OptimizedMenuImage src={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-contain" useOriginal={true} />
                                 <button onClick={() => { setSelectedItem(null); setItemNotes(''); }} className="absolute top-4 right-4 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>

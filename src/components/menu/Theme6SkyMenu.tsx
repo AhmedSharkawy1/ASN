@@ -1,4 +1,5 @@
 ﻿"use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -190,14 +191,12 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                         >
                             {config.cover_images.map((img: string, idx: number) => (
                                 <SwiperSlide key={idx}>
-                                    <img src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'}
-                                        alt={`Cover ${idx}`} className="w-full h-full object-cover" />
+                                    <OptimizedMenuImage src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'} alt={`Cover ${idx}`} className="w-full h-full object-cover" />
                                 </SwiperSlide>
                             ))}
                         </Swiper>
                     ) : (
-                        <img src={config.cover_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'}
-                            alt="cover" className="w-full h-full object-cover border-b border-zinc-100 dark:border-white/5" />
+                        <OptimizedMenuImage src={config.cover_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'} alt="cover" className="w-full h-full object-cover border-b border-zinc-100 dark:border-white/5" useOriginal={true} />
                     )}
                 </div>
 
@@ -211,8 +210,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                     </button>
                     {/* logo circle overlapping banner */}
                     <div className="absolute -top-16 w-32 h-32 rounded-full border-4 border-white dark:border-zinc-900 overflow-hidden bg-white shadow-sm z-10">
-                        <img src={config.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop'}
-                            alt="logo" className="w-full h-full object-cover" />
+                        <OptimizedMenuImage src={config.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop'} alt="logo" className="w-full h-full object-cover" useOriginal={true} />
                     </div>
                 </div>
                 <div className="h-16" /> {/* spacer for logo */}
@@ -283,7 +281,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                             <div className={`w-16 h-16 rounded-full overflow-hidden shadow-sm border-2 transition-colors
                                 ${activeSection === s.id ? 'border-[#0284c7]' : 'border-transparent'}`}>
                                 {s.image_url
-                                    ? <img src={s.image_url} alt={s.name_ar} className="w-full h-full object-cover" />
+                                    ? <OptimizedMenuImage src={s.image_url} alt={s.name_ar} className="w-full h-full object-cover" />
                                     : <div className="w-full h-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-2xl">{s.emoji || '🍽️'}</div>
                                 }
                             </div>
@@ -323,8 +321,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                                     {/* IMAGE — first child, appears on the RIGHT in RTL */}
                                     <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                         {item.image_url || section.image_url
-                                            ? <img src={item.image_url || section.image_url} alt={item.title_ar} className="w-full h-full object-cover" loading="lazy"
-                                                onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop'; }} />
+                                            ? <OptimizedMenuImage src={item.image_url || section.image_url} alt={item.title_ar} className="w-full h-full object-cover" />
                                             : <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">{section.emoji || '🍽️'}</div>
                                         }
                                         {item.is_popular && (
@@ -460,8 +457,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                             onClick={e => e.stopPropagation()}>
                             {/* image header */}
                             <div className="relative h-64 w-full bg-zinc-100 dark:bg-zinc-800 shrink-0">
-                                <img src={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
-                                    alt="" className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt="" className="w-full h-full object-cover" useOriginal={true} />
                                 <button onClick={closeItemModal}
                                     className="absolute top-4 right-4 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-zinc-800 shadow-sm active:scale-90">
                                     <X className="w-5 h-5" />
@@ -579,8 +575,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                                 ) : cart.map(ci => (
                                     <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-4 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-3xl border border-zinc-100 dark:border-zinc-800">
                                         <div className="w-16 h-16 rounded-xl bg-zinc-200 dark:bg-zinc-700 shrink-0 overflow-hidden">
-                                            <img src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop'}
-                                                alt="" className="w-full h-full object-cover" />
+                                            <OptimizedMenuImage src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200&auto=format&fit=crop'} alt="" className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 flex flex-col gap-1">
                                             <div className="flex justify-between items-start">

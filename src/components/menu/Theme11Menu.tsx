@@ -1,4 +1,5 @@
 'use client';
+import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
@@ -283,7 +284,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
             <div className="sticky top-0 z-[100] shadow-sm backdrop-blur-md border-b transition-colors duration-300" style={{ backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : 'rgba(255, 255, 255, 0.85)', borderColor }}>
                 <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src={config.logo_url} alt="Logo" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover scale-[1.15] border-2 shadow-sm" style={{ borderColor: primaryColor }} />
+                        <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover scale-[1.15] border-2 shadow-sm" useOriginal={true} style={{ borderColor: primaryColor }} />
                     </div>
                     <div className="flex items-center gap-2 md:gap-4">
                         <div className="flex items-center gap-1.5 md:gap-2 mr-2 md:mr-4 border-r pr-2 md:pr-4 border-gray-200 dark:border-slate-700">
@@ -404,11 +405,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                                     <SwiperSlide key={idx} className="w-full h-full">
                                         <div className="w-full h-full relative">
                                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-                                            <img
-                                                src={img}
-                                                alt={`Cover ${idx}`}
-                                                className="w-full h-full object-cover select-none"
-                                            />
+                                            <OptimizedMenuImage src={img} alt={`Cover ${idx}`} className="w-full h-full object-cover select-none" />
                                         </div>
                                     </SwiperSlide>
                                 ))}
@@ -416,7 +413,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                         ) : (
                             <div className="w-full h-full relative">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-                                <img src={config.cover_url || config.cover_images?.[0] || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000"} alt="Cover" className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={config.cover_url || config.cover_images?.[0] || "https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000"} alt="Cover" className="w-full h-full object-cover" useOriginal={true} />
                             </div>
                         )}
 
@@ -465,7 +462,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                                 }}
                             >
                                 {cat.image_url && (
-                                    <img src={cat.image_url} alt={catName(cat)} className="w-5 h-5 rounded-full object-cover" />
+                                    <OptimizedMenuImage src={cat.image_url} alt={catName(cat)} className="w-5 h-5 rounded-full object-cover" />
                                 )}
                                 {catName(cat)}
                             </button>
@@ -520,10 +517,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
 
                                         {/* Image Box (Right Side in LTR, Left Side in RTL) */}
                                         <div className="w-[100px] h-[100px] sm:w-[120px] sm:h-24 shrink-0 relative overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
-                                            <img src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=300'}
-                                                alt={itemName(item)}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                            />
+                                            <OptimizedMenuImage src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=300'} alt={itemName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                             {/* Add Button Badge overlay */}
                                             {config.orders_enabled !== false && (
                                                 <div className="absolute right-2 bottom-2 w-8 h-8 rounded-full shadow-lg flex items-center justify-center text-white backdrop-blur-sm transition-transform active:scale-90" style={{ backgroundColor: primaryColor }}>
@@ -567,8 +561,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                             {/* Modal Header Image */}
                             <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                                <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
-                                    alt={itemName(selectedItem.item)} className="w-full h-full object-contain" />
+                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
 
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                     <h2 className="text-xl sm:text-2xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>
@@ -720,7 +713,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                                         {cart.map((c, i) => (
                                             <div key={i} className="flex gap-4 p-4 rounded-3xl bg-white dark:bg-slate-800 shadow-sm border" style={{ borderColor }}>
                                                 <div className="w-20 h-20 shrink-0 bg-slate-100 rounded-xl overflow-hidden">
-                                                    <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
+                                                    <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex-1 min-w-0 flex flex-col justify-between" dir={isAr ? 'rtl' : 'ltr'}>
                                                     <div className="flex justify-between items-start">

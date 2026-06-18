@@ -1,4 +1,5 @@
 "use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -284,15 +285,14 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                     >
                         {config.cover_images.map((img: string, idx: number) => (
                             <SwiperSlide key={idx}>
-                                <img src={img || 'https://images.unsplash.com/photo-1574126154517-d1e0d89ef734?q=80&w=1000'}
-                                    alt={`Banner ${idx}`} className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={img || 'https://images.unsplash.com/photo-1574126154517-d1e0d89ef734?q=80&w=1000'} alt={`Banner ${idx}`} className="w-full h-full object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
                 </div>
             ) : config.cover_url ? (
                 <div className="relative w-full h-32 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
-                    <img src={config.cover_url} alt="Cover" className="w-full h-full object-cover" />
+                    <OptimizedMenuImage src={config.cover_url} alt="Cover" className="w-full h-full object-cover" useOriginal={true} />
                 </div>
             ) : null}
 
@@ -303,7 +303,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                         <div className="flex items-center gap-3 group">
                             {config.logo_url && (
                                 <div className="w-16 h-16 relative flex items-center justify-center overflow-hidden rounded-full border-2 border-sky-600 shadow-xl bg-white dark:bg-zinc-900 p-1 group-hover:rotate-12 transition-transform duration-500">
-                                    <img src={config.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" />
+                                    <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" useOriginal={true} />
                                     <div className="absolute inset-0 bg-sky-500/20 blur-xl rounded-full -z-10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                 </div>
                             )}
@@ -416,7 +416,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                         {/* Section Cover Image */}
                         <div className="relative aspect-[16/10] md:aspect-[21/9] rounded-[2rem] overflow-hidden mb-4 shadow-2xl border border-zinc-200 dark:border-white/5 bg-zinc-200 dark:bg-zinc-900 group">
                             {cat.image_url ? (
-                                <img src={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
+                                <OptimizedMenuImage src={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-sky-600/30 via-zinc-900 to-sky-900/50 flex items-center justify-center">
                                     <span className="text-6xl opacity-50">{cat.emoji || "🍽️"}</span>
@@ -535,7 +535,7 @@ export default function PizzaPastaSkyMenu({ config, categories, language, restau
                     {config.logo_url && (
                         <div className="flex flex-col items-center gap-4">
                             <div className="w-24 h-24 relative flex items-center justify-center overflow-hidden rounded-full border-2 border-sky-600 shadow-xl bg-white dark:bg-zinc-900 p-1 mb-2">
-                                <img src={config.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" />
+                                <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-contain rounded-full" useOriginal={true} />
                             </div>
                         </div>
                     )}

@@ -1,4 +1,5 @@
 ﻿"use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -283,15 +284,14 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                     >
                         {config.cover_images.map((img: string, idx: number) => (
                             <SwiperSlide key={idx}>
-                                <img src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'}
-                                    alt={`Banner ${idx}`} className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'} alt={`Banner ${idx}`} className="w-full h-full object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
                 </div>
             ) : config.cover_url ? (
                 <div className="relative w-full h-32 md:h-64 z-40 bg-zinc-200 dark:bg-zinc-900 overflow-hidden">
-                    <img src={config.cover_url} alt="Cover" className="w-full h-full object-cover" />
+                    <OptimizedMenuImage src={config.cover_url} alt="Cover" className="w-full h-full object-cover" useOriginal={true} />
                 </div>
             ) : null}
 
@@ -302,7 +302,7 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                         <div className="flex items-center gap-3 group">
                             {config.logo_url && (
                                 <div className="w-16 h-16 relative flex items-center justify-center overflow-hidden rounded-full border-2 border-[#0891b2] shadow-xl bg-white dark:bg-zinc-900 transition-transform group-hover:rotate-12 duration-500 p-1">
-                                    <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-110" loading="eager" />
+                                    <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-110" useOriginal={true} />
                                 </div>
                             )}
                             <div className="flex flex-col">
@@ -401,7 +401,7 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                         {/* Category Image Banner */}
                         {cat.image_url && (
                             <div className="relative aspect-[16/10] md:aspect-[21/9] rounded-[2rem] overflow-hidden mb-4 shadow-2xl border border-zinc-200 dark:border-white/5 bg-zinc-200 dark:bg-zinc-900 atyab-reveal group">
-                                <img src={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" loading="lazy" />
+                                <OptimizedMenuImage src={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
                                 <div className="absolute bottom-6 right-6 left-6 text-right">
                                     <span className="text-[#0891b2] font-black text-[10px] tracking-[0.2em] uppercase">{isAr ? "فئة القائمة" : "MENU CATEGORY"}</span>
@@ -487,13 +487,13 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                     <div className="w-full bg-white dark:bg-zinc-900 rounded-[2.5rem] p-10 shadow-xl border border-zinc-200 dark:border-white/10 flex flex-col items-center gap-8 text-center">
                         {config.logo_url && (
                             <div className="w-20 h-20 relative flex items-center justify-center overflow-hidden rounded-full border-[3px] border-[#0891b2] shadow-md bg-white dark:bg-zinc-900 p-1">
-                                <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-110" />
+                                <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-110" useOriginal={true} />
                             </div>
                         )}
                         {/* QR Code */}
                         <div className="flex flex-col items-center gap-4">
                             <div className="relative p-4 bg-white rounded-[2rem] border-4 border-zinc-50 dark:border-zinc-800 shadow-2xl">
-                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`} alt="QR Code" className="w-44 h-44 md:w-52 md:h-52" />
+                                <OptimizedMenuImage src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}`} alt="QR Code" className="w-44 h-44 md:w-52 md:h-52" />
                             </div>
                             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">{isAr ? "امسح الكود لمشاركة المنيو" : "Scan to share menu"}</p>
                         </div>
@@ -539,7 +539,7 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                             <div className="flex-1 overflow-y-auto p-6">
                                 {selectedItem.item.image_url && (
                                     <div className="w-full h-40 rounded-[1.5rem] overflow-hidden mb-6 shadow-md">
-                                        <img src={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" />
+                                        <OptimizedMenuImage src={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" useOriginal={true} />
                                     </div>
                                 )}
                                 <h4 className="text-sm font-black text-right mb-4 opacity-70 uppercase tracking-widest">{isAr ? "اختر الحجم / السعر" : "Select Size / Variation"}</h4>

@@ -3,75 +3,33 @@ import { supabase } from './supabase/client';
 const BUCKET_NAME = 'menu-images';
 
 /**
- * Resizes and compresses an image using Canvas.
- * Targets ~30-60KB per image while maintaining good visual quality.
- */
-async function compressImage(file: File | Blob, maxWidth = 800, quality = 0.70): Promise<Blob> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxWidth) {
-                    height = (height * maxWidth) / width;
-                    width = maxWidth;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx?.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob) resolve(blob);
-                        else reject(new Error('Canvas to Blob failed'));
-                    },
-                    'image/webp',
-                    quality
-                );
-            };
-        };
-        reader.onerror = (err) => reject(err);
-    });
-}
-
-/**
- * Upload an image to Supabase Storage and return the public URL.
- * Always compresses to WebP for optimal file size.
+ * Upload an image to the server-side API which generates originals and thumbnails.
+ * Returns the public URL of the original image.
  */
 export async function uploadImage(file: File | Blob, folder: string): Promise<string | null> {
     try {
-        const finalBlob = await compressImage(file);
-        const ext = 'webp';
-        const contentType = 'image/webp';
+        const formData = new FormData();
+        const fileName = file instanceof File ? file.name : 'image.webp';
+        formData.append('file', file, fileName);
+        formData.append('folder', folder);
 
-        const fileName = `${folder}/${crypto.randomUUID()}.${ext}`;
+        const response = await fetch('/api/upload-image', {
+            method: 'POST',
+            body: formData,
+        });
 
-        const { error } = await supabase.storage
-            .from(BUCKET_NAME)
-            .upload(fileName, finalBlob, {
-                cacheControl: '31536000',
-                upsert: false,
-                contentType: contentType
-            });
-
-        if (error) {
-            console.error('Upload error:', error);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Upload API call failed:', errorText);
             return null;
         }
 
-        const { data: urlData } = supabase.storage
-            .from(BUCKET_NAME)
-            .getPublicUrl(fileName);
+        const data = await response.json();
+        if (data.success && data.originalUrl) {
+            return data.originalUrl;
+        }
 
-        return urlData.publicUrl;
+        return null;
     } catch (err) {
         console.error('Upload exception:', err);
         return null;
@@ -79,7 +37,7 @@ export async function uploadImage(file: File | Blob, folder: string): Promise<st
 }
 
 /**
- * Upload a base64 string directly to Supabase Storage.
+ * Upload a base64 string directly by converting it to a blob and calling uploadImage.
  */
 export async function uploadBase64(base64: string, folder: string): Promise<string | null> {
     try {
@@ -94,16 +52,32 @@ export async function uploadBase64(base64: string, folder: string): Promise<stri
 
 /**
  * Delete an image from Supabase Storage by its public URL.
+ * Deletes both the original and the thumbnail version.
  */
 export async function deleteImage(publicUrl: string): Promise<boolean> {
     try {
         const urlParts = publicUrl.split(`/storage/v1/object/public/${BUCKET_NAME}/`);
         if (urlParts.length < 2) return false;
 
-        const filePath = urlParts[1];
+        const filePath = urlParts[1]; // e.g. "original/uuid.webp" or "items/uuid.webp"
+        const fileName = filePath.split('/').pop() || '';
+        const rawName = fileName.replace(/\.[^/.]+$/, ''); // just the uuid/filename without extension
+
+        const filesToRemove: string[] = [filePath];
+
+        // Also add the corresponding thumb or original path
+        if (filePath.startsWith('original/')) {
+            filesToRemove.push(`thumbs/${rawName}.webp`);
+        } else if (filePath.startsWith('thumbs/')) {
+            filesToRemove.push(`original/${rawName}.webp`);
+        } else {
+            // Legacy path: delete the legacy file and check if there's a thumbnail under thumbs/
+            filesToRemove.push(`thumbs/${rawName}.webp`);
+        }
+
         const { error } = await supabase.storage
             .from(BUCKET_NAME)
-            .remove([filePath]);
+            .remove(filesToRemove);
 
         if (error) {
             console.error('Delete error:', error);
@@ -115,3 +89,4 @@ export async function deleteImage(publicUrl: string): Promise<boolean> {
         return false;
     }
 }
+

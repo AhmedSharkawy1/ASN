@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
+import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
@@ -373,11 +374,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                 <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end z-20">
                     <div className="flex items-center gap-3">
                         <div className="w-[80px] h-[80px] md:w-[100px] md:h-[100px] rounded-full border-[3px] border-white shadow-[0_3px_12px_rgba(0,0,0,0.2)] overflow-hidden shrink-0 bg-white hover:scale-110 hover:rotate-[5deg] transition-all duration-300">
-                            <img
-                                src={config.logo_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'}
-                                alt={config.name}
-                                className="w-full h-full object-cover"
-                            />
+                            <OptimizedMenuImage src={config.logo_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt={config.name} className="w-full h-full object-cover" useOriginal={true} />
                         </div>
                         <h2 className="text-white text-2xl md:text-3xl font-bold drop-shadow-[0_2px_5px_rgba(0,0,0,0.6)] m-0 leading-tight">
                             {config.name}
@@ -417,11 +414,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                                 className={`flex flex-col items-center cursor-pointer transition-all duration-300 min-w-[80px] md:min-w-[100px] flex-shrink-0 ${activeCategory === cat.id.toString() ? '-translate-y-1' : ''}`}
                             >
                                 <div className="relative w-[65px] h-[65px] md:w-[80px] md:h-[80px] rounded-full overflow-hidden mb-2 mx-auto">
-                                    <img
-                                        src={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'}
-                                        alt={catName(cat)}
-                                        className="w-full h-full object-cover"
-                                    />
+                                    <OptimizedMenuImage src={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt={catName(cat)} className="w-full h-full object-cover" />
                                     <div
                                         className={`absolute inset-0 border-[3px] rounded-full transition-opacity duration-300 ${activeCategory === cat.id.toString() ? 'opacity-100 shadow-[0_5px_15px_rgba(0,0,0,0.15)]' : 'opacity-0'}`}
                                         style={{ borderColor: primaryColor }}
@@ -462,11 +455,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                                         style={{ borderColor }}
                                     >
                                         <div className="w-full h-24 md:h-[160px] relative overflow-hidden shrink-0">
-                                            <img
-                                                src={item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"}
-                                                alt={itemName(item)}
-                                                className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                                            />
+                                            <OptimizedMenuImage src={item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
                                         </div>
                                         <div className="p-3 flex flex-col justify-between flex-1">
                                             <div>
@@ -528,11 +517,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                                         >
                                             <div className={`relative overflow-hidden shrink-0 ${hasMultiSizes ? 'w-32 md:w-40' : 'w-full h-24 md:h-[150px]'}`}>
                                                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10 opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                                                <img
-                                                    src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"}
-                                                    alt={itemName(item)}
-                                                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
-                                                />
+                                                <OptimizedMenuImage src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
                                                 
                                             </div>
 
@@ -667,8 +652,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
 
                             <div className="w-full h-[35vh] md:h-24 shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-                                <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
-                                    alt={itemName(selectedItem.item)} className="w-full h-full object-contain" />
+                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
 
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                     <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow-md mb-1 leading-tight">{itemName(selectedItem.item)}</h2>
@@ -833,7 +817,7 @@ export default function Theme13Menu({ config, categories, restaurantId }: Theme1
                                             {cart.map((c, i) => (
                                                 <div key={i} className="flex gap-3 p-3 rounded-xl bg-white dark:bg-[#1e1e1e] border shadow-sm" style={{ borderColor }}>
                                                     <div className="w-[70px] h-[70px] shrink-0 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
-                                                        <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
+                                                        <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
                                                     </div>
                                                     <div className="flex-1 min-w-0 flex flex-col justify-between pt-1">
                                                         <div className="flex justify-between items-start gap-2">

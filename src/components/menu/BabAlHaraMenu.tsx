@@ -1,4 +1,5 @@
 "use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useRef, useEffect } from "react";
@@ -263,7 +264,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                         {config.logo_url && (
                             <div className="w-36 h-36 md:w-48 md:h-48 rounded-full border-[8px] border-white/30 bg-transparent shadow-[0_25px_60px_rgba(0,0,0,0.7)] overflow-hidden p-0.5 transform transition-transform hover:scale-110 duration-500">
                                 <div className="w-full h-full bg-transparent flex items-center justify-center rounded-full overflow-hidden">
-                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15]" />
+                                    <OptimizedMenuImage src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15]" useOriginal={true} />
                                 </div>
                             </div>
                         )}
@@ -306,7 +307,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                         <div className={`bab-cat-thumb border-2 p-1 bg-white dark:bg-zinc-800 transition-all ${activeSection === "" ? "bab-cat-active" : "border-transparent"}`}>
                             <div className="w-full h-full rounded-full overflow-hidden">
                                 {config.logo_url ? (
-                                    <img src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15]" />
+                                    <OptimizedMenuImage src={config.logo_url} alt={config.name} className="w-full h-full object-cover scale-[1.15]" useOriginal={true} />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-700 text-lg">🏠</div>
                                 )}
@@ -319,7 +320,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                         <button key={cat.id} data-cat-id={cat.id} onClick={() => scrollToSection(cat.id)} className="flex flex-col items-center gap-1 shrink-0">
                             <div className={`bab-cat-thumb border-2 overflow-hidden p-1 bg-white dark:bg-zinc-800 transition-all ${activeSection === cat.id ? "bab-cat-active" : "border-zinc-100 dark:border-white/5"}`}>
                                 {cat.image_url ? (
-                                    <img src={cat.image_url} alt={isAr ? cat.name_ar : cat.name_en || cat.name_ar} className="w-full h-full object-cover rounded-full" />
+                                    <OptimizedMenuImage src={cat.image_url} alt={isAr ? cat.name_ar : cat.name_en || cat.name_ar} className="w-full h-full object-cover rounded-full" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-2xl">{cat.emoji || "✨"}</div>
                                 )}
@@ -354,13 +355,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                                     <div key={item.id} className={`bab-item-card overflow-hidden transition-all duration-300 bg-white dark:bg-zinc-900 border border-transparent dark:border-white/5 ${hasMultiSizes ? 'col-span-2 flex flex-row' : 'flex flex-col'}`}>
                                         {/* Item Image */}
                                         <div className={`relative overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0 ${hasMultiSizes ? 'w-32 md:w-40' : 'aspect-square'}`}>
-                                            <img
-                                                src={item.image_url || cat.image_url || ""}
-                                                alt={isAr ? item.title_ar : item.title_en || item.title_ar}
-                                                className="w-full h-full object-cover"
-                                                loading="lazy"
-                                                onError={handleImageError}
-                                            />
+                                            <OptimizedMenuImage src={item.image_url || cat.image_url || ""} alt={isAr ? item.title_ar : item.title_en || item.title_ar} className="w-full h-full object-cover" />
                                             <div className="absolute top-1.5 left-1.5 w-6 h-6 bg-black/30 backdrop-blur-md text-white rounded-lg flex items-center justify-center text-[8px] shadow-sm z-10">
                                                 {item.is_spicy ? "🌶️" : "📄"}
                                             </div>
@@ -629,11 +624,7 @@ export default function BabAlHaraMenu({ config, categories, language, restaurant
                 {/* QR Code */}
                 <div className="mb-6 p-6 bg-white rounded-[2.5rem] shadow-2xl shadow-black/5 border border-zinc-100 flex flex-col items-center">
                     <div className="w-48 h-32 mb-3 p-1 bg-white">
-                        <img
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}&color=000000`}
-                            alt="QR Code Menu"
-                            className="w-full h-full object-contain"
-                        />
+                        <OptimizedMenuImage src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== "undefined" ? window.location.href : "")}&color=000000`} alt="QR Code Menu" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-[11px] font-black text-zinc-800 uppercase tracking-widest">{isAr ? "امسح لمشاركة المنيو" : "Scan to share menu"}</span>
                 </div>

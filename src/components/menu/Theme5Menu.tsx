@@ -1,4 +1,5 @@
 "use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -363,13 +364,12 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                             >
                                 {config.cover_images.map((img: string, idx: number) => (
                                     <SwiperSlide key={idx}>
-                                        <img src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'}
-                                            alt={`Cover ${idx}`} className="w-full h-full object-cover" />
+                                        <OptimizedMenuImage src={img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'} alt={`Cover ${idx}`} className="w-full h-full object-cover" />
                                     </SwiperSlide>
                                 ))}
                             </Swiper>
                         ) : config.cover_url ? (
-                            <img src={config.cover_url} alt="Restaurant Banner" className="w-full h-full object-cover z-0" />
+                            <OptimizedMenuImage src={config.cover_url} alt="Restaurant Banner" className="w-full h-full object-cover z-0" useOriginal={true} />
                         ) : (
                             <div className="w-full h-full bg-zinc-200 dark:bg-zinc-800 z-0"></div>
                         )}
@@ -391,7 +391,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                         {/* Overlapping Logo */}
                         <div className="absolute -top-6 -right-2 w-24 h-24 rounded-full border-4 border-white dark:border-zinc-800 overflow-hidden bg-white shadow-sm z-20">
                             {config.logo_url ? (
-                                <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-[1.15]" />
+                                <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-[1.15]" useOriginal={true} />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-2xl">🍽️</div>
                             )}
@@ -509,7 +509,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                                         {/* Image (Right) */}
                                         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                             {item.image_url || cat.image_url ? (
-                                                <img src={item.image_url || cat.image_url} alt={title} className="w-full h-full object-cover" loading="lazy" />
+                                                <OptimizedMenuImage src={item.image_url || cat.image_url} alt={title} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-8 h-8 opacity-20" /></div>
                                             )}
@@ -617,7 +617,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-[85vw] max-w-[310px] bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col h-auto max-h-[85vh] shadow-2xl mx-auto" onClick={e => e.stopPropagation()}>
                             <div className="relative h-32 bg-zinc-100 dark:bg-zinc-800">
                                 {(selectedItem.item.image_url || selectedItem.catImg) ? (
-                                    <img src={selectedItem.item.image_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-contain" />
+                                    <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-contain" useOriginal={true} />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">{selectedItem.item.is_spicy ? "🌶️" : "🍽️"}</div>
                                 )}

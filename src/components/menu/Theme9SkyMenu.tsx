@@ -1,4 +1,5 @@
 'use client';
+import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
@@ -330,21 +331,17 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
                     >
                         {config.cover_images.map((img: string, idx: number) => (
                             <SwiperSlide key={idx}>
-                                <img src={img || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000'}
-                                    alt={`Cover ${idx}`}
-                                    className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={img || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000'} alt={`Cover ${idx}`} className="w-full h-full object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
                 ) : (
-                    <img src={config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000'}
-                        alt={config.name}
-                        className="w-full h-full object-cover absolute inset-0 z-0" />
+                    <OptimizedMenuImage src={config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=1000'} alt={config.name} className="w-full h-full object-cover absolute inset-0 z-0" useOriginal={true} />
                 )}
 
                 <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex items-end p-6 md:p-12">
                     <div className="flex items-center gap-6 w-full max-w-6xl mx-auto">
-                        <img src={config.logo_url} alt="Logo" className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 shadow-xl flex-shrink-0" style={{ borderColor: T9_RED }} />
+                        <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-20 h-20 md:w-32 md:h-32 rounded-full border-4 shadow-xl flex-shrink-0" useOriginal={true} style={{ borderColor: T9_RED }} />
                         <div className="min-w-0 flex-1">
                             <h1 className="text-white text-xl sm:text-2xl md:text-4xl font-black drop-shadow-md mb-2 tracking-tight whitespace-normal">
                                 {config.name}
@@ -451,9 +448,7 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
 
                                             {/* Top Image Box */}
                                             <div className={`overflow-hidden bg-gray-100 relative shrink-0 w-32 md:w-44`}>
-                                                <img src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'}
-                                                    alt={itemName(item)}
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                                                <OptimizedMenuImage src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                                 {item.calories && (
                                                     <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold">
                                                         {item.calories} {isAr ? 'كالوري' : 'Cal'}
@@ -554,9 +549,7 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
 
                             {/* Image Box */}
                             <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative flex items-center justify-center" style={{ backgroundColor: bgBody }}>
-                                <img src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'}
-                                    alt={itemName(selectedItem.item)}
-                                    className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-cover" useOriginal={true} />
                             </div>
 
                             {/* Scrollable Content */}
@@ -691,8 +684,7 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
                                     <div className="space-y-4">
                                         {cart.map((c, i) => (
                                             <div key={i} className="flex gap-3 pb-4 border-b relative" style={{ borderColor }}>
-                                                <img src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'}
-                                                    alt={itemName(c.item)} className="w-16 h-16 rounded-xl object-cover shrink-0 border" style={{ borderColor }} />
+                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt={itemName(c.item)} className="w-16 h-16 rounded-xl object-cover shrink-0 border" style={{ borderColor }} />
                                                 <div className="flex-1 min-w-0 flex flex-col">
                                                     <h4 className="font-bold text-sm mb-1 line-clamp-1" style={{ color: textDark }}>{itemName(c.item)}</h4>
                                                     {(c.sizeLabel || c.notes) && (
@@ -758,7 +750,7 @@ export default function Theme9SkyMenu({ config, categories, restaurantId }: Them
                             <div className="pt-10 pb-8 px-5 flex flex-col items-center relative text-center text-white" style={{ background: T9_RED }}>
                                 <button onClick={() => setIsDrawerOpen(false)} className="absolute top-4 left-4 p-1 opacity-80 hover:opacity-100"><X className="w-6 h-6" /></button>
                                 <div className="w-20 h-20 bg-white rounded-full p-1 shadow-lg mb-3">
-                                    <img src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-[1.15] rounded-full" />
+                                    <OptimizedMenuImage src={config.logo_url} alt="Logo" className="w-full h-full object-cover scale-[1.15] rounded-full" useOriginal={true} />
                                 </div>
                                 <h3 className="font-black text-lg drop-shadow-md">{config.name}</h3>
                             </div>

@@ -1,4 +1,5 @@
 ﻿"use client";
+import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -191,14 +192,12 @@ export default function Theme7CyanMenu({ config, categories, restaurantId }: { c
                     >
                         {config.cover_images.map((img: string, idx: number) => (
                             <SwiperSlide key={idx}>
-                                <img src={img || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop'}
-                                    alt={`Cover ${idx}`} className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={img || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop'} alt={`Cover ${idx}`} className="w-full h-full object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
                 ) : (
-                    <img src={config.cover_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop'}
-                        alt="cover" className="w-full h-full object-cover z-0" />
+                    <OptimizedMenuImage src={config.cover_url || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1200&auto=format&fit=crop'} alt="cover" className="w-full h-full object-cover z-0" useOriginal={true} />
                 )}
                 {/* dark/light toggle */}
                 <button onClick={toggleDark}
@@ -211,8 +210,7 @@ export default function Theme7CyanMenu({ config, categories, restaurantId }: { c
             <div className="relative flex flex-col items-center -mt-16 z-10 px-4">
                 <div className="w-32 h-32 rounded-full border-4 overflow-hidden bg-white shadow-xl"
                     style={{ borderColor: isDarkMode ? T7_BG : '#0891b2' }}>
-                    <img src={config.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop'}
-                        alt="logo" className="w-full h-full object-cover" />
+                    <OptimizedMenuImage src={config.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop'} alt="logo" className="w-full h-full object-cover" useOriginal={true} />
                 </div>
                 <h1 className="mt-3 text-2xl md:text-3xl font-bold text-center" style={{ color: T7_GOLD }}>
                     {config.name}
@@ -298,7 +296,7 @@ export default function Theme7CyanMenu({ config, categories, restaurantId }: { c
                                 <div className={`w-20 h-20 rounded-full overflow-hidden border-2 transition-all shadow-md
                                     ${isActive ? 'border-amber-500 scale-105' : (isDarkMode ? 'border-zinc-700' : 'border-zinc-200')}`}>
                                     {cat.image_url
-                                        ? <img src={cat.image_url} alt={cat.name_ar} className="w-full h-full object-cover" />
+                                        ? <OptimizedMenuImage src={cat.image_url} alt={cat.name_ar} className="w-full h-full object-cover" />
                                         : <div className="w-full h-full flex items-center justify-center text-2xl"
                                             style={{ background: isDarkMode ? '#1e293b' : '#f1f5f9' }}>{cat.emoji || '🍽️'}</div>
                                     }
@@ -336,8 +334,7 @@ export default function Theme7CyanMenu({ config, categories, restaurantId }: { c
                                     <div className="relative w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden order-last"
                                         style={{ background: isDarkMode ? '#1e293b' : '#f1f5f9' }}>
                                         {item.image_url || section.image_url
-                                            ? <img src={item.image_url || section.image_url} alt={item.title_ar} className="w-full h-full object-cover" loading="lazy"
-                                                onError={(e: any) => { e.target.src = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop'; }} />
+                                            ? <OptimizedMenuImage src={item.image_url || section.image_url} alt={item.title_ar} className="w-full h-full object-cover" />
                                             : <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">{section.emoji || '🍽️'}</div>
                                         }
                                     </div>
@@ -437,8 +434,7 @@ export default function Theme7CyanMenu({ config, categories, restaurantId }: { c
                             onClick={e => e.stopPropagation()}>
                             {/* big image */}
                             <div className="relative w-full h-72 md:h-96 shrink-0" style={{ background: isDarkMode ? '#1e293b' : '#0891b2' }}>
-                                <img src={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800'}
-                                    alt="" className="w-full h-full object-cover" />
+                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800'} alt="" className="w-full h-full object-cover" useOriginal={true} />
                                 <button onClick={closeModal}
                                     className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white shadow-md active:scale-90 z-10">
                                     <ArrowRight className="w-5 h-5" />
@@ -575,7 +571,7 @@ export default function Theme7CyanMenu({ config, categories, restaurantId }: { c
                                     <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-3 p-3 rounded-3xl"
                                         style={{ background: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#0891b2'}` }}>
                                         <div className="w-14 h-14 rounded-xl shrink-0 overflow-hidden" style={{ background: isDarkMode ? '#1e293b' : '#0891b2' }}>
-                                            <img src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
+                                            <OptimizedMenuImage src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 flex flex-col gap-1">
                                             <div className="flex justify-between items-start">
