@@ -40,24 +40,31 @@ const Theme18EmeraldMenu = dynamic(() => import("@/components/menu/Theme18Emeral
 const Theme18SkyMenu = dynamic(() => import("@/components/menu/Theme18SkyMenu"));
 const Theme18PinkMenu = dynamic(() => import("@/components/menu/Theme18PinkMenu"));
 const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
+const PizzaPastaRedMenu = dynamic(() => import("@/components/menu/PizzaPastaRedMenu"));
 const PizzaPastaEmeraldMenu = dynamic(() => import("@/components/menu/PizzaPastaEmeraldMenu"));
 const PizzaPastaSkyMenu = dynamic(() => import("@/components/menu/PizzaPastaSkyMenu"));
 const AtyabOrientalCyanMenu = dynamic(() => import("@/components/menu/AtyabOrientalCyanMenu"));
+const AtyabOrientalRedMenu = dynamic(() => import("@/components/menu/AtyabOrientalRedMenu"));
 const AtyabOrientalEmeraldMenu = dynamic(() => import("@/components/menu/AtyabOrientalEmeraldMenu"));
 const AtyabOrientalSkyMenu = dynamic(() => import("@/components/menu/AtyabOrientalSkyMenu"));
 const BabAlHaraCyanMenu = dynamic(() => import("@/components/menu/BabAlHaraCyanMenu"));
+const BabAlHaraRedMenu = dynamic(() => import("@/components/menu/BabAlHaraRedMenu"));
 const BabAlHaraEmeraldMenu = dynamic(() => import("@/components/menu/BabAlHaraEmeraldMenu"));
 const BabAlHaraSkyMenu = dynamic(() => import("@/components/menu/BabAlHaraSkyMenu"));
 const AtyabEtoileCyanMenu = dynamic(() => import("@/components/menu/AtyabEtoileCyanMenu"));
+const AtyabEtoileRedMenu = dynamic(() => import("@/components/menu/AtyabEtoileRedMenu"));
 const AtyabEtoileEmeraldMenu = dynamic(() => import("@/components/menu/AtyabEtoileEmeraldMenu"));
 const AtyabEtoileSkyMenu = dynamic(() => import("@/components/menu/AtyabEtoileSkyMenu"));
 const Theme5CyanMenu = dynamic(() => import("@/components/menu/Theme5CyanMenu"));
+const Theme5RedMenu = dynamic(() => import("@/components/menu/Theme5RedMenu"));
 const Theme5EmeraldMenu = dynamic(() => import("@/components/menu/Theme5EmeraldMenu"));
 const Theme5SkyMenu = dynamic(() => import("@/components/menu/Theme5SkyMenu"));
 const Theme6CyanMenu = dynamic(() => import("@/components/menu/Theme6CyanMenu"));
+const Theme6RedMenu = dynamic(() => import("@/components/menu/Theme6RedMenu"));
 const Theme6EmeraldMenu = dynamic(() => import("@/components/menu/Theme6EmeraldMenu"));
 const Theme6SkyMenu = dynamic(() => import("@/components/menu/Theme6SkyMenu"));
 const Theme7CyanMenu = dynamic(() => import("@/components/menu/Theme7CyanMenu"));
+const Theme7RedMenu = dynamic(() => import("@/components/menu/Theme7RedMenu"));
 const Theme7EmeraldMenu = dynamic(() => import("@/components/menu/Theme7EmeraldMenu"));
 const Theme7SkyMenu = dynamic(() => import("@/components/menu/Theme7SkyMenu"));
 const Theme9CyanMenu = dynamic(() => import("@/components/menu/Theme9CyanMenu"));
@@ -66,12 +73,15 @@ const Theme9SkyMenu = dynamic(() => import("@/components/menu/Theme9SkyMenu"));
 const Theme9PinkMenu = dynamic(() => import("@/components/menu/Theme9PinkMenu"));
 const Theme9RedMenu = dynamic(() => import("@/components/menu/Theme9RedMenu"));
 const Theme10CyanMenu = dynamic(() => import("@/components/menu/Theme10CyanMenu"));
+const Theme10RedMenu = dynamic(() => import("@/components/menu/Theme10RedMenu"));
 const Theme10EmeraldMenu = dynamic(() => import("@/components/menu/Theme10EmeraldMenu"));
 const Theme10SkyMenu = dynamic(() => import("@/components/menu/Theme10SkyMenu"));
 const Theme11CyanMenu = dynamic(() => import("@/components/menu/Theme11CyanMenu"));
+const Theme11RedMenu = dynamic(() => import("@/components/menu/Theme11RedMenu"));
 const Theme11EmeraldMenu = dynamic(() => import("@/components/menu/Theme11EmeraldMenu"));
 const Theme11SkyMenu = dynamic(() => import("@/components/menu/Theme11SkyMenu"));
 const Theme13CyanMenu = dynamic(() => import("@/components/menu/Theme13CyanMenu"));
+const Theme13RedMenu = dynamic(() => import("@/components/menu/Theme13RedMenu"));
 const Theme13EmeraldMenu = dynamic(() => import("@/components/menu/Theme13EmeraldMenu"));
 const Theme13SkyMenu = dynamic(() => import("@/components/menu/Theme13SkyMenu"));
 const Theme15SkyMenu = dynamic(() => import("@/components/menu/Theme15SkyMenu"));
@@ -447,7 +457,10 @@ function SmartMenuContent({
   }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {
-    return <PizzaPastaCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+    return <PizzaPastaCyanMenu config={config}
+  // If Theme PizzaPasta Red
+  if (config?.theme === "pizzapasta-red") {
+    return <PizzaPastaRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
   }
   // If Theme PizzaPasta Emerald
   if (config?.theme === "pizzapasta-emerald") {
@@ -459,7 +472,10 @@ function SmartMenuContent({
   }
   // If Theme AtyabOriental Cyan
   if (config?.theme === "atyab-oriental-cyan") {
-    return <AtyabOrientalCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+    return <AtyabOrientalCyanMenu config={config}
+  // If Theme AtyabOriental Red
+  if (config?.theme === "atyab-oriental-red") {
+    return <AtyabOrientalRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
   }
   // If Theme AtyabOriental Emerald
   if (config?.theme === "atyab-oriental-emerald") {
@@ -471,7 +487,10 @@ function SmartMenuContent({
   }
   // If Theme BabAlHara Cyan
   if (config?.theme === "bab-alhara-cyan") {
-    return <BabAlHaraCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+    return <BabAlHaraCyanMenu config={config}
+  // If Theme BabAlHara Red
+  if (config?.theme === "bab-alhara-red") {
+    return <BabAlHaraRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
   }
   // If Theme BabAlHara Emerald
   if (config?.theme === "bab-alhara-emerald") {
@@ -483,7 +502,10 @@ function SmartMenuContent({
   }
   // If Theme AtyabEtoile Cyan
   if (config?.theme === "atyab-etoile-cyan") {
-    return <AtyabEtoileCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+    return <AtyabEtoileCyanMenu config={config}
+  // If Theme AtyabEtoile Red
+  if (config?.theme === "atyab-etoile-red") {
+    return <AtyabEtoileRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
   }
   // If Theme AtyabEtoile Emerald
   if (config?.theme === "atyab-etoile-emerald") {
@@ -495,7 +517,10 @@ function SmartMenuContent({
   }
   // If Theme Theme5 Cyan
   if (config?.theme === "theme5-cyan") {
-    return <Theme5CyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+    return <Theme5CyanMenu config={config}
+  // If Theme Theme5 Red
+  if (config?.theme === "theme5-red") {
+    return <Theme5RedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
   }
   // If Theme Theme5 Emerald
   if (config?.theme === "theme5-emerald") {
@@ -507,7 +532,10 @@ function SmartMenuContent({
   }
   // If Theme Theme6 Cyan
   if (config?.theme === "theme6-cyan") {
-    return <Theme6CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+    return <Theme6CyanMenu config={config}
+  // If Theme Theme6 Red
+  if (config?.theme === "theme6-red") {
+    return <Theme6RedMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme Theme6 Emerald
   if (config?.theme === "theme6-emerald") {
@@ -519,7 +547,10 @@ function SmartMenuContent({
   }
   // If Theme Theme7 Cyan
   if (config?.theme === "theme7-cyan") {
-    return <Theme7CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+    return <Theme7CyanMenu config={config}
+  // If Theme Theme7 Red
+  if (config?.theme === "theme7-red") {
+    return <Theme7RedMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme Theme7 Emerald
   if (config?.theme === "theme7-emerald") {
@@ -551,7 +582,10 @@ function SmartMenuContent({
   }
   // If Theme Theme10 Cyan
   if (config?.theme === "theme10-cyan") {
-    return <Theme10CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+    return <Theme10CyanMenu config={config}
+  // If Theme Theme10 Red
+  if (config?.theme === "theme10-red") {
+    return <Theme10RedMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme Theme10 Emerald
   if (config?.theme === "theme10-emerald") {
@@ -563,7 +597,10 @@ function SmartMenuContent({
   }
   // If Theme Theme11 Cyan
   if (config?.theme === "theme11-cyan") {
-    return <Theme11CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+    return <Theme11CyanMenu config={config}
+  // If Theme Theme11 Red
+  if (config?.theme === "theme11-red") {
+    return <Theme11RedMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme Theme11 Emerald
   if (config?.theme === "theme11-emerald") {
@@ -575,7 +612,10 @@ function SmartMenuContent({
   }
   // If Theme Theme13 Cyan
   if (config?.theme === "theme13-cyan") {
-    return <Theme13CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+    return <Theme13CyanMenu config={config}
+  // If Theme Theme13 Red
+  if (config?.theme === "theme13-red") {
+    return <Theme13RedMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme Theme13 Emerald
   if (config?.theme === "theme13-emerald") {
