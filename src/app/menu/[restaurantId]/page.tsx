@@ -457,7 +457,8 @@ function SmartMenuContent({
   }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {
-    return <PizzaPastaCyanMenu config={config}
+    return <PizzaPastaCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
   // If Theme PizzaPasta Red
   if (config?.theme === "pizzapasta-red") {
     return <PizzaPastaRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
@@ -472,7 +473,8 @@ function SmartMenuContent({
   }
   // If Theme AtyabOriental Cyan
   if (config?.theme === "atyab-oriental-cyan") {
-    return <AtyabOrientalCyanMenu config={config}
+    return <AtyabOrientalCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
   // If Theme AtyabOriental Red
   if (config?.theme === "atyab-oriental-red") {
     return <AtyabOrientalRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
@@ -487,7 +489,8 @@ function SmartMenuContent({
   }
   // If Theme BabAlHara Cyan
   if (config?.theme === "bab-alhara-cyan") {
-    return <BabAlHaraCyanMenu config={config}
+    return <BabAlHaraCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
   // If Theme BabAlHara Red
   if (config?.theme === "bab-alhara-red") {
     return <BabAlHaraRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
@@ -502,7 +505,8 @@ function SmartMenuContent({
   }
   // If Theme AtyabEtoile Cyan
   if (config?.theme === "atyab-etoile-cyan") {
-    return <AtyabEtoileCyanMenu config={config}
+    return <AtyabEtoileCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
   // If Theme AtyabEtoile Red
   if (config?.theme === "atyab-etoile-red") {
     return <AtyabEtoileRedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
@@ -517,7 +521,8 @@ function SmartMenuContent({
   }
   // If Theme Theme5 Cyan
   if (config?.theme === "theme5-cyan") {
-    return <Theme5CyanMenu config={config}
+    return <Theme5CyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
   // If Theme Theme5 Red
   if (config?.theme === "theme5-red") {
     return <Theme5RedMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
@@ -532,7 +537,8 @@ function SmartMenuContent({
   }
   // If Theme Theme6 Cyan
   if (config?.theme === "theme6-cyan") {
-    return <Theme6CyanMenu config={config}
+    return <Theme6CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   // If Theme Theme6 Red
   if (config?.theme === "theme6-red") {
     return <Theme6RedMenu config={config} categories={categories} restaurantId={config.id} />;
@@ -547,7 +553,8 @@ function SmartMenuContent({
   }
   // If Theme Theme7 Cyan
   if (config?.theme === "theme7-cyan") {
-    return <Theme7CyanMenu config={config}
+    return <Theme7CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   // If Theme Theme7 Red
   if (config?.theme === "theme7-red") {
     return <Theme7RedMenu config={config} categories={categories} restaurantId={config.id} />;
@@ -582,7 +589,8 @@ function SmartMenuContent({
   }
   // If Theme Theme10 Cyan
   if (config?.theme === "theme10-cyan") {
-    return <Theme10CyanMenu config={config}
+    return <Theme10CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   // If Theme Theme10 Red
   if (config?.theme === "theme10-red") {
     return <Theme10RedMenu config={config} categories={categories} restaurantId={config.id} />;
@@ -597,7 +605,8 @@ function SmartMenuContent({
   }
   // If Theme Theme11 Cyan
   if (config?.theme === "theme11-cyan") {
-    return <Theme11CyanMenu config={config}
+    return <Theme11CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   // If Theme Theme11 Red
   if (config?.theme === "theme11-red") {
     return <Theme11RedMenu config={config} categories={categories} restaurantId={config.id} />;
@@ -612,7 +621,8 @@ function SmartMenuContent({
   }
   // If Theme Theme13 Cyan
   if (config?.theme === "theme13-cyan") {
-    return <Theme13CyanMenu config={config}
+    return <Theme13CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   // If Theme Theme13 Red
   if (config?.theme === "theme13-red") {
     return <Theme13RedMenu config={config} categories={categories} restaurantId={config.id} />;
