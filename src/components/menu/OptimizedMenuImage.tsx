@@ -34,23 +34,29 @@ export default function OptimizedMenuImage({
   style,
 }: OptimizedMenuImageProps) {
   const [imgSrc, setImgSrc] = useState<string>('');
-  const [hasError, setHasError] = useState(false);
+  const [fallbackStage, setFallbackStage] = useState<number>(0); // 0: target, 1: original, 2: default fallback
 
   useEffect(() => {
+    setFallbackStage(0);
     if (!src) {
       setImgSrc(DEFAULT_FALLBACK);
+      setFallbackStage(2);
       return;
     }
 
     // Determine whether to use original or thumbnail
     const targetUrl = useOriginal ? getOriginalUrl(src) : getThumbUrl(src);
     setImgSrc(targetUrl);
-    setHasError(false);
   }, [src, useOriginal]);
 
   const handleError = () => {
-    if (!hasError) {
-      setHasError(true);
+    if (fallbackStage === 0 && !useOriginal) {
+      // If thumbnail fails to load, try loading the original version
+      setFallbackStage(1);
+      setImgSrc(getOriginalUrl(src));
+    } else if (fallbackStage < 2) {
+      // If original fails to load, use the Unsplash placeholder
+      setFallbackStage(2);
       setImgSrc(DEFAULT_FALLBACK);
     }
   };
