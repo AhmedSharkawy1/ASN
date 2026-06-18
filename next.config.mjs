@@ -20,6 +20,12 @@ const nextConfig = {
                 port: '',
                 pathname: '/storage/**',
             },
+            {
+                protocol: 'https',
+                hostname: 'dphylskqazuytvibiysn.supabase.co',
+                port: '',
+                pathname: '/storage/**',
+            },
         ],
     },
 };
