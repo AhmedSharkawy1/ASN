@@ -64,6 +64,7 @@ const Theme9CyanMenu = dynamic(() => import("@/components/menu/Theme9CyanMenu"))
 const Theme9EmeraldMenu = dynamic(() => import("@/components/menu/Theme9EmeraldMenu"));
 const Theme9SkyMenu = dynamic(() => import("@/components/menu/Theme9SkyMenu"));
 const Theme9PinkMenu = dynamic(() => import("@/components/menu/Theme9PinkMenu"));
+const Theme9RedMenu = dynamic(() => import("@/components/menu/Theme9RedMenu"));
 const Theme10CyanMenu = dynamic(() => import("@/components/menu/Theme10CyanMenu"));
 const Theme10EmeraldMenu = dynamic(() => import("@/components/menu/Theme10EmeraldMenu"));
 const Theme10SkyMenu = dynamic(() => import("@/components/menu/Theme10SkyMenu"));
@@ -543,6 +544,10 @@ function SmartMenuContent({
   // If Theme Theme9 Pink
   if (config?.theme === "theme9-pink") {
     return <Theme9PinkMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme9 Red
+  if (config?.theme === "theme9-red") {
+    return <Theme9RedMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme Theme10 Cyan
   if (config?.theme === "theme10-cyan") {
