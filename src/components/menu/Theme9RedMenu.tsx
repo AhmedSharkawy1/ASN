@@ -35,7 +35,7 @@ type MenuItem = {
 
 // ================= THEME 9 (DIABLO) CONSTANTS =================
 // The main accent color from Diablo
-const T9_RED = '#dc2626'; // Red color
+const T9_RED = '#dc2626';
 
 interface CategoryWithItemsType {
     id: string | number;
@@ -851,7 +851,7 @@ export default function Theme9RedMenu({ config, categories, restaurantId }: Them
                         <div className="relative shrink-0">
                             <button
                                 onClick={() => setIsPhoneMenuOpen(!isPhoneMenuOpen)}
-                                className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#e74c3c] hover:bg-red-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm"
+                                className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#dc2626] hover:bg-red-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm"
                             >
                                 <PhoneCall className="w-5 h-5" />
                             </button>
@@ -928,4 +928,3 @@ export default function Theme9RedMenu({ config, categories, restaurantId }: Them
         </div>
     );
 }
-

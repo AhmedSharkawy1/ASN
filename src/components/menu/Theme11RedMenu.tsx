@@ -29,7 +29,7 @@ type MenuItem = {
 };
 
 // ================= THEME 11 CONSTANTS =================
-const T11_PRIMARY = '#e54750'; // Luxe red
+const T11_PRIMARY = '#dc2626'; // Luxe red
 
 interface CategoryWithItemsType {
     id: string | number;
@@ -61,13 +61,13 @@ interface RestaurantType {
     [key: string]: any;
 }
 
-interface Theme11MenuProps {
+interface Theme11RedMenuProps {
     config: RestaurantType;
     categories: CategoryWithItemsType[];
     restaurantId: string;
 }
 
-export default function Theme11RedMenu({ config, categories, restaurantId }: Theme11MenuProps) {
+export default function Theme11RedMenu({ config, categories, restaurantId }: Theme11RedMenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false);
@@ -78,17 +78,15 @@ export default function Theme11RedMenu({ config, categories, restaurantId }: The
     const cur = config.currency || (isAr ? "ج.م" : "EGP");
 
     // Theme Variables - matching HTML
-    const bgBody = isDark ? '#dc2626' : '#f8fafc'; // slate-900 / slate-50
+    const bgBody = isDark ? '#0f172a' : '#f8fafc'; // slate-900 / slate-50
     const bgCard = isDark ? '#1e293b' : '#ffffff'; // slate-800 / white
-    const textMain = isDark ? '#f1f5f9' : '#dc2626'; // slate-100 / slate-900
+    const textMain = isDark ? '#f1f5f9' : '#0f172a'; // slate-100 / slate-900
     const textMuted = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
     const borderColor = isDark ? '#334155' : '#e2e8f0'; // slate-700 / slate-200
     const primaryColor = config.theme_colors?.primary || T11_PRIMARY;
 
     // State
     const [activeCategory, setActiveCategory] = useState<string>('all');
-    const isManualScroll = useRef(false);
-    const catNavRef = useRef<HTMLDivElement>(null);
 
     // Drawers & Modals
     const [isCartOpen, setIsCartOpen] = useState(false);
@@ -99,6 +97,8 @@ export default function Theme11RedMenu({ config, categories, restaurantId }: The
     const [sizeIdx, setSizeIdx] = useState(0);
     const [notes, setNotes] = useState('');
     const [selectedExtras, setSelectedExtras] = useState<{ id: number | string, name: string, price: number }[]>([]);
+    const isManualScroll = useRef(false);
+    const catNavRef = useRef<HTMLDivElement>(null);
 
     // Checkout
     const [showCheckout, setShowCheckout] = useState(false);
@@ -200,8 +200,10 @@ export default function Theme11RedMenu({ config, categories, restaurantId }: The
         window.open(`https://wa.me/${tel}?text=${encodeURIComponent(txt)}`, '_blank');
     };
 
-    // Filter Logic - Always show all categories for scroll-sync
-    const activeCatList = categories;
+    // Filter Logic
+    const activeCatList = activeCategory === 'all'
+        ? categories
+        : categories.filter(c => c.id === activeCategory);
 
     const scrollToSection = (id: string) => {
         if (id === 'all') {
@@ -210,6 +212,9 @@ export default function Theme11RedMenu({ config, categories, restaurantId }: The
             return;
         }
 
+        // If we are currently filtering, we should switch to 'all' first to see all sections
+        // or just scroll if 'all' is already active.
+        // For this theme, we'll follow the user's sync request by scrolling.
         isManualScroll.current = true;
         setActiveCategory(id);
 

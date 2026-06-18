@@ -162,6 +162,7 @@ const THEMES = [
     { id: "theme7-emerald", name_ar: "ثيم 7 (Emerald)", name_en: "Theme7 (Emerald)", description_ar: "نفس التصميم ثيم 7 بلون Emerald", description_en: "Theme7 design with Emerald color", preview_color: "#059669" },
     { id: "theme7-sky", name_ar: "ثيم 7 (Sky)", name_en: "Theme7 (Sky)", description_ar: "نفس التصميم ثيم 7 بلون Sky", description_en: "Theme7 design with Sky color", preview_color: "#0284c7" },
     { id: "theme9-cyan", name_ar: "ثيم 9 (Cyan)", name_en: "Theme9 (Cyan)", description_ar: "نفس التصميم ثيم 9 بلون Cyan", description_en: "Theme9 design with Cyan color", preview_color: "#0891b2" },
+{ id: "theme9-red", name_ar: "ثيم 9 (Red)", name_en: "Theme9 (Red)", description_ar: "نفس التصميم ثيم 9 بلون Red", description_en: "Theme9 design with Red color", preview_color: "#dc2626" },
     { id: "theme9-emerald", name_ar: "ثيم 9 (Emerald)", name_en: "Theme9 (Emerald)", description_ar: "نفس التصميم ثيم 9 بلون Emerald", description_en: "Theme9 design with Emerald color", preview_color: "#059669" },
     { id: "theme9-sky", name_ar: "ثيم 9 (Sky)", name_en: "Theme9 (Sky)", description_ar: "نفس التصميم ثيم 9 بلون Sky", description_en: "Theme9 design with Sky color", preview_color: "#0284c7" },
     { id: "theme9-pink", name_ar: "ثيم 9 (بمبى وردي)", name_en: "Theme9 (Pink)", description_ar: "نفس التصميم ثيم 9 بلون بمبى وردي", description_en: "Theme9 design with Pink color", preview_color: "#ec4899" },

@@ -59,6 +59,7 @@ const ALL_THEMES = [
     { id: "theme7-emerald", name_ar: "ثيم 7 (Emerald)", name_en: "Theme7 (Emerald)", preview_color: "#059669" },
     { id: "theme7-sky", name_ar: "ثيم 7 (Sky)", name_en: "Theme7 (Sky)", preview_color: "#0284c7" },
     { id: "theme9-cyan", name_ar: "ثيم 9 (Cyan)", name_en: "Theme9 (Cyan)", preview_color: "#0891b2" },
+{ id: "theme9-red", name_ar: "ثيم 9 (Red)", name_en: "Theme9 (Red)", preview_color: "#dc2626" },
     { id: "theme9-emerald", name_ar: "ثيم 9 (Emerald)", name_en: "Theme9 (Emerald)", preview_color: "#059669" },
     { id: "theme9-sky", name_ar: "ثيم 9 (Sky)", name_en: "Theme9 (Sky)", preview_color: "#0284c7" },
     { id: "theme9-pink", name_ar: "ثيم 9 (بمبى وردي)", name_en: "Theme9 (Pink)", preview_color: "#ec4899" },

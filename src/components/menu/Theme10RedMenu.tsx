@@ -16,10 +16,10 @@ type MenuItem = {
     id: string | number;
     title_ar: string;
     title_en?: string;
-    desc_ar?: string;
-    desc_en?: string;
     description_ar?: string;
     description_en?: string;
+    desc_ar?: string;
+    desc_en?: string;
     image?: string;
     image_url?: string;
     prices: number[];
@@ -31,7 +31,7 @@ type MenuItem = {
 };
 
 // ================= THEME 10 CONSTANTS =================
-const T10_PRIMARY = '#ea580c'; // orange-600
+const T10_PRIMARY = '#dc2626'; // orange-600
 
 interface CategoryWithItemsType {
     id: string | number;
@@ -63,13 +63,13 @@ interface RestaurantType {
     [key: string]: any;
 }
 
-interface Theme10MenuProps {
+interface Theme10RedMenuProps {
     config: RestaurantType;
     categories: CategoryWithItemsType[];
     restaurantId: string;
 }
 
-export default function Theme10RedMenu({ config, categories, restaurantId }: Theme10MenuProps) {
+export default function Theme10RedMenu({ config, categories, restaurantId }: Theme10RedMenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false);
@@ -80,9 +80,9 @@ export default function Theme10RedMenu({ config, categories, restaurantId }: The
     const cur = config.currency || (isAr ? "ج.م" : "EGP");
 
     // Theme Variables - matching HTML
-    const bgBody = isDark ? '#dc2626' : '#f8fafc'; // slate-900 / slate-50
+    const bgBody = isDark ? '#0f172a' : '#f8fafc'; // slate-900 / slate-50
     const bgCard = isDark ? '#1e293b' : '#ffffff'; // slate-800 / white
-    const textMain = isDark ? '#f1f5f9' : '#dc2626'; // slate-100 / slate-900
+    const textMain = isDark ? '#f1f5f9' : '#0f172a'; // slate-100 / slate-900
     const textMuted = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
     const borderColor = isDark ? '#334155' : '#e2e8f0'; // slate-700 / slate-200
     const primaryColor = config.theme_colors?.primary || T10_PRIMARY;
@@ -99,7 +99,6 @@ export default function Theme10RedMenu({ config, categories, restaurantId }: The
     const [sizeIdx, setSizeIdx] = useState(0);
     const [notes, setNotes] = useState('');
     const [selectedExtras, setSelectedExtras] = useState<{ id: number | string, name: string, price: number }[]>([]);
-
     const isManualScroll = useRef(false);
     const catNavRef = useRef<HTMLDivElement>(null);
 
@@ -280,7 +279,6 @@ export default function Theme10RedMenu({ config, categories, restaurantId }: The
             <div className="sticky top-0 z-[100] shadow-sm backdrop-blur-md border-b transition-colors duration-300" style={{ backgroundColor: isDark ? 'rgba(30, 41, 59, 0.85)' : 'rgba(255, 255, 255, 0.85)', borderColor }}>
                 <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={config.logo_url} alt="Logo" className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover scale-[1.15] border-2 shadow-sm" style={{ borderColor: primaryColor }} />
                     </div>
                     <div className="flex items-center gap-2 md:gap-4">

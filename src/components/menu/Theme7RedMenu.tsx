@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -21,7 +21,7 @@ import ASNFooter from '@/components/menu/ASNFooter';
 /* ───── THEME 7 CONSTANTS ───── */
 const T7_BG = '#0b1120';       // dark navy
 const T7_BG2 = '#111827';      // slightly lighter navy
-const T7_GOLD = '#c9a84c';     // golden accent
+const T7_GOLD = '#dc2626';     // golden accent
 const T7_CARD = '#ffffff';     // white card bg
 const T7_BORDER = '#1e293b';   // subtle border
 
@@ -38,6 +38,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
     const [selectedItem, setSelectedItem] = useState<{ item: any; catName: string; catImg?: string } | null>(null);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isDarkMode, setIsDarkMode] = useState(true);
+    const [isPhoneMenuOpen, setIsPhoneMenuOpen] = useState(false);
 
     // item modal
     const [qty, setQty] = useState(1);
@@ -52,6 +53,8 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
     const catNavRef = useRef<HTMLDivElement>(null);
     const subCatRef = useRef<HTMLDivElement>(null);
     const isManualScroll = useRef(false);
+
+
 
     /* persist cart */
     useEffect(() => {
@@ -102,10 +105,14 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
     const scrollToSection = (id: string) => {
         isManualScroll.current = true;
         setActiveSubCat(id);
-        const el = document.getElementById(id);
-        if (el) {
-            const y = el.getBoundingClientRect().top + window.scrollY - 180;
-            window.scrollTo({ top: y, behavior: 'smooth' });
+        if (id === 'top' || id === '') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            const el = document.getElementById(id);
+            if (el) {
+                const y = el.getBoundingClientRect().top + window.scrollY - 180;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
         }
         setTimeout(() => { isManualScroll.current = false; }, 1000);
     };
@@ -210,7 +217,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
             {/* ─── LOGO + NAME ─── */}
             <div className="relative flex flex-col items-center -mt-16 z-10 px-4">
                 <div className="w-32 h-32 rounded-full border-4 overflow-hidden bg-white shadow-xl"
-                    style={{ borderColor: isDarkMode ? T7_BG : '#dc2626' }}>
+                    style={{ borderColor: isDarkMode ? T7_BG : '#e2e8f0' }}>
                     <img src={config.logo_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=200&auto=format&fit=crop'}
                         alt="logo" className="w-full h-full object-cover" />
                 </div>
@@ -256,11 +263,38 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                         <FaTiktok className="w-5 h-5" />
                     </a>
                 )}
-                {(config.phone_numbers && config.phone_numbers.length > 0) && (
-                        <button onClick={(e) => { e.preventDefault(); document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers })); }} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                {(config.phone_numbers?.length > 0 || config.phone) && (
+                    <div className="relative">
+                        <button onClick={(e) => {
+                            e.preventDefault();
+                            if (config.phone_numbers && config.phone_numbers.length > 0) {
+                                setIsPhoneMenuOpen(!isPhoneMenuOpen);
+                            } else if (config.phone) {
+                                window.location.href = `tel:${config.phone}`;
+                            }
+                        }} className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
                             <Phone className="w-5 h-5" />
                         </button>
-                    )}
+                        <AnimatePresence>
+                            {isPhoneMenuOpen && (
+                                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}
+                                    className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-48 bg-white rounded-xl shadow-[0_5px_20px_rgba(0,0,0,0.2)] border border-gray-100 py-2 z-[110] overflow-hidden"
+                                    style={{ background: isDarkMode ? '#1e293b' : '#fff', borderColor: isDarkMode ? '#334155' : '#f1f5f9' }}>
+                                    <div className="px-4 py-2 border-b text-xs font-bold uppercase text-center"
+                                        style={{ borderColor: isDarkMode ? '#334155' : '#f1f5f9', color: isDarkMode ? '#94a3b8' : '#64748b' }}>
+                                        {isAr ? 'أرقام الديلفري' : 'Delivery Numbers'}
+                                    </div>
+                                    {config.phone_numbers?.map((pn: any, idx: number) => (
+                                        <a key={idx} href={`tel:${pn.number}`} className="block px-4 py-3 text-center text-sm font-bold border-b last:border-0 transition-colors"
+                                            style={{ color: isDarkMode ? '#fff' : '#0f172a', borderColor: isDarkMode ? '#334155' : '#f1f5f9' }}>
+                                            {pn.label || pn.number}
+                                        </a>
+                                    ))}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                )}
             </div>
 
             {/* ─── STICKY NAV: TEXT TABS + CIRCULAR SUB-CATS ─── */}
@@ -268,7 +302,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                 {/* Text tab categories */}
                 <div ref={catNavRef}
                     className="flex items-center overflow-x-auto px-4 gap-6 py-3 border-b"
-                    style={{ scrollbarWidth: 'none', borderColor: isDarkMode ? T7_BORDER : '#dc2626' }}>
+                    style={{ scrollbarWidth: 'none', borderColor: isDarkMode ? T7_BORDER : '#e2e8f0' }}>
                     {categories.map((cat: any) => {
                         const isActive = activeSubCat === cat.id;
                         return (
@@ -276,7 +310,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                 onClick={() => scrollToSection(cat.id)}
                                 className="shrink-0 text-base font-bold pb-1 transition-all whitespace-nowrap"
                                 style={{
-                                    color: isActive ? T7_GOLD : (isDarkMode ? '#22d3ee' : '#64748b'),
+                                    color: isActive ? T7_GOLD : (isDarkMode ? '#94a3b8' : '#64748b'),
                                     borderBottom: isActive ? `2px solid ${T7_GOLD}` : '2px solid transparent',
                                 }}>
                                 {isAr ? cat.name_ar : (cat.name_en || cat.name_ar)}
@@ -292,7 +326,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                     {categories.map((cat: any) => {
                         const isActive = activeSubCat === cat.id;
                         return (
-                            <button key={cat.id} data-id={cat.id}
+                            <button key={cat.id} data-cat-id={cat.id}
                                 onClick={() => scrollToSection(cat.id)}
                                 className="flex flex-col items-center gap-2 shrink-0 min-w-[80px]">
                                 <div className={`w-20 h-20 rounded-full overflow-hidden border-2 transition-all shadow-md
@@ -304,7 +338,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                     }
                                 </div>
                                 <span className="text-xs font-bold text-center leading-tight"
-                                    style={{ color: isActive ? T7_GOLD : (isDarkMode ? '#22d3ee' : '#64748b') }}>
+                                    style={{ color: isActive ? T7_GOLD : (isDarkMode ? '#94a3b8' : '#64748b') }}>
                                     {isAr ? cat.name_ar : (cat.name_en || cat.name_ar)}
                                 </span>
                             </button>
@@ -329,7 +363,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                     className="flex items-start gap-4 cursor-pointer rounded-3xl p-3 transition-all active:scale-[0.98] relative"
                                     style={{
                                         background: isDarkMode ? 'rgba(255,255,255,0.03)' : T7_CARD,
-                                        border: `1px solid ${isDarkMode ? T7_BORDER : '#dc2626'}`,
+                                        border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}`,
                                     }}>
 
                                     {/* IMAGE — LEFT side (second child in RTL flex = visually LEFT) */}
@@ -350,7 +384,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                                 {itemName(item)}
                                             </h3>
                                             {item.desc_ar && (
-                                                <p className="text-sm leading-relaxed mb-2" style={{ color: isDarkMode ? '#22d3ee' : '#64748b' }}>
+                                                <p className="text-sm leading-relaxed mb-2" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>
                                                     {isAr ? item.desc_ar : (item.desc_en || '')}
                                                 </p>
                                             )}
@@ -366,7 +400,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                                         style={{
                                                             background: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff',
                                                             color: isDarkMode ? '#fff' : '#0f172a',
-                                                            border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : '#dc2626'}`,
+                                                            border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : '#e2e8f0'}`,
                                                         }}>
                                                         {cur} {price.toFixed(2)}{lbl ? ` (${lbl})` : ''}
                                                     </div>
@@ -403,7 +437,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
             <AnimatePresence>
                 {config.orders_enabled !== false && cartCount > 0 && !isCartOpen && (
                     <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl p-2 flex items-center justify-between backdrop-blur-md border max-h-[85vh] flex flex-col mx-auto"
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[90%] w-[85vw] max-w-[310px] rounded-[2rem] shadow-2xl p-2 flex items-center justify-between backdrop-blur-md border max-h-[85vh] flex-row-reverse mx-auto"
                         style={{
                             background: isDarkMode ? 'rgba(30,41,59,0.85)' : 'rgba(255,255,255,0.85)',
                             borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'
@@ -415,10 +449,10 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                 {cartCount}
                             </span>
                         </button>
-                        <div className="flex-1 flex justify-end px-4 text-right">
+                        <div className="flex-1 flex justify-start px-4 text-right">
                             <div className="flex flex-col">
                                 <span className="font-bold text-lg" style={{ color: isDarkMode ? '#fff' : '#0f172a' }}>{cartTotal.toFixed(2)} {cur}</span>
-                                <span className="text-[10px] uppercase tracking-wider" style={{ color: isDarkMode ? '#22d3ee' : '#64748b' }}>{isAr ? 'عرض السلة' : 'View Cart'}</span>
+                                <span className="text-[10px] uppercase tracking-wider" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isAr ? 'عرض السلة' : 'View Cart'}</span>
                             </div>
                         </div>
                     </motion.div>
@@ -436,7 +470,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                             className="flex-1 flex flex-col overflow-y-auto"
                             onClick={e => e.stopPropagation()}>
                             {/* big image */}
-                            <div className="relative w-full h-72 md:h-96 shrink-0" style={{ background: isDarkMode ? '#1e293b' : '#dc2626' }}>
+                            <div className="relative w-full h-72 md:h-96 shrink-0" style={{ background: isDarkMode ? '#1e293b' : '#e2e8f0' }}>
                                 <img src={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800'}
                                     alt="" className="w-full h-full object-cover" />
                                 <button onClick={closeModal}
@@ -455,7 +489,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                     <h2 className="text-xl font-bold mb-2" style={{ color: isDarkMode ? '#fff' : '#0f172a' }}>
                                         {itemName(selectedItem.item)}
                                     </h2>
-                                    <p className="text-sm leading-relaxed" style={{ color: isDarkMode ? '#22d3ee' : '#64748b' }}>
+                                    <p className="text-sm leading-relaxed" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>
                                         {isAr ? selectedItem.item.desc_ar : (selectedItem.item.desc_en || selectedItem.item.desc_ar || '')}
                                     </p>
                                 </div>
@@ -469,7 +503,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                                 style={{
                                                     background: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff',
                                                     color: isDarkMode ? '#fff' : '#0f172a',
-                                                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : '#dc2626'}`,
+                                                    border: `1px solid ${isDarkMode ? 'rgba(255,255,255,0.15)' : '#e2e8f0'}`,
                                                 }}>
                                                 {cur} {price.toFixed(2)}{lbl ? ` (${lbl})` : ''}
                                             </div>
@@ -490,14 +524,14 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                                 <label key={idx}
                                                     className="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all"
                                                     style={{
-                                                        borderColor: sel ? T7_GOLD : (isDarkMode ? T7_BORDER : '#dc2626'),
+                                                        borderColor: sel ? T7_GOLD : (isDarkMode ? T7_BORDER : '#e2e8f0'),
                                                         background: sel ? (isDarkMode ? 'rgba(201,168,76,0.1)' : '#fffbeb') : 'transparent',
                                                     }}>
                                                     <span className="text-sm font-bold">{price.toFixed(2)} {cur}</span>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm font-bold">{label}</span>
                                                         <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                                                            style={{ borderColor: sel ? T7_GOLD : (isDarkMode ? '#475569' : '#22d3ee') }}>
+                                                            style={{ borderColor: sel ? T7_GOLD : (isDarkMode ? '#475569' : '#94a3b8') }}>
                                                             {sel && <div className="w-2.5 h-2.5 rounded-full" style={{ background: T7_GOLD }} />}
                                                         </div>
                                                     </div>
@@ -513,7 +547,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                     className="w-full rounded-xl p-3 text-sm text-right outline-none resize-none h-20"
                                     style={{
                                         background: isDarkMode ? 'rgba(255,255,255,0.05)' : '#f8fafc',
-                                        border: `1px solid ${isDarkMode ? T7_BORDER : '#dc2626'}`,
+                                        border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}`,
                                         color: isDarkMode ? '#fff' : '#0f172a',
                                     }} />
                             </div>
@@ -521,7 +555,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                             {/* Add to cart bar */}
                             {config.orders_enabled !== false && (
                                 <div className="p-4 flex items-center gap-4 shrink-0 border-t"
-                                    style={{ borderColor: isDarkMode ? T7_BORDER : '#dc2626', background: isDarkMode ? T7_BG : '#fff' }}>
+                                    style={{ borderColor: isDarkMode ? T7_BORDER : '#e2e8f0', background: isDarkMode ? T7_BG : '#fff' }}>
                                     <div className="flex items-center justify-between rounded-xl p-1 w-32 shrink-0"
                                         style={{ background: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9' }}>
                                         <button onClick={() => setQty(Math.max(1, qty - 1))} className="w-8 h-8 flex items-center justify-center rounded-lg"
@@ -556,8 +590,8 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                             style={{ background: isDarkMode ? T7_BG2 : '#fff' }}
                             onClick={e => e.stopPropagation()}>
                             {/* header */}
-                            <div className="p-4 flex items-center justify-between shrink-0 border-b" style={{ borderColor: isDarkMode ? T7_BORDER : '#dc2626' }}>
-                                <button onClick={() => setIsCartOpen(false)} className="p-2 rounded-full" style={{ color: isDarkMode ? '#22d3ee' : '#64748b' }}>
+                            <div className="p-4 flex items-center justify-between shrink-0 border-b" style={{ borderColor: isDarkMode ? T7_BORDER : '#e2e8f0' }}>
+                                <button onClick={() => setIsCartOpen(false)} className="p-2 rounded-full" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>
                                     <X className="w-5 h-5" />
                                 </button>
                                 <h2 className="text-lg font-bold">{isAr ? 'السلة' : 'Cart'}</h2>
@@ -567,14 +601,14 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                             {/* items */}
                             <div className="p-4 overflow-y-auto flex-1 flex flex-col gap-4 text-right" dir="rtl">
                                 {cart.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-12" style={{ color: isDarkMode ? '#475569' : '#22d3ee' }}>
+                                    <div className="flex flex-col items-center justify-center py-12" style={{ color: isDarkMode ? '#475569' : '#94a3b8' }}>
                                         <ShoppingCart className="w-16 h-16 mb-4 opacity-50" />
                                         <p>{isAr ? 'السلة فارغة' : 'Cart is empty'}</p>
                                     </div>
                                 ) : cart.map(ci => (
                                     <div key={`${ci.id}-${ci.notes}`} className="flex items-start gap-3 p-3 rounded-3xl"
-                                        style={{ background: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#dc2626'}` }}>
-                                        <div className="w-14 h-14 rounded-xl shrink-0 overflow-hidden" style={{ background: isDarkMode ? '#1e293b' : '#dc2626' }}>
+                                        style={{ background: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc', border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}` }}>
+                                        <div className="w-14 h-14 rounded-xl shrink-0 overflow-hidden" style={{ background: isDarkMode ? '#1e293b' : '#e2e8f0' }}>
                                             <img src={ci.item.image_url || ci.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-full h-full object-cover" />
                                         </div>
                                         <div className="flex-1 flex flex-col gap-1">
@@ -582,10 +616,10 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                                 <button onClick={() => removeCI(ci.id, ci.notes)} className="text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
                                                 <h3 className="font-bold text-sm">{itemName(ci.item)}</h3>
                                             </div>
-                                            {ci.notes && <p className="text-[10px] italic" style={{ color: isDarkMode ? '#64748b' : '#22d3ee' }}>{ci.notes}</p>}
+                                            {ci.notes && <p className="text-[10px] italic" style={{ color: isDarkMode ? '#64748b' : '#94a3b8' }}>{ci.notes}</p>}
                                             <div className="flex justify-between items-center mt-2">
                                                 <div className="flex items-center justify-between rounded-lg p-1 w-24"
-                                                    style={{ background: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: `1px solid ${isDarkMode ? T7_BORDER : '#dc2626'}` }}>
+                                                    style={{ background: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9', border: `1px solid ${isDarkMode ? T7_BORDER : '#e2e8f0'}` }}>
                                                     <button onClick={() => updateQty(ci.id, ci.notes, -1)} className="w-6 h-6 flex items-center justify-center rounded"><Minus className="w-3 h-3" /></button>
                                                     <span className="font-bold text-xs">{ci.quantity}</span>
                                                     <button onClick={() => updateQty(ci.id, ci.notes, 1)} className="w-6 h-6 flex items-center justify-center rounded"><Plus className="w-3 h-3" /></button>
@@ -599,10 +633,10 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
 
                             {/* checkout */}
                             {config.orders_enabled !== false && cart.length > 0 && (
-                                <div className="p-4 shrink-0 border-t" style={{ borderColor: isDarkMode ? T7_BORDER : '#dc2626' }}>
+                                <div className="p-4 shrink-0 border-t" style={{ borderColor: isDarkMode ? T7_BORDER : '#e2e8f0' }}>
                                     <div className="flex justify-between items-center mb-4">
                                         <span className="font-bold text-lg" style={{ color: T7_GOLD }}>{cartTotal.toFixed(2)} {cur}</span>
-                                        <span className="text-sm" style={{ color: isDarkMode ? '#22d3ee' : '#64748b' }}>{isAr ? 'الاجمالي' : 'Total'}</span>
+                                        <span className="text-sm" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isAr ? 'الاجمالي' : 'Total'}</span>
                                     </div>
                                     <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }}
                                         className="w-full text-white rounded-xl py-3 font-bold text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform"
