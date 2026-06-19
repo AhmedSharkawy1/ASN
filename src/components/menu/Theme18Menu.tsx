@@ -210,9 +210,17 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                     <button onClick={handleShare} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
                         <Share2 className="w-5 h-5" />
                     </button>
-                    {config.logo_url && (
-                        <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm" useOriginal={true} />
-                    )}
+                    <div className="flex flex-col items-center">
+                        {config.logo_url && (
+                            <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm mb-2" useOriginal={true} />
+                        )}
+                        <h1 className="text-xl font-black text-center">{config.name}</h1>
+                        {(config.slogan_ar || config.slogan_en) && (
+                            <p className="text-xs font-bold mt-1 opacity-60 text-center">
+                                {isAr ? (config.slogan_ar || config.slogan_en) : (config.slogan_en || config.slogan_ar)}
+                            </p>
+                        )}
+                    </div>
                     {/* Replaced LogOut button with an empty div for spacing balance */}
                     <div className="w-10 h-10"></div>
                 </div>
