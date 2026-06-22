@@ -884,7 +884,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 currency={cur} 
                 language={currentLang} 
                 orderChannel={config.order_channel}
-                onOrderSuccess={() => { setCart([]); setIsCartOpen(false); setShowCheckout(false); }}
+                onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
             />
 
             {/* Hidden Footer from Theme config if any */}

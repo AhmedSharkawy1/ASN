@@ -319,7 +319,7 @@ export default function CheckoutModal({
             setStep(hasAddons ? 5 : 4);
             onOrderSuccess?.();
             
-            if (orderChannel === 'whatsapp' || orderChannel === 'both') {
+            if (orderChannel !== 'website') {
                 sendWhatsApp(result.orderNumber);
             }
         } else {
