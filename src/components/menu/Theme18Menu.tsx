@@ -880,7 +880,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 subtotal={cartTotal}
                 restaurantId={restaurantId}
                 restaurantName={config.name}
-                whatsappNumber={config.phone || (config.phone_numbers && config.phone_numbers.length > 0 ? (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0]) : '')}
+                whatsappNumber={config.whatsapp_number}
                 currency={cur} 
                 language={currentLang} 
                 orderChannel={config.order_channel}
