@@ -32,12 +32,10 @@ export async function POST(req: NextRequest) {
     // Generate unique ID
     const fileId = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
 
-    // Determine content type
-    const contentType = file.type || 'image/jpeg';
-    const ext = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
-
-    const originalFileName = `original/${fileId}.${ext}`;
-    const thumbFileName = `thumbs/${fileId}.${ext}`;
+    // Client always sends WebP (converted via Canvas API)
+    const contentType = 'image/webp';
+    const originalFileName = `original/${fileId}.webp`;
+    const thumbFileName = `thumbs/${fileId}.webp`;
 
     // Upload original to Supabase Storage
     const { error: originalUploadError } = await supabaseAdmin.storage

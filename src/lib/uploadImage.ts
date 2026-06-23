@@ -3,14 +3,83 @@ import { supabase } from './supabase/client';
 const BUCKET_NAME = 'menu-images';
 
 /**
- * Upload an image to the server-side API which generates originals and thumbnails.
+ * Convert any image File/Blob to WebP using the browser's Canvas API.
+ * Max width: 1920px. Quality: 85%.
+ * Falls back to original if conversion fails or runs outside browser.
+ */
+async function convertToWebP(file: File | Blob, maxWidth = 1920, quality = 0.85): Promise<Blob> {
+    return new Promise((resolve) => {
+        // If not in browser, return as-is
+        if (typeof window === 'undefined' || typeof document === 'undefined') {
+            resolve(file);
+            return;
+        }
+
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+
+            let { width, height } = img;
+
+            // Resize if wider than maxWidth
+            if (width > maxWidth) {
+                height = Math.round((height * maxWidth) / width);
+                width = maxWidth;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                resolve(file);
+                return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        resolve(file); // fallback
+                    }
+                },
+                'image/webp',
+                quality
+            );
+        };
+
+        img.onerror = () => {
+            URL.revokeObjectURL(url);
+            resolve(file); // fallback to original
+        };
+
+        img.src = url;
+    });
+}
+
+/**
+ * Upload an image to the server-side API.
+ * Converts to WebP client-side before uploading.
  * Returns the public URL of the original image.
  */
 export async function uploadImage(file: File | Blob, folder: string): Promise<string | null> {
     try {
+        // Convert to WebP on client side first
+        let uploadBlob: Blob = file;
+        try {
+            uploadBlob = await convertToWebP(file);
+        } catch (convErr) {
+            console.warn('WebP conversion failed, uploading original:', convErr);
+        }
+
         const formData = new FormData();
-        const fileName = file instanceof File ? file.name : 'image.webp';
-        formData.append('file', file, fileName);
+        formData.append('file', uploadBlob, 'image.webp');
         formData.append('folder', folder);
 
         const response = await fetch('/api/upload-image', {
@@ -21,8 +90,7 @@ export async function uploadImage(file: File | Blob, folder: string): Promise<st
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Upload API call failed:', errorText);
-            
-            // Try to parse the JSON error to show a cleaner message
+
             let errorMessage = errorText;
             try {
                 const parsed = JSON.parse(errorText);
@@ -81,7 +149,7 @@ export async function deleteImage(publicUrl: string): Promise<boolean> {
         } else if (filePath.startsWith('thumbs/')) {
             filesToRemove.push(`original/${rawName}.webp`);
         } else {
-            // Legacy path: delete the legacy file and check if there's a thumbnail under thumbs/
+            // Legacy path
             filesToRemove.push(`thumbs/${rawName}.webp`);
         }
 
@@ -99,4 +167,3 @@ export async function deleteImage(publicUrl: string): Promise<boolean> {
         return false;
     }
 }
-
