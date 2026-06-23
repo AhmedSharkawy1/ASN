@@ -21,6 +21,16 @@ export async function uploadImage(file: File | Blob, folder: string): Promise<st
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Upload API call failed:', errorText);
+            
+            // Try to parse the JSON error to show a cleaner message
+            let errorMessage = errorText;
+            try {
+                const parsed = JSON.parse(errorText);
+                if (parsed.error) errorMessage = parsed.error;
+            } catch (e) {
+                // Ignore parse error
+            }
+            alert(`فشل رفع الصورة: ${errorMessage}`);
             return null;
         }
 

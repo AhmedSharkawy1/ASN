@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { generateOriginal, generateThumbnail } from '@/lib/imageOptimizer';
+import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs'; // sharp requires Node.js runtime
 
@@ -19,8 +20,7 @@ export async function POST(req: NextRequest) {
     const inputBuffer = Buffer.from(arrayBuffer);
 
     // Generate unique ID for the file
-    // We can use crypto.randomUUID()
-    const fileId = crypto.randomUUID();
+    const fileId = randomUUID();
     const originalFileName = `original/${fileId}.webp`;
     const thumbFileName = `thumbs/${fileId}.webp`;
 
