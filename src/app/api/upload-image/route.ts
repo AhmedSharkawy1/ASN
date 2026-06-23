@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/admin';
-import { generateOriginal, generateThumbnail } from '@/lib/imageOptimizer';
-import { randomUUID } from 'crypto';
 
 export const runtime = 'nodejs'; // sharp requires Node.js runtime
 
@@ -19,10 +16,29 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const inputBuffer = Buffer.from(arrayBuffer);
 
-    // Generate unique ID for the file
-    const fileId = randomUUID();
+    // Generate unique ID without relying on crypto import
+    const fileId = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
     const originalFileName = `original/${fileId}.webp`;
     const thumbFileName = `thumbs/${fileId}.webp`;
+
+    // Lazily import modules to catch initialization errors
+    let generateOriginal, generateThumbnail, supabaseAdmin;
+    try {
+        const optimizer = await import('@/lib/imageOptimizer');
+        generateOriginal = optimizer.generateOriginal;
+        generateThumbnail = optimizer.generateThumbnail;
+    } catch (err: any) {
+        console.error('Failed to load imageOptimizer (sharp):', err);
+        return NextResponse.json({ error: `Image optimizer failed to load: ${err.message}` }, { status: 500 });
+    }
+
+    try {
+        const adminModule = await import('@/lib/supabase/admin');
+        supabaseAdmin = adminModule.supabaseAdmin;
+    } catch (err: any) {
+        console.error('Failed to load supabaseAdmin:', err);
+        return NextResponse.json({ error: `Supabase admin failed to load: ${err.message}` }, { status: 500 });
+    }
 
     // 1. Generate optimized original image (max 1920px, WebP 85%)
     const originalResult = await generateOriginal(inputBuffer);
