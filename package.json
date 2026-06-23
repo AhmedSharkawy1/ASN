@@ -25,6 +25,7 @@
     "react-dom": "^18",
     "react-icons": "^5.5.0",
     "sharp": "^0.35.1",
+    "@img/sharp-linux-x64": "^0.35.1",
     "sonner": "^2.0.7",
     "swiper": "^12.1.2",
     "tailwind-merge": "^3.5.0",
