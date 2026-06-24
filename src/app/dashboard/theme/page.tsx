@@ -166,6 +166,7 @@ const THEMES = [
     { id: "theme9-emerald", name_ar: "ثيم 9 (Emerald)", name_en: "Theme9 (Emerald)", description_ar: "نفس التصميم ثيم 9 بلون Emerald", description_en: "Theme9 design with Emerald color", preview_color: "#059669" },
     { id: "theme9-sky", name_ar: "ثيم 9 (Sky)", name_en: "Theme9 (Sky)", description_ar: "نفس التصميم ثيم 9 بلون Sky", description_en: "Theme9 design with Sky color", preview_color: "#0284c7" },
     { id: "theme9-pink", name_ar: "ثيم 9 (بمبى وردي)", name_en: "Theme9 (Pink)", description_ar: "نفس التصميم ثيم 9 بلون بمبى وردي", description_en: "Theme9 design with Pink color", preview_color: "#ec4899" },
+    { id: "theme9-gold", name_ar: "ثيم 9 (ذهبي)", name_en: "Theme9 (Gold)", description_ar: "نفس التصميم ثيم 9 بلون ذهبي مع إخفاء الحجم إذا لم يكن مكتوباً", description_en: "Theme9 design with Gold color, hides size if not labeled", preview_color: "#D4A017" },
     { id: "theme10-cyan", name_ar: "ثيم 10 (Cyan)", name_en: "Theme10 (Cyan)", description_ar: "نفس التصميم ثيم 10 بلون Cyan", description_en: "Theme10 design with Cyan color", preview_color: "#0891b2" },
 { id: "theme10-red", name_ar: "ثيم 10 (أحمر)", name_en: "Theme 10 (Red)", description_ar: "نفس التصميم ثيم 10 بلون Cyan", description_en: "Theme10 design with Cyan color", preview_color: "#dc2626" },
     { id: "theme10-emerald", name_ar: "ثيم 10 (Emerald)", name_en: "Theme10 (Emerald)", description_ar: "نفس التصميم ثيم 10 بلون Emerald", description_en: "Theme10 design with Emerald color", preview_color: "#059669" },
@@ -185,6 +186,7 @@ const THEMES = [
     { id: "theme18-emerald", name_ar: "ثيم 18 (Emerald)", name_en: "Theme18 (Emerald)", description_ar: "نفس التصميم ثيم 18 بلون Emerald", description_en: "Theme18 design with Emerald color", preview_color: "#059669" },
     { id: "theme18-sky", name_ar: "ثيم 18 (Sky)", name_en: "Theme18 (Sky)", description_ar: "نفس التصميم ثيم 18 بلون Sky", description_en: "Theme18 design with Sky color", preview_color: "#0284c7" },
     { id: "theme18-pink", name_ar: "ثيم 18 (وردي)", name_en: "Theme18 (Pink)", description_ar: "نفس التصميم ثيم 18 بلون وردي", description_en: "Theme18 design with Pink color", preview_color: "#ec4899" },
+    { id: "theme18-gold", name_ar: "ثيم 18 (ذهبي)", name_en: "Theme18 (Gold)", description_ar: "نفس التصميم ثيم 18 بلون ذهبي", description_en: "Theme18 design with Gold color", preview_color: "#D4A017" },
 ];
 
 const DEFAULT_COLORS = {

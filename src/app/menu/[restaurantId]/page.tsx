@@ -39,6 +39,7 @@ const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"))
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
 const Theme18EmeraldMenu = dynamic(() => import("@/components/menu/Theme18EmeraldMenu"));
 const Theme18SkyMenu = dynamic(() => import("@/components/menu/Theme18SkyMenu"));
+const Theme18GoldMenu = dynamic(() => import("@/components/menu/Theme18GoldMenu"));
 const Theme18PinkMenu = dynamic(() => import("@/components/menu/Theme18PinkMenu"));
 const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
 const PizzaPastaRedMenu = dynamic(() => import("@/components/menu/PizzaPastaRedMenu"));
@@ -72,6 +73,7 @@ const Theme9CyanMenu = dynamic(() => import("@/components/menu/Theme9CyanMenu"))
 const Theme9EmeraldMenu = dynamic(() => import("@/components/menu/Theme9EmeraldMenu"));
 const Theme9SkyMenu = dynamic(() => import("@/components/menu/Theme9SkyMenu"));
 const Theme9PinkMenu = dynamic(() => import("@/components/menu/Theme9PinkMenu"));
+const Theme9GoldMenu = dynamic(() => import("@/components/menu/Theme9GoldMenu"));
 const Theme9RedMenu = dynamic(() => import("@/components/menu/Theme9RedMenu"));
 const Theme10CyanMenu = dynamic(() => import("@/components/menu/Theme10CyanMenu"));
 const Theme10RedMenu = dynamic(() => import("@/components/menu/Theme10RedMenu"));
@@ -456,6 +458,9 @@ function SmartMenuContent({
   if (config?.theme === "theme18-pink") {
     return <Theme18PinkMenu config={config} categories={categories} restaurantId={config.id} />;
   }
+  if (config?.theme === "theme18-gold") {
+    return <Theme18GoldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {
     return <PizzaPastaCyanMenu config={config} categories={categories} restaurantId={config.id} language={language} />;
@@ -587,6 +592,10 @@ function SmartMenuContent({
   // If Theme Theme9 Red
   if (config?.theme === "theme9-red") {
     return <Theme9RedMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  // If Theme Theme9 Gold
+  if (config?.theme === "theme9-gold") {
+    return <Theme9GoldMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme Theme10 Cyan
   if (config?.theme === "theme10-cyan") {
