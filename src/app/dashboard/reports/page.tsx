@@ -104,15 +104,23 @@ export default function ReportsPage() {
         remoteOrders.forEach(o => mergedMap.set(o.id, o)); // remote wins
         let orders = Array.from(mergedMap.values());
 
+        const getLocalStartOfDay = (d: Date) => {
+            const start = new Date(d);
+            start.setHours(0, 0, 0, 0);
+            return start;
+        };
+
         const now = new Date();
         if (range === "today") {
-            const ts = now.toISOString().split("T")[0];
-            orders = orders.filter(o => o.created_at.startsWith(ts));
+            const startOfToday = getLocalStartOfDay(now);
+            orders = orders.filter(o => new Date(o.created_at) >= startOfToday);
         } else if (range === "week") {
-            const w = new Date(now); w.setDate(w.getDate() - 7);
+            const w = getLocalStartOfDay(now);
+            w.setDate(w.getDate() - 7);
             orders = orders.filter(o => new Date(o.created_at) >= w);
         } else if (range === "month") {
-            const m = new Date(now); m.setMonth(m.getMonth() - 1);
+            const m = getLocalStartOfDay(now);
+            m.setMonth(m.getMonth() - 1);
             orders = orders.filter(o => new Date(o.created_at) >= m);
         } else if (range === "custom" && customStart && customEnd) {
             const start = new Date(customStart); start.setHours(0, 0, 0, 0);
