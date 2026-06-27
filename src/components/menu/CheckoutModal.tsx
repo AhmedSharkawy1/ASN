@@ -278,7 +278,7 @@ export default function CheckoutModal({
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
     const canProceedStep3 = (orderType === 'pickup' || (orderType === 'delivery' && address.trim().length > 0)) && (localBranches && localBranches.length > 0 ? selectedBranch !== "" : true);
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (viaWhatsApp = false) => {
         setLoading(true);
         const finalItems = getFinalItems();
         const currentExtrasTotal = extrasTotal;
@@ -319,7 +319,8 @@ export default function CheckoutModal({
             setStep(hasAddons ? 5 : 4);
             onOrderSuccess?.();
             
-            if (orderChannel !== 'website') {
+            // If the customer clicked the WhatsApp button, redirect them directly to WhatsApp
+            if (viaWhatsApp) {
                 sendWhatsApp(result.orderNumber);
             }
         } else {
@@ -353,7 +354,9 @@ export default function CheckoutModal({
             discountType: appliedPromo?.promotion.discount_type,
             branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
-        window.open(`https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
+        // Use window.location.href for a direct redirect to WhatsApp instead of opening a new tab
+        const waUrl = `https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+        window.open(waUrl, '_blank');
     };
 
     // Removed handlePrint here
@@ -772,7 +775,7 @@ export default function CheckoutModal({
                                     {(orderChannel === "whatsapp" || orderChannel === "both") && (
                                         <button
                                             disabled={loading}
-                                            onClick={() => handleSubmit()}
+                                            onClick={() => handleSubmit(true)}
                                             className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
                                         >
                                             {loading ? (
