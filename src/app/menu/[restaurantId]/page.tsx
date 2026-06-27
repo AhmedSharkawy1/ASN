@@ -741,7 +741,7 @@ function SmartMenuContent({
     finally { setOrderSubmitting(false); }
   };
 
-  const checkOutWhatsApp = () => {
+  const checkOutWhatsApp = async () => {
     if (!config.whatsapp_number) {
       alert(
         language === "ar"
@@ -759,6 +759,37 @@ function SmartMenuContent({
       return;
     }
 
+    setOrderSubmitting(true);
+
+    // 1. Save order to database + send Telegram automatically
+    try {
+      const items = cart.map(c => ({
+        title: language === "ar" ? c.item.title_ar : (c.item.title_en || c.item.title_ar),
+        qty: c.quantity, price: c.price,
+        size: c.size_label !== "عادي" ? c.size_label : undefined,
+      }));
+      const total = cartTotal;
+      await supabase.from("orders").insert({
+        restaurant_id: config.id,
+        status: "pending",
+        items,
+        subtotal: total,
+        discount: 0,
+        total,
+        payment_method: "cash",
+        customer_name: customerInfo.name,
+        customer_phone: customerInfo.phone,
+        customer_address: customerInfo.address,
+        is_draft: false,
+        created_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error("Order save error (non-blocking):", err);
+    } finally {
+      setOrderSubmitting(false);
+    }
+
+    // 2. Build WhatsApp message
     let message = `🧾 *فاتورة طلب جديدة - ${config.name}*\n`;
     message += `------------------------------\n`;
     message += `👤 *الاسم:* ${customerInfo.name}\n`;
@@ -781,7 +812,7 @@ function SmartMenuContent({
     message += `💵 *الإجمالي المطلوب: ${cartTotal} ج*\n`;
     message += `------------------------------\n`;
 
-
+    // 3. Redirect to WhatsApp directly
     window.open(
       `https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}?text=${encodeURIComponent(message)}`,
       "_blank",
@@ -1318,36 +1349,20 @@ function SmartMenuContent({
                     ✅ {language === "ar" ? "تم إرسال طلبك بنجاح! ستتواصل معك قريباً" : "Order placed! We'll contact you shortly"}
                   </div>
                 )}
-
-                {/* Dynamic checkout buttons */}
-                {!orderSuccess && (() => {
-                  const channel = config.order_channel || "whatsapp";
-                  return (
-                    <div className="space-y-2">
-                      {(channel === "website" || channel === "both") && (
-                        <button
-                          onClick={checkOutWebsite}
-                          disabled={orderSubmitting}
-                          className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-all text-base flex items-center justify-center gap-3 hover:bg-blue-700 disabled:opacity-60"
-                        >
-                          {orderSubmitting ? (
-                            <>⏳ {language === "ar" ? "جاري إرسال طلبك..." : "Sending..."}</>
-                          ) : (
-                            <>{language === "ar" ? "📦 إرسال عبر الويبسايت" : "📦 Order Online"}</>
-                          )}
-                        </button>
+                {/* WhatsApp checkout button */}
+                {!orderSuccess && (
+                    <button
+                      onClick={checkOutWhatsApp}
+                      disabled={orderSubmitting}
+                      className="w-full bg-[#25D366] text-white font-black py-4 rounded-2xl shadow-lg shadow-green-500/20 active:scale-95 transition-all text-base flex items-center justify-center gap-3 hover:bg-[#20bd5a] disabled:opacity-60"
+                    >
+                      {orderSubmitting ? (
+                        <>{language === "ar" ? "⏳ جاري إرسال طلبك..." : "⏳ Sending..."}</>
+                      ) : (
+                        <>{language === "ar" ? "طلب عبر واتساب" : "Order via WhatsApp"}</>
                       )}
-                      {(channel === "whatsapp" || channel === "both") && (
-                        <button
-                          onClick={checkOutWhatsApp}
-                          className="w-full bg-[#25D366] text-white font-black py-4 rounded-2xl shadow-lg shadow-green-500/20 active:scale-95 transition-all text-base flex items-center justify-center gap-3 hover:bg-[#20bd5a]"
-                        >
-                          {language === "ar" ? "تأكيد الطلب عبر واتساب" : "Confirm via WhatsApp"}
-                        </button>
-                      )}
-                    </div>
-                  );
-                })()}
+                    </button>
+                )}
               </div>
             </motion.div>
           </motion.div>
