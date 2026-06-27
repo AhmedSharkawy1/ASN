@@ -758,34 +758,17 @@ export default function CheckoutModal({
                                 <button onClick={() => setStep(hasAddons ? 3 : 2)} className="w-[100px] py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
                                     {isAr ? "← رجوع" : "← Back"}
                                 </button>
-                                <div className="flex-1 flex flex-col gap-2">
-                                    {(orderChannel === "website" || orderChannel === "both") && (
-                                        <button
-                                            disabled={loading}
-                                            onClick={() => handleSubmit()}
-                                            className="w-full py-3.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
-                                        >
-                                            {loading ? (
-                                                <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Submitting..."}</>
-                                            ) : (
-                                                <><CheckCircle className="w-4 h-4" /> {isAr ? "طلب عبر الويبسايت" : "Order Online"}</>
-                                            )}
-                                        </button>
+                                <button
+                                    disabled={loading}
+                                    onClick={() => handleSubmit(true)}
+                                    className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
+                                >
+                                    {loading ? (
+                                        <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Sending..."}</>
+                                    ) : (
+                                        <><FaWhatsapp className="w-4 h-4" /> {isAr ? "طلب عبر واتساب" : "Order via WhatsApp"}</>
                                     )}
-                                    {(orderChannel === "whatsapp" || orderChannel === "both") && (
-                                        <button
-                                            disabled={loading}
-                                            onClick={() => handleSubmit(true)}
-                                            className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
-                                        >
-                                            {loading ? (
-                                                <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "WhatsApp..."}</>
-                                            ) : (
-                                                <><FaWhatsapp className="w-4 h-4" /> {isAr ? "طلب عبر واتساب" : "Confirm via WhatsApp"}</>
-                                            )}
-                                        </button>
-                                    )}
-                                </div>
+                                </button>
                             </div>
                         </>
                     )}
