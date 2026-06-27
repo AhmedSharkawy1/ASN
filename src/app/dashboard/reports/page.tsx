@@ -4,6 +4,7 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
 import { useState, useEffect, useCallback } from "react";
 import { posDb } from "@/lib/pos-db";
+import { supabase } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/helpers/formatters";
 import {
     BarChart3, ShoppingCart, DollarSign,
@@ -12,6 +13,20 @@ import {
 } from "lucide-react";
 
 type DateRange = "today" | "week" | "month" | "all" | "custom";
+
+type OrderLike = {
+    id: string;
+    status: string;
+    is_draft?: boolean;
+    total: number;
+    deposit_amount?: number;
+    delivery_fee?: number;
+    discount?: number;
+    payment_method?: string;
+    cashier_name?: string;
+    items: { title: string; qty: number; price: number; category?: string }[];
+    created_at: string;
+};
 
 type Stats = {
     revenue: number; collectedCash: number; orders: number; avgTicket: number;
@@ -50,8 +65,44 @@ export default function ReportsPage() {
         if (!restaurantId) return;
         setLoading(true);
 
-        let orders = await posDb.orders.where("restaurant_id").equals(restaurantId)
+        // 1️⃣ Load from local Dexie (always available, even offline)
+        const localOrders = await posDb.orders.where("restaurant_id").equals(restaurantId)
             .and(o => o.status !== "cancelled" && !o.is_draft).toArray();
+        const localMapped: OrderLike[] = localOrders.map(o => ({
+            id: o.id,
+            status: o.status,
+            is_draft: o.is_draft,
+            total: o.total || 0,
+            deposit_amount: o.deposit_amount,
+            delivery_fee: o.delivery_fee,
+            discount: o.discount,
+            payment_method: o.payment_method,
+            cashier_name: o.cashier_name,
+            items: (o.items || []).map(i => ({ title: i.title, qty: i.qty, price: i.price, category: i.category })),
+            created_at: o.created_at,
+        }));
+
+        // 2️⃣ Load from Supabase (remote/cloud orders)
+        let remoteOrders: OrderLike[] = [];
+        try {
+            const { data } = await supabase
+                .from('orders')
+                .select('id, status, is_draft, total, deposit_amount, delivery_fee, discount, payment_method, cashier_name, items, created_at')
+                .eq('restaurant_id', restaurantId)
+                .eq('is_draft', false)
+                .neq('status', 'cancelled');
+            remoteOrders = ((data as OrderLike[]) || []).map(o => ({
+                ...o,
+                total: o.total || 0,
+                items: (o.items || []) as OrderLike["items"],
+            }));
+        } catch { /* offline — use local only */ }
+
+        // 3️⃣ Merge: remote takes priority, local fills gaps
+        const mergedMap = new Map<string, OrderLike>();
+        localMapped.forEach(o => mergedMap.set(o.id, o));
+        remoteOrders.forEach(o => mergedMap.set(o.id, o)); // remote wins
+        let orders = Array.from(mergedMap.values());
 
         const now = new Date();
         if (range === "today") {
