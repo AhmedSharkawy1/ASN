@@ -354,9 +354,9 @@ export default function CheckoutModal({
             discountType: appliedPromo?.promotion.discount_type,
             branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
-        // Use window.location.href for a direct redirect to WhatsApp instead of opening a new tab
+        // Use window.location.href to redirect directly — window.open gets blocked after async calls
         const waUrl = `https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
-        window.open(waUrl, '_blank');
+        window.location.href = waUrl;
     };
 
     // Removed handlePrint here
