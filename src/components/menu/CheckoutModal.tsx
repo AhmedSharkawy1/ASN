@@ -87,6 +87,10 @@ export default function CheckoutModal({
     const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
     const [zones, setZones] = useState<DeliveryZone[]>([]);
 
+    // Order type visibility (from restaurant settings)
+    const [pickupEnabled, setPickupEnabled] = useState(true);
+    const [deliveryEnabled, setDeliveryEnabled] = useState(true);
+
     // Promotions state
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [appliedPromo, setAppliedPromo] = useState<AppliedPromotion | null>(null);
@@ -110,7 +114,7 @@ export default function CheckoutModal({
             try {
                 const { data } = await supabase
                     .from('restaurants')
-                    .select('branches_enabled, branches, currency')
+                    .select('branches_enabled, branches, currency, pickup_enabled, delivery_enabled')
                     .eq('id', restaurantId)
                     .single();
                 if (data) {
@@ -124,6 +128,19 @@ export default function CheckoutModal({
 
                     if (data.currency) {
                         setCurrency(data.currency);
+                    }
+
+                    // Set order type visibility
+                    const pEnabled = data.pickup_enabled ?? true;
+                    const dEnabled = data.delivery_enabled ?? true;
+                    setPickupEnabled(pEnabled);
+                    setDeliveryEnabled(dEnabled);
+
+                    // Auto-select the only available order type
+                    if (dEnabled && !pEnabled) {
+                        setOrderType('delivery');
+                    } else if (pEnabled && !dEnabled) {
+                        setOrderType('pickup');
                     }
                 }
             } catch (err) {
@@ -513,6 +530,8 @@ export default function CheckoutModal({
                     {/* ════════ STEP: ORDER TYPE ════════ */}
                     {effectiveStep === 3 && (
                         <>
+                            {/* Show order type buttons only if both are enabled */}
+                            {pickupEnabled && deliveryEnabled && (
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={() => setOrderType('delivery')}
@@ -537,6 +556,25 @@ export default function CheckoutModal({
                                     </span>
                                 </button>
                             </div>
+                            )}
+
+                            {/* Show single-option indicator when only one type is enabled */}
+                            {!pickupEnabled && deliveryEnabled && (
+                                <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                                    <Truck className="w-6 h-6 text-emerald-500 flex-shrink-0" />
+                                    <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                                        {isAr ? "هذا المطعم يقدم خدمة الدليفري فقط" : "This restaurant offers delivery only"}
+                                    </p>
+                                </div>
+                            )}
+                            {pickupEnabled && !deliveryEnabled && (
+                                <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                                    <Store className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                                    <p className="text-sm font-bold text-blue-700 dark:text-blue-300">
+                                        {isAr ? "هذا المطعم يقدم خدمة الاستلام من المطعم فقط" : "This restaurant offers pickup only"}
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Branch Selection */}
                             {localBranches && localBranches.length > 0 && (

@@ -67,6 +67,8 @@ type RestaurantProfile = {
     currency?: string;
     branches_enabled?: boolean;
     branches?: string[];
+    pickup_enabled?: boolean;
+    delivery_enabled?: boolean;
 };
 
 export default function SettingsPage() {
@@ -96,7 +98,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled')
                 .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
@@ -104,7 +106,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
@@ -172,6 +174,8 @@ export default function SettingsPage() {
                     currency: profile.currency || '',
                     branches_enabled: profile.branches_enabled || false,
                     branches: branches.filter(b => b.trim()),
+                    pickup_enabled: profile.pickup_enabled ?? true,
+                    delivery_enabled: profile.delivery_enabled ?? true,
                 })
                 .eq('id', profile.id);
 
@@ -206,6 +210,8 @@ export default function SettingsPage() {
                         currency: profile.currency || '',
                         branches_enabled: profile.branches_enabled || false,
                         branches: branches.filter(b => b.trim()),
+                        pickup_enabled: profile.pickup_enabled ?? true,
+                        delivery_enabled: profile.delivery_enabled ?? true,
                     })
                     .eq('id', profile.id);
                 error = fallbackUpdate.error;
@@ -445,6 +451,34 @@ export default function SettingsPage() {
                                 <input type="checkbox" className="sr-only peer" checked={profile.auto_approve_website_orders || false} onChange={e => setProfile({ ...profile, auto_approve_website_orders: e.target.checked })} />
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
                             </label>
+                        </div>
+
+                        {/* Order Type Visibility */}
+                        <div className="flex items-center gap-3 flex-wrap bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
+                            <span className="text-sm font-bold text-slate-500 dark:text-zinc-400 mr-1 ml-1">
+                                {language === "ar" ? "🚀 نوع الطلب المتاح للعميل:" : "🚀 Available Order Types:"}
+                            </span>
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" checked={profile.pickup_enabled ?? true} onChange={e => setProfile({ ...profile, pickup_enabled: e.target.checked })} />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
+                                    <span className={`text-sm font-bold ${(profile.pickup_enabled ?? true) ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>
+                                        {language === "ar" ? "🏪 استلام من المطعم" : "🏪 Pickup"}
+                                    </span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" checked={profile.delivery_enabled ?? true} onChange={e => setProfile({ ...profile, delivery_enabled: e.target.checked })} />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
+                                    <span className={`text-sm font-bold ${(profile.delivery_enabled ?? true) ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400'}`}>
+                                        {language === "ar" ? "🚚 دليفري" : "🚚 Delivery"}
+                                    </span>
+                                </label>
+                            </div>
+                            {!(profile.pickup_enabled ?? true) && !(profile.delivery_enabled ?? true) && (
+                                <span className="text-xs font-bold text-red-500 block w-full mt-1">
+                                    {language === "ar" ? "⚠️ تحذير: لا يوجد نوع طلب متاح للعميل!" : "⚠️ Warning: No order type available for customers!"}
+                                </span>
+                            )}
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
