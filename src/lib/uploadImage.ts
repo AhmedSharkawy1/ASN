@@ -4,10 +4,10 @@ const BUCKET_NAME = 'menu-images';
 
 /**
  * Convert any image File/Blob to WebP using the browser's Canvas API.
- * Max width: 1200px. Quality: 75%.
+ * Max width: 1200px. Quality: 70%.
  * Falls back to original if conversion fails or runs outside browser.
  */
-async function convertToWebP(file: File | Blob, maxWidth = 1200, quality = 0.75): Promise<Blob> {
+async function convertToWebP(file: File | Blob, maxWidth = 1200, quality = 0.70): Promise<Blob> {
     return new Promise((resolve) => {
         // If not in browser, return as-is
         if (typeof window === 'undefined' || typeof document === 'undefined') {
