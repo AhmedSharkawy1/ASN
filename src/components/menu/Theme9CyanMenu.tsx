@@ -244,7 +244,7 @@ export default function Theme9CyanMenu({ config, categories, restaurantId }: The
         setCart(prev => prev.map(i => {
             if (i.id === id && i.notes === n) {
                 const nq = i.quantity + d;
-                return nq > 0 ? { ...i, quantity: nq } : i;
+                return { ...i, quantity: nq };
             }
             return i;
         }).filter(i => i.quantity > 0));
@@ -458,7 +458,7 @@ export default function Theme9CyanMenu({ config, categories, restaurantId }: The
 
                                             {/* Body */}
                                             <div className={`p-3 md:p-4 flex-1 flex flex-col text-right min-w-0`} dir={isAr ? 'rtl' : 'ltr'}>
-                                                <h3 className={`font-extrabold text-[14px] md:text-lg mb-1 md:mb-2 line-clamp-1 leading-tight`} style={{ color: textDark }}>
+                                                <h3 className={`font-extrabold text-[14px] md:text-lg mb-1 md:mb-2 leading-tight`} style={{ color: textDark }}>
                                                     {itemName(item)}
                                                 </h3>
                                                 {item.desc_ar && (
@@ -686,7 +686,7 @@ export default function Theme9CyanMenu({ config, categories, restaurantId }: The
                                             <div key={i} className="flex gap-3 pb-4 border-b relative" style={{ borderColor }}>
                                                 <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt={itemName(c.item)} className="w-16 h-16 rounded-xl object-cover shrink-0 border" style={{ borderColor }} />
                                                 <div className="flex-1 min-w-0 flex flex-col">
-                                                    <h4 className="font-bold text-sm mb-1 line-clamp-1" style={{ color: textDark }}>{itemName(c.item)}</h4>
+                                                    <h4 className="font-bold text-sm mb-1" style={{ color: textDark }}>{itemName(c.item)}</h4>
                                                     {(c.sizeLabel || c.notes) && (
                                                         <p className="text-[11px] mb-2 line-clamp-2 leading-tight" style={{ color: textMuted }}>
                                                             {c.sizeLabel && <span>{c.sizeLabel} </span>}

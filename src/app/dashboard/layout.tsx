@@ -12,7 +12,8 @@ import {
     Factory, ScrollText, TrendingUp, Landmark, Users,
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
-    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud, Tag
+    Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud, Tag,
+    Smartphone, Download
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -646,6 +647,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 <span className="text-[14px] font-extrabold text-slate-700 dark:text-zinc-200 truncate">{restaurantName}</span>
                             </div>
                         </div>
+                    )}
+                    {!isDesktopApp && (
+                        <a
+                            href="/api/app/download"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`flex w-full items-center ${sidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3 py-2.5'} rounded-xl bg-gradient-to-r from-teal-500/10 to-emerald-500/10 dark:from-emerald-500/10 dark:to-cyan-500/10 hover:from-teal-500/20 hover:to-emerald-500/20 dark:hover:from-emerald-500/20 dark:hover:to-cyan-500/20 text-teal-700 dark:text-emerald-400 text-[14px] font-extrabold transition-all border border-teal-200/50 dark:border-emerald-500/20`}
+                        >
+                            <Smartphone className="w-5 h-5" />
+                            {!sidebarCollapsed && (
+                                <span className="flex items-center gap-2">
+                                    {language === "ar" ? "تحميل التطبيق" : "Download App"}
+                                    <Download className="w-3.5 h-3.5 opacity-60" />
+                                </span>
+                            )}
+                        </a>
                     )}
                     <button
                         onClick={async () => { 

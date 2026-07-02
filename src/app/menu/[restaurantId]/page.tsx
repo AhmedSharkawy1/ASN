@@ -35,12 +35,19 @@ const Theme13Menu = dynamic(() => import("@/components/menu/Theme13Menu"));
 const Theme16Menu = dynamic(() => import("@/components/menu/Theme16Menu"));
 const Theme17Menu = dynamic(() => import("@/components/menu/Theme17Menu"));
 const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
+const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
+const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
+const Theme19CyanMenu = dynamic(() => import("@/components/menu/Theme19CyanMenu"));
 const Theme18EmeraldMenu = dynamic(() => import("@/components/menu/Theme18EmeraldMenu"));
+const Theme19EmeraldMenu = dynamic(() => import("@/components/menu/Theme19EmeraldMenu"));
 const Theme18SkyMenu = dynamic(() => import("@/components/menu/Theme18SkyMenu"));
+const Theme19SkyMenu = dynamic(() => import("@/components/menu/Theme19SkyMenu"));
 const Theme18GoldMenu = dynamic(() => import("@/components/menu/Theme18GoldMenu"));
+const Theme19GoldMenu = dynamic(() => import("@/components/menu/Theme19GoldMenu"));
 const Theme18PinkMenu = dynamic(() => import("@/components/menu/Theme18PinkMenu"));
+const Theme19PinkMenu = dynamic(() => import("@/components/menu/Theme19PinkMenu"));
 const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
 const PizzaPastaRedMenu = dynamic(() => import("@/components/menu/PizzaPastaRedMenu"));
 const PizzaPastaEmeraldMenu = dynamic(() => import("@/components/menu/PizzaPastaEmeraldMenu"));
@@ -443,23 +450,44 @@ function SmartMenuContent({
   if (config?.theme === "theme18") {
     return <Theme18Menu config={config} categories={categories} restaurantId={config.id} />;
   }
+  if (config?.theme === "theme19") {
+    return <Theme19Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
   if (config?.theme === "theme18-red") {
     return <Theme18RedMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme19-red") {
+    return <Theme19RedMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme === "theme18-cyan") {
     return <Theme18CyanMenu config={config} categories={categories} restaurantId={config.id} />;
   }
+  if (config?.theme === "theme19-cyan") {
+    return <Theme19CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   if (config?.theme === "theme18-emerald") {
     return <Theme18EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme19-emerald") {
+    return <Theme19EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme === "theme18-sky") {
     return <Theme18SkyMenu config={config} categories={categories} restaurantId={config.id} />;
   }
+  if (config?.theme === "theme19-sky") {
+    return <Theme19SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   if (config?.theme === "theme18-pink") {
     return <Theme18PinkMenu config={config} categories={categories} restaurantId={config.id} />;
   }
+  if (config?.theme === "theme19-pink") {
+    return <Theme19PinkMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   if (config?.theme === "theme18-gold") {
     return <Theme18GoldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme19-gold") {
+    return <Theme19GoldMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {

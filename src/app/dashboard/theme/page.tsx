@@ -122,6 +122,7 @@ const THEMES = [
     },
     {
         id: "theme18",
+        id: "theme19",
         name_ar: "منيو مصر المطابق",
         name_en: "MenuMasr Replica",
         description_ar: "تصميم مستوحى من منيو مصر الشهير، سريع وعملي.",
@@ -182,11 +183,17 @@ const THEMES = [
     { id: "theme15-sky", name_ar: "ثيم 15 (Sky)", name_en: "Theme15 (Sky)", description_ar: "نفس التصميم ثيم 15 بلون Sky", description_en: "Theme15 design with Sky color", preview_color: "#0284c7" },
     // ===== Theme 18 Color Variations =====
     { id: "theme18-red", name_ar: "ثيم 18 (أحمر)", name_en: "Theme18 (Red)", description_ar: "نفس التصميم ثيم 18 بلون أحمر", description_en: "Theme18 design with Red color", preview_color: "#ef4444" },
+    { id: "theme19-red", name_ar: "ثيم 19 (أحمر)", name_en: "Theme19 (Red)", description_ar: "نفس التصميم ثيم 19 بلون أحمر", description_en: "Theme19 design with Red color", preview_color: "#ef4444" },
     { id: "theme18-cyan", name_ar: "ثيم 18 (Cyan)", name_en: "Theme18 (Cyan)", description_ar: "نفس التصميم ثيم 18 بلون Cyan", description_en: "Theme18 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme19-cyan", name_ar: "ثيم 19 (Cyan)", name_en: "Theme19 (Cyan)", description_ar: "نفس التصميم ثيم 19 بلون Cyan", description_en: "Theme19 design with Cyan color", preview_color: "#0891b2" },
     { id: "theme18-emerald", name_ar: "ثيم 18 (Emerald)", name_en: "Theme18 (Emerald)", description_ar: "نفس التصميم ثيم 18 بلون Emerald", description_en: "Theme18 design with Emerald color", preview_color: "#059669" },
+    { id: "theme19-emerald", name_ar: "ثيم 19 (Emerald)", name_en: "Theme19 (Emerald)", description_ar: "نفس التصميم ثيم 19 بلون Emerald", description_en: "Theme19 design with Emerald color", preview_color: "#059669" },
     { id: "theme18-sky", name_ar: "ثيم 18 (Sky)", name_en: "Theme18 (Sky)", description_ar: "نفس التصميم ثيم 18 بلون Sky", description_en: "Theme18 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme19-sky", name_ar: "ثيم 19 (Sky)", name_en: "Theme19 (Sky)", description_ar: "نفس التصميم ثيم 19 بلون Sky", description_en: "Theme19 design with Sky color", preview_color: "#0284c7" },
     { id: "theme18-pink", name_ar: "ثيم 18 (وردي)", name_en: "Theme18 (Pink)", description_ar: "نفس التصميم ثيم 18 بلون وردي", description_en: "Theme18 design with Pink color", preview_color: "#ec4899" },
+    { id: "theme19-pink", name_ar: "ثيم 19 (وردي)", name_en: "Theme19 (Pink)", description_ar: "نفس التصميم ثيم 19 بلون وردي", description_en: "Theme19 design with Pink color", preview_color: "#ec4899" },
     { id: "theme18-gold", name_ar: "ثيم 18 (ذهبي)", name_en: "Theme18 (Gold)", description_ar: "نفس التصميم ثيم 18 بلون ذهبي", description_en: "Theme18 design with Gold color", preview_color: "#D4A017" },
+    { id: "theme19-gold", name_ar: "ثيم 19 (ذهبي)", name_en: "Theme19 (Gold)", description_ar: "نفس التصميم ثيم 19 بلون ذهبي", description_en: "Theme19 design with Gold color", preview_color: "#D4A017" },
 ];
 
 const DEFAULT_COLORS = {
