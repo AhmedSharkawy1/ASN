@@ -154,7 +154,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
         setCart(prev => prev.map(c => {
             if (c.id === id && c.notes === notes) {
                 const nq = c.quantity + delta;
-                return nq > 0 ? { ...c, quantity: nq } : c;
+                return { ...c, quantity: nq };
             }
             return c;
         }).filter(c => c.quantity > 0));
