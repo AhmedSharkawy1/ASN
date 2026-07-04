@@ -723,18 +723,28 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-silver">{language === "ar" ? "الأحجام والأسعار *" : "Sizes & Prices *"}</label>
                     {prices.map((p, idx) => (
-                        <div key={idx} className="flex items-center gap-2 bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-glass-border">
+                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2 bg-slate-50 dark:bg-black/20 p-3 sm:p-2 rounded-xl border border-glass-border">
                             <input value={sizeLabels[idx] || ''} onChange={e => { const nl = [...sizeLabels]; nl[idx] = e.target.value; setSizeLabels(nl); }}
-                                placeholder={language === "ar" ? "اسم الحجم" : "Size"} className="flex-1 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-base font-bold" />
-                            <input type="number" value={p || ''} onChange={e => { const np = [...prices]; np[idx] = parseFloat(e.target.value) || 0; setPrices(np); }}
-                                placeholder="0" className="w-20 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
-                            <input type="number" value={oldPrices[idx] || ''} onChange={e => { const no = [...oldPrices]; no[idx] = parseFloat(e.target.value) || 0; setOldPrices(no); }}
-                                placeholder={language === "ar" ? "بدل" : "Old"} className="w-16 px-3 py-2 rounded-lg bg-transparent border-b border-glass-border -blue outline-none text-sm font-bold tabular-nums text-center text-red-500" dir="ltr" />
-                            <span className="text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
-                            {prices.length > 1 && (
-                                <button onClick={() => { setPrices(prices.filter((_, i) => i !== idx)); setSizeLabels(sizeLabels.filter((_, i) => i !== idx)); setOldPrices(oldPrices.filter((_, i) => i !== idx)); }}
-                                    className="p-1 text-red-500 hover:bg-red-500/10 rounded transition"><X className="w-4 h-4" /></button>
-                            )}
+                                placeholder={language === "ar" ? "اسم الحجم (مثال: وسط)" : "Size (e.g. Medium)"} className="w-full sm:flex-1 px-3 py-2 rounded-lg bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-base font-bold" />
+                            <div className="flex items-center gap-2 justify-between sm:justify-start w-full sm:w-auto">
+                                <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                                        <label className="text-[10px] text-silver font-bold sm:hidden">{language === "ar" ? "السعر" : "Price"}</label>
+                                        <input type="number" value={p || ''} onChange={e => { const np = [...prices]; np[idx] = parseFloat(e.target.value) || 0; setPrices(np); }}
+                                            placeholder={language === "ar" ? "السعر" : "0"} className="w-full sm:w-24 px-3 py-2 rounded-lg bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                                        <label className="text-[10px] text-red-400 font-bold sm:hidden">{language === "ar" ? "قبل الخصم (اختياري)" : "Old Price"}</label>
+                                        <input type="number" value={oldPrices[idx] || ''} onChange={e => { const no = [...oldPrices]; no[idx] = parseFloat(e.target.value) || 0; setOldPrices(no); }}
+                                            placeholder={language === "ar" ? "بدل" : "Old"} className="w-full sm:w-20 px-3 py-2 rounded-lg bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums text-center text-red-500" dir="ltr" />
+                                    </div>
+                                    <span className="text-sm font-bold text-silver self-end sm:self-auto mb-2 sm:mb-0 px-1">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
+                                </div>
+                                {prices.length > 1 && (
+                                    <button onClick={() => { setPrices(prices.filter((_, i) => i !== idx)); setSizeLabels(sizeLabels.filter((_, i) => i !== idx)); setOldPrices(oldPrices.filter((_, i) => i !== idx)); }}
+                                        className="p-2 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition self-end sm:self-auto mb-1 sm:mb-0"><X className="w-5 h-5 sm:w-4 sm:h-4" /></button>
+                                )}
+                            </div>
                         </div>
                     ))}
                     <button onClick={() => { setPrices([...prices, 0]); setSizeLabels([...sizeLabels, '']); setOldPrices([...oldPrices, 0]); }}
@@ -1057,15 +1067,25 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
             <div className="space-y-2">
                 <label className="text-xs font-bold text-silver uppercase">{language === "ar" ? "الأحجام والأسعار" : "Sizes & Prices"}</label>
                 {localPrices.map((price, idx) => (
-                    <div key={idx} className="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-white dark:bg-black/30 p-2 rounded-lg border border-glass-border">
+                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2 bg-white dark:bg-black/30 p-3 sm:p-2 rounded-lg border border-glass-border">
                         <input value={localLabels[idx] || ''} onChange={e => { const nl = [...localLabels]; nl[idx] = e.target.value; setLocalLabels(nl); }}
-                            placeholder={language === "ar" ? "الحجم" : "Size"} className="flex-1 min-w-[80px] px-2 py-1.5 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold" />
-                        <input type="number" value={price} onChange={e => { const np = [...localPrices]; np[idx] = parseFloat(e.target.value) || 0; setLocalPrices(np); }}
-                            className="w-16 sm:w-20 px-2 py-1.5 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold tabular-nums text-center" dir="ltr" />
-                        <input type="number" value={localOldPrices[idx] || ''} onChange={e => { const no = [...localOldPrices]; no[idx] = parseFloat(e.target.value) || 0; setLocalOldPrices(no); }}
-                            placeholder={language === "ar" ? "بدل" : "Old"} className="w-16 sm:w-20 px-2 py-1.5 rounded bg-transparent border-b border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums text-center text-red-500" dir="ltr" />
-                        <span className="text-xs sm:text-sm text-silver">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
-                        {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); setLocalOldPrices(localOldPrices.filter((_, i) => i !== idx)); }} className="p-1 text-red-500"><X className="w-4 h-4" /></button>}
+                            placeholder={language === "ar" ? "اسم الحجم (مثال: كبير)" : "Size (e.g. Large)"} className="w-full sm:flex-1 px-3 py-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold" />
+                        <div className="flex items-center gap-2 justify-between sm:justify-start w-full sm:w-auto">
+                            <div className="flex items-center gap-2 flex-1 sm:flex-none">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                                    <label className="text-[10px] text-silver font-bold sm:hidden">{language === "ar" ? "السعر" : "Price"}</label>
+                                    <input type="number" value={price} onChange={e => { const np = [...localPrices]; np[idx] = parseFloat(e.target.value) || 0; setLocalPrices(np); }}
+                                        placeholder={language === "ar" ? "السعر" : "0"} className="w-full sm:w-24 px-3 py-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold tabular-nums text-center" dir="ltr" />
+                                </div>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                                    <label className="text-[10px] text-red-400 font-bold sm:hidden">{language === "ar" ? "قبل الخصم (اختياري)" : "Old Price"}</label>
+                                    <input type="number" value={localOldPrices[idx] || ''} onChange={e => { const no = [...localOldPrices]; no[idx] = parseFloat(e.target.value) || 0; setLocalOldPrices(no); }}
+                                        placeholder={language === "ar" ? "بدل" : "Old"} className="w-full sm:w-20 px-3 py-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums text-center text-red-500" dir="ltr" />
+                                </div>
+                                <span className="text-sm font-bold text-silver self-end sm:self-auto mb-2 sm:mb-0 px-1">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
+                            </div>
+                            {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); setLocalOldPrices(localOldPrices.filter((_, i) => i !== idx)); }} className="p-2 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition self-end sm:self-auto mb-1 sm:mb-0"><X className="w-5 h-5 sm:w-4 sm:h-4" /></button>}
+                        </div>
                     </div>
                 ))}
                 <button onClick={() => { setLocalPrices([...localPrices, 0]); setLocalLabels([...localLabels, '']); setLocalOldPrices([...localOldPrices, 0]); }} className="text-sm text-blue font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}</button>
