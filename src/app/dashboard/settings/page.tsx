@@ -38,6 +38,7 @@ type RestaurantProfile = {
     cover_images?: string[];
     working_hours?: string;
     address?: string; // New field
+    menu_title_word?: string; // Custom word instead of 'مطعم'
     receipt_logo_url?: string; // Specific for receipts
     phone_numbers?: PhoneEntry[];
     payment_methods?: PaymentMethodEntry[];
@@ -98,7 +99,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word')
                 .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
@@ -106,7 +107,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
@@ -141,6 +142,7 @@ export default function SettingsPage() {
                     name: profile.name,
                     slogan_ar: profile.slogan_ar,
                     slogan_en: profile.slogan_en,
+                    menu_title_word: profile.menu_title_word,
                     slug: profile.slug?.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''),
                     phone: profile.phone,
                     whatsapp_number: profile.whatsapp_number,
@@ -188,6 +190,7 @@ export default function SettingsPage() {
                         slug: profile.slug?.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''),
                         slogan_ar: profile.slogan_ar,
                         slogan_en: profile.slogan_en,
+                        menu_title_word: profile.menu_title_word,
                         phone: profile.phone,
                         whatsapp_number: profile.whatsapp_number,
                         address: profile.address,
@@ -486,6 +489,11 @@ export default function SettingsPage() {
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "اسم المطعم" : "Restaurant Name"}</label>
                             <input required type="text" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "كلمة النشاط (تظهر في العنوان، مثل: مطعم، كافيه)" : "Business Word (e.g. Restaurant, Cafe)"}</label>
+                            <input type="text" value={profile.menu_title_word || ''} onChange={e => setProfile({ ...profile, menu_title_word: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: كافيه (الافتراضي: مطعم)" : "e.g., Cafe (Default: Restaurant)"} />
                         </div>
                         <div className="space-y-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "الشعار النصي (عربي)" : "Slogan (Arabic)"}</label>

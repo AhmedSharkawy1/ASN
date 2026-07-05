@@ -20,7 +20,7 @@ export async function generateMetadata({
         if (id === "demo") {
             const { data } = await supabase
                 .from("restaurants")
-                .select("name, logo_url, cover_url, slogan_ar")
+                .select("name, logo_url, cover_url, slogan_ar, menu_title_word")
                 .eq("is_marketing_account", true)
                 .limit(1)
                 .maybeSingle();
@@ -28,7 +28,7 @@ export async function generateMetadata({
         } else {
             const { data } = await supabase
                 .from("restaurants")
-                .select("name, logo_url, cover_url, slogan_ar")
+                .select("name, logo_url, cover_url, slogan_ar, menu_title_word")
                 .eq(isUUID ? "id" : "slug", id)
                 .single();
             restData = data;
@@ -41,7 +41,8 @@ export async function generateMetadata({
             };
         }
 
-        const title = `منيو مطعم ${restData.name}`;
+        const titleWord = restData.menu_title_word && restData.menu_title_word.trim() !== "" ? restData.menu_title_word : "مطعم";
+        const title = `منيو ${titleWord} ${restData.name}`;
         const description = restData.slogan_ar || `استعرض منيو ${restData.name} الإلكتروني - اطلب الآن!`;
         const image = restData.logo_url || restData.cover_url || "/logo.png";
 
