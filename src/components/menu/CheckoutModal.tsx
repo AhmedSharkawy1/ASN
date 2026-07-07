@@ -336,17 +336,15 @@ export default function CheckoutModal({
             setStep(hasAddons ? 5 : 4);
             onOrderSuccess?.();
             
-            // If the customer clicked the WhatsApp button, redirect them directly to WhatsApp
-            if (viaWhatsApp) {
-                sendWhatsApp(result.orderNumber);
-            }
+            // Do not redirect programmatically here because iOS Facebook browser blocks it.
+            // The user will click the explicit link on Step 5.
         } else {
             alert(result.error || (isAr ? "حدث خطأ" : "Something went wrong"));
         }
     };
 
-    const sendWhatsApp = (newOrderNum?: number) => {
-        if (!whatsappNumber) return;
+    const getWaUrl = (newOrderNum?: number) => {
+        if (!whatsappNumber) return "#";
         const finalItems = finalizedOrderDetails ? finalizedOrderDetails.items : getFinalItems();
         const finalSubtotal = finalizedOrderDetails ? finalizedOrderDetails.subtotal + finalizedOrderDetails.extrasTotal : subtotal + extrasTotal;
         const finalTotal = finalizedOrderDetails ? finalizedOrderDetails.total : total;
@@ -371,9 +369,9 @@ export default function CheckoutModal({
             discountType: appliedPromo?.promotion.discount_type,
             branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
-        // Use window.location.href to redirect directly — window.open gets blocked after async calls
-        const waUrl = `https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
-        window.location.href = waUrl;
+        
+        // Use the native whatsapp scheme, which works best when clicked via an <a> tag in mobile browsers
+        return `whatsapp://send?phone=${whatsappNumber.replace(/[^\d+]/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
     };
 
     // Removed handlePrint here
@@ -821,7 +819,7 @@ export default function CheckoutModal({
                                 <p className="text-2xl font-extrabold text-zinc-900 dark:text-white">{isAr ? "تم إرسال الأوردر!" : "Order Sent!"}</p>
                                 <p className="text-4xl font-black text-emerald-500 mt-2">#{orderNumber}</p>
                                 <p className="text-sm text-zinc-500 mt-2 font-bold">
-                                    {isAr ? "تم ارسال الاوردر وسيتم تاكيده من احد موظفى المطعم" : "Your order has been sent and will be confirmed by restaurant staff."}
+                                    {isAr ? "تم حفظ الاوردر! يرجى الضغط على زر الواتساب بالأسفل لإرساله للمطعم." : "Order saved! Please click the WhatsApp button below to send it to the restaurant."}
                                 </p>
                             </div>
 
@@ -864,13 +862,15 @@ export default function CheckoutModal({
 
                             <div className="flex flex-col gap-2 pt-2">
                                 {whatsappNumber && (
-                                    <button
-                                        onClick={() => sendWhatsApp()}
+                                    <a
+                                        href={getWaUrl()}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#1da851] transition text-sm flex items-center justify-center gap-2"
                                     >
                                         <FaWhatsapp className="w-5 h-5" />
                                         {isAr ? "إرسال عبر واتساب" : "Send via WhatsApp"}
-                                    </button>
+                                    </a>
                                 )}
                                 <button
                                     onClick={onClose}
