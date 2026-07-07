@@ -299,7 +299,7 @@ export default function Theme9PinkMenu({ config, categories, restaurantId }: The
 
         const waNumber = config.social_links?.whatsapp || config.whatsapp_number || config.phone;
         const formattedNumber = waNumber.replace(/\+/g, '');
-        window.open(`https://wa.me/${formattedNumber}?text=${encodeURIComponent(message.replace(/\uFE0F/g, ''))}`, '_blank');
+        window.open(`whatsapp://send?phone=${formattedNumber}&text=${encodeURIComponent(message.replace(/\uFE0F/g, ''))}`, '_blank');
     };
 
     // Body style
@@ -355,7 +355,7 @@ export default function Theme9PinkMenu({ config, categories, restaurantId }: The
                             </p>
                             {/* Desktop Socials */}
                             <div className="hidden md:flex gap-3 mt-4">
-                                {config.social_links?.whatsapp && <a href={`https://wa.me/${config.social_links.whatsapp}`} className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white transition-colors"><FaWhatsapp className="w-5 h-5" /></a>}
+                                {config.social_links?.whatsapp && <a href={`whatsapp://send?phone=${config.social_links.whatsapp}`} className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white transition-colors"><FaWhatsapp className="w-5 h-5" /></a>}
                                 {config.social_links?.instagram && <a href={`https://instagram.com/${config.social_links.instagram}`} className="bg-white/20 hover:bg-white/40 p-2 rounded-full text-white transition-colors"><FaInstagram className="w-5 h-5" /></a>}
                             </div>
                         </div>
@@ -816,7 +816,7 @@ export default function Theme9PinkMenu({ config, categories, restaurantId }: The
                     )}
 
                     {(config.social_links?.whatsapp || config.whatsapp_number) && (
-                        <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#25D366] hover:bg-green-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
+                        <a href={`whatsapp://send?phone=${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#25D366] hover:bg-green-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
                             <FaWhatsapp className="text-xl" />
                         </a>
                     )}

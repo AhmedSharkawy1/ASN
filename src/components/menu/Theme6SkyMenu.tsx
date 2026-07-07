@@ -159,7 +159,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
             if (i.notes) msg += `  _ملاحظة: ${i.notes}_\n`;
         });
         msg += `\n*الإجمالي:* ${cartTotal} ${cur}`;
-        window.open(`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
+        window.open(`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
     };
 
     const itemName = (item: any) => isAr ? item.title_ar : (item.title_en || item.title_ar);
@@ -241,7 +241,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
                         </a>
                     )}
                     {config.whatsapp_number && (
-                        <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                        <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                             <FaWhatsapp className="w-6 h-6" />
                         </a>
                     )}
@@ -416,7 +416,7 @@ export default function Theme6SkyMenu({ config, categories, restaurantId }: { co
 
             {/* ─────────── FLOATING WHATSAPP ─────────── */}
             {config.whatsapp_number && (
-                <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank"
+                <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank"
                     className="fixed bottom-28 right-5 bg-[#25D366] w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90 z-[120] transition-transform">
                     <FaWhatsapp className="w-7 h-7" />
                 </a>

@@ -198,7 +198,7 @@ export default function AtyabEtoileRedMenu({ config, categories, language, resta
         msg += `\n------------------------------\n*💰 الإجمالي:* ${cartTotal} ${currency}\n`;
         msg += `*🛵 يضاف مصاريف التوصيل*\n------------------------------\n`;
 
-        const url = `https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+        const url = `whatsapp://send?phone=${config.whatsapp_number?.replace(/\+/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
         window.open(url, "_blank");
 
         haptic(50);
@@ -538,7 +538,7 @@ export default function AtyabEtoileRedMenu({ config, categories, language, resta
                                 </a>
                             )}
                             {config.whatsapp_number && (
-                                <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white flex items-center justify-center hover:bg-white hover:text-[#dc2626] transition-colors">
+                                <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, "")}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white flex items-center justify-center hover:bg-white hover:text-[#dc2626] transition-colors">
                                     <FaWhatsapp className="w-5 h-5" />
                                 </a>
                             )}
@@ -586,7 +586,7 @@ export default function AtyabEtoileRedMenu({ config, categories, language, resta
             <nav className="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-8 pt-2 md:hidden">
                 <div className="w-[85vw] max-w-[310px] mx-auto etoile-glass border border-[#22d3ee] dark:border-[#333] rounded-full p-1.5 flex items-center justify-around shadow-lg relative">
                     {config.whatsapp_number && (
-                        <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`} className="flex-1 flex flex-col items-center py-2 text-[#25D366] active:scale-95 transition-transform">
+                        <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, "")}`} className="flex-1 flex flex-col items-center py-2 text-[#25D366] active:scale-95 transition-transform">
                             <FaWhatsapp className="w-6 h-6" />
                             <span className="text-[10px] font-medium text-[#888] mt-1 uppercase">{isAr ? "واتساب" : "WhatsApp"}</span>
                         </a>

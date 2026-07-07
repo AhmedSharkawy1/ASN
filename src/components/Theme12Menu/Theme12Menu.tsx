@@ -267,7 +267,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                 {/* Social & Contact Icons */}
                                 {config.whatsapp_number && (
                                     <a
-                                        href={`https://wa.me/${config.whatsapp_number}`}
+                                        href={`whatsapp://send?phone=${config.whatsapp_number}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="w-10 h-10 rounded-full bg-[#25D366]/10 text-[#25D366] flex items-center justify-center hover:bg-[#25D366] hover:text-white transition-colors"
@@ -388,7 +388,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                 <div className={`lg:hidden absolute top-full left-0 w-full bg-white dark:bg-[#16213e] border-b border-gray-100 dark:border-white/5 shadow-lg transition-all duration-300 ${isMobileMenuOpen ? 'max-h-[400px] opacity-100 visible' : 'max-h-0 opacity-0 invisible'} `}>
                     <div className="p-4 flex flex-col gap-2">
                         {config.whatsapp_number && (
-                            <a href={`https://wa.me/${config.whatsapp_number}`} className="px-4 py-3 text-gray-800 dark:text-gray-200 font-semibold rounded-xl text-center hover:bg-gray-50 dark:hover:bg-white/5 flex items-center justify-center gap-2">
+                            <a href={`whatsapp://send?phone=${config.whatsapp_number}`} className="px-4 py-3 text-gray-800 dark:text-gray-200 font-semibold rounded-xl text-center hover:bg-gray-50 dark:hover:bg-white/5 flex items-center justify-center gap-2">
                                 واتس اب
                             </a>
                         )}

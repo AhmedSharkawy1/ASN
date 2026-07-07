@@ -199,7 +199,7 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
         txt += isAr ? `*الإجمالي: ${cur}${cartTotal.toFixed?.(0)}*` : `*Total: ${cur}${cartTotal.toFixed?.(0)}*`;
 
         const tel = config.phone.replace(/\D/g, '');
-        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(txt)}`, '_blank');
+        window.open(`whatsapp://send?phone=${tel}&text=${encodeURIComponent(txt)}`, '_blank');
     };
 
     // Filter Logic - Always show all categories for scroll-sync
@@ -313,7 +313,7 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                             )}
 
                             {(config.social_links?.whatsapp || config.whatsapp_number) && (
-                                <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#25D366] hover:bg-green-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700">
+                                <a href={`whatsapp://send?phone=${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-gray-100 dark:bg-slate-800 text-[#25D366] hover:bg-green-50 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700">
                                     <FaWhatsapp className="text-sm md:text-base md:text-lg" />
                                 </a>
                             )}

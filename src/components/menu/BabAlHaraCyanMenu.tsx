@@ -515,7 +515,7 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
             {/* ═══════ FLOATING WHATSAPP BUTTON ═══════ */}
             {config.whatsapp_number && (
                 <a
-                    href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`}
+                    href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="fixed bottom-28 right-5 bg-[#25D366] w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90 z-[100] transition-transform"

@@ -157,7 +157,7 @@ export default function Theme7EmeraldMenu({ config, categories, restaurantId }: 
             if (i.notes) msg += `  _ملاحظة: ${i.notes}_\n`;
         });
         msg += `\n*الإجمالي:* ${cartTotal} ${cur}`;
-        window.open(`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
+        window.open(`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, '_blank');
     };
 
     const toggleDark = () => {
@@ -235,7 +235,7 @@ export default function Theme7EmeraldMenu({ config, categories, restaurantId }: 
                     </a>
                 )}
                 {config.whatsapp_number && (
-                    <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
+                    <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" className="p-2 rounded-full transition-colors" style={{ color: isDarkMode ? '#fff' : '#475569' }}>
                         <FaWhatsapp className="w-5 h-5" />
                     </a>
                 )}
@@ -390,7 +390,7 @@ export default function Theme7EmeraldMenu({ config, categories, restaurantId }: 
 
             {/* ─── FLOATING WHATSAPP ─── */}
             {config.whatsapp_number && (
-                <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank"
+                <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank"
                     className="fixed bottom-24 right-5 bg-[#25D366] w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90 z-[120] transition-transform">
                     <FaWhatsapp className="w-7 h-7" />
                 </a>

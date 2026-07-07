@@ -372,7 +372,7 @@ export default function CheckoutModal({
             branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
         // Use window.location.href to redirect directly — window.open gets blocked after async calls
-        const waUrl = `https://wa.me/${whatsappNumber.replace(/[^\d+]/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+        const waUrl = `whatsapp://send?phone=${whatsappNumber.replace(/[^\d+]/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
         window.location.href = waUrl;
     };
 

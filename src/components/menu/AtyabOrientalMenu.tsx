@@ -245,7 +245,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
         });
         msg += `------------------------------\n💵 *الإجمالي: ${cartTotal} ج*\n🚚 غير شامل التوصيل`;
 
-        window.open(`https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, "_blank");
+        window.open(`whatsapp://send?phone=${config.whatsapp_number?.replace(/\+/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`, "_blank");
 
         setCart([]);
         setShowCart(false);
@@ -715,7 +715,7 @@ export default function AtyabOrientalMenu({ config, categories, language, restau
             <nav className="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-8 pt-2 md:hidden">
                 <div className="w-[85vw] max-w-[310px] mx-auto bg-white/80 dark:bg-[#0f0f0f]/70 backdrop-blur-xl border border-zinc-200 dark:border-white/10 rounded-[2.5rem] p-1 flex items-center justify-around shadow-xl relative">
                     {config.whatsapp_number && (
-                        <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`} className="flex-1 flex flex-col items-center py-2 text-[#25D366] active:scale-90 transition-transform">
+                        <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, "")}`} className="flex-1 flex flex-col items-center py-2 text-[#25D366] active:scale-90 transition-transform">
                             <FaWhatsapp className="w-6 h-6" />
                             <span className="text-[8px] font-black text-zinc-400 mt-0.5">{isAr ? "واتساب" : "WhatsApp"}</span>
                         </a>

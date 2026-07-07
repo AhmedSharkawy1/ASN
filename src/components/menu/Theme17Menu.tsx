@@ -303,7 +303,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                             {isRTL ? 'واتس اب' : 'WhatsApp'}
                         </p>
                         <div className="bg-[#0f2c1c] p-4 text-center font-mono font-bold tracking-wider rounded-lg text-[#b4ead2] border border-[#25D366]/20 text-[15px]">
-                            <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-white transition">
+                            <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-white transition">
                                 {formatEgyptianPhone(config.whatsapp_number)}
                             </a>
                         </div>
@@ -415,7 +415,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                             </button>
                         )}
                         {config.whatsapp_number && (
-                            <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[#25D366]/10 rounded-full flex items-center justify-center text-[#25D366] hover:bg-[#25D366] hover:text-white hover:-translate-y-1 transition-all shadow-sm">
+                            <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-12 h-12 bg-[#25D366]/10 rounded-full flex items-center justify-center text-[#25D366] hover:bg-[#25D366] hover:text-white hover:-translate-y-1 transition-all shadow-sm">
                                 <FaWhatsapp size={22} />
                             </a>
                         )}
