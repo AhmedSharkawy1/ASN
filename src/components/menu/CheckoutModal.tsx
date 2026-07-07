@@ -370,8 +370,9 @@ export default function CheckoutModal({
             branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
         
-        // Use the native whatsapp scheme, which works best when clicked via an <a> tag in mobile browsers
-        return `whatsapp://send?phone=${whatsappNumber.replace(/[^\d+]/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+        // Use the official api.whatsapp.com universal link instead of whatsapp://
+        // because Facebook blocks custom URI schemes entirely.
+        return `https://api.whatsapp.com/send?phone=${whatsappNumber.replace(/[^\d+]/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
     };
 
     // Removed handlePrint here
@@ -864,8 +865,6 @@ export default function CheckoutModal({
                                 {whatsappNumber && (
                                     <a
                                         href={getWaUrl()}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
                                         className="w-full py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#1da851] transition text-sm flex items-center justify-center gap-2"
                                     >
                                         <FaWhatsapp className="w-5 h-5" />
