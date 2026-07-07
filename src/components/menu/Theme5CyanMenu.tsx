@@ -282,7 +282,7 @@ export default function Theme5CyanMenu({ config, categories, language, restauran
         msg += `\n------------------------------\n*💰 الإجمالي:* ${cartTotal} ${currency}\n`;
         msg += `*🛵 يضاف مصاريف التوصيل*\n------------------------------\n`;
 
-        const url = `whatsapp://send?phone=${config.whatsapp_number?.replace(/\+/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+        const url = `https://wa.me/${config.whatsapp_number?.replace(/\+/g, "")}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
         window.open(url, "_blank");
 
         haptic(50);
@@ -604,7 +604,7 @@ export default function Theme5CyanMenu({ config, categories, language, restauran
 
             {/* Floating WhatsApp */}
             {config.whatsapp_number && (
-                <a href={`whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, "")}`} target="_blank" className="fixed bottom-28 right-5 bg-[#25D366] w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90 z-[100]">
+                <a href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}`} target="_blank" className="fixed bottom-28 right-5 bg-[#25D366] w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg active:scale-90 z-[100]">
                     <FaWhatsapp className="w-7 h-7" />
                 </a>
             )}

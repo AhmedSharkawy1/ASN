@@ -803,7 +803,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                 <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#000000] dark:border dark:border-zinc-700 transition-transform hover:scale-110"><FaTiktok /></a>
                                             )}
                                             {(config.social_links?.whatsapp || config.whatsapp_number) && (
-                                                <a href={`whatsapp://send?phone=${(config.social_links?.whatsapp || config.whatsapp_number || '').replace('+', '')}`} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#25D366] transition-transform hover:scale-110"><FaWhatsapp /></a>
+                                                <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace('+', '')}`} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#25D366] transition-transform hover:scale-110"><FaWhatsapp /></a>
                                             )}
                                         </div>
                                     </div>

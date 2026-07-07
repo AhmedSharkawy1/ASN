@@ -208,7 +208,7 @@ export default function Theme13CyanMenu({ config, categories, restaurantId }: Th
         txt += isAr ? `*الإجمالي: ${cur}${cartTotal.toFixed?.(0)}*` : `*Total: ${cur}${cartTotal.toFixed?.(0)}*`;
 
         const tel = config.phone.replace(/\D/g, '');
-        window.open(`whatsapp://send?phone=${tel}&text=${encodeURIComponent(txt)}`, '_blank');
+        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(txt)}`, '_blank');
     };
 
     // Filter Logic - Always show all categories for scroll-sync
@@ -330,7 +330,7 @@ export default function Theme13CyanMenu({ config, categories, restaurantId }: Th
                         </a>
                     )}
                     {(config.social_links?.whatsapp || config.whatsapp_number) && (
-                        <a href={`whatsapp://send?phone=${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md text-white hover:bg-[#25D366] transition-colors border border-white/30">
+                        <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 md:w-9 md:h-9 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md text-white hover:bg-[#25D366] transition-colors border border-white/30">
                             <FaWhatsapp className="text-sm md:text-base" />
                         </a>
                     )}
@@ -585,7 +585,7 @@ export default function Theme13CyanMenu({ config, categories, restaurantId }: Th
             {/* Floating WhatsApp Share FAB */}
             {(config.social_links?.whatsapp || config.whatsapp_number || config.phone) && (
                 <a
-                    href={`whatsapp://send?phone=${(config.social_links?.whatsapp || config.whatsapp_number || config.phone).replace(/\+/g, '')}&text=${encodeURIComponent(isAr ? 'شاهد قائمة الطعام من ' + config.name + ' - ' + window.location.href : 'Check out the menu from ' + config.name + ' - ' + window.location.href)}`}
+                    href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || config.phone).replace(/\+/g, '')}?text=${encodeURIComponent(isAr ? 'شاهد قائمة الطعام من ' + config.name + ' - ' + window.location.href : 'Check out the menu from ' + config.name + ' - ' + window.location.href)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="fixed bottom-[90px] right-4 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center text-white shadow-[0_4px_15px_rgba(0,0,0,0.2)] hover:scale-110 transition-transform z-[90]"

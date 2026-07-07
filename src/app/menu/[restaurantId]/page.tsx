@@ -842,7 +842,7 @@ function SmartMenuContent({
 
     // 3. Redirect to WhatsApp directly
     window.open(
-      `whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, "")}&text=${encodeURIComponent(message)}`,
+      `https://wa.me/${config.whatsapp_number.replace(/\+/g, "")}?text=${encodeURIComponent(message)}`,
       "_blank",
     );
     setCart([]);

@@ -70,7 +70,7 @@ export default function Contact() {
             icon: <FaWhatsapp className="w-5 h-5" />,
             title: language === "ar" ? "واتساب" : "WhatsApp",
             value: "ASN Technology",
-            href: "whatsapp://send?phone=message/TYV7HCKV4SYUI1",
+            href: "https://wa.me/message/TYV7HCKV4SYUI1",
             delay: "0s",
             color: "#16a34a",
             hoverGlow: "rgba(22, 163, 74, 0.4)",

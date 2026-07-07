@@ -345,7 +345,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
         msg += `*💰 الإجمالي المطلوب: ${cartTotal} ${cur}*\n`;
         msg += `(السعر لا يشمل رسوم التوصيل) \n`;
 
-        const waUrl = `whatsapp://send?phone=${config.whatsapp_number.replace(/\+/g, '')}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+        const waUrl = `https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
         window.open(waUrl, '_blank');
         setCart([]);
         setIsCartOpen(false);
@@ -590,7 +590,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                             </a>
                         )}
                         {(config.social_links?.whatsapp || config.whatsapp_number) && (
-                            <a href={`whatsapp://send?phone=${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-[#25D366] hover:bg-gray-200 transition-colors">
+                            <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace(/\+/g, '')}`} target="_blank" rel="noreferrer" className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-[#25D366] hover:bg-gray-200 transition-colors">
                                 <FaWhatsapp className="w-4 h-4" />
                             </a>
                         )}
@@ -750,7 +750,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
 
             {/* FABs */}
             <div className="fab-container">
-                <button className="fab fab-whatsapp" onClick={() => window.open(`whatsapp://send?phone=${config.whatsapp_number?.replace('+', '')}`, '_blank')}>
+                <button className="fab fab-whatsapp" onClick={() => window.open(`https://wa.me/${config.whatsapp_number?.replace('+', '')}`, '_blank')}>
                     <FaWhatsapp size={20} />
                 </button>
                 <button className={`fab fab-scroll ${showScrollTop ? 'show' : ''}`} onClick={scrollToTop}>
@@ -785,7 +785,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 gap-3 text-center">
-                                <div className="p-3 bg-gray-50 rounded-lg text-[#25D366] cursor-pointer border" onClick={() => window.open(`whatsapp://send?phone=&text=${encodeURIComponent(window.location.href)}`)}>
+                                <div className="p-3 bg-gray-50 rounded-lg text-[#25D366] cursor-pointer border" onClick={() => window.open(`https://wa.me/&text=${encodeURIComponent(window.location.href)}`)}>
                                     <FaWhatsapp size={24} className="mx-auto mb-1" />
                                     <span className="text-[10px] text-gray-800">{isRTL ? 'واتساب' : 'WhatsApp'}</span>
                                 </div>
