@@ -9,7 +9,7 @@ import {
     Moon, Sun, ShoppingCart, Plus, Minus, Trash2, X,
     Home, UtensilsCrossed, User, Globe, PhoneCall
 } from 'lucide-react';
-import { FaWhatsapp, FaInstagram, FaFacebookF , FaTiktok} from 'react-icons/fa';
+import { FaWhatsapp, FaInstagram, FaFacebookF, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -77,6 +77,14 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
+
+    // Apply restaurant's default theme mode on first load
+    useEffect(() => {
+        if (config.default_theme_mode && config.default_theme_mode !== 'system') {
+            setTheme(config.default_theme_mode);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const [lang, setLang] = useState<'ar' | 'en'>(config.default_language === 'en' ? 'en' : 'ar');
     const isAr = lang === 'ar';
@@ -830,6 +838,27 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
                     {(config.social_links?.tiktok || config.tiktok_url) && (
                         <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex shrink-0 items-center justify-center bg-gray-100 dark:bg-slate-800 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors border border-gray-200 dark:border-slate-700 shadow-sm">
                             <FaTiktok className="text-lg" />
+                        </a>
+                    )}
+
+                    {(config.social_links?.snapchat || config.snapchat_url) && (
+                        <a href={config.social_links?.snapchat || config.snapchat_url} target="_blank" rel="noreferrer"
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-black text-lg transition-transform hover:scale-110"
+                            style={{ backgroundColor: '#FFFC00' }}>
+                            <FaSnapchatGhost />
+                        </a>
+                    )}
+                    {config.youtube_url && (
+                        <a href={config.youtube_url} target="_blank" rel="noreferrer"
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-[#FF0000] transition-transform hover:scale-110">
+                            <FaYoutube />
+                        </a>
+                    )}
+                    {config.whatsapp_group_url && (
+                        <a href={config.whatsapp_group_url} target="_blank" rel="noreferrer"
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-[#25D366] transition-transform hover:scale-110"
+                            title={isAr ? 'جروب الواتساب' : 'WhatsApp Group'}>
+                            <FaWhatsapp />
                         </a>
                     )}
 

@@ -6,8 +6,8 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
 import { posDb } from "@/lib/pos-db";
-import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle, Send } from "lucide-react";
-import { FaTiktok, FaTelegramPlane } from "react-icons/fa";
+import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle, Send, Moon, Sun, Monitor } from "lucide-react";
+import { FaTiktok, FaTelegramPlane, FaSnapchatGhost, FaYoutube, FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 
 export type PhoneEntry = { label: string; number: string };
@@ -70,6 +70,10 @@ type RestaurantProfile = {
     branches?: string[];
     pickup_enabled?: boolean;
     delivery_enabled?: boolean;
+    snapchat_url?: string;
+    youtube_url?: string;
+    whatsapp_group_url?: string;
+    default_theme_mode?: 'light' | 'dark' | 'system';
 };
 
 export default function SettingsPage() {
@@ -99,7 +103,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode')
                 .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                 .single();
 
@@ -107,7 +111,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode')
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
                 finalData = d2;
@@ -178,6 +182,10 @@ export default function SettingsPage() {
                     branches: branches.filter(b => b.trim()),
                     pickup_enabled: profile.pickup_enabled ?? true,
                     delivery_enabled: profile.delivery_enabled ?? true,
+                    snapchat_url: profile.snapchat_url || '',
+                    youtube_url: profile.youtube_url || '',
+                    whatsapp_group_url: profile.whatsapp_group_url || '',
+                    default_theme_mode: profile.default_theme_mode || 'system',
                 })
                 .eq('id', profile.id);
 
@@ -215,6 +223,10 @@ export default function SettingsPage() {
                         branches: branches.filter(b => b.trim()),
                         pickup_enabled: profile.pickup_enabled ?? true,
                         delivery_enabled: profile.delivery_enabled ?? true,
+                        snapchat_url: profile.snapchat_url || '',
+                        youtube_url: profile.youtube_url || '',
+                        whatsapp_group_url: profile.whatsapp_group_url || '',
+                        default_theme_mode: profile.default_theme_mode || 'system',
                     })
                     .eq('id', profile.id);
                 error = fallbackUpdate.error;
@@ -798,6 +810,68 @@ export default function SettingsPage() {
                                     className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-foreground outline-none transition-all text-base" />
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-silver px-1 block">{language === "ar" ? "رابط سناب شات" : "Snapchat Link"}</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-yellow-400"><FaSnapchatGhost className="w-5 h-5" /></div>
+                                <input type="url" value={profile.snapchat_url || ''} onChange={e => setProfile({ ...profile, snapchat_url: e.target.value })} dir="ltr"
+                                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-yellow-400 outline-none transition-all text-base" placeholder="https://www.snapchat.com/add/..." />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-silver px-1 block">{language === "ar" ? "رابط قناة يوتيوب" : "YouTube Channel Link"}</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-red-600"><FaYoutube className="w-5 h-5" /></div>
+                                <input type="url" value={profile.youtube_url || ''} onChange={e => setProfile({ ...profile, youtube_url: e.target.value })} dir="ltr"
+                                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-red-500 outline-none transition-all text-base" placeholder="https://www.youtube.com/@..." />
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-silver px-1 block">{language === "ar" ? "رابط جروب الواتساب" : "WhatsApp Group Link"}</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-green-500"><FaWhatsapp className="w-5 h-5" /></div>
+                                <input type="url" value={profile.whatsapp_group_url || ''} onChange={e => setProfile({ ...profile, whatsapp_group_url: e.target.value })} dir="ltr"
+                                    className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-green-500 outline-none transition-all text-base" placeholder="https://chat.whatsapp.com/..." />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Default Theme Mode */}
+                <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
+                    <h2 className="text-xl font-bold mb-2">{language === "ar" ? "الوضع الافتراضي للمنيو" : "Default Menu Theme Mode"}</h2>
+                    <p className="text-sm text-silver mb-6">{language === "ar" ? "اختار الوضع اللي المنيو يفتح بيه أول مرة للعملاء" : "Choose the initial mode when customers first open your menu"}</p>
+                    <div className="grid grid-cols-3 gap-4">
+                        {([
+                            { value: 'light' as const, labelAr: 'فاتح (Light)', labelEn: 'Light Mode', icon: Sun, color: 'from-amber-400 to-orange-400', borderColor: 'border-amber-400' },
+                            { value: 'dark' as const, labelAr: 'داكن (Dark)', labelEn: 'Dark Mode', icon: Moon, color: 'from-indigo-500 to-purple-600', borderColor: 'border-indigo-500' },
+                            { value: 'system' as const, labelAr: 'تلقائي (System)', labelEn: 'System Default', icon: Monitor, color: 'from-slate-400 to-slate-600', borderColor: 'border-slate-400' },
+                        ]).map((mode) => {
+                            const isSelected = (profile.default_theme_mode || 'system') === mode.value;
+                            const IconComp = mode.icon;
+                            return (
+                                <button
+                                    key={mode.value}
+                                    type="button"
+                                    onClick={() => setProfile({ ...profile, default_theme_mode: mode.value })}
+                                    className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all duration-200 ${
+                                        isSelected
+                                            ? `${mode.borderColor} bg-gradient-to-br ${mode.color} text-white shadow-lg scale-[1.02]`
+                                            : 'border-glass-border bg-slate-50 dark:bg-black/20 hover:bg-slate-100 dark:hover:bg-black/30'
+                                    }`}
+                                >
+                                    <IconComp className={`w-7 h-7 ${isSelected ? 'text-white' : 'text-silver'}`} />
+                                    <span className={`text-sm font-bold ${isSelected ? 'text-white' : ''}`}>
+                                        {language === "ar" ? mode.labelAr : mode.labelEn}
+                                    </span>
+                                    {isSelected && (
+                                        <div className="absolute top-2 right-2 w-5 h-5 bg-white rounded-full flex items-center justify-center">
+                                            <div className={`w-3 h-3 rounded-full bg-gradient-to-br ${mode.color}`} />
+                                        </div>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

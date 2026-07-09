@@ -11,7 +11,7 @@ import 'swiper/css';
 import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from './CheckoutModal';
 import SharedMarquee from './SharedMarquee';
-import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram, FaTiktok, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
+import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram, FaTiktok, FaMapMarkerAlt, FaPhoneAlt, FaYoutube } from 'react-icons/fa';
 
 type MenuItem = {
     id: string | number;
@@ -72,6 +72,14 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
+
+    // Apply restaurant's default theme mode on first load
+    useEffect(() => {
+        if (config.default_theme_mode && config.default_theme_mode !== 'system') {
+            setTheme(config.default_theme_mode);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const [currentLang, setCurrentLang] = useState<'ar'|'en'>(config.default_language === 'en' ? 'en' : 'ar');
     const isAr = currentLang === 'ar';
@@ -784,7 +792,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                     </a>
                                 )}
 
-                                {((config.social_links && Object.keys(config.social_links).length > 0) || config.facebook_url || config.instagram_url || config.tiktok_url || config.whatsapp_number) && (
+                                {((config.social_links && Object.keys(config.social_links).length > 0) || config.facebook_url || config.instagram_url || config.tiktok_url || config.whatsapp_number || config.youtube_url || config.whatsapp_group_url) && (
                                     <div className="pt-4 border-t border-black/10 dark:border-white/10">
                                         <p className="text-center font-bold mb-4">{isAr ? 'تابعنا على' : 'Follow Us'}</p>
                                         <div className="flex justify-center gap-4 flex-wrap">
@@ -802,6 +810,12 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                             )}
                                             {(config.social_links?.whatsapp || config.whatsapp_number) && (
                                                 <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace('+', '')}`} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#25D366] transition-transform hover:scale-110"><FaWhatsapp /></a>
+                                            )}
+                                            {(config.youtube_url) && (
+                                                <a href={config.youtube_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#FF0000] transition-transform hover:scale-110"><FaYoutube /></a>
+                                            )}
+                                            {(config.whatsapp_group_url) && (
+                                                <a href={config.whatsapp_group_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#25D366] transition-transform hover:scale-110" title={isAr ? 'جروب الواتساب' : 'WhatsApp Group'}><FaWhatsapp /><span className="text-[8px] absolute -bottom-1">G</span></a>
                                             )}
                                         </div>
                                     </div>

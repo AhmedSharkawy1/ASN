@@ -152,6 +152,10 @@ type RestaurantConfig = {
   currency?: string;
   branches_enabled?: boolean;
   branches?: string[];
+  snapchat_url?: string;
+  youtube_url?: string;
+  whatsapp_group_url?: string;
+  default_theme_mode?: 'light' | 'dark' | 'system';
 };
 
 type CartItem = {
@@ -219,7 +223,7 @@ function SmartMenuContent({
 
         let query1: any = supabase
           .from("restaurants")
-          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches");
+          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode");
 
         if (params.restaurantId === 'demo') {
           query1 = query1.eq("is_marketing_account", true).limit(1).maybeSingle();
@@ -232,7 +236,7 @@ function SmartMenuContent({
         if (e1 || !d1) {
           let query2: any = supabase
             .from("restaurants")
-            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address, currency, branches_enabled, branches");
+            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address, currency, branches_enabled, branches, default_theme_mode");
           
           if (params.restaurantId === 'demo') {
             query2 = query2.eq("is_marketing_account", true).limit(1).maybeSingle();
