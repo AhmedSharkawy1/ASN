@@ -185,25 +185,29 @@ export async function uploadImageWithThumb(file: File | Blob, customPath: string
         });
 
         if (!response.ok) {
-            const responseText = await response.text();
-            let errorData: any = null;
+            const rawBody = await response.text();
+            let parsedBody: any = null;
 
             try {
-                errorData = JSON.parse(responseText);
+                parsedBody = rawBody ? JSON.parse(rawBody) : null;
             } catch {
-                // response was not JSON
+                parsedBody = null;
             }
 
-            console.error('[UPLOAD CLIENT ERROR]', {
+            console.error('[UPLOAD CLIENT FAILURE]', {
                 status: response.status,
                 statusText: response.statusText,
-                body: errorData || responseText
+                contentType: response.headers.get('content-type'),
+                vercelId: response.headers.get('x-vercel-id'),
+                rawBody: rawBody.slice(0, 1000),
+                parsedBody
             });
 
-            const stage = errorData?.stage || 'unknown';
-            const msg = errorData?.message || errorData?.error || 'Unknown error';
+            const stage = parsedBody?.stage || 'unknown';
+            const msg = parsedBody?.message || parsedBody?.error || 'Unknown error';
+            const contentType = response.headers.get('content-type') || 'unknown';
 
-            alert(`Upload failed\nHTTP Status: ${response.status}\nStage: ${stage}\nMessage: ${msg}`);
+            alert(`Upload failed\nHTTP Status: ${response.status}\nContent-Type: ${contentType}\nStage: ${stage}\nMessage: ${msg}\nRaw Response: ${rawBody.slice(0, 1000)}`);
             
             return null;
         }
