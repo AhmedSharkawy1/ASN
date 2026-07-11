@@ -185,7 +185,26 @@ export async function uploadImageWithThumb(file: File | Blob, customPath: string
         });
 
         if (!response.ok) {
-            console.error('Failed to upload image via API');
+            const responseText = await response.text();
+            let errorData: any = null;
+
+            try {
+                errorData = JSON.parse(responseText);
+            } catch {
+                // response was not JSON
+            }
+
+            console.error('[UPLOAD CLIENT ERROR]', {
+                status: response.status,
+                statusText: response.statusText,
+                body: errorData || responseText
+            });
+
+            const stage = errorData?.stage || 'unknown';
+            const msg = errorData?.message || errorData?.error || 'Unknown error';
+
+            alert(`Upload failed\nHTTP Status: ${response.status}\nStage: ${stage}\nMessage: ${msg}`);
+            
             return null;
         }
 
@@ -194,8 +213,9 @@ export async function uploadImageWithThumb(file: File | Blob, customPath: string
             originalUrl: data.originalUrl,
             thumbUrl: data.thumbUrl
         };
-    } catch (error) {
-        console.error('uploadImageWithThumb error:', error);
+    } catch (error: any) {
+        console.error('[UPLOAD CLIENT EXCEPTION]', error);
+        alert(`Upload exception: ${error?.message}`);
         return null;
     }
 }
