@@ -23,13 +23,13 @@ export async function POST(req: NextRequest) {
     });
 
     const formData = await req.formData();
-    const file = formData.get('file') as File | null;
+    const file = formData.get('file');
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
+    const arrayBuffer = await (file as Blob).arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
 
     // Ensure it's webp format
@@ -61,10 +61,14 @@ export async function POST(req: NextRequest) {
     const originalFileName = `original/${fileId}.webp`;
     const thumbFileName = `thumbs/${fileId}.webp`;
 
+    // Convert Buffer to standard File/Blob for strict Vercel fetch compatibility
+    const originalFileBody = new File([originalBuffer], originalFileName.split('/')[1], { type: contentType });
+    const thumbFileBody = new File([thumbBuffer], thumbFileName.split('/')[1], { type: contentType });
+
     // Upload Original
     const { error: originalUploadError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
-      .upload(originalFileName, originalBuffer, {
+      .upload(originalFileName, originalFileBody, {
         contentType,
         cacheControl: '31536000',
         upsert: true,
@@ -72,13 +76,17 @@ export async function POST(req: NextRequest) {
 
     if (originalUploadError) {
       console.error('Error uploading original image:', originalUploadError);
-      return NextResponse.json({ error: `Upload failed: ${originalUploadError.message}` }, { status: 500 });
+      return NextResponse.json({ 
+          error: `Upload failed: ${originalUploadError.message}`, 
+          details: originalUploadError,
+          stage: 'storage-original' 
+      }, { status: 500 });
     }
 
     // Upload Thumbnail
     const { error: thumbUploadError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
-      .upload(thumbFileName, thumbBuffer, {
+      .upload(thumbFileName, thumbFileBody, {
         contentType,
         cacheControl: '31536000',
         upsert: true,
