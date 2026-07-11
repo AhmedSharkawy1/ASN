@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import { getThumbUrl, getOriginalUrl, getPlaceholderUrl, BLUR_PLACEHOLDER } from '@/lib/imageUtils';
+import React, { useMemo, useRef, useCallback } from 'react';
+import { getOriginalUrl } from '@/lib/imageUtils';
+import { logImageDebug, logImageFallback, logImageMount } from '@/lib/imageDebug';
 
 interface OptimizedMenuImageProps {
-  src?: string;
+  src?: string | null;           // Legacy support
+  thumbnailSrc?: string | null;  // New optimized 400px thumbnail
+  originalSrc?: string | null;   // Original 1600px image
   alt?: string;
   className?: string;
   fill?: boolean;
@@ -20,8 +22,21 @@ interface OptimizedMenuImageProps {
 
 const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500';
 
+/**
+ * Optimized menu image component.
+ * 
+ * KEY BEHAVIOR: Uses the exact URLs provided from the database.
+ * Does NOT fabricate thumbnail URLs.
+ * 
+ * Fallback chain (one-shot, no loops):
+ *   thumbnailSrc (if provided & not useOriginal) → originalSrc / src → default fallback → placeholder
+ * 
+ * Each fallback step happens at most ONCE.
+ */
 export default function OptimizedMenuImage({
   src,
+  thumbnailSrc,
+  originalSrc,
   alt = 'Menu item',
   className = '',
   fill = true,
@@ -33,51 +48,94 @@ export default function OptimizedMenuImage({
   onClick,
   style,
 }: OptimizedMenuImageProps) {
-  const [imgSrc, setImgSrc] = useState<string>('');
-  const [fallbackStage, setFallbackStage] = useState<number>(0); // 0: target, 1: original, 2: default fallback
+  // Track fallback stage with a ref to prevent re-render loops
+  // 0 = try primary (thumb or original), 1 = try secondary (original if thumb failed), 2 = default fallback
+  const fallbackStageRef = useRef(0);
+  const currentSrcRef = useRef<string>('');
 
-  useEffect(() => {
-    setFallbackStage(0);
-    if (!src) {
-      setImgSrc(DEFAULT_FALLBACK);
-      setFallbackStage(2);
+  const primarySrc = useMemo(() => {
+    fallbackStageRef.current = 0;
+
+    // Determine the absolute best source to use first
+    let bestSrc = '';
+    
+    if (useOriginal) {
+      bestSrc = originalSrc || src || '';
+    } else {
+      bestSrc = thumbnailSrc || originalSrc || src || '';
+    }
+
+    if (!bestSrc) {
+      fallbackStageRef.current = 2;
+      logImageMount(DEFAULT_FALLBACK, 'OptimizedMenuImage[no-src]');
+      return DEFAULT_FALLBACK;
+    }
+
+    // Convert legacy/thumbnail paths to original if useOriginal is strictly requested
+    const targetUrl = useOriginal ? getOriginalUrl(bestSrc) : bestSrc;
+    
+    logImageMount(targetUrl);
+    logImageDebug({
+      imageSource: bestSrc,
+      thumbnailAvailable: !!thumbnailSrc && !useOriginal,
+      finalSrc: targetUrl,
+      fallbackTriggered: false,
+      fallbackStage: 0,
+    });
+
+    currentSrcRef.current = targetUrl;
+    return targetUrl;
+  }, [src, thumbnailSrc, originalSrc, useOriginal]);
+
+  // One-shot error handler — each stage fires at most once
+  const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const currentStage = fallbackStageRef.current;
+
+    if (currentStage === 0) {
+      // Stage 0 failed (which was likely thumbnailSrc) → try originalSrc
+      const fallbackUrl = originalSrc || src;
+      const targetFallbackUrl = useOriginal && fallbackUrl ? getOriginalUrl(fallbackUrl) : fallbackUrl;
+      
+      if (targetFallbackUrl && targetFallbackUrl !== currentSrcRef.current) {
+        fallbackStageRef.current = 1;
+        currentSrcRef.current = targetFallbackUrl;
+        img.src = targetFallbackUrl;
+        logImageFallback(primarySrc, targetFallbackUrl, 1);
+        return;
+      }
+      fallbackStageRef.current = 1;
+    }
+
+    if (fallbackStageRef.current <= 1) {
+      // Stage 1 failed (or skipped) → use default fallback
+      fallbackStageRef.current = 2;
+      currentSrcRef.current = DEFAULT_FALLBACK;
+      img.src = DEFAULT_FALLBACK;
+      logImageFallback(primarySrc, DEFAULT_FALLBACK, 2);
       return;
     }
 
-    // Determine whether to use original or thumbnail
-    const targetUrl = useOriginal ? getOriginalUrl(src) : getThumbUrl(src);
-    setImgSrc(targetUrl);
-  }, [src, useOriginal]);
+    // Stage 2+ → nothing more to try, show placeholder via CSS
+    logImageFallback(primarySrc, 'placeholder', 3);
+  }, [src, thumbnailSrc, originalSrc, primarySrc, useOriginal]);
 
-  const handleError = () => {
-    if (fallbackStage === 0 && !useOriginal) {
-      // If thumbnail fails to load, try loading the original version
-      setFallbackStage(1);
-      setImgSrc(getOriginalUrl(src));
-    } else if (fallbackStage < 2) {
-      // If original fails to load, use the Unsplash placeholder
-      setFallbackStage(2);
-      setImgSrc(DEFAULT_FALLBACK);
-    }
-  };
-
-  // If using width/height, we must disable fill
   const isFilled = fill && !width && !height;
 
-  // Next.js Image component wrapper to handle styling and click events properly
   return (
     <div 
       className={`relative overflow-hidden ${className}`} 
       onClick={onClick}
       style={style}
     >
-      {imgSrc ? (
+      {primarySrc ? (
         <img
-          src={imgSrc}
+          src={primarySrc}
           alt={alt}
           className={`object-cover transition-opacity duration-300 ${isFilled ? 'w-full h-full absolute inset-0' : ''}`}
           onError={handleError}
           loading={priority ? undefined : 'lazy'}
+          decoding="async"
           style={!isFilled ? { width: width || '100%', height: height || '100%' } : {}}
         />
       ) : (

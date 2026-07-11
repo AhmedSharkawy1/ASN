@@ -414,7 +414,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                                 className={`flex flex-col items-center cursor-pointer transition-all duration-300 min-w-[80px] md:min-w-[100px] flex-shrink-0 ${activeCategory === cat.id.toString() ? '-translate-y-1' : ''}`}
                             >
                                 <div className="relative w-[65px] h-[65px] md:w-[80px] md:h-[80px] rounded-full overflow-hidden mb-2 mx-auto">
-                                    <OptimizedMenuImage src={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt={catName(cat)} className="w-full h-full object-cover" />
+                                    <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt={catName(cat)} className="w-full h-full object-cover" />
                                     <div
                                         className={`absolute inset-0 border-[3px] rounded-full transition-opacity duration-300 ${activeCategory === cat.id.toString() ? 'opacity-100 shadow-[0_5px_15px_rgba(0,0,0,0.15)]' : 'opacity-0'}`}
                                         style={{ borderColor: primaryColor }}
@@ -455,7 +455,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                                         style={{ borderColor }}
                                     >
                                         <div className="w-full h-24 md:h-[160px] relative overflow-hidden shrink-0">
-                                            <OptimizedMenuImage src={item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
                                         </div>
                                         <div className="p-3 flex flex-col justify-between flex-1">
                                             <div>
@@ -517,7 +517,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
                                         >
                                             <div className={`relative overflow-hidden shrink-0 ${hasMultiSizes ? 'w-32 md:w-40' : 'w-full h-24 md:h-[150px]'}`}>
                                                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10 opacity-0 hover:opacity-100 transition-opacity duration-300" />
-                                                <OptimizedMenuImage src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
+                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400"} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" />
                                                 
                                             </div>
 
@@ -652,7 +652,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
 
                             <div className="w-full h-[35vh] md:h-24 shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10" />
-                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
 
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                     <h2 className="text-xl md:text-2xl font-bold text-white drop-shadow-md mb-1 leading-tight">{itemName(selectedItem.item)}</h2>

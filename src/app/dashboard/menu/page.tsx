@@ -4,7 +4,7 @@
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { uploadImage } from "@/lib/uploadImage";
+import { uploadImage, uploadImageWithThumb } from "@/lib/uploadImage";
 import { getBestImageFromClipboard, getBestImageFromPasteEvent } from "@/lib/clipboardImage";
 import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
@@ -184,13 +184,13 @@ export default function MenuBuilderPage() {
     };
 
     const handleItemImageUpload = async (catId: string, itemId: string, file: File) => {
-        const url = await uploadImage(file, `items/${itemId}`);
-        if (url) await updateItem(catId, itemId, { image_url: url });
+        const result = await uploadImageWithThumb(file, `items/${itemId}`);
+        if (result) await updateItem(catId, itemId, { image_url: result.originalUrl, thumbnail_url: result.thumbUrl });
     };
 
     const handleCatImageUpload = async (catId: string, file: File) => {
-        const url = await uploadImage(file, `categories/${catId}`);
-        if (url) await updateCategory(catId, { image_url: url });
+        const result = await uploadImageWithThumb(file, `categories/${catId}`);
+        if (result) await updateCategory(catId, { image_url: result.originalUrl, thumbnail_url: result.thumbUrl });
     };
 
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري تحميل المنيو..." : "Loading Menu Builder..."}</div>;
@@ -536,11 +536,16 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
                 .select().single();
             if (data) {
                 let imgUrl = null;
+                let thumbUrl = null;
                 if (imageFile) {
-                    imgUrl = await uploadImage(imageFile, `categories/${data.id}`);
-                    if (imgUrl) await supabase.from('categories').update({ image_url: imgUrl }).eq('id', data.id);
+                    const result = await uploadImageWithThumb(imageFile, `categories/${data.id}`);
+                    if (result) {
+                        imgUrl = result.originalUrl;
+                        thumbUrl = result.thumbUrl;
+                        await supabase.from('categories').update({ image_url: imgUrl, thumbnail_url: thumbUrl }).eq('id', data.id);
+                    }
                 }
-                onCreated({ ...data, image_url: imgUrl, items: [] });
+                onCreated({ ...data, image_url: imgUrl, thumbnail_url: thumbUrl, items: [] });
             }
         } catch (e) { console.error(e); }
         finally { setSaving(false); }
@@ -669,11 +674,16 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
                 }).select().single();
             if (data) {
                 let imgUrl = null;
+                let thumbUrl = null;
                 if (imageFile) {
-                    imgUrl = await uploadImage(imageFile, `items/${data.id}`);
-                    if (imgUrl) await supabase.from('items').update({ image_url: imgUrl }).eq('id', data.id);
+                    const result = await uploadImageWithThumb(imageFile, `items/${data.id}`);
+                    if (result) {
+                        imgUrl = result.originalUrl;
+                        thumbUrl = result.thumbUrl;
+                        await supabase.from('items').update({ image_url: imgUrl, thumbnail_url: thumbUrl }).eq('id', data.id);
+                    }
                 }
-                onCreated({ ...data, image_url: imgUrl });
+                onCreated({ ...data, image_url: imgUrl, thumbnail_url: thumbUrl });
             }
         } catch (e) { console.error(e); }
         finally { setSaving(false); }

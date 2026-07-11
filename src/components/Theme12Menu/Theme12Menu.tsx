@@ -447,7 +447,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                 >
                                     <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full p-1 shadow-[0_8px_15px_rgba(108,99,255,0.25)] group-hover:-translate-y-2 group-hover:shadow-[0_12px_20px_rgba(108,99,255,0.4)] transition-all duration-300 ${activeCategory === String(cat.id) ? 'bg-gradient-to-tr from-[#6c63ff] to-[#00b894] -translate-y-2' : 'bg-gray-200 dark:bg-gray-700'}`}>
                                         <div className="w-full h-full rounded-full overflow-hidden bg-white dark:bg-gray-800 border-[3px] border-white dark:border-[#16213e] relative">
-                                            <OptimizedMenuImage src={cat.image_url || '/default-category.png'} alt={cat.name_en || cat.name_ar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url || '/default-category.png'} alt={cat.name_en || cat.name_ar} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         </div>
                                     </div>
                                     <span className="font-bold text-sm text-center text-gray-800 dark:text-gray-200 group-hover:text-[#6c63ff] bg-gray-50 dark:bg-white/5 px-4 py-1.5 rounded-full transition-colors whitespace-nowrap">
@@ -504,7 +504,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                         {categoryItems.map(item => (
                                             <div key={item.id} id={`item-${item.id}`} className="bg-gray-50 dark:bg-[#1a1a2e] rounded-xl sm:rounded-2xl overflow-hidden shadow-[0_4px_15px_rgba(0,0,0,0.05)] dark:shadow-[0_4px_15px_rgba(0,0,0,0.2)] hover:-translate-y-1 sm:hover:-translate-y-2 hover:shadow-[0_10px_25px_rgba(108,99,255,0.15)] transition-all duration-300 group flex flex-col border border-transparent hover:border-[#6c63ff]/30">
                                                 <div className="relative aspect-[4/3] w-full overflow-hidden">
-                                                    <OptimizedMenuImage src={item.image_url || category.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400'} alt={itemName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                    <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || category.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=400'} alt={itemName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                     {/* Badges styling from theme 12 */}
                                                 </div>
                                                 <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between">
@@ -571,7 +571,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                 {/* Modal Header Image */}
                                 <div className="w-full h-[35vh] sm:h-[250px] shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                                    <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
+                                    <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
 
                                     <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                         <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import sharp from 'sharp';
 
-// Use Edge runtime to avoid sharp/native-module issues entirely
-export const runtime = 'edge';
+// We MUST use Node.js runtime to use sharp
+export const runtime = 'nodejs';
 
 const BUCKET_NAME = 'menu-images';
+const MAX_DIMENSION = 1600;
+const THUMB_DIMENSION = 400;
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,22 +30,43 @@ export async function POST(req: NextRequest) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const fileBuffer = new Uint8Array(arrayBuffer);
+    const fileBuffer = Buffer.from(arrayBuffer);
 
-    // Generate unique ID
+    // Ensure it's webp format
+    const isWebp = file.type === 'image/webp';
+    let originalBuffer = fileBuffer;
+    let thumbBuffer = fileBuffer;
+
+    try {
+      // 1. Process Original: Max 1600px, WebP 80%
+      originalBuffer = await sharp(fileBuffer)
+        .rotate() // Auto-rotate based on EXIF
+        .resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 80, effort: 4 })
+        .toBuffer();
+
+      // 2. Process Thumbnail: Max 400px, WebP 75%
+      thumbBuffer = await sharp(fileBuffer)
+        .rotate()
+        .resize({ width: THUMB_DIMENSION, height: THUMB_DIMENSION, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 75, effort: 4 })
+        .toBuffer();
+    } catch (sharpError) {
+      console.error('Sharp processing failed, falling back to original buffer', sharpError);
+      // Fallback: If sharp fails for some reason, upload the raw file as both (avoids breaking uploads)
+    }
+
     const fileId = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
-
-    // Client always sends WebP (converted via Canvas API)
     const contentType = 'image/webp';
     const originalFileName = `original/${fileId}.webp`;
     const thumbFileName = `thumbs/${fileId}.webp`;
 
-    // Upload original to Supabase Storage
+    // Upload Original
     const { error: originalUploadError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
-      .upload(originalFileName, fileBuffer, {
+      .upload(originalFileName, originalBuffer, {
         contentType,
-        cacheControl: 'public, max-age=31536000, immutable',
+        cacheControl: '31536000',
         upsert: true,
       });
 
@@ -51,18 +75,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Upload failed: ${originalUploadError.message}` }, { status: 500 });
     }
 
-    // Upload a copy as thumbnail (no server-side resizing, browser handles display size via CSS)
+    // Upload Thumbnail
     const { error: thumbUploadError } = await supabaseAdmin.storage
       .from(BUCKET_NAME)
-      .upload(thumbFileName, fileBuffer, {
+      .upload(thumbFileName, thumbBuffer, {
         contentType,
-        cacheControl: 'public, max-age=31536000, immutable',
+        cacheControl: '31536000',
         upsert: true,
       });
 
     if (thumbUploadError) {
       console.error('Error uploading thumbnail:', thumbUploadError);
-      // Non-fatal: original already uploaded, just return original URL for both
     }
 
     // Get public URLs
@@ -78,8 +101,8 @@ export async function POST(req: NextRequest) {
       success: true,
       originalUrl: originalUrlData.publicUrl,
       thumbUrl: thumbUrlData.publicUrl,
-      originalSize: fileBuffer.byteLength,
-      thumbSize: fileBuffer.byteLength,
+      originalSize: originalBuffer.byteLength,
+      thumbSize: thumbBuffer.byteLength,
     });
 
   } catch (error: any) {

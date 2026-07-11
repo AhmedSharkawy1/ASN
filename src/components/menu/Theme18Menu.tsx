@@ -295,7 +295,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         onClick={() => openModal(item, item.catName || '')}
                                     >
                                         <div className="relative h-[160px]">
-                                            <OptimizedMenuImage src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                             {/* Offer Badge */}
                                             <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                                                 <span>{isAr ? 'عرض خاص' : 'Special Offer'}</span>
@@ -410,7 +410,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                         >
                                             {/* Image container */}
                                             <div className={`relative shrink-0 ${viewMode === 'list' ? 'h-24 w-24 rounded-2xl overflow-hidden' : 'h-[130px] w-full'}`}>
-                                                <OptimizedMenuImage src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} />
+                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} />
                                                 {/* Special Offer Badge */}
                                                 {item.is_popular && (
                                                     <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
@@ -547,7 +547,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                         <div className="flex-1 overflow-y-auto pb-24">
                             {/* Image */}
                             <div className="w-full h-[320px] relative">
-                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                             </div>
 
@@ -652,7 +652,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                                             onClick={() => openModal(item, item.catName || '')}
                                                         >
                                                             <div className="relative h-[120px]">
-                                                                <OptimizedMenuImage src={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                                                 {item.is_popular && (
                                                                     <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
                                                                         {isAr ? 'عرض خاص' : 'Offer'}

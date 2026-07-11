@@ -34,41 +34,6 @@ export function extractFileName(urlOrPath: string): string {
   return lastPart.replace(/\.[^/.]+$/, '');
 }
 
-/**
- * Convert any Supabase image URL to its thumbnail version.
- * 
- * Strategy:
- * - Extract filename from the URL
- * - Construct thumb path: menu-images/thumbs/{filename}.webp
- * - If URL is not from Supabase Storage, return it unchanged
- * 
- * Examples:
- *   items/abc/uuid.webp           → thumbs/uuid.webp
- *   categories/abc/uuid.webp      → thumbs/uuid.webp
- *   original/uuid.webp            → thumbs/uuid.webp
- *   thumbs/uuid.webp              → thumbs/uuid.webp (already a thumb)
- */
-export function getThumbUrl(imageUrl: string | undefined | null): string {
-  if (!imageUrl) return '';
-  if (!isSupabaseStorageUrl(imageUrl)) return imageUrl;
-
-  const storagePath = extractStoragePath(imageUrl);
-  if (!storagePath) return imageUrl;
-
-  // If it's already a thumbnail, return as-is
-  if (storagePath.startsWith('thumbs/')) return imageUrl;
-
-  const fileName = extractFileName(storagePath);
-  if (!fileName) return imageUrl;
-
-  // Build the base URL (everything before the storage path)
-  const baseUrl = imageUrl.substring(
-    0,
-    imageUrl.indexOf(SUPABASE_STORAGE_PATH) + SUPABASE_STORAGE_PATH.length
-  );
-
-  return `${baseUrl}thumbs/${fileName}.webp`;
-}
 
 /**
  * Convert any Supabase image URL to its original version.

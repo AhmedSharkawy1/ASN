@@ -27,6 +27,7 @@ type Item = {
     is_popular: boolean;
     is_spicy: boolean;
     image_url?: string;
+  thumbnail_url?: string | null;
     is_available: boolean;
 };
 
@@ -36,6 +37,7 @@ type Category = {
     name_en?: string;
     emoji?: string;
     image_url?: string;
+  thumbnail_url?: string | null;
     items: Item[];
 };
 
@@ -401,7 +403,7 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                         {/* Category Image Banner */}
                         {cat.image_url && (
                             <div className="relative aspect-[16/10] md:aspect-[21/9] rounded-[2rem] overflow-hidden mb-4 shadow-2xl border border-zinc-200 dark:border-white/5 bg-zinc-200 dark:bg-zinc-900 atyab-reveal group">
-                                <OptimizedMenuImage src={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80" />
                                 <div className="absolute bottom-6 right-6 left-6 text-right">
                                     <span className="text-[#0891b2] font-black text-[10px] tracking-[0.2em] uppercase">{isAr ? "فئة القائمة" : "MENU CATEGORY"}</span>
@@ -539,7 +541,7 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                             <div className="flex-1 overflow-y-auto p-6">
                                 {selectedItem.item.image_url && (
                                     <div className="w-full h-40 rounded-[1.5rem] overflow-hidden mb-6 shadow-md">
-                                        <OptimizedMenuImage src={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" useOriginal={true} />
+                                        <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" useOriginal={true} />
                                     </div>
                                 )}
                                 <h4 className="text-sm font-black text-right mb-4 opacity-70 uppercase tracking-widest">{isAr ? "اختر الحجم / السعر" : "Select Size / Variation"}</h4>

@@ -167,3 +167,35 @@ export async function deleteImage(publicUrl: string): Promise<boolean> {
         return false;
     }
 }
+
+/**
+ * Uploads an image using the new NodeJS Sharp API route which guarantees
+ * a true WebP optimized original and a 400px thumbnail.
+ * @returns { originalUrl: string, thumbUrl: string } or null on failure.
+ */
+export async function uploadImageWithThumb(file: File | Blob, customPath: string): Promise<{ originalUrl: string; thumbUrl: string } | null> {
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('path', customPath);
+
+        const response = await fetch('/api/upload-image', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            console.error('Failed to upload image via API');
+            return null;
+        }
+
+        const data = await response.json();
+        return {
+            originalUrl: data.originalUrl,
+            thumbUrl: data.thumbUrl
+        };
+    } catch (error) {
+        console.error('uploadImageWithThumb error:', error);
+        return null;
+    }
+}

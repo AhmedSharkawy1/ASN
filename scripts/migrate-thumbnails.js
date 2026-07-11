@@ -167,7 +167,7 @@ async function runMigration() {
         .from(BUCKET_NAME)
         .upload(thumbPath, thumbBuffer, {
           contentType: 'image/webp',
-          cacheControl: 'public, max-age=31536000, immutable',
+          cacheControl: '31536000',
           upsert: true
         });
 

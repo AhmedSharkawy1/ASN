@@ -321,7 +321,7 @@ export default function Theme6EmeraldMenu({ config, categories, restaurantId }: 
                                     {/* IMAGE — first child, appears on the RIGHT in RTL */}
                                     <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                         {item.image_url || section.image_url
-                                            ? <OptimizedMenuImage src={item.image_url || section.image_url} alt={item.title_ar} className="w-full h-full object-cover" />
+                                            ? <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || section.image_url} alt={item.title_ar} className="w-full h-full object-cover" />
                                             : <div className="w-full h-full flex items-center justify-center text-3xl opacity-30">{section.emoji || '🍽️'}</div>
                                         }
                                         {item.is_popular && (
@@ -457,7 +457,7 @@ export default function Theme6EmeraldMenu({ config, categories, restaurantId }: 
                             onClick={e => e.stopPropagation()}>
                             {/* image header */}
                             <div className="relative h-64 w-full bg-zinc-100 dark:bg-zinc-800 shrink-0">
-                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt="" className="w-full h-full object-cover" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt="" className="w-full h-full object-cover" useOriginal={true} />
                                 <button onClick={closeItemModal}
                                     className="absolute top-4 right-4 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-zinc-800 shadow-sm active:scale-90">
                                     <X className="w-5 h-5" />

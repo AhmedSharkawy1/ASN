@@ -47,6 +47,7 @@ type Item = {
     prices: number[];
     size_labels: string[];
     image_url?: string;
+  thumbnail_url?: string | null;
     is_available: boolean;
 };
 
@@ -55,6 +56,7 @@ type Category = {
     name_ar: string;
     name_en?: string;
     image_url?: string;
+  thumbnail_url?: string | null;
     emoji?: string;
     items: Item[];
 };
@@ -490,7 +492,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 <SwiperSlide key={idx} className="bg-white rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col cursor-pointer border border-gray-50 hover:shadow-lg transition-all" onClick={() => navigateToMenu(cat.id.toString())}>
                                     <div className="w-full aspect-square relative bg-white flex items-center justify-center p-2">
                                         {cat.image_url ? (
-                                            <Image quality={95} src={cat.image_url} alt={catName(cat)} fill className="object-cover rounded-[18px]" />
+                                            <Image quality={95} thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={catName(cat)} fill className="object-cover rounded-[18px]" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-300">
                                                 {cat.emoji || <ShoppingCart className="w-10 h-10 opacity-20" />}
@@ -752,7 +754,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                     {/* Image Area - Standard <img> tag to bypass domain issues */}
                                     {(item.image_url || cat.image_url) && (
                                         <div className="w-[110px] sm:w-[130px] flex-shrink-0 bg-gray-100 border-l border-gray-100 relative self-stretch min-h-[110px]">
-                                            <OptimizedMenuImage src={item.image_url || cat.image_url || ''} alt={itemName(item)} className="w-full h-full object-cover absolute inset-0" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cat.image_url || ''} alt={itemName(item)} className="w-full h-full object-cover absolute inset-0" />
                                         </div>
                                     )}
 
@@ -959,7 +961,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                             >
                                                 {(item.image_url || item.catImage) ? (
                                                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 relative">
-                                                        <OptimizedMenuImage src={item.image_url || item.catImage || ''} alt="" className="object-cover rounded-lg w-full h-full" />
+                                                        <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.catImage || ''} alt="" className="object-cover rounded-lg w-full h-full" />
                                                     </div>
                                                 ) : (
                                                     <div className="w-16 h-16 bg-red-50 rounded-lg flex-shrink-0 flex items-center justify-center">

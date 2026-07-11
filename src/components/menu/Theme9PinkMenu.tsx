@@ -452,7 +452,7 @@ export default function Theme9PinkMenu({ config, categories, restaurantId }: The
 
                                             {/* Top Image Box */}
                                             <div className={`overflow-hidden bg-gray-100 relative shrink-0 w-32 md:w-44`}>
-                                                <OptimizedMenuImage src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt={itemName(item)} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                                 {item.calories && (
                                                     <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded text-[10px] font-bold">
                                                         {item.calories} {isAr ? 'كالوري' : 'Cal'}
@@ -553,7 +553,7 @@ export default function Theme9PinkMenu({ config, categories, restaurantId }: The
 
                             {/* Image Box */}
                             <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative flex items-center justify-center" style={{ backgroundColor: bgBody }}>
-                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-cover" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-cover" useOriginal={true} />
                             </div>
 
                             {/* Scrollable Content */}

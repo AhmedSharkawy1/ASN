@@ -44,6 +44,7 @@ type Item = {
     is_popular: boolean;
     is_spicy: boolean;
     image_url?: string;
+  thumbnail_url?: string | null;
     is_available: boolean;
     calories?: string;
     preparation_time?: string;
@@ -62,6 +63,7 @@ type Category = {
     name_en?: string;
     emoji?: string;
     image_url?: string;
+  thumbnail_url?: string | null;
     items: Item[];
 };
 
@@ -664,7 +666,7 @@ export default function Theme15SkyMenu({ config, categories, restaurantId }: { c
                                     <div className="menu-item" key={item.id}>
                                         <span className="item-badge">{cName}</span>
                                         <div className="item-image" onClick={() => openModal(item, cName, cImage || '')}>
-                                            <Image quality={95} src={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
+                                            <Image quality={95} thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
                                         </div>
                                         <div className="item-content">
                                             <div className="item-header">
@@ -846,7 +848,7 @@ export default function Theme15SkyMenu({ config, categories, restaurantId }: { c
                 <div className="modal-overlay open" onClick={closeModal}>
                     <div className="modal-content-sheet w-[85vw] max-w-[310px] w-full max-h-[85vh] flex flex-col mx-auto" onClick={e => e.stopPropagation()}>
                         <div className="relative h-32 w-full bg-gray-100">
-                            <Image quality={95} src={selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill className="object-contain " />
+                            <Image quality={95} thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill className="object-contain " />
                             <button onClick={closeModal} className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-md">
                                 <X size={18} />
                             </button>

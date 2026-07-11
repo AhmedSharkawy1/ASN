@@ -108,6 +108,7 @@ type Item = {
   is_popular: boolean;
   is_spicy: boolean;
   image_url?: string;
+  thumbnail_url?: string | null;
   is_available: boolean;
   old_prices?: number[];
 };
@@ -118,6 +119,7 @@ type Category = {
   name_en?: string;
   emoji?: string;
   image_url?: string;
+  thumbnail_url?: string | null;
   items: Item[];
 };
 
@@ -1013,7 +1015,7 @@ function SmartMenuContent({
         {/* Active Category Image Header */}
         {!searchQuery && activeCatData?.image_url && (
           <div className="w-full h-32 md:h-48 rounded-[2rem] overflow-hidden mb-6 relative shadow-lg">
-            <OptimizedMenuImage src={activeCatData.image_url} alt="Category Cover" className="w-full h-full object-cover" />
+            <OptimizedMenuImage thumbnailSrc={activeCatData.thumbnail_url} originalSrc={activeCatData.image_url} alt="Category Cover" className="w-full h-full object-cover" />
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
               <h2 className="text-white text-2xl font-black">
                 {language === "ar"
@@ -1059,7 +1061,7 @@ function SmartMenuContent({
                     <div className="relative shrink-0">
                       {item.image_url ? (
                         <div className="w-[100px] h-[100px] rounded-2xl bg-gray-200 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-500">
-                          <OptimizedMenuImage src={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" width={100} height={100} fill={false} />
+                          <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" width={100} height={100} fill={false} />
                         </div>
                       ) : (
                         <div className="w-[100px] h-[100px] rounded-2xl bg-gray-800 flex items-center justify-center border border-white/5 opacity-80">
@@ -1169,7 +1171,7 @@ function SmartMenuContent({
               <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
                 {selectedItem.item.image_url && (
                   <div className="w-full h-40 rounded-[1.5rem] overflow-hidden mb-6 shadow-md">
-                    <OptimizedMenuImage src={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" useOriginal={true} />
+                    <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" useOriginal={true} />
                   </div>
                 )}
 

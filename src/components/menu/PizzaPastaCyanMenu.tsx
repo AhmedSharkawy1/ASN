@@ -26,6 +26,7 @@ type Item = {
     is_popular: boolean;
     is_spicy: boolean;
     image_url?: string;
+  thumbnail_url?: string | null;
     is_available: boolean;
 };
 
@@ -35,6 +36,7 @@ type Category = {
     name_en?: string;
     emoji?: string;
     image_url?: string;
+  thumbnail_url?: string | null;
     items: Item[];
 };
 
@@ -416,7 +418,7 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
                         {/* Section Cover Image */}
                         <div className="relative aspect-[16/10] md:aspect-[21/9] rounded-[2rem] overflow-hidden mb-4 shadow-2xl border border-zinc-200 dark:border-white/5 bg-zinc-200 dark:bg-zinc-900 group">
                             {cat.image_url ? (
-                                <OptimizedMenuImage src={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                             ) : (
                                 <div className="w-full h-full bg-gradient-to-br from-cyan-600/30 via-zinc-900 to-cyan-900/50 flex items-center justify-center">
                                     <span className="text-6xl opacity-50">{cat.emoji || "🍽️"}</span>

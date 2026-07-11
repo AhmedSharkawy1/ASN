@@ -27,6 +27,7 @@ type Item = {
     is_popular: boolean;
     is_spicy: boolean;
     image_url?: string;
+  thumbnail_url?: string | null;
     is_available: boolean;
 };
 
@@ -36,6 +37,7 @@ type Category = {
     name_en?: string;
     emoji?: string;
     image_url?: string;
+  thumbnail_url?: string | null;
     items: Item[];
 };
 
@@ -433,7 +435,7 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
                                     >
                                         {/* Item Image */}
                                         <div className={`overflow-hidden relative shrink-0 ${hasManyPrices ? 'w-28 md:w-36 rounded-xl' : 'w-full h-32 md:h-40'}`} style={{ backgroundColor: '#FDFBF7' }}>
-                                            <OptimizedMenuImage src={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop"} alt={isAr ? item.title_ar : item.title_en || item.title_ar} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cat.image_url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop"} alt={isAr ? item.title_ar : item.title_en || item.title_ar} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                             {/* Badges */}
                                             <div className="absolute top-2 left-2 flex flex-col gap-1">
                                                 {item.is_popular && (
@@ -706,7 +708,7 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex bg-black/60 items-center justify-center backdrop-blur-md py-16 px-6 mb-safe" onClick={() => { setSelectedItem(null); setItemNotes(''); }}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }} className="w-[85vw] max-w-[310px] mx-auto bg-white dark:bg-[#1E1E1E] rounded-3xl shadow-2xl overflow-hidden  max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
                             <div className="relative aspect-video bg-gray-100 dark:bg-black overflow-hidden">
-                                <OptimizedMenuImage src={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-contain" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || categories.find(c => c.name_ar === selectedItem.cName)?.image_url || ""} alt="" className="w-full h-full object-contain" useOriginal={true} />
                                 <button onClick={() => { setSelectedItem(null); setItemNotes(''); }} className="absolute top-4 right-4 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center hover:bg-black/70 transition-colors">
                                     <X className="w-5 h-5" />
                                 </button>

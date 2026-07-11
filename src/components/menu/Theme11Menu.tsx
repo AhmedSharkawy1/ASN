@@ -462,7 +462,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                                 }}
                             >
                                 {cat.image_url && (
-                                    <OptimizedMenuImage src={cat.image_url} alt={catName(cat)} className="w-5 h-5 rounded-full object-cover" />
+                                    <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={catName(cat)} className="w-5 h-5 rounded-full object-cover" />
                                 )}
                                 {catName(cat)}
                             </button>
@@ -517,7 +517,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
 
                                         {/* Image Box (Right Side in LTR, Left Side in RTL) */}
                                         <div className="w-[100px] h-[100px] sm:w-[120px] sm:h-24 shrink-0 relative overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800">
-                                            <OptimizedMenuImage src={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=300'} alt={itemName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cat.image_url || cat.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=300'} alt={itemName(item)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                             {/* Add Button Badge overlay */}
                                             {config.orders_enabled !== false && (
                                                 <div className="absolute right-2 bottom-2 w-8 h-8 rounded-full shadow-lg flex items-center justify-center text-white backdrop-blur-sm transition-transform active:scale-90" style={{ backgroundColor: primaryColor }}>
@@ -561,7 +561,7 @@ export default function Theme11Menu({ config, categories, restaurantId }: Theme1
                             {/* Modal Header Image */}
                             <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                                <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-contain" useOriginal={true} />
 
                                 <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                     <h2 className="text-xl sm:text-2xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>

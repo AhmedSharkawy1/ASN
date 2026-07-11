@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { supabase } from './supabase/client';
-import { uploadImage } from './uploadImage';
+import { uploadImage, uploadImageWithThumb } from './uploadImage';
 
 /**
  * Sanitize a string to be used as part of a filename.
@@ -282,9 +282,9 @@ export async function importMenuImages(
                     }
 
                     if (targetCat) {
-                        const imageUrl = await uploadImage(blob, `categories/${targetCat.id}`);
-                        if (imageUrl) {
-                            await supabase.from('categories').update({ image_url: imageUrl }).eq('id', targetCat.id);
+                        const result = await uploadImageWithThumb(blob, `categories/${targetCat.id}`);
+                        if (result) {
+                            await supabase.from('categories').update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl }).eq('id', targetCat.id);
                             uploaded++;
                         } else {
                             failed++;
@@ -314,9 +314,9 @@ export async function importMenuImages(
                 }
 
                 if (targetItem) {
-                    const imageUrl = await uploadImage(blob, `items/${targetItem.id}`);
-                    if (imageUrl) {
-                        await supabase.from('items').update({ image_url: imageUrl }).eq('id', targetItem.id);
+                    const result = await uploadImageWithThumb(blob, `items/${targetItem.id}`);
+                    if (result) {
+                        await supabase.from('items').update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl }).eq('id', targetItem.id);
                         uploaded++;
                     } else {
                         failed++;

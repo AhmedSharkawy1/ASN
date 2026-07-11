@@ -24,6 +24,7 @@ type Item = {
     is_popular: boolean;
     is_spicy: boolean;
     image_url?: string;
+  thumbnail_url?: string | null;
     is_available: boolean;
 };
 
@@ -33,6 +34,7 @@ type Category = {
     name_en?: string;
     emoji?: string;
     image_url?: string;
+  thumbnail_url?: string | null;
     items: Item[];
 };
 
@@ -509,7 +511,7 @@ export default function Theme5CyanMenu({ config, categories, language, restauran
                                         {/* Image (Right) */}
                                         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                                             {item.image_url || cat.image_url ? (
-                                                <OptimizedMenuImage src={item.image_url || cat.image_url} alt={title} className="w-full h-full object-cover" />
+                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cat.image_url} alt={title} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center"><ShoppingBag className="w-8 h-8 opacity-20" /></div>
                                             )}
@@ -617,7 +619,7 @@ export default function Theme5CyanMenu({ config, categories, language, restauran
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-[85vw] max-w-[310px] bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col h-auto max-h-[85vh] shadow-2xl mx-auto" onClick={e => e.stopPropagation()}>
                             <div className="relative h-32 bg-zinc-100 dark:bg-zinc-800">
                                 {(selectedItem.item.image_url || selectedItem.catImg) ? (
-                                    <OptimizedMenuImage src={selectedItem.item.image_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-contain" useOriginal={true} />
+                                    <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-contain" useOriginal={true} />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">{selectedItem.item.is_spicy ? "🌶️" : "🍽️"}</div>
                                 )}

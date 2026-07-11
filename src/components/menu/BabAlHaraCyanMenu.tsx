@@ -28,6 +28,7 @@ type Item = {
     is_popular: boolean;
     is_spicy: boolean;
     image_url?: string;
+  thumbnail_url?: string | null;
     is_available: boolean;
 };
 
@@ -37,6 +38,7 @@ type Category = {
     name_en?: string;
     emoji?: string;
     image_url?: string;
+  thumbnail_url?: string | null;
     items: Item[];
 };
 
@@ -320,7 +322,7 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
                         <button key={cat.id} data-cat-id={cat.id} onClick={() => scrollToSection(cat.id)} className="flex flex-col items-center gap-1 shrink-0">
                             <div className={`bab-cat-thumb border-2 overflow-hidden p-1 bg-white dark:bg-zinc-800 transition-all ${activeSection === cat.id ? "bab-cat-active" : "border-zinc-100 dark:border-white/5"}`}>
                                 {cat.image_url ? (
-                                    <OptimizedMenuImage src={cat.image_url} alt={isAr ? cat.name_ar : cat.name_en || cat.name_ar} className="w-full h-full object-cover rounded-full" />
+                                    <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={isAr ? cat.name_ar : cat.name_en || cat.name_ar} className="w-full h-full object-cover rounded-full" />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-2xl">{cat.emoji || "✨"}</div>
                                 )}
@@ -355,7 +357,7 @@ export default function BabAlHaraCyanMenu({ config, categories, language, restau
                                     <div key={item.id} className={`bab-item-card overflow-hidden transition-all duration-300 bg-white dark:bg-zinc-900 border border-transparent dark:border-white/5 ${hasMultiSizes ? 'col-span-2 flex flex-row' : 'flex flex-col'}`}>
                                         {/* Item Image */}
                                         <div className={`relative overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0 ${hasMultiSizes ? 'w-32 md:w-40' : 'aspect-square'}`}>
-                                            <OptimizedMenuImage src={item.image_url || cat.image_url || ""} alt={isAr ? item.title_ar : item.title_en || item.title_ar} className="w-full h-full object-cover" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cat.image_url || ""} alt={isAr ? item.title_ar : item.title_en || item.title_ar} className="w-full h-full object-cover" />
                                             <div className="absolute top-1.5 left-1.5 w-6 h-6 bg-black/30 backdrop-blur-md text-white rounded-lg flex items-center justify-center text-[8px] shadow-sm z-10">
                                                 {item.is_spicy ? "🌶️" : "📄"}
                                             </div>
