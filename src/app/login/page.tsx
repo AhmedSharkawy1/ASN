@@ -67,8 +67,13 @@ function LoginContent() {
 
     const handleSubmit = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        setError(null);
+            setLoading(true);
+            setError(null);
+
+            // Clear any lingering impersonation or offline sessions to ensure clean login
+            if (typeof window !== 'undefined') {
+                sessionStorage.removeItem('impersonating_tenant');
+            }
 
         try {
             const input = usernameOrEmail.trim();

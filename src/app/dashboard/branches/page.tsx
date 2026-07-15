@@ -50,11 +50,8 @@ export default function DashboardBranchesPage() {
             if (!session) return;
 
             // Find root owner ID
-            const { data: rootRest } = await supabase
-                .from('restaurants')
-                .select('id, parent_id')
-                .ilike('email', session.user.email || '')
-                .maybeSingle();
+            const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+            const rootRest = await getResolvedRestaurant(supabase, session.user, null); // don't pass impersonatingTenant for branches page, we want the root
 
             if (rootRest) {
                 // Determine the true parent ID

@@ -65,9 +65,9 @@ export default function MenuBuilderPage() {
                 if (!user) return;
 
                 const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
-                let { data: restaurant } = await supabase
-                    .from('restaurants').select('id, currency').eq(impersonatingTenant ? 'id' : 'email', impersonatingTenant || user.email).single();
-                
+                const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+                let restaurant = await getResolvedRestaurant(supabase, user, impersonatingTenant);
+
                 if (!restaurant && !impersonatingTenant) {
                     const { data: newRest } = await supabase
                         .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency').single();

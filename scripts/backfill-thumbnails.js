@@ -4,11 +4,6 @@
  * Securely backfills thumbnail_url for items and categories that have image_url
  * but no thumbnail_url. Downloads original, resizes locally via sharp, uploads
  * to thumbs/ and updates the database.
- * 
- * Usage:
- *   node scripts/backfill-thumbnails.js --dry-run
- *   node scripts/backfill-thumbnails.js
- *   node scripts/backfill-thumbnails.js --batch=3
  */
 
 const { createClient } = require('@supabase/supabase-js');
@@ -62,7 +57,7 @@ async function processRecord(record, table, stats) {
       .from(BUCKET_NAME)
       .download(originalPath);
 
-    if (downloadError) throw new Error(`Download failed: ${downloadError.message}`);
+    if (downloadError) throw downloadError;
 
     const buffer = Buffer.from(await blob.arrayBuffer());
 
@@ -83,7 +78,7 @@ async function processRecord(record, table, stats) {
         upsert: true
       });
 
-    if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+    if (uploadError) throw uploadError;
 
     // 4. Update Database
     const { data: publicUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(thumbPath);
@@ -94,92 +89,182 @@ async function processRecord(record, table, stats) {
       .update({ thumbnail_url: thumbUrl })
       .eq('id', record.id);
 
-    if (dbError) throw new Error(`Database update failed: ${dbError.message}`);
+    if (dbError) throw dbError;
 
     const bytesSaved = buffer.byteLength - thumbBuffer.byteLength;
     if (bytesSaved > 0) stats.totalBytesSaved += bytesSaved;
 
     stats.success++;
+    if (table === 'items') stats.itemsSuccess++;
+    if (table === 'categories') stats.categoriesSuccess++;
+
     console.log(`    ✅ ${table}[${record.id}]: thumb generated (${(thumbBuffer.byteLength / 1024).toFixed(1)} KB)`);
   } catch (err) {
     stats.failed++;
-    console.error(`    ❌ Failed ${table}[${record.id}]: ${err.message}`);
+    if (table === 'items') stats.itemsFailed++;
+    if (table === 'categories') stats.categoriesFailed++;
+
+    // Classify error
+    const msg = err.message || '';
+    const status = err.status || err.statusCode;
+    
+    if (status === 429 || msg.includes('429') || msg.includes('Too Many Requests')) {
+      stats.err429++;
+    } else if ((status >= 500 && status < 600) || msg.includes('500') || msg.includes('502') || msg.includes('503')) {
+      stats.err5xx++;
+    } else if (msg.includes('timeout') || msg.includes('network') || msg.includes('fetch') || err.name === 'FetchError' || msg.includes('ECONNRESET')) {
+      stats.errNetwork++;
+    }
+
+    console.error(`    ❌ [ERROR] ${table} [${record.id}]: ${msg}`);
+  }
+}
+
+async function processTable(table, stats, failedIdsSet, BATCH_FETCH_SIZE, concurrency) {
+  let batchNumber = 0;
+
+  while (true) {
+    batchNumber++;
+
+    // Fetch batch
+    const { data: records, error: fetchErr } = await supabaseAdmin
+      .from(table)
+      .select('id, image_url, thumbnail_url')
+      .not('image_url', 'is', null)
+      .is('thumbnail_url', null)
+      .limit(BATCH_FETCH_SIZE);
+
+    if (fetchErr && fetchErr.code !== '42703') {
+      console.error(`[FATAL] Failed to fetch ${table}:`, fetchErr.message);
+      break;
+    }
+
+    if (!records || records.length === 0) {
+      console.log(`\n✅ No more processable records found in ${table}.`);
+      break;
+    }
+
+    const processableRecords = records.filter(r => !failedIdsSet.has(r.id));
+
+    if (processableRecords.length === 0) {
+      console.log(`\n⚠️ Batch contains only previously failed IDs. Stopping safely for ${table}.`);
+      break;
+    }
+
+    console.log(`\n--- Batch #${batchNumber} (${table}) ---`);
+    console.log(`Fetched records: ${records.length}`);
+    console.log(`Processable records (excluding prior failures): ${processableRecords.length}`);
+
+    let batchSuccess = 0;
+    let batchFailed = 0;
+
+    // Process concurrently
+    for (let i = 0; i < processableRecords.length; i += concurrency) {
+      const chunk = processableRecords.slice(i, i + concurrency);
+      
+      const promises = chunk.map(async (record) => {
+        stats.current++;
+        const initialSuccess = stats.success;
+        await processRecord(record, table, stats);
+        
+        if (stats.success > initialSuccess) {
+          batchSuccess++;
+        } else {
+          batchFailed++;
+          failedIdsSet.add(record.id);
+          stats.failedRecords.push({ id: record.id, table });
+        }
+      });
+      
+      await Promise.all(promises);
+      
+      if (i + concurrency < processableRecords.length) {
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES_MS));
+      }
+    }
+
+    console.log(`\n[Batch #${batchNumber} Summary]`);
+    console.log(`Successfully processed: ${batchSuccess}`);
+    console.log(`Failed in batch: ${batchFailed}`);
+    console.log(`Total processed this run: ${stats.success}`);
   }
 }
 
 async function runBackfill() {
-  const dryRun = process.argv.includes('--dry-run');
   const batchArg = process.argv.find(a => a.startsWith('--batch='));
   const concurrency = batchArg ? parseInt(batchArg.split('=')[1]) : DEFAULT_CONCURRENCY;
+  const BATCH_FETCH_SIZE = 500;
 
-  console.log(`\n🚀 Starting thumbnail backfill... ${dryRun ? '(DRY RUN)' : ''}`);
+  console.log(`\n🚀 Starting thumbnail backfill (Batch-Draining Mode)...`);
+  
+  // Dry run / Count verification
+  const { count: initialItems } = await supabaseAdmin.from('items').select('*', { count: 'exact', head: true }).not('image_url', 'is', null).is('thumbnail_url', null);
+  const { count: initialCats } = await supabaseAdmin.from('categories').select('*', { count: 'exact', head: true }).not('image_url', 'is', null).is('thumbnail_url', null);
 
-  // Fetch Items
-  const { data: items, error: iErr } = await supabaseAdmin
-    .from('items')
-    .select('id, image_url, thumbnail_url')
-    .not('image_url', 'is', null)
-    .is('thumbnail_url', null);
+  const stats = { 
+    current: 0, 
+    success: 0, 
+    failed: 0, 
+    itemsInitial: initialItems || 0,
+    categoriesInitial: initialCats || 0,
+    itemsSuccess: 0,
+    itemsFailed: 0,
+    categoriesSuccess: 0,
+    categoriesFailed: 0,
+    err429: 0,
+    err5xx: 0,
+    errNetwork: 0,
+    totalBytesSaved: 0,
+    failedRecords: []
+  };
 
-  if (iErr) {
-    console.error('Failed to fetch items:', iErr.message);
-    // Continue anyway if the column doesn't exist yet (will error out cleanly)
-    if (iErr.code === '42703') {
-      console.log('thumbnail_url column missing. Run the SQL migration first!');
-      return;
-    }
-  }
+  console.log(`\n📊 Initial Backfill Summary:`);
+  console.log(`   Items pending: ${stats.itemsInitial}`);
+  console.log(`   Categories pending: ${stats.categoriesInitial}`);
+  console.log(`   Total to process: ${stats.itemsInitial + stats.categoriesInitial}`);
 
-  // Fetch Categories
-  const { data: categories, error: cErr } = await supabaseAdmin
-    .from('categories')
-    .select('id, image_url, thumbnail_url')
-    .not('image_url', 'is', null)
-    .is('thumbnail_url', null);
-
-  const pendingItems = items || [];
-  const pendingCats = categories || [];
-  const total = pendingItems.length + pendingCats.length;
-
-  console.log(`\n📊 Backfill Summary:`);
-  console.log(`   Items pending: ${pendingItems.length}`);
-  console.log(`   Categories pending: ${pendingCats.length}`);
-  console.log(`   Total to process: ${total}`);
-
-  if (total === 0) {
+  if (stats.itemsInitial + stats.categoriesInitial === 0) {
     console.log('\n✅ All records have thumbnail_url. Nothing to do!');
     return;
   }
 
-  const stats = { current: 0, total, success: 0, failed: 0, totalBytesSaved: 0 };
-  const allTasks = [
-    ...pendingItems.map(r => ({ record: r, table: 'items' })),
-    ...pendingCats.map(r => ({ record: r, table: 'categories' }))
-  ];
+  const failedIdsSet = new Set();
 
-  for (let i = 0; i < allTasks.length; i += concurrency) {
-    const batch = allTasks.slice(i, i + concurrency);
-    
-    if (dryRun) {
-      batch.forEach(t => console.log(`[DRY RUN] Would process ${t.table}[${t.record.id}]: ${t.record.image_url}`));
-    } else {
-      const promises = batch.map(t => {
-        stats.current++;
-        console.log(`[${stats.current}/${stats.total}] Processing ${t.table}[${t.record.id}]...`);
-        return processRecord(t.record, t.table, stats);
-      });
-      await Promise.all(promises);
-      if (i + concurrency < allTasks.length) {
-        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES_MS));
-      }
-    }
-  }
+  await processTable('items', stats, failedIdsSet, BATCH_FETCH_SIZE, concurrency);
+  await processTable('categories', stats, failedIdsSet, BATCH_FETCH_SIZE, concurrency);
+
+  // Final check of remaining
+  const { count: remItems } = await supabaseAdmin.from('items').select('*', { count: 'exact', head: true }).not('image_url', 'is', null).is('thumbnail_url', null);
+  const { count: remCats } = await supabaseAdmin.from('categories').select('*', { count: 'exact', head: true }).not('image_url', 'is', null).is('thumbnail_url', null);
 
   console.log('\n======================================');
-  console.log('📋 Backfill Report:');
-  console.log(`   Successfully generated: ${stats.success}`);
-  console.log(`   Failed: ${stats.failed}`);
-  console.log(`   Estimated bandwidth saved per page load: ${(stats.totalBytesSaved / (1024 * 1024)).toFixed(2)} MB`);
+  console.log('📋 FINAL BACKFILL REPORT:');
+  console.log('======================================');
+  console.log(`Items:`);
+  console.log(`- Initial missing thumbnail count: ${stats.itemsInitial}`);
+  console.log(`- Successfully processed: ${stats.itemsSuccess}`);
+  console.log(`- Failed: ${stats.itemsFailed}`);
+  console.log(`- Remaining where image_url IS NOT NULL AND thumbnail_url IS NULL: ${remItems || 0}`);
+  
+  console.log(`\nCategories:`);
+  console.log(`- Initial missing thumbnail count: ${stats.categoriesInitial}`);
+  console.log(`- Successfully processed: ${stats.categoriesSuccess}`);
+  console.log(`- Failed: ${stats.categoriesFailed}`);
+  console.log(`- Remaining where image_url IS NOT NULL AND thumbnail_url IS NULL: ${remCats || 0}`);
+
+  console.log(`\nTotals:`);
+  console.log(`- Total success: ${stats.success}`);
+  console.log(`- Total failed: ${stats.failed}`);
+  console.log(`- Total remaining: ${(remItems || 0) + (remCats || 0)}`);
+  console.log(`- Number of HTTP 429 errors: ${stats.err429}`);
+  console.log(`- Number of HTTP 5xx errors: ${stats.err5xx}`);
+  console.log(`- Number of timeout/network errors: ${stats.errNetwork}`);
+
+  if (stats.failedRecords.length > 0) {
+    console.log(`\n⚠️ Failed Record IDs:`);
+    stats.failedRecords.forEach(r => console.log(`   - ${r.table} [${r.id}]`));
+  }
+  
   console.log('======================================');
 }
 

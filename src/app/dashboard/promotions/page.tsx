@@ -46,7 +46,8 @@ export default function PromotionsPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const imp = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
-      const { data: rest } = await supabase.from('restaurants').select('id').eq(imp ? 'id' : 'email', imp || user.email).single();
+      const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+      const rest = await getResolvedRestaurant(supabase, user, imp);
       if (!rest) { setLoading(false); return; }
       setRestaurantId(rest.id);
       const [{ data: p }, { data: cats }] = await Promise.all([

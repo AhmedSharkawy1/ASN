@@ -74,9 +74,8 @@ export default function PayrollPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const imp = sessionStorage.getItem('impersonating_tenant');
-      const { data: rest } = await supabase
-        .from('restaurants').select('id')
-        .eq(imp ? 'id' : 'email', imp || session.user.email).single();
+      const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+      const rest = await getResolvedRestaurant(supabase, session.user, imp);
       if (rest) {
         setRestaurantId(rest.id);
         fetchData(rest.id);

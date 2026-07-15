@@ -3,7 +3,6 @@ const nextConfig = {
     output: 'standalone',
     eslint: { ignoreDuringBuilds: true },
     typescript: { ignoreBuildErrors: true },
-    serverExternalPackages: ['sharp'],
     images: {
         unoptimized: false,
         formats: ['image/avif', 'image/webp'],

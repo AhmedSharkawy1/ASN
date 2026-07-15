@@ -100,11 +100,20 @@ export default function SettingsPage() {
 
             let finalData: RestaurantProfile | null = null;
 
+            const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
+            const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+            const resolvedRest = await getResolvedRestaurant(supabase, user, impersonatingTenant);
+
+            if (!resolvedRest) {
+                setLoading(false);
+                return;
+            }
+
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
                 .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode')
-                .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
+                .eq('id', resolvedRest.id)
                 .single();
 
             if (e1) {
@@ -112,7 +121,7 @@ export default function SettingsPage() {
                 const { data: d2 } = await supabase
                     .from('restaurants')
                     .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode')
-                    .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
+                    .eq('id', resolvedRest.id)
                     .single();
                 finalData = d2;
             } else {
@@ -1064,12 +1073,11 @@ function BackupRestorePanel() {
 
             // Get tenant ID
             const tenantId = sessionStorage.getItem('impersonating_tenant');
-            let restaurantId = tenantId;
-            if (!restaurantId) {
-                const { data: rest } = await supabase.from('restaurants').select('id').eq('email', user.email).single();
-                restaurantId = rest?.id;
-            }
-            if (!restaurantId) { toast.error("لم يتم العثور على المطعم"); return; }
+            const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+            const resolvedRest = await getResolvedRestaurant(supabase, user, tenantId);
+            
+            if (!resolvedRest) { toast.error("لم يتم العثور على المطعم"); return; }
+            const restaurantId = resolvedRest.id;
 
             // Trigger the cloud backup
             const res = await fetch('/api/backup/create', {
@@ -1119,12 +1127,11 @@ function BackupRestorePanel() {
             if (!user) { toast.error("يجب تسجيل الدخول أولاً"); return; }
 
             const tenantId = sessionStorage.getItem('impersonating_tenant');
-            let restaurantId = tenantId;
-            if (!restaurantId) {
-                const { data: rest } = await supabase.from('restaurants').select('id').eq('email', user.email).single();
-                restaurantId = rest?.id;
-            }
-            if (!restaurantId) { toast.error("لم يتم العثور على المطعم"); return; }
+            const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+            const resolvedRest = await getResolvedRestaurant(supabase, user, tenantId);
+            
+            if (!resolvedRest) { toast.error("لم يتم العثور على المطعم"); return; }
+            const restaurantId = resolvedRest.id;
 
             const formData = new FormData();
             formData.append("file", cloudFile);
