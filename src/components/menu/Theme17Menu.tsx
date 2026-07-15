@@ -492,7 +492,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 <SwiperSlide key={idx} className="bg-white rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col cursor-pointer border border-gray-50 hover:shadow-lg transition-all" onClick={() => navigateToMenu(cat.id.toString())}>
                                     <div className="w-full aspect-square relative bg-white flex items-center justify-center p-2">
                                         {cat.image_url ? (
-                                            <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={catName(cat)} className="w-full h-full object-cover rounded-[18px]" />
+                                            <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={catName(cat)} className="absolute inset-2 object-cover rounded-[18px]" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-300">
                                                 {cat.emoji || <ShoppingCart className="w-10 h-10 opacity-20" />}
@@ -961,7 +961,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                             >
                                                 {(item.image_url || item.catImage) ? (
                                                     <div className="w-16 h-16 bg-gray-100 rounded-lg flex-shrink-0 relative">
-                                                        <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.catImage || ''} alt="" className="object-cover rounded-lg w-full h-full" />
+                                                        <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.catImage || ''} alt="" className="object-cover rounded-lg absolute inset-0" />
                                                     </div>
                                                 ) : (
                                                     <div className="w-16 h-16 bg-red-50 rounded-lg flex-shrink-0 flex items-center justify-center">
@@ -1215,7 +1215,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 
                                                 {c.item.image_url && (
                                                     <div className="w-20 h-20 bg-gray-100 rounded-2xl overflow-hidden flex-shrink-0 relative border border-gray-100">
-                                                        <OptimizedMenuImage src={c.item.image_url} alt="" className="w-full h-full object-cover" />
+                                                        <OptimizedMenuImage src={c.item.image_url} alt="" className="absolute inset-0 object-cover" />
                                                     </div>
                                                 )}
                                                 <div className="flex-1 flex flex-col justify-between py-1">
