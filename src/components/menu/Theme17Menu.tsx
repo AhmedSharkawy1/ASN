@@ -492,7 +492,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                 <SwiperSlide key={idx} className="bg-white rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col cursor-pointer border border-gray-50 hover:shadow-lg transition-all" onClick={() => navigateToMenu(cat.id.toString())}>
                                     <div className="w-full aspect-square relative bg-white flex items-center justify-center p-2">
                                         {cat.image_url ? (
-                                            <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={catName(cat)} fill className="object-cover rounded-[18px]" />
+                                            <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={catName(cat)} className="w-full h-full object-cover rounded-[18px]" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-300">
                                                 {cat.emoji || <ShoppingCart className="w-10 h-10 opacity-20" />}
