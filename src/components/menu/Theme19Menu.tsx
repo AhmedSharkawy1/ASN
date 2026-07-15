@@ -4,7 +4,7 @@ import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -114,6 +114,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
     const [showCheckout, setShowCheckout] = useState(false);
     const [showContactModal, setShowContactModal] = useState(false);
     const [showMenuCategories, setShowMenuCategories] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
@@ -220,7 +221,12 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                     </button>
                     <div className="flex flex-col items-center">
                         {config.logo_url && (
-                            <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm mb-2" useOriginal={true} />
+                            <div className="relative mb-2 flex items-center justify-center">
+                                <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm" useOriginal={true} />
+                                <div onClick={() => setShowPaymentModal(true)} className="absolute -bottom-1 -right-3 bg-white dark:bg-zinc-800 rounded-full p-1.5 shadow-md border border-zinc-100 dark:border-zinc-700 text-green-600 dark:text-green-500 cursor-pointer hover:scale-110 transition-transform" title={isAr ? "متوفر الدفع الإلكتروني" : "Online Payment Available"}>
+                                    <CreditCard className="w-4 h-4" />
+                                </div>
+                            </div>
                         )}
                         <h1 className="text-xl font-black text-center">{config.name}</h1>
                         {(config.slogan_ar || config.slogan_en) && (
@@ -819,6 +825,61 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                             )}
                                         </div>
                                     </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Payment Info Modal */}
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[400] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowPaymentModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative"
+                            style={{ backgroundColor: bgCard, color: textMain }}
+                            onClick={e => e.stopPropagation()}
+                            dir={isAr ? 'rtl' : 'ltr'}
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-black">{isAr ? 'الدفع الإلكتروني' : 'Online Payment'}</h3>
+                                <button onClick={() => setShowPaymentModal(false)} className="w-8 h-8 flex items-center justify-center bg-black/5 dark:bg-white/10 rounded-full hover:bg-black/10 dark:hover:bg-white/20 transition-colors"><X className="w-5 h-5" /></button>
+                            </div>
+                            
+                            <div className="flex flex-col items-center justify-center text-center">
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                                    <CreditCard className="w-8 h-8" />
+                                </div>
+                                <p className="font-black text-[1.1rem] mb-2 leading-snug">
+                                    {isAr ? 'يجب إرسال سكرين شوت بعد التحويل' : 'A screenshot must be sent after the transfer'}
+                                </p>
+                                <p className="text-sm opacity-70 mb-6 font-medium">
+                                    {isAr ? 'يرجى إرسال صورة إيصال التحويل على رقم الواتساب الخاص بالمطعم لتأكيد الدفع.' : 'Please send the transfer receipt screenshot to the restaurant\'s WhatsApp number to confirm your payment.'}
+                                </p>
+                                
+                                {config.whatsapp_number ? (
+                                    <a
+                                        href={`https://wa.me/${config.whatsapp_number.replace('+', '')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-white font-bold text-lg shadow-md transition-transform hover:scale-[1.02]"
+                                        style={{ backgroundColor: '#25D366' }}
+                                    >
+                                        <FaWhatsapp className="w-6 h-6" />
+                                        <span dir="ltr" className="tracking-wider">{config.whatsapp_number}</span>
+                                    </a>
+                                ) : (
+                                    <p className="text-xs text-red-500 font-bold">{isAr ? 'رقم الواتساب غير متوفر' : 'WhatsApp number is not available'}</p>
                                 )}
                             </div>
                         </motion.div>
