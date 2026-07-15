@@ -175,8 +175,18 @@ export async function deleteImage(publicUrl: string): Promise<boolean> {
  */
 export async function uploadImageWithThumb(file: File | Blob, customPath: string): Promise<{ originalUrl: string; thumbUrl: string } | null> {
     try {
+        let uploadBlob: Blob = file;
+        try {
+            // Compress client-side first to avoid Next.js / Vercel 4.5MB payload limit
+            // Use 2000px and 0.85 quality to preserve details for the backend Sharp processing
+            uploadBlob = await convertToWebP(file, 2000, 0.85);
+        } catch (convErr) {
+            console.warn('WebP pre-compression failed, uploading original:', convErr);
+        }
+
         const formData = new FormData();
-        formData.append('file', file);
+        // The API route expects "file"
+        formData.append('file', uploadBlob, 'image.webp');
         formData.append('path', customPath);
 
         const response = await fetch('/api/upload-image', {
