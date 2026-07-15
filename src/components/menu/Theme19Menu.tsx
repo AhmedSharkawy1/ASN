@@ -221,12 +221,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                     </button>
                     <div className="flex flex-col items-center">
                         {config.logo_url && (
-                            <div className="relative mb-2 flex items-center justify-center">
-                                <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm" useOriginal={true} />
-                                <div onClick={() => setShowPaymentModal(true)} className="absolute -bottom-1 -right-3 bg-white dark:bg-zinc-800 rounded-full p-1.5 shadow-md border border-zinc-100 dark:border-zinc-700 text-green-600 dark:text-green-500 cursor-pointer hover:scale-110 transition-transform" title={isAr ? "متوفر الدفع الإلكتروني" : "Online Payment Available"}>
-                                    <CreditCard className="w-4 h-4" />
-                                </div>
-                            </div>
+                            <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-cover shadow-sm mb-2" useOriginal={true} />
                         )}
                         <h1 className="text-xl font-black text-center">{config.name}</h1>
                         {(config.slogan_ar || config.slogan_en) && (
@@ -235,8 +230,14 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                             </p>
                         )}
                     </div>
-                    {/* Replaced LogOut button with an empty div for spacing balance */}
-                    <div className="w-10 h-10"></div>
+                    {/* Payment methods icon */}
+                    {config.payment_methods && config.payment_methods.length > 0 ? (
+                        <button onClick={() => setShowPaymentModal(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm text-green-600 dark:text-green-500 hover:scale-110" title={isAr ? "طرق الدفع" : "Payment Methods"}>
+                            <CreditCard className="w-5 h-5" />
+                        </button>
+                    ) : (
+                        <div className="w-10 h-10"></div>
+                    )}
                 </div>
 
                 {/* Language Toggle */}
@@ -846,7 +847,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                             initial={{ scale: 0.9, opacity: 0, y: 20 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative"
+                            className="w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto"
                             style={{ backgroundColor: bgCard, color: textMain }}
                             onClick={e => e.stopPropagation()}
                             dir={isAr ? 'rtl' : 'ltr'}
@@ -856,32 +857,66 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 <button onClick={() => setShowPaymentModal(false)} className="w-8 h-8 flex items-center justify-center bg-black/5 dark:bg-white/10 rounded-full hover:bg-black/10 dark:hover:bg-white/20 transition-colors"><X className="w-5 h-5" /></button>
                             </div>
                             
-                            <div className="flex flex-col items-center justify-center text-center">
+                            <div className="flex flex-col items-center justify-center text-center mb-6">
                                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                                     <CreditCard className="w-8 h-8" />
                                 </div>
                                 <p className="font-black text-[1.1rem] mb-2 leading-snug">
                                     {isAr ? 'يجب إرسال سكرين شوت بعد التحويل' : 'A screenshot must be sent after the transfer'}
                                 </p>
-                                <p className="text-sm opacity-70 mb-6 font-medium">
+                                <p className="text-sm opacity-70 font-medium">
                                     {isAr ? 'يرجى إرسال صورة إيصال التحويل على رقم الواتساب الخاص بالمطعم لتأكيد الدفع.' : 'Please send the transfer receipt screenshot to the restaurant\'s WhatsApp number to confirm your payment.'}
                                 </p>
-                                
-                                {config.whatsapp_number ? (
-                                    <a
-                                        href={`https://wa.me/${config.whatsapp_number.replace('+', '')}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-white font-bold text-lg shadow-md transition-transform hover:scale-[1.02]"
-                                        style={{ backgroundColor: '#25D366' }}
-                                    >
-                                        <FaWhatsapp className="w-6 h-6" />
-                                        <span dir="ltr" className="tracking-wider">{config.whatsapp_number}</span>
-                                    </a>
-                                ) : (
-                                    <p className="text-xs text-red-500 font-bold">{isAr ? 'رقم الواتساب غير متوفر' : 'WhatsApp number is not available'}</p>
-                                )}
                             </div>
+
+                            {/* Render Payment Methods */}
+                            {config.payment_methods && config.payment_methods.length > 0 && (
+                                <div className="flex flex-col gap-3 mb-6">
+                                    {config.payment_methods.map((pm: any) => (
+                                        <div key={pm.id} className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl p-4 text-start flex flex-col transition-all">
+                                            <h4 className="font-bold text-lg mb-1">{isAr ? pm.name_ar : pm.name_en || pm.name_ar}</h4>
+                                            {(pm.desc_ar || pm.desc_en) && (
+                                                <p className="text-xs font-medium opacity-70 mb-3">{isAr ? pm.desc_ar : pm.desc_en || pm.desc_ar}</p>
+                                            )}
+                                            {pm.number && (
+                                                <div className="flex items-center justify-between bg-white dark:bg-black/40 px-3 py-2 rounded-xl border border-black/5 dark:border-white/5 mb-3">
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(pm.number!);
+                                                            alert(isAr ? "تم نسخ الرقم!" : "Number copied!");
+                                                        }}
+                                                        className="text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-colors"
+                                                        style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                                                    >
+                                                        {isAr ? "نسخ" : "Copy"}
+                                                    </button>
+                                                    <span className="font-bold tabular-nums text-sm tracking-widest" dir="ltr">{pm.number}</span>
+                                                </div>
+                                            )}
+                                            {pm.link && (
+                                                <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-3 rounded-xl mt-1 active:scale-95 transition-transform" style={{ backgroundColor: primaryColor }}>
+                                                    {isAr ? "رابط الدفع / انستا باي" : "Payment Link / InstaPay"}
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                                
+                            {config.whatsapp_number ? (
+                                <a
+                                    href={`https://wa.me/${config.whatsapp_number.replace('+', '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-white font-bold text-lg shadow-md transition-transform hover:scale-[1.02]"
+                                    style={{ backgroundColor: '#25D366' }}
+                                >
+                                    <FaWhatsapp className="w-6 h-6" />
+                                    <span dir="ltr" className="tracking-wider">{config.whatsapp_number}</span>
+                                </a>
+                            ) : (
+                                <p className="text-xs text-red-500 font-bold text-center">{isAr ? 'رقم الواتساب غير متوفر' : 'WhatsApp number is not available'}</p>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}
