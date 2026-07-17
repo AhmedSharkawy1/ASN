@@ -238,7 +238,7 @@ function SmartMenuContent({
         if (e1 || !d1) {
           let query2: any = supabase
             .from("restaurants")
-            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address, currency, branches_enabled, branches, default_theme_mode");
+            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address, currency, branches_enabled, branches, default_theme_mode, theme_colors, order_channel");
           
           if (params.restaurantId === 'demo') {
             query2 = query2.eq("is_marketing_account", true).limit(1).maybeSingle();

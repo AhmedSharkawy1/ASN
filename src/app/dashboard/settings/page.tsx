@@ -122,7 +122,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, theme_colors, order_channel, receipt_logo_url')
                     .eq('id', resolvedRest.id)
                     .single();
                 finalData = d2;
@@ -238,6 +238,9 @@ export default function SettingsPage() {
                         youtube_url: profile.youtube_url || '',
                         whatsapp_group_url: profile.whatsapp_group_url || '',
                         default_theme_mode: profile.default_theme_mode || 'system',
+                        theme_colors: profile.theme_colors || {},
+                        order_channel: profile.order_channel || 'whatsapp',
+                        receipt_logo_url: profile.receipt_logo_url,
                     })
                     .eq('id', profile.id);
                 error = fallbackUpdate.error;
