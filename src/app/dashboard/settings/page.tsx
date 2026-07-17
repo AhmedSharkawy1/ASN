@@ -55,6 +55,8 @@ type RestaurantProfile = {
         secondary?: string;
         background?: string;
         text?: string;
+        cart_hint_ar?: string;
+        cart_hint_en?: string;
     };
     desktop_permissions?: {
         orders?: boolean;
@@ -515,6 +517,11 @@ export default function SettingsPage() {
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "كلمة النشاط (تظهر في العنوان، مثل: مطعم، كافيه)" : "Business Word (e.g. Restaurant, Cafe)"}</label>
                             <input type="text" value={profile.menu_title_word || ''} onChange={e => setProfile({ ...profile, menu_title_word: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: كافيه (الافتراضي: مطعم)" : "e.g., Cafe (Default: Restaurant)"} />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "جملة ملاحظة الإضافة للسلة (لإخفائها اترك الحقل فارغاً)" : "Add to Cart Hint (Leave empty to hide)"}</label>
+                            <input type="text" value={profile.theme_colors?.cart_hint_ar ?? "اضغط على السعر للاختيار والإضافة للسلة"} onChange={e => setProfile({ ...profile, theme_colors: { ...profile.theme_colors, cart_hint_ar: e.target.value } })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: اضغط على السعر للاختيار..." : "e.g., Tap a price to select..."} />
                         </div>
                         <div className="space-y-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "الشعار النصي (عربي)" : "Slogan (Arabic)"}</label>

@@ -447,35 +447,21 @@ export default function AtyabOrientalRedMenu({ config, categories, language, res
                                             </div>
 
                                             {/* Prices */}
-                                            {config.orders_enabled !== false ? (
-                                                <div className={`${hasManyPrices ? "grid grid-cols-3 gap-1.5 w-full mt-1" : "flex gap-2 items-end shrink-0"}`}>
+                                            <div className={`${hasManyPrices ? "grid grid-cols-3 gap-1.5 w-full mt-1" : "flex gap-2 items-end shrink-0"}`}>
                                                     {item.prices.map((price, pIdx) => (
                                                         <div key={pIdx} className={`flex flex-col items-center gap-0.5 ${hasManyPrices ? "bg-zinc-100 dark:bg-[#1a1a1a] border border-zinc-200 dark:border-white/10 rounded-xl py-1.5 px-1" : ""}`}>
                                                             {item.size_labels?.[pIdx] && (
                                                                 <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-black uppercase tracking-tighter mb-0.5">{item.size_labels[pIdx]}</span>
                                                             )}
-                                                            <div className={`${hasManyPrices ? "" : "px-2 py-1 min-w-[45px] rounded-xl border bg-zinc-100 dark:bg-zinc-800/80 group-hover:bg-white dark:group-hover:bg-zinc-800 border-zinc-200 dark:border-white/5 group-hover:border-[#dc2626]/40 transition-all flex items-center justify-center gap-1 shadow-sm"}`}>
+                                                            <div className={`${hasManyPrices ? "" : "px-2 py-1 min-w-[45px] rounded-xl border bg-zinc-100 dark:bg-zinc-800/80 group-hover:bg-white dark:group-hover:bg-zinc-800 border-zinc-200 dark:border-white/5 group-hover:border-[#eab308]/40 transition-all flex items-center justify-center gap-1 shadow-sm"}`}>
                                                                 <div className="flex items-center justify-center gap-0.5">
-                                                                    <span className={`${hasManyPrices ? "text-[#dc2626] text-lg" : "text-[#dc2626] text-base"} font-black leading-none tabular-nums`}>{price}</span>
-                                                                    <span className={`${hasManyPrices ? "text-[#dc2626]/60 text-[9px]" : "text-zinc-500 text-[8px]"} font-black`}>{currency}</span>
+                                                                    <span className={`${hasManyPrices ? "text-[#eab308] text-lg" : "text-[#eab308] text-base"} font-black leading-none tabular-nums`}>{price}</span>
+                                                                    <span className={`${hasManyPrices ? "text-[#eab308]/60 text-[9px]" : "text-zinc-500 text-[8px]"} font-black`}>{currency}</span>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     ))}
                                                 </div>
-                                            ) : (
-                                                // Display only the first price if orders are disabled
-                                                item.prices.length > 0 && (
-                                                    <div className="flex items-end shrink-0">
-                                                        <div className="px-2 py-1 min-w-[45px] rounded-xl border bg-zinc-100 dark:bg-zinc-800/80 border-zinc-200 dark:border-white/5 flex items-center justify-center gap-1 shadow-sm">
-                                                            <div className="flex items-center justify-center gap-0.5">
-                                                                <span className="text-[#dc2626] text-base font-black leading-none tabular-nums">{item.prices[0]}</span>
-                                                                <span className="text-zinc-500 text-[8px] font-black">{currency}</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            )}
                                         </div>
                                     );
                                 })}

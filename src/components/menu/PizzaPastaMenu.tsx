@@ -373,7 +373,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                     : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-white/10 text-zinc-500"
                                     }`}
                             >
-                                {cat.emoji && <span className="ml-1">{cat.emoji}</span>}
+                                {cat.emoji && <span className="ml-1 animate-emoji inline-block">{cat.emoji}</span>}
                                 {isAr ? cat.name_ar : (cat.name_en || cat.name_ar)}
                             </button>
                         ))}
@@ -436,11 +436,13 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
 
                         {/* Items Container */}
                         <div className="bg-white dark:bg-zinc-900/60 backdrop-blur-xl rounded-[2rem] p-4 md:p-6 border border-zinc-200 dark:border-white/10 shadow-xl">
-                            <div className="mb-4 pb-3 border-b border-zinc-100 dark:border-white/5 text-center">
-                                <p className="text-[10px] font-black text-rose-600 dark:text-rose-500 uppercase tracking-widest bg-rose-50/50 dark:bg-rose-900/10 py-2.5 rounded-xl border border-rose-100 dark:border-rose-900/20">
-                                    ✨ {isAr ? "اضغط على السعر للاختيار والإضافة للسلة" : "Tap a price to select & add to cart"} ✨
-                                </p>
-                            </div>
+                            {((isAr ? (config.theme_colors?.cart_hint_ar !== undefined ? config.theme_colors.cart_hint_ar : "اضغط على السعر للاختيار والإضافة للسلة") : (config.theme_colors?.cart_hint_en !== undefined ? config.theme_colors.cart_hint_en : "Tap a price to select & add to cart")).trim() !== "") && (
+                                <div className="mb-4 pb-3 border-b border-zinc-100 dark:border-white/5 text-center">
+                                    <p className="text-[10px] font-black text-rose-600 dark:text-rose-500 uppercase tracking-widest bg-rose-50/50 dark:bg-rose-900/10 py-2.5 rounded-xl border border-rose-100 dark:border-rose-900/20">
+                                        ✨ {isAr ? (config.theme_colors?.cart_hint_ar !== undefined ? config.theme_colors.cart_hint_ar : "اضغط على السعر للاختيار والإضافة للسلة") : (config.theme_colors?.cart_hint_en !== undefined ? config.theme_colors.cart_hint_en : "Tap a price to select & add to cart")} ✨
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="divide-y divide-zinc-100 dark:divide-white/5">
                                 {cat.items.map((item) => {

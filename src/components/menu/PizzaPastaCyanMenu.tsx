@@ -377,7 +377,7 @@ export default function PizzaPastaCyanMenu({ config, categories, language, resta
                                     : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-white/10 text-zinc-500"
                                     }`}
                             >
-                                {cat.emoji && <span className="ml-1">{cat.emoji}</span>}
+                                {cat.emoji && <span className="ml-1 animate-emoji inline-block">{cat.emoji}</span>}
                                 {isAr ? cat.name_ar : (cat.name_en || cat.name_ar)}
                             </button>
                         ))}
