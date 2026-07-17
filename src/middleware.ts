@@ -47,6 +47,24 @@ export default function middleware(req: NextRequest) {
         subdomain = 'www';
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // 0. النطاقات المخصصة (Custom Domain Mappings)
+    // ═══════════════════════════════════════════════════════════════
+    const customDomainMappings: Record<string, string> = {
+        'ezzelsham-aboragwan.vercel.app': 'ezzelshamaboragwan',
+        'www.ezzelsham-aboragwan.vercel.app': 'ezzelshamaboragwan'
+    };
+
+    const mappedSlug = customDomainMappings[hostname];
+    if (mappedSlug) {
+        if (path === '/' || (!path.startsWith('/menu/') && !path.startsWith('/api'))) {
+            const targetPath = path === '/' ? `/menu/${mappedSlug}` : `/menu/${mappedSlug}${path}`;
+            console.log(`[Middleware] Custom Host ${hostname} -> Dynamic Rewrite to ${targetPath}`);
+            return NextResponse.rewrite(new URL(`${targetPath}${url.search || ''}`, req.url));
+        }
+        return NextResponse.next();
+    }
+
     const isMainDomain = subdomain === '' || subdomain === 'www';
     const path = url.pathname;
 
