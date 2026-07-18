@@ -247,11 +247,11 @@ export default function ThemeVicinoSettings() {
         if (!url) return null;
         const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
         if (ytMatch && ytMatch[1]) {
-            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}`;
+            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&loop=1&playlist=${ytMatch[1]}`;
         }
         const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
         if (vimeoMatch && vimeoMatch[1]) {
-            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1&muted=1&background=1`;
+            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1`;
         }
         return null;
     };
@@ -328,15 +328,15 @@ export default function ThemeVicinoSettings() {
                                         {getEmbedUrl(config.vicino_video_url) ? (
                                             <iframe
                                                 src={getEmbedUrl(config.vicino_video_url)!}
-                                                className="w-full h-full block pointer-events-none opacity-50"
+                                                className="w-full h-full block opacity-70"
                                                 allow="autoplay; fullscreen"
                                                 style={{ border: 'none' }}
                                             ></iframe>
                                         ) : (
-                                            <video src={config.vicino_video_url} className="w-full h-full object-cover opacity-50" />
+                                            <video src={config.vicino_video_url} className="w-full h-full object-cover opacity-70" />
                                         )}
                                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <FileVideo className="w-8 h-8 text-white" />
+                                            <FileVideo className="w-8 h-8 text-white drop-shadow-md" />
                                         </div>
                                         <button onClick={() => setConfig({...config, vicino_video_url: ''})} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"><X className="w-4 h-4"/></button>
                                     </div>

@@ -56,11 +56,11 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
         if (!url) return null;
         const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
         if (ytMatch && ytMatch[1]) {
-            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}`;
+            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&loop=1&playlist=${ytMatch[1]}`;
         }
         const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
         if (vimeoMatch && vimeoMatch[1]) {
-            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1&muted=1&background=1`;
+            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1`;
         }
         return null;
     };
@@ -142,7 +142,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                             heroMedia.embed ? (
                                 <iframe
                                     src={heroMedia.embed}
-                                    className="w-full aspect-video max-h-[75vh] block pointer-events-none"
+                                    className="w-full h-[70vh] md:h-[80vh] block"
                                     allow="autoplay; fullscreen; picture-in-picture"
                                     allowFullScreen
                                     style={{ border: 'none' }}
