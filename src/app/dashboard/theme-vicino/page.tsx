@@ -1,7 +1,8 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Save, Loader2, ImagePlus, X, Video } from "lucide-react";
+import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2 } from "lucide-react";
+import { uploadImageWithThumb } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -23,6 +24,9 @@ export default function ThemeVicinoSettings() {
     const isAr = language === "ar";
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [uploadingImages, setUploadingImages] = useState(false);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
 
     const [config, setConfig] = useState<VicinoConfig>({
@@ -105,6 +109,64 @@ export default function ThemeVicinoSettings() {
         }
     };
 
+    
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingLogo(true);
+        try {
+            const result = await uploadImageWithThumb(file, `vicino/logo/${Date.now()}`);
+            if (result?.originalUrl) {
+                setConfig({ ...config, vicino_logo_url: result.originalUrl });
+                toast.success(isAr ? "تم رفع الشعار بنجاح" : "Logo uploaded successfully");
+            }
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
+
+    const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingVideo(true);
+        try {
+            // Upload directly to Supabase storage for video
+            const fileExt = file.name.split('.').pop();
+            const fileName = `vicino/video/${Date.now()}.${fileExt}`;
+            const { error: uploadError } = await supabase.storage
+                .from('menu-images')
+                .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage.from('menu-images').getPublicUrl(fileName);
+            setConfig({ ...config, vicino_video_url: data.publicUrl });
+            toast.success(isAr ? "تم رفع الفيديو بنجاح" : "Video uploaded successfully");
+        } catch (err: any) {
+            console.error(err);
+            toast.error(isAr ? "فشل رفع الفيديو" : "Failed to upload video");
+        } finally {
+            setUploadingVideo(false);
+        }
+    };
+
+    const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+        setUploadingImages(true);
+        try {
+            const newUrls: string[] = [];
+            for (let i = 0; i < files.length; i++) {
+                const result = await uploadImageWithThumb(files[i], `vicino/gallery/${Date.now()}_${i}`);
+                if (result?.originalUrl) newUrls.push(result.originalUrl);
+            }
+            setConfig({ ...config, vicino_images: [...config.vicino_images, ...newUrls] });
+            toast.success(isAr ? "تم رفع الصور بنجاح" : "Images uploaded successfully");
+        } finally {
+            setUploadingImages(false);
+        }
+    };
+
     const removeImage = (index: number) => {
         const newImages = [...config.vicino_images];
         newImages.splice(index, 1);
@@ -161,26 +223,41 @@ export default function ThemeVicinoSettings() {
                     <h3 className="font-bold text-lg">{isAr ? "الوسائط (فيديو ولوجو)" : "Media (Video & Logo)"}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm mb-1">{isAr ? "رابط الفيديو (Video URL)" : "Video URL"}</label>
-                            <input
-                                type="url"
-                                value={config.vicino_video_url}
-                                onChange={(e) => setConfig({ ...config, vicino_video_url: e.target.value })}
-                                className="w-full px-4 py-2 border dark:border-zinc-800 rounded-lg bg-stone-50 dark:bg-[#111]"
-                                placeholder="https://example.com/video.mp4"
-                                dir="ltr"
-                            />
+                            <label className="block text-sm mb-1">{isAr ? "فيديو صفحة الهبوط" : "Landing Page Video"}</label>
+                            <div className="flex items-center gap-4">
+                                {config.vicino_video_url ? (
+                                    <div className="relative w-full h-32 bg-black rounded-lg overflow-hidden border dark:border-zinc-800 flex items-center justify-center group">
+                                        <video src={config.vicino_video_url} className="w-full h-full object-cover opacity-50" />
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <FileVideo className="w-8 h-8 text-white" />
+                                        </div>
+                                        <button onClick={() => setConfig({...config, vicino_video_url: ''})} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4"/></button>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed dark:border-zinc-700 rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                        {uploadingVideo ? <Loader2 className="w-8 h-8 animate-spin text-teal-600" /> : <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />}
+                                        <span className="text-sm font-bold text-slate-500">{isAr ? "اختر ملف فيديو" : "Select video file"}</span>
+                                        <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploadingVideo} />
+                                    </label>
+                                )}
+                            </div>
                         </div>
                         <div>
-                            <label className="block text-sm mb-1">{isAr ? "رابط اللوجو المخصص لصفحة الهبوط" : "Custom Landing Page Logo URL"}</label>
-                            <input
-                                type="url"
-                                value={config.vicino_logo_url}
-                                onChange={(e) => setConfig({ ...config, vicino_logo_url: e.target.value })}
-                                className="w-full px-4 py-2 border dark:border-zinc-800 rounded-lg bg-stone-50 dark:bg-[#111]"
-                                placeholder="https://example.com/logo.png"
-                                dir="ltr"
-                            />
+                            <label className="block text-sm mb-1">{isAr ? "اللوجو المخصص لصفحة الهبوط" : "Custom Landing Page Logo"}</label>
+                            <div className="flex items-center gap-4">
+                                {config.vicino_logo_url ? (
+                                    <div className="relative w-full h-32 rounded-lg overflow-hidden border dark:border-zinc-800 flex items-center justify-center bg-stone-50 dark:bg-[#111] group">
+                                        <img src={config.vicino_logo_url} className="w-full h-full object-contain p-2" alt="Logo" />
+                                        <button onClick={() => setConfig({...config, vicino_logo_url: ''})} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4"/></button>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed dark:border-zinc-700 rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                        {uploadingLogo ? <Loader2 className="w-8 h-8 animate-spin text-teal-600" /> : <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />}
+                                        <span className="text-sm font-bold text-slate-500">{isAr ? "اختر صورة الشعار" : "Select logo image"}</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                                    </label>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -236,36 +313,11 @@ export default function ThemeVicinoSettings() {
                     <p className="text-sm text-slate-500">{isAr ? "أضف روابط الصور المراد عرضها في صفحة الهبوط" : "Add image URLs to show in the landing page"}</p>
                     
                     <div className="flex gap-2">
-                        <input
-                            type="url"
-                            id="newImageUrl"
-                            className="flex-1 px-4 py-2 border dark:border-zinc-800 rounded-lg bg-stone-50 dark:bg-[#111]"
-                            placeholder="https://example.com/image.jpg"
-                            dir="ltr"
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    const val = (e.target as HTMLInputElement).value;
-                                    if (val) {
-                                        setConfig({ ...config, vicino_images: [...config.vicino_images, val] });
-                                        (e.target as HTMLInputElement).value = '';
-                                    }
-                                }
-                            }}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const input = document.getElementById('newImageUrl') as HTMLInputElement;
-                                if (input.value) {
-                                    setConfig({ ...config, vicino_images: [...config.vicino_images, input.value] });
-                                    input.value = '';
-                                }
-                            }}
-                            className="px-4 py-2 bg-stone-200 dark:bg-zinc-800 rounded-lg font-bold"
-                        >
-                            {isAr ? "إضافة" : "Add"}
-                        </button>
+                        <label className="flex-1 flex items-center justify-center gap-2 py-4 border-2 border-dashed dark:border-zinc-700 rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors">
+                            {uploadingImages ? <Loader2 className="w-5 h-5 animate-spin text-teal-600" /> : <UploadCloud className="w-5 h-5 text-slate-400" />}
+                            <span className="font-bold text-slate-500">{isAr ? "رفع صور للمعرض (يمكن اختيار عدة صور)" : "Upload gallery images (Multiple allowed)"}</span>
+                            <input type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryUpload} disabled={uploadingImages} />
+                        </label>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">

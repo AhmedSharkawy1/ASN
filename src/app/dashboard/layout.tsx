@@ -110,6 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (cached) {
                 setRestaurantName(cached.restaurant_name);
                 setRestaurantLogo(cached.restaurant_logo || null);
+                setTenantTheme(cached.theme || '');
                 setRestaurantId(cached.restaurant_id);
                 restaurantIdRef.current = cached.restaurant_id;
                 if (cached.permissions_json) {
@@ -138,6 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     if (cached) {
                         setRestaurantName(cached.restaurant_name);
                         setRestaurantLogo(cached.restaurant_logo || null);
+                setTenantTheme(cached.theme || '');
                         setRestaurantId(cached.restaurant_id);
                         restaurantIdRef.current = cached.restaurant_id;
                         if (cached.permissions_json) {
@@ -235,7 +237,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         if (staff.restaurants?.is_marketing_account) tempPermissions['marketing_links'] = true;
                     }
                 } else {
-                    const { data: rest, error: restError } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at, is_marketing_account').ilike('email', email!).maybeSingle();
+                    const { data: rest, error: restError } = await supabase.from('restaurants').select('id,name,logo_url, subscription_expires_at, is_marketing_account, theme').ilike('email', email!).maybeSingle();
                     
                     if (restError) console.error("ASN_LOG: Restaurant Lookup Error:", restError);
 
@@ -549,7 +551,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", key: "printer" },
                 { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", key: "branches" },
                 { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", key: "theme" },
-                { href: "/dashboard/theme-vicino", icon: Palette, labelAr: "إعدادات ثيم Vicino", labelEn: "Theme Vicino Settings", key: "theme_vicino" },
+                ...(tenantTheme === "vicino" ? [{ href: "/dashboard/theme-vicino", icon: Palette, labelAr: "إعدادات ثيم Vicino", labelEn: "Theme Vicino Settings", key: "theme_vicino" }] : []),
                 ...(!isDesktopApp ? [{ href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "qr" }] : []),
                 { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "settings_page" },
             ]

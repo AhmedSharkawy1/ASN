@@ -87,12 +87,12 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
     const isDark = mounted && theme === 'dark';
     const cur = config.currency || (isAr ? "ج.م" : "EGP");
 
-    const T19_PRIMARY = '#f97316'; // orange-500
+    const T19_PRIMARY = '#B8860B'; // orange-500
     const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
     
     // Theme colors matching the screenshots
-    const bgBody = isDark ? '#111111' : '#F5F5DC';
-    const bgCard = isDark ? '#1c1c1e' : '#ffffff';
+    const bgBody = isDark ? '#111111' : '#F4EEE4';
+    const bgCard = isDark ? '#1c1c1e' : '#FAF7F1';
     const textMain = isDark ? '#ffffff' : '#000000';
     const textMuted = isDark ? '#9ca3af' : '#6b7280';
     const borderColor = isDark ? '#333333' : '#f3f4f6';
@@ -217,12 +217,19 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
             <div className="px-5 pt-8 pb-4" style={{ backgroundColor: bgBody }}>
                 <div className="flex justify-between items-center mb-6">
                     {/* Share button on the right side of the logo (left in LTR, right in RTL) */}
-                    <button onClick={handleShare} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
-                        <Share2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex gap-2">
+                        {config.vicino_landing_enabled && (
+                            <button onClick={() => setShowLandingPage(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-[#B8860B]/10 text-[#B8860B] transition-colors shadow-sm" title={isAr ? "الرئيسية" : "Home"}>
+                                <Home className="w-5 h-5" />
+                            </button>
+                        )}
+                        <button onClick={handleShare} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
+                            <Share2 className="w-5 h-5" />
+                        </button>
+                    </div>
                     <div className="flex flex-col items-center">
                         {config.logo_url && (
-                            <OptimizedMenuImage src={config.logo_url} alt={config.name} className="h-16 w-16 rounded-full object-contain shadow-sm mb-2" useOriginal={true} />
+                            <OptimizedMenuImage src={config.vicino_logo_url || config.logo_url} alt={config.name} className="h-32 w-32 rounded-3xl object-contain shadow-sm mb-4 bg-white/10 p-2" useOriginal={true} />
                         )}
                         <h1 className="text-xl font-black text-center">{config.name}</h1>
                         {(config.slogan_ar || config.slogan_en) && (
