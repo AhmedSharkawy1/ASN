@@ -103,7 +103,7 @@ export default function ThemeVicinoSettings() {
             toast.success(isAr ? "تم حفظ الإعدادات بنجاح" : "Settings saved successfully");
         } catch (err: any) {
             console.error("Error saving:", err);
-            toast.error(isAr ? "حدث خطأ أثناء الحفظ" : "Error saving settings");
+            toast.error(isAr ? `حدث خطأ أثناء الحفظ: ${err.message || err}` : `Error saving settings: ${err.message || err}`);
         } finally {
             setSaving(false);
         }
