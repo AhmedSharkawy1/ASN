@@ -1,6 +1,7 @@
 'use client';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
+import { getVicinoColors } from '@/lib/vicinoVariants';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -95,15 +96,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
     }
     const cur = isAr ? parsedCurrency.ar : parsedCurrency.en;
 
-    const T19_PRIMARY = '#B8860B'; // orange-500
-    const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
-    
-    // Theme colors matching the screenshots
-    const bgBody = isDark ? '#111111' : '#F4EEE4';
-    const bgCard = isDark ? '#1c1c1e' : '#FAF7F1';
-    const textMain = isDark ? '#ffffff' : '#000000';
-    const textMuted = isDark ? '#9ca3af' : '#6b7280';
-    const borderColor = isDark ? '#333333' : '#f3f4f6';
+    const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor } = getVicinoColors(config, isDark);
 
     // State
     const [activeCategory, setActiveCategory] = useState<string>('all');

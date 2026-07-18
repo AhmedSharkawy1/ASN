@@ -1,3 +1,4 @@
+import { getVicinoColors } from '@/lib/vicinoVariants';
 import React from 'react';
 import { useTheme } from 'next-themes';
 import { ArrowRight, MapPin, Phone, Clock, Instagram, Facebook, Youtube } from 'lucide-react';
@@ -28,11 +29,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
     }, [config.default_theme_mode, setTheme]);
 
     const isDark = resolvedTheme === 'dark';
-    const bgBody = isDark ? '#0a0a0a' : '#ffffff';
-    const textMain = isDark ? '#ffffff' : '#0a0a0a';
-    const textMuted = isDark ? '#a3a3a3' : '#525252';
-    const T19_PRIMARY = '#B8860B';
-    const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
+    const { primaryColor, bgBody, textMain, textMuted } = getVicinoColors(config, isDark);
 
     const displayNumbers = (config.phone_numbers && config.phone_numbers.length > 0) 
         ? config.phone_numbers 

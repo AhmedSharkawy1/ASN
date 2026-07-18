@@ -274,9 +274,9 @@ function SmartMenuContent({
         if (previewTheme) restData.theme = previewTheme;
 
         setConfig(restData);
-        if (restData.vicino_landing_enabled && restData.theme === 'vicino') {
+        if (restData.vicino_landing_enabled && restData.theme?.startsWith('vicino')) {
           setShowLanding(true);
-        } else if (restData.theme !== 'vicino') {
+        } else if (!restData.theme?.startsWith('vicino')) {
           setShowGlobalSplash(true);
         }
 
@@ -360,7 +360,7 @@ function SmartMenuContent({
   }
 
   
-  if (showGlobalSplash && config?.theme !== "vicino") {
+  if (showGlobalSplash && !config?.theme?.startsWith("vicino")) {
       const primaryColor = config?.theme_colors?.primary || '#B8860B';
       const isDark = config?.default_theme_mode === 'dark' || (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       
@@ -494,7 +494,7 @@ function SmartMenuContent({
   if (config?.theme === "theme18") {
     return <Theme18Menu config={config} categories={categories} restaurantId={config.id} />;
   }
-  if (config?.theme === "vicino") {
+  if (config?.theme?.startsWith("vicino")) {
     return <ThemeVicinoMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme === "theme19") {
