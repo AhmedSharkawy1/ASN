@@ -332,7 +332,7 @@ export default function ThemePage() {
             console.error("Error saving theme:", err);
             setMessage({
                 type: 'error',
-                text: isArabic ? "حدث خطأ أثناء الحفظ." : "Error occurred while saving."
+                text: isArabic ? `حدث خطأ أثناء الحفظ: ${err.message || err}` : `Error occurred while saving: ${err.message || err}`
             });
         } finally {
             setSaving(false);
