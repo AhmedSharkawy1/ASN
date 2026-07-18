@@ -114,6 +114,7 @@ export default function OptimizedMenuImage({
       if (targetFallbackUrl && targetFallbackUrl !== currentSrcRef.current) {
         fallbackStageRef.current = 1;
         currentSrcRef.current = targetFallbackUrl;
+        img.srcset = '';
         img.src = targetFallbackUrl;
         logImageFallback(primarySrc, targetFallbackUrl, 1);
         return;
@@ -125,6 +126,7 @@ export default function OptimizedMenuImage({
       // Stage 1 failed (or skipped) → use default fallback
       fallbackStageRef.current = 2;
       currentSrcRef.current = DEFAULT_FALLBACK;
+      img.srcset = '';
       img.src = DEFAULT_FALLBACK;
       logImageFallback(primarySrc, DEFAULT_FALLBACK, 2);
       return;
@@ -135,10 +137,11 @@ export default function OptimizedMenuImage({
   }, [src, thumbnailSrc, originalSrc, primarySrc, useOriginal]);
 
   const isFilled = fill && !width && !height;
+  const hasPosition = className.includes('absolute') || className.includes('fixed') || className.includes('relative') || className.includes('static');
 
   return (
     <div 
-      className={`relative overflow-hidden ${className}`} 
+      className={`${hasPosition ? '' : 'relative '}overflow-hidden ${className}`} 
       onClick={onClick}
       style={style}
     >

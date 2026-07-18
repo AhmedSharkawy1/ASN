@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import SharedMarquee from './SharedMarquee';
 import CheckoutModal from './CheckoutModal';
 import Image from 'next/image';
+import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import {
     ShoppingCart,
     MapPin,
@@ -667,7 +668,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                                     <div className="menu-item" key={item.id}>
                                         <span className="item-badge">{cName}</span>
                                         <div className="item-image" onClick={() => openModal(item, cName, cImage || '')}>
-                                            <Image quality={95} thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || cImage || '/placeholder.jpg'} alt="Item" fill className="object-cover cursor-pointer" />
                                         </div>
                                         <div className="item-content">
                                             <div className="item-header">
@@ -849,7 +850,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                 <div className="modal-overlay open" onClick={closeModal}>
                     <div className="modal-content-sheet w-[85vw] max-w-[310px] w-full max-h-[85vh] flex flex-col mx-auto" onClick={e => e.stopPropagation()}>
                         <div className="relative h-32 w-full bg-gray-100">
-                            <Image quality={95} thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill className="object-contain " />
+                            <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill className="object-contain " />
                             <button onClick={closeModal} className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-md">
                                 <X size={18} />
                             </button>
