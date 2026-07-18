@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTheme } from 'next-themes';
-import { ArrowRight, ChevronDown, MapPin, Phone, Clock, Instagram, Facebook, Youtube } from 'lucide-react';
+import { ArrowRight, MapPin, Phone, Clock, Instagram, Facebook, Youtube } from 'lucide-react';
 import { FaTiktok, FaSnapchatGhost, FaWhatsapp } from 'react-icons/fa';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules';
@@ -59,83 +59,66 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
     return (
         <div className="min-h-screen font-cairo flex flex-col selection:bg-black/10" style={{ backgroundColor: bgBody, color: textMain }} dir={isAr ? 'rtl' : 'ltr'}>
             
-            {/* --- HERO SECTION --- */}
-            <div className={`relative w-full ${hasContent ? 'h-[80vh] md:h-[90vh]' : 'h-screen'} flex flex-col items-center justify-center overflow-hidden rounded-b-[3rem] md:rounded-b-[4rem] shadow-2xl`}>
-                {/* Hero Background */}
-                <div className="absolute inset-0 w-full h-full bg-black">
-                    {heroMedia?.type === 'video' ? (
-                        <video 
-                            src={heroMedia.src} 
-                            autoPlay muted loop playsInline 
-                            className="w-full h-full object-cover"
-                        />
-                    ) : heroMedia?.type === 'image' ? (
-                        <OptimizedMenuImage 
-                            src={heroMedia.src} 
-                            alt="Hero" 
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full" style={{ backgroundColor: primaryColor, opacity: 0.15 }}></div>
-                    )}
-                    {/* Premium Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/90 pointer-events-none"></div>
-                </div>
-
-                {/* Top Language Toggle (Glassmorphic) */}
-                <div className="absolute top-6 right-5 z-20">
-                    <div className="flex justify-center items-center gap-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full p-1 shadow-lg" dir="ltr">
-                        <button onClick={() => setCurrentLang('en')} className="px-5 py-2 rounded-full font-bold text-xs transition-all duration-300" style={{ backgroundColor: !isAr ? '#ffffff' : 'transparent', color: !isAr ? '#000000' : '#ffffff' }}>EN</button>
-                        <button onClick={() => setCurrentLang('ar')} className="px-5 py-2 rounded-full font-bold text-xs transition-all duration-300" style={{ backgroundColor: isAr ? '#ffffff' : 'transparent', color: isAr ? '#000000' : '#ffffff' }}>AR</button>
-                    </div>
-                </div>
-
-                {/* Hero Content */}
-                <motion.div 
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                    className="relative z-10 flex flex-col items-center px-6 text-center mt-10"
-                >
-                    {finalLogoSrc && (
-                        <div className="w-40 h-40 md:w-52 md:h-52 mb-8 relative group">
-                            {/* Glow effect behind logo */}
-                            <div className="absolute inset-0 rounded-full blur-3xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" style={{ backgroundColor: primaryColor }}></div>
-                            
-                            {/* Circular Premium Logo Container */}
-                            <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-[6px] border-white/10 shadow-2xl bg-white flex items-center justify-center transform transition-transform duration-500 hover:scale-105 p-1">
-                                <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
-                            </div>
-                        </div>
-                    )}
-                    
-                    <h1 className="text-4xl md:text-6xl font-black text-white drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)] tracking-tight leading-tight">{config.name}</h1>
-                    
-                    {(config.slogan_ar || config.slogan_en) && (
-                        <p className="mt-4 text-lg md:text-xl text-white/90 font-medium tracking-wide drop-shadow-md max-w-lg">
-                            {isAr ? (config.slogan_ar || config.slogan_en) : (config.slogan_en || config.slogan_ar)}
-                        </p>
-                    )}
-                </motion.div>
-
-                {/* Scroll Indicator */}
-                {hasContent && (
+            {/* --- HEADER --- */}
+            <div className="w-full flex justify-between items-start px-6 pt-8 pb-6 max-w-4xl mx-auto">
+                <div className="flex-1"></div>
+                
+                {/* Logo */}
+                {finalLogoSrc && (
                     <motion.div 
-                        animate={{ y: [0, 8, 0] }} 
-                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        className="absolute bottom-10 z-10 text-white/60 hover:text-white transition-colors"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.8 }}
+                        className="w-32 h-32 md:w-40 md:h-40 relative group flex-shrink-0 mx-4"
                     >
-                        <ChevronDown className="w-10 h-10 drop-shadow-md" />
+                        <div className="absolute inset-0 rounded-full blur-2xl opacity-40" style={{ backgroundColor: primaryColor }}></div>
+                        <div className="relative w-full h-full rounded-full overflow-hidden border-[4px] border-black/5 dark:border-white/10 shadow-lg bg-white flex items-center justify-center p-1">
+                            <OptimizedMenuImage src={finalLogoSrc} alt="Logo" className="w-full h-full object-contain rounded-full" useOriginal={true} />
+                        </div>
                     </motion.div>
                 )}
+
+                {/* Language Toggle */}
+                <div className="flex-1 flex justify-end">
+                    <div className="flex justify-center items-center gap-1 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full p-1 shadow-sm" dir="ltr">
+                        <button onClick={() => setCurrentLang('en')} className="px-3 py-1 md:px-4 md:py-1.5 rounded-full font-bold text-xs transition-all duration-300" style={{ backgroundColor: !isAr ? primaryColor : 'transparent', color: !isAr ? '#ffffff' : textMain }}>EN</button>
+                        <button onClick={() => setCurrentLang('ar')} className="px-3 py-1 md:px-4 md:py-1.5 rounded-full font-bold text-xs transition-all duration-300" style={{ backgroundColor: isAr ? primaryColor : 'transparent', color: isAr ? '#ffffff' : textMain }}>AR</button>
+                    </div>
+                </div>
             </div>
 
+            {/* --- MEDIA SECTION --- */}
+            {heroMedia && (
+                <div className="w-full px-4 md:px-8 max-w-4xl mx-auto mb-10 relative z-10">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, ease: "easeOut" }}
+                        className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center border border-black/5 dark:border-white/10"
+                    >
+                        {heroMedia.type === 'video' ? (
+                            <video 
+                                src={heroMedia.src} 
+                                autoPlay muted loop playsInline controls={true}
+                                className="w-full h-auto max-h-[60vh] object-contain"
+                            />
+                        ) : (
+                            <OptimizedMenuImage 
+                                src={heroMedia.src} 
+                                alt="Hero" 
+                                className="w-full h-auto max-h-[60vh] object-contain"
+                            />
+                        )}
+                    </motion.div>
+                </div>
+            )}
+
             {/* --- CREATIVE QUICK INFO GRID --- */}
-            <div className="px-5 max-w-4xl mx-auto w-full relative z-20 -mt-12 md:-mt-16 mb-8">
+            <div className="px-5 max-w-4xl mx-auto w-full relative z-20 mb-12">
                 <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Location */}
-                    <a href={config.map_link || "#"} target={config.map_link ? "_blank" : undefined} rel="noreferrer" className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                    <a href={config.map_link || "#"} target={config.map_link ? "_blank" : undefined} rel="noreferrer" className="flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                             <MapPin className="w-7 h-7" />
                         </div>
                         <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "الموقع" : "Location"}</h3>
@@ -143,8 +126,8 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                     </a>
                     
                     {/* Working Hours */}
-                    <div className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                    <div className="flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                             <Clock className="w-7 h-7" />
                         </div>
                         <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "ساعات العمل" : "Working Hours"}</h3>
@@ -152,8 +135,8 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                     </div>
 
                     {/* Phone */}
-                    <a href={config.phone ? `tel:${config.phone}` : "#"} className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                    <a href={config.phone ? `tel:${config.phone}` : "#"} className="flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                             <Phone className="w-7 h-7" />
                         </div>
                         <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "اتصل بنا" : "Call Us"}</h3>
@@ -218,7 +201,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                 <div className="px-5 w-full max-w-2xl mx-auto mt-16 pb-48 flex justify-center relative z-20">
                     <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true }} className="flex flex-col items-center gap-6 w-full">
                         <div className="text-xs font-bold uppercase tracking-widest opacity-50">{isAr ? "تواصل معنا" : "Connect With Us"}</div>
-                        <div className="flex flex-wrap justify-center gap-4 bg-black/5 dark:bg-white/5 p-4 rounded-full backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-inner">
+                        <div className="flex flex-wrap justify-center gap-4 bg-black/5 dark:bg-white/5 p-4 rounded-full border border-black/5 dark:border-white/10 shadow-sm">
                             {socialLinks.map((link, idx) => {
                                 const Icon = link.icon;
                                 return (
@@ -246,12 +229,11 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                 transition={{ delay: 0.6, duration: 0.8, type: "spring", stiffness: 100 }}
                 className="fixed bottom-0 left-0 right-0 p-6 z-50 flex justify-center pointer-events-none"
             >
-                {/* Backdrop blur behind the button area */}
-                <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black/80 via-black/40 to-transparent -z-10 pointer-events-none mix-blend-multiply dark:mix-blend-normal"></div>
+                <div className="absolute bottom-0 left-0 w-full h-40 bg-gradient-to-t from-black/20 to-transparent -z-10 pointer-events-none dark:from-black/80"></div>
                 
                 <button 
                     onClick={onContinue}
-                    className="w-full max-w-md py-4 md:py-5 rounded-full font-black text-lg md:text-xl text-white shadow-[0_8px_40px_rgb(0,0,0,0.3)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] hover:brightness-110 flex items-center justify-center gap-3 pointer-events-auto border border-white/20 backdrop-blur-sm overflow-hidden group"
+                    className="w-full max-w-md py-4 md:py-5 rounded-full font-black text-lg md:text-xl text-white shadow-[0_8px_40px_rgb(0,0,0,0.3)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] hover:brightness-110 flex items-center justify-center gap-3 pointer-events-auto border border-white/20 overflow-hidden group"
                     style={{ backgroundColor: primaryColor }}
                 >
                     <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:animate-[shimmer_1.5s_infinite]"></div>
