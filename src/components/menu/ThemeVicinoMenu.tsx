@@ -572,7 +572,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                 <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
                             </div>
 
-                            <div className="p-6 mt-0 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
+                            <div className="p-6 -mt-8 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
                                 {/* Title & Price Row */}
                                 <div className="flex flex-col mb-4">
                                     <h2 className="text-3xl font-black mb-2 leading-tight">{itemName(selectedItem.item)}</h2>
