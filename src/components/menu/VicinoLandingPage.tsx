@@ -114,13 +114,13 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center border border-white/10"
+                        className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center border-0"
                     >
                         {heroMedia.type === 'video' ? (
                             <video 
                                 src={heroMedia.src} 
                                 autoPlay muted loop playsInline controls={true}
-                                className="w-full h-auto max-h-[75vh] object-cover animate-[cinematicZoom_20s_ease-in-out_infinite]"
+                                className="w-full h-auto max-h-[75vh] object-cover block animate-[cinematicZoom_20s_ease-in-out_infinite]"
                             />
                         ) : (
                             <OptimizedMenuImage 

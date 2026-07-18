@@ -214,11 +214,11 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
 
             {/* --- HEADER --- */}
             <div className="px-5 pt-8 pb-4" style={{ backgroundColor: bgBody }}>
-                <div className="flex justify-between items-center mb-6">
-                    {/* Share button on the right side of the logo (left in LTR, right in RTL) */}
-                    <div className="flex gap-2">
+                <div className="flex justify-between items-start mb-6">
+                    {/* Share and Home buttons stacked vertically */}
+                    <div className="flex flex-col gap-2 shrink-0">
                         {config.vicino_landing_enabled && (
-                            <button onClick={() => setShowLandingPage(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-[#B8860B]/10 text-[#B8860B] transition-colors shadow-sm" title={isAr ? "الرئيسية" : "Home"}>
+                            <button onClick={() => window.location.reload()} className="w-10 h-10 rounded-full flex items-center justify-center bg-[#B8860B]/10 text-[#B8860B] transition-colors shadow-sm" title={isAr ? "الرئيسية" : "Home"}>
                                 <Home className="w-5 h-5" />
                             </button>
                         )}
@@ -226,7 +226,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                             <Share2 className="w-5 h-5" />
                         </button>
                     </div>
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center max-w-[60%]">
                         {(() => {
                             let parsedLogos = { light: config.vicino_logo_url, dark: config.vicino_logo_url };
                             if (config.vicino_logo_url?.startsWith('{')) {
@@ -247,13 +247,15 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                         )}
                     </div>
                     {/* Payment methods icon */}
-                    {config.payment_methods && config.payment_methods.length > 0 ? (
-                        <button onClick={() => setShowPaymentModal(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm text-green-600 dark:text-green-500 hover:scale-110" title={isAr ? "طرق الدفع" : "Payment Methods"}>
-                            <CreditCard className="w-5 h-5" />
-                        </button>
-                    ) : (
-                        <div className="w-10 h-10"></div>
-                    )}
+                    <div className="shrink-0 flex flex-col justify-start">
+                        {config.payment_methods && config.payment_methods.length > 0 ? (
+                            <button onClick={() => setShowPaymentModal(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm text-green-600 dark:text-green-500 hover:scale-110" title={isAr ? "طرق الدفع" : "Payment Methods"}>
+                                <CreditCard className="w-5 h-5" />
+                            </button>
+                        ) : (
+                            <div className="w-10 h-10"></div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Language Toggle */}
