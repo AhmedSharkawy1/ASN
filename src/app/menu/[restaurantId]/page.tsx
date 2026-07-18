@@ -180,6 +180,7 @@ function SmartMenuContent({
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [showLanding, setShowLanding] = useState(false);
+  const [showGlobalSplash, setShowGlobalSplash] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -216,6 +217,13 @@ function SmartMenuContent({
   // Submission State
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+
+  useEffect(() => {
+    if (showGlobalSplash) {
+      const timer = setTimeout(() => setShowGlobalSplash(false), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [showGlobalSplash]);
 
   useEffect(() => {
     const fetchPublicMenu = async () => {
@@ -266,8 +274,10 @@ function SmartMenuContent({
         if (previewTheme) restData.theme = previewTheme;
 
         setConfig(restData);
-        if (restData.vicino_landing_enabled) {
+        if (restData.vicino_landing_enabled && restData.theme === 'vicino') {
           setShowLanding(true);
+        } else if (restData.theme !== 'vicino') {
+          setShowGlobalSplash(true);
         }
 
         const { data: catsData } = await supabase
@@ -347,6 +357,31 @@ function SmartMenuContent({
         </div>
       </div>
     );
+  }
+
+  
+  if (showGlobalSplash && config?.theme !== "vicino") {
+      const primaryColor = config?.theme_colors?.primary || '#B8860B';
+      const isDark = config?.default_theme_mode === 'dark' || (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      
+      let parsedLogos = { light: config?.vicino_logo_url, dark: config?.vicino_logo_url };
+      if (config?.vicino_logo_url?.startsWith('{')) {
+          try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch {}
+      }
+      const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
+      const finalLogoSrc = currentLogo || config?.logo_url;
+
+      return (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center transition-colors duration-500" style={{ backgroundColor: isDark ? '#0a0a0a' : '#ffffff' }}>
+              <div className="relative w-40 h-40 md:w-56 md:h-56 flex items-center justify-center">
+                  <div className="absolute inset-0 rounded-full border-[3px] border-t-transparent animate-spin" style={{ borderColor: `${primaryColor}30`, borderTopColor: primaryColor }}></div>
+                  <div className="absolute inset-2 rounded-full border-[3px] border-b-transparent animate-[spin_3s_linear_infinite_reverse]" style={{ borderColor: `${primaryColor}10`, borderBottomColor: primaryColor }}></div>
+                  {finalLogoSrc && (
+                      <img src={finalLogoSrc} alt="Loading Logo" className="w-24 h-24 md:w-32 md:h-32 object-contain animate-pulse rounded-full" />
+                  )}
+              </div>
+          </div>
+      );
   }
 
   // If PizzaPasta theme, render the dedicated full-layout component
