@@ -313,8 +313,9 @@ export default function ThemePage() {
                 text: isArabic ? "تم حفظ التغييرات بنجاح! سيتم تحديث الصفحة..." : "Changes saved successfully! Reloading..."
             });
 
-            // Reload page to update the layout sidebar and current settings
+            // Clear message after 3 seconds
             setTimeout(() => {
+                setMessage(null);
                 window.location.reload();
             }, 1000);
         } catch (err) {

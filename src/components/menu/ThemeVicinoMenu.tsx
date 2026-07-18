@@ -552,18 +552,18 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                     <Share2 className="w-5 h-5" />
                                 </button>
                             </div>
-                            <button onClick={closeModal} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white pointer-events-auto">
+                        <button onClick={closeModal} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white pointer-events-auto">
                                 {isAr ? <ArrowRight className="w-5 h-5" /> : <ArrowLeft className="w-5 h-5" />}
                             </button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto pb-24">
                             {/* Image */}
-                            <div className="w-full h-[320px] relative pt-4">
+                            <div className="w-full h-[320px] relative">
                                 <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-contain" useOriginal={true} />
                             </div>
 
-                            <div className="p-6 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
+                            <div className="p-6 mt-0 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
                                 {/* Title & Price Row */}
                                 <div className="flex flex-col mb-4">
                                     <h2 className="text-3xl font-black mb-2 leading-tight">{itemName(selectedItem.item)}</h2>
