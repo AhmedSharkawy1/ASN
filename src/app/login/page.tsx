@@ -216,7 +216,7 @@ function LoginContent() {
 
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <Link href="/" className="flex items-center gap-4 group w-fit">
-                            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-white/20 shadow-xl bg-black/30 p-2 flex items-center justify-center transition-transform group-hover:scale-105">
+                            <div className="w-14 h-14 relative rounded-2xl overflow-hidden border border-white/20 shadow-xl bg-black/30 p-2 flex items-center justify-center transition-transform group-hover:scale-105">
                                 {resData?.logo ? (
                                     <img src={resData.logo} alt={resData.name} className="w-full h-full object-contain drop-shadow-md" />
                                 ) : (
@@ -263,7 +263,7 @@ function LoginContent() {
                 {/* Right Side: Form */}
                 <div className="w-full md:w-1/2 p-8 md:p-14 flex flex-col justify-center relative bg-gradient-to-br from-white/5 to-transparent">
                     <div className="md:hidden flex justify-between items-center mb-10">
-                        <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/20 shadow-xl bg-black/30 p-1">
+                        <div className="w-12 h-12 relative rounded-xl overflow-hidden border border-white/20 shadow-xl bg-black/30 p-1">
                             {resData?.logo ? (
                                 <img src={resData.logo} alt={resData.name} className="w-full h-full object-contain" />
                             ) : (
