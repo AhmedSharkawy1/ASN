@@ -309,13 +309,17 @@ export default function ThemePage() {
 
             if (error) throw error;
 
-            // Update local cache so that reload fetches the new theme immediately
-            const currentConfig = await posDb.settings.get('current_config');
-            if (currentConfig) {
-                await posDb.settings.put({
-                    ...currentConfig,
-                    theme: selectedTheme
-                });
+            try {
+                // Update local cache so that reload fetches the new theme immediately
+                const currentConfig = await posDb.settings.get('current_config');
+                if (currentConfig) {
+                    await posDb.settings.put({
+                        ...currentConfig,
+                        theme: selectedTheme
+                    });
+                }
+            } catch (cacheErr) {
+                console.warn("Could not update offline cache:", cacheErr);
             }
 
             setMessage({
