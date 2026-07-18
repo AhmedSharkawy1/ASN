@@ -97,9 +97,11 @@ export default function ThemeVicinoSettings() {
                     vicino_history_en: config.vicino_history_en,
                     vicino_images: config.vicino_images,
                 })
-                .eq("id", restaurantId);
+                .eq("id", restaurantId)
+                .select();
 
             if (error) throw error;
+            if (!data || data.length === 0) throw new Error("لم يتم تحديث أي بيانات. قد تكون هناك مشكلة في صلاحياتك (RLS).");
             toast.success(isAr ? "تم حفظ الإعدادات بنجاح" : "Settings saved successfully");
         } catch (err: any) {
             console.error("Error saving:", err);
