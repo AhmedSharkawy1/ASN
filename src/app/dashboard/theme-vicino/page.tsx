@@ -309,7 +309,7 @@ export default function ThemeVicinoSettings() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm mb-1">{isAr ? "فيديو صفحة الهبوط" : "Landing Page Video"}</label>
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-col gap-3">
                                 {config.vicino_video_url ? (
                                     <div className="relative w-full h-32 bg-black rounded-lg overflow-hidden border dark:border-zinc-800 flex items-center justify-center group">
                                         <video src={config.vicino_video_url} className="w-full h-full object-cover opacity-50" />
@@ -325,6 +325,17 @@ export default function ThemeVicinoSettings() {
                                         <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploadingVideo} />
                                     </label>
                                 )}
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-slate-500 whitespace-nowrap">{isAr ? "أو أدخل رابط الفيديو:" : "Or enter video URL:"}</span>
+                                    <input 
+                                        type="text" 
+                                        dir="ltr"
+                                        placeholder="https://..." 
+                                        value={config.vicino_video_url} 
+                                        onChange={(e) => setConfig({...config, vicino_video_url: e.target.value})} 
+                                        className="flex-1 px-3 py-2 text-sm border dark:border-zinc-800 rounded-lg bg-stone-50 dark:bg-[#111]"
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div className="col-span-1 md:col-span-2">
