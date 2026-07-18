@@ -243,6 +243,19 @@ export default function ThemeVicinoSettings() {
         setConfig({ ...config, vicino_images: newImages });
     };
 
+    const getEmbedUrl = (url: string) => {
+        if (!url) return null;
+        const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+        if (ytMatch && ytMatch[1]) {
+            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}`;
+        }
+        const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
+        if (vimeoMatch && vimeoMatch[1]) {
+            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1&muted=1&background=1`;
+        }
+        return null;
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -312,11 +325,20 @@ export default function ThemeVicinoSettings() {
                             <div className="flex flex-col gap-3">
                                 {config.vicino_video_url ? (
                                     <div className="relative w-full h-32 bg-black rounded-lg overflow-hidden border dark:border-zinc-800 flex items-center justify-center group">
-                                        <video src={config.vicino_video_url} className="w-full h-full object-cover opacity-50" />
-                                        <div className="absolute inset-0 flex items-center justify-center">
+                                        {getEmbedUrl(config.vicino_video_url) ? (
+                                            <iframe
+                                                src={getEmbedUrl(config.vicino_video_url)!}
+                                                className="w-full h-full block pointer-events-none opacity-50"
+                                                allow="autoplay; fullscreen"
+                                                style={{ border: 'none' }}
+                                            ></iframe>
+                                        ) : (
+                                            <video src={config.vicino_video_url} className="w-full h-full object-cover opacity-50" />
+                                        )}
+                                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                                             <FileVideo className="w-8 h-8 text-white" />
                                         </div>
-                                        <button onClick={() => setConfig({...config, vicino_video_url: ''})} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4"/></button>
+                                        <button onClick={() => setConfig({...config, vicino_video_url: ''})} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity z-10"><X className="w-4 h-4"/></button>
                                     </div>
                                 ) : (
                                     <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed dark:border-zinc-700 rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors">

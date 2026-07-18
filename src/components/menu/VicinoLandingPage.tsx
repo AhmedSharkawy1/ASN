@@ -52,8 +52,21 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
         }
     }, [showSplash]);
 
+    const getEmbedUrl = (url: string) => {
+        if (!url) return null;
+        const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+        if (ytMatch && ytMatch[1]) {
+            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}`;
+        }
+        const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
+        if (vimeoMatch && vimeoMatch[1]) {
+            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1&muted=1&background=1`;
+        }
+        return null;
+    };
+
     const heroMedia = config.vicino_video_url 
-        ? { type: 'video', src: config.vicino_video_url } 
+        ? { type: 'video', src: config.vicino_video_url, embed: getEmbedUrl(config.vicino_video_url) } 
         : (config.vicino_images?.[0] || config.cover_images?.[0] 
             ? { type: 'image', src: config.vicino_images?.[0] || config.cover_images?.[0] } 
             : null);
@@ -126,11 +139,21 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                         className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center border-0"
                     >
                         {heroMedia.type === 'video' ? (
-                            <video 
-                                src={heroMedia.src} 
-                                autoPlay muted loop playsInline controls={true}
-                                className="w-full h-auto max-h-[75vh] object-cover block animate-[cinematicZoom_20s_ease-in-out_infinite]"
-                            />
+                            heroMedia.embed ? (
+                                <iframe
+                                    src={heroMedia.embed}
+                                    className="w-full aspect-video max-h-[75vh] block pointer-events-none"
+                                    allow="autoplay; fullscreen; picture-in-picture"
+                                    allowFullScreen
+                                    style={{ border: 'none' }}
+                                ></iframe>
+                            ) : (
+                                <video 
+                                    src={heroMedia.src} 
+                                    autoPlay muted loop playsInline controls={true}
+                                    className="w-full h-auto max-h-[75vh] object-cover block animate-[cinematicZoom_20s_ease-in-out_infinite]"
+                                />
+                            )
                         ) : (
                             <OptimizedMenuImage 
                                 src={heroMedia.src} 
