@@ -414,7 +414,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                             onClick={() => openModal(item, catName(category), category.image_url)}
                                         >
                                             {/* Image container */}
-                                            <div className={`relative shrink-0 ${viewMode === 'list' ? 'h-24 w-24 rounded-2xl overflow-hidden' : 'h-[130px] w-full'}`}>
+                                            <div className={`relative shrink-0 ${viewMode === 'list' ? 'h-24 w-24 rounded-2xl overflow-hidden' : 'aspect-[4/3] w-full'}`}>
                                                 <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} />
                                                 {/* Special Offer Badge */}
                                                 {item.is_popular && (
@@ -526,9 +526,10 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                         animate={{ opacity: 1, y: 0 }} 
                         exit={{ opacity: 0, y: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        className="fixed inset-0 z-50 flex flex-col"
-                        style={{ backgroundColor: bgBody }}
+                        className="fixed inset-0 z-50 flex flex-col md:items-center md:justify-center md:bg-black/60 md:backdrop-blur-sm"
+                        style={{ backgroundColor: typeof window !== 'undefined' && window.innerWidth < 768 ? bgBody : undefined }}
                     >
+                        <div className="flex flex-col w-full h-full md:h-auto md:max-h-[90vh] md:max-w-2xl md:rounded-3xl overflow-hidden shadow-2xl relative" style={{ backgroundColor: bgBody }}>
                         {/* Header actions */}
                         <div className="absolute top-6 left-5 right-5 z-10 flex justify-between items-center pointer-events-none" dir={isAr ? 'rtl' : 'ltr'}>
                             <div className="flex gap-3 pointer-events-auto">
@@ -549,9 +550,9 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto pb-24">
+                        <div className="flex-1 overflow-y-auto">
                             {/* Image */}
-                            <div className="w-full h-[320px] relative">
+                            <div className="w-full h-[280px] md:h-[350px] shrink-0 relative">
                                 <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                             </div>
@@ -696,6 +697,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 )}
                             </div>
                         </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -759,6 +761,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 </div>
                             )}
                         </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -829,6 +832,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 )}
                             </div>
                         </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -918,6 +922,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 <p className="text-xs text-red-500 font-bold text-center">{isAr ? 'رقم الواتساب غير متوفر' : 'WhatsApp number is not available'}</p>
                             )}
                         </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -968,6 +973,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 ))}
                             </div>
                         </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
