@@ -43,12 +43,38 @@ export default function ThemeVicinoSettings() {
     useEffect(() => {
         const loadConfig = async () => {
             try {
-                const cached = await posDb.settings.get('current_config');
-                if (!cached?.restaurant_id) {
+                let rId = null;
+                try {
+                    const cached = await posDb.settings.get('current_config');
+                    if (cached?.restaurant_id) rId = cached.restaurant_id;
+                } catch (e) {
+                    console.warn("Could not read posDb cache:", e);
+                }
+
+                if (!rId) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user) {
+                        const imp = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
+                        if (imp) {
+                            rId = imp;
+                        } else {
+                            const { data: rest } = await supabase.from('restaurants').select('id').eq('email', user.email).maybeSingle();
+                            if (rest) {
+                                rId = rest.id;
+                            } else {
+                                const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).maybeSingle();
+                                if (staff) rId = staff.restaurant_id;
+                            }
+                        }
+                    }
+                }
+
+                if (!rId) {
+                    toast.error(isAr ? "تعذر تحميل بيانات المطعم. تأكد من اتصالك بالإنترنت." : "Could not load restaurant data.");
                     setLoading(false);
                     return;
                 }
-                const rId = cached.restaurant_id;
+                
                 setRestaurantId(rId);
 
                 const { data, error } = await supabase
