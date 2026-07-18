@@ -557,11 +557,38 @@ export default function SettingsPage() {
                                     className="w-full pl-11 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-green-500 outline-none transition-all text-base" placeholder="+201xxxxxxxxx" />
                             </div>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "عملة المطعم" : "Restaurant Currency"}</label>
-                            <input type="text" value={profile.currency || ''} onChange={e => setProfile({ ...profile, currency: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" placeholder={language === "ar" ? "مثال: ج.م، ر.س، درهم، $" : "e.g., EGP, SAR, AED, $"} />
-                        </div>
+                        {(() => {
+                            let currAr = profile.currency || '';
+                            let currEn = profile.currency || '';
+                            if (profile.currency?.startsWith('{')) {
+                                try {
+                                    const parsed = JSON.parse(profile.currency);
+                                    currAr = parsed.ar || '';
+                                    currEn = parsed.en || '';
+                                } catch {}
+                            }
+                            
+                            const updateCurrency = (lang: 'ar'|'en', value: string) => {
+                                const newVal = { ar: currAr, en: currEn };
+                                newVal[lang] = value;
+                                setProfile({ ...profile, currency: JSON.stringify(newVal) });
+                            };
+
+                            return (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "عملة المطعم (عربي)" : "Currency (Arabic)"}</label>
+                                        <input type="text" value={currAr} onChange={e => updateCurrency('ar', e.target.value)}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" placeholder="مثال: ج.م، ر.س" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "عملة المطعم (إنجليزي)" : "Currency (English)"}</label>
+                                        <input type="text" value={currEn} onChange={e => updateCurrency('en', e.target.value)} dir="ltr"
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" placeholder="e.g. EGP, SAR" />
+                                    </div>
+                                </>
+                            );
+                        })()}
                         <div className="space-y-2 md:col-span-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "أوقات العمل" : "Working Hours"}</label>
                             <input type="text" value={profile.working_hours || ''} onChange={e => setProfile({ ...profile, working_hours: e.target.value })}

@@ -84,7 +84,16 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
     const [currentLang, setCurrentLang] = useState<'ar'|'en'>((config.theme_colors?.default_language || config.default_language) === 'en' ? 'en' : 'ar');
     const isAr = currentLang === 'ar';
     const isDark = mounted && theme === 'dark';
-    const cur = config.currency || (isAr ? "ج.م" : "EGP");
+    
+    let parsedCurrency = { ar: "ج.م", en: "EGP" };
+    if (config.currency) {
+        if (config.currency.startsWith('{')) {
+            try { parsedCurrency = { ...parsedCurrency, ...JSON.parse(config.currency) }; } catch {}
+        } else {
+            parsedCurrency = { ar: config.currency, en: config.currency };
+        }
+    }
+    const cur = isAr ? parsedCurrency.ar : parsedCurrency.en;
 
     const T19_PRIMARY = '#B8860B'; // orange-500
     const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
