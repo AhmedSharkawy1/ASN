@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { parseCurrency } from '@/lib/currency';
 import React, { useMemo, useRef, useCallback } from 'react';
 import { getOriginalUrl } from '@/lib/imageUtils';
 import { logImageDebug, logImageFallback, logImageMount } from '@/lib/imageDebug';

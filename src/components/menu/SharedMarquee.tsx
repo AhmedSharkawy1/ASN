@@ -1,5 +1,6 @@
 "use client";
 
+import { parseCurrency } from '@/lib/currency';
 import React from 'react';
 import { motion } from 'framer-motion';
 

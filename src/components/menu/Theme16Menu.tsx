@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import SharedMarquee from './SharedMarquee';
@@ -129,7 +130,7 @@ type CartItem = {
 export default function Theme16Menu({ config, categories, restaurantId }: { config: RestaurantConfig, categories: CategoryWithItemsType[], restaurantId: string }) {
     // --- Configuration ---
     const isRTL = config.default_language !== 'en';
-    const cur = config.currency || 'ج.م';
+    const cur = parseCurrency(config?.currency, isAr);
     const primaryColor = config.theme_colors?.primary || '#af0a13';
     const secondaryColor = config.theme_colors?.secondary || '#9b0000';
     const bgColor = config.theme_colors?.background || '#f8f9fa';

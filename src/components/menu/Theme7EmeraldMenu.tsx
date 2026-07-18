@@ -3,6 +3,7 @@ import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +31,7 @@ const T7_BORDER = '#1e293b';   // subtle border
 export default function Theme7EmeraldMenu({ config, categories, restaurantId }: { config: any; categories: any[]; restaurantId: string }) {
     const { setTheme } = useTheme();
     const isAr = (config.language || 'ar') === 'ar';
-    const cur = config.currency || 'EGP';
+    const cur = parseCurrency(config?.currency, isAr);
 
     /* state */
 

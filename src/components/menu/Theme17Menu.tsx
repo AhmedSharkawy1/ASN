@@ -1,6 +1,7 @@
 "use client";
 import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 
+import { parseCurrency } from '@/lib/currency';
 import React, {  useState, useEffect, useRef  } from 'react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
@@ -107,7 +108,7 @@ type CartItem = {
 
 export default function Theme17Menu({ config, categories, restaurantId }: { config: RestaurantConfig, categories: Category[], restaurantId: string }) {
     const isRTL = config.default_language !== 'en';
-    const cur = config.currency || 'ج.م';
+    const cur = parseCurrency(config?.currency, isAr);
     const primaryColor = '#d32f2f'; // Lusha Red
 
     const [view, setView] = useState<'home' | 'menu'>('home');

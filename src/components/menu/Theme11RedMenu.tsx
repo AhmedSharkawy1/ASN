@@ -1,6 +1,7 @@
 'use client';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -76,7 +77,7 @@ export default function Theme11RedMenu({ config, categories, restaurantId }: The
 
     const isAr = config.default_language === 'ar' || true; // Defaulting to true for now since design is RTL primary
     const isDark = mounted && theme === 'dark';
-    const cur = config.currency || (isAr ? "ج.م" : "EGP");
+    const cur = parseCurrency(config?.currency, isAr);
 
     // Theme Variables - matching HTML
     const bgBody = isDark ? '#0f172a' : '#f8fafc'; // slate-900 / slate-50

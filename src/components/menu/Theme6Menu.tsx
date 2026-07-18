@@ -3,6 +3,7 @@ import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,7 +28,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
     const { theme, setTheme } = useTheme();
     const isDark = theme === 'dark';
     const isAr = (config.language || 'ar') === 'ar';
-    const cur = config.currency || 'EGP';
+    const cur = parseCurrency(config?.currency, isAr);
 
     /* ── state ── */
     const [activeSection, setActiveSection] = useState('');

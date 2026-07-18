@@ -1,3 +1,4 @@
+import { parseCurrency } from '@/lib/currency';
 import React from 'react';
 import { FaFacebook, FaInstagram } from "react-icons/fa";
 

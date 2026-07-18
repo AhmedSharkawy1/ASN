@@ -1,5 +1,6 @@
 "use client";
 import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';

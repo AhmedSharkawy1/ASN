@@ -2,6 +2,7 @@
 'use client';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -82,7 +83,7 @@ export default function Theme13EmeraldMenu({ config, categories, restaurantId }:
 
     const isAr = config.default_language === 'ar' || true; // Defaulting to true for now since design is RTL primary
     const isDark = mounted && theme === 'dark';
-    const cur = config.currency || 'ج.م';
+    const cur = parseCurrency(config?.currency, isAr);
 
     // Theme Variables - matching Theme 13 CSS
     const primaryColor = config.theme_colors?.primary || T13_PRIMARY;

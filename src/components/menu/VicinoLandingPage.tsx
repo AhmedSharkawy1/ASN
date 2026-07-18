@@ -1,4 +1,5 @@
 import { getVicinoColors } from '@/lib/vicinoVariants';
+import { parseCurrency } from '@/lib/currency';
 import React from 'react';
 import { useTheme } from 'next-themes';
 import { ArrowRight, MapPin, Phone, Clock, Instagram, Facebook, Youtube } from 'lucide-react';

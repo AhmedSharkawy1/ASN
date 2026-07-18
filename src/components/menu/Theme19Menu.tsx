@@ -1,6 +1,7 @@
 'use client';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,7 +85,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
     const [currentLang, setCurrentLang] = useState<'ar'|'en'>(config.default_language === 'en' ? 'en' : 'ar');
     const isAr = currentLang === 'ar';
     const isDark = mounted && theme === 'dark';
-    const cur = config.currency || (isAr ? "ج.م" : "EGP");
+    const cur = parseCurrency(config?.currency, isAr);
 
     const T19_PRIMARY = '#f97316'; // orange-500
     const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
