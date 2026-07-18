@@ -7,7 +7,7 @@ const BUCKET_NAME = 'menu-images';
  * Max width: 1600px. Quality: 85% (Ensures high quality while maintaining reasonable file size).
  * Falls back to original if conversion fails or runs outside browser.
  */
-async function convertToWebP(file: File | Blob, maxWidth = 1600, quality = 0.85): Promise<Blob> {
+async function convertToWebP(file: File | Blob, maxWidth = 1600, quality = 0.75): Promise<Blob> {
     return new Promise((resolve) => {
         // If not in browser, return as-is
         if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -178,7 +178,7 @@ export async function uploadImageWithThumb(file: File | Blob, customPath: string
         let uploadBlob: Blob = file;
         try {
             // Compress client-side first to avoid Next.js / Vercel 4.5MB payload limit
-            // Use 1600px and 0.85 quality to balance high quality and smaller storage size since backend Sharp is bypassed
+            // Use 1600px and 0.75 quality to balance high quality and smaller storage size since backend Sharp is bypassed
             uploadBlob = await convertToWebP(file, 1600, 0.85);
         } catch (convErr) {
             console.warn('WebP pre-compression failed, uploading original:', convErr);
