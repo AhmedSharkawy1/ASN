@@ -37,6 +37,7 @@ const Theme17Menu = dynamic(() => import("@/components/menu/Theme17Menu"));
 const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
 const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
 const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
+const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
 const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
@@ -178,6 +179,7 @@ function SmartMenuContent({
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
+  const [showLanding, setShowLanding] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -264,6 +266,9 @@ function SmartMenuContent({
         if (previewTheme) restData.theme = previewTheme;
 
         setConfig(restData);
+        if (restData.vicino_landing_enabled) {
+          setShowLanding(true);
+        }
 
         const { data: catsData } = await supabase
           .from("categories")
@@ -449,6 +454,10 @@ function SmartMenuContent({
   if (config?.theme === "theme16") {
     return <Theme16Menu config={config} categories={categories} restaurantId={config.id} />;
   }
+  if (showLanding) {
+    return <VicinoLandingPage config={config} onContinue={() => setShowLanding(false)} />;
+  }
+
   // If Theme 17 (Lusha Theme)
   if (config?.theme === "theme17") {
     return <Theme17Menu config={config} categories={categories} restaurantId={config.id} />;
