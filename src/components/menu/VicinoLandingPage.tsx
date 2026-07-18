@@ -34,6 +34,10 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
     const T19_PRIMARY = '#B8860B';
     const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
 
+    const displayNumbers = (config.phone_numbers && config.phone_numbers.length > 0) 
+        ? config.phone_numbers 
+        : (config.phone ? [{ label: isAr ? 'رقم الاتصال' : 'Contact Number', number: config.phone }] : []);
+
     let parsedLogos = { light: config.vicino_logo_url, dark: config.vicino_logo_url };
     if (config.vicino_logo_url?.startsWith('{')) {
         try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch {}
@@ -165,10 +169,8 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                     <button 
                         onClick={(e) => {
                             e.preventDefault();
-                            if (config.phone_numbers && config.phone_numbers.length > 0) {
+                            if (displayNumbers.length > 0) {
                                 setShowPhoneModal(true);
-                            } else if (config.phone) {
-                                window.location.href = `tel:${config.phone}`;
                             }
                         }}
                         className="w-full flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" 
@@ -179,9 +181,9 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                         </div>
                         <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "اتصل بنا" : "Call Us"}</h3>
                         <p className="text-sm text-center font-medium opacity-70 line-clamp-2 leading-relaxed" dir="ltr" style={{ color: textMuted }}>
-                            {config.phone_numbers && config.phone_numbers.length > 0 
-                                ? config.phone_numbers.map((p: any) => p.number).join(' • ') 
-                                : (config.phone || (isAr ? "اتصال" : "Call Now"))}
+                            {displayNumbers.length > 0 
+                                ? displayNumbers.map((p: any) => p.number).join(' • ') 
+                                : (isAr ? "اتصال" : "Call Now")}
                         </p>
                     </button>
                 </motion.div>
@@ -297,6 +299,43 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                     100% { transform: scale(1); }
                 }
             `}} />
+
+            {/* Local Phone Modal */}
+            <AnimatePresence>
+                {showPhoneModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+                    onClick={() => setShowPhoneModal(false)}>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] border border-zinc-200 dark:border-white/10"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="px-5 pb-4 pt-5 flex items-center justify-between border-b border-zinc-100 dark:border-white/5" dir={isAr ? 'rtl' : 'ltr'}>
+                                <h3 className="text-lg font-black text-zinc-900 dark:text-white">{isAr ? 'أرقام الاتصال' : 'Phone Numbers'}</h3>
+                                <button onClick={() => setShowPhoneModal(false)} className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 active:scale-90 transition-transform">
+                                    <span className="text-lg">✕</span>
+                                </button>
+                            </div>
+                            <div className="p-4 overflow-y-auto space-y-3 pb-safe">
+                                {displayNumbers.length > 0 ? (
+                                    displayNumbers.map((pn: any, i: number) => (
+                                        <a key={i} href={`tel:${pn.number}`} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700/50 rounded-2xl active:scale-[0.97] transition-transform" dir="rtl">
+                                            <div className="flex flex-col text-right">
+                                                <span className="text-[17px] font-black text-rose-600 dark:text-rose-500" dir={isAr ? 'rtl' : 'ltr'}>
+                                                    {pn.label ? pn.label : pn.number}
+                                                </span>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center shadow-sm text-lg border border-zinc-100 dark:border-white/5">📞</div>
+                                        </a>
+                                    ))
+                                ) : null}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
