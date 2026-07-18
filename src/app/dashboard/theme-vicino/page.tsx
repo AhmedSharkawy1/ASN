@@ -83,7 +83,7 @@ export default function ThemeVicinoSettings() {
 
                 const { data, error } = await supabase
                     .from("restaurants")
-                    .select("vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images, theme_colors, default_language")
+                    .select("vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images, theme_colors")
                     .eq("id", rId)
                     .single();
 
@@ -99,7 +99,7 @@ export default function ThemeVicinoSettings() {
                         vicino_history_en: data.vicino_history_en || "",
                         vicino_images: data.vicino_images || [],
                         theme_colors: data.theme_colors || {},
-                        default_language: data.default_language || "ar",
+                        default_language: data.theme_colors?.default_language || "ar",
                     });
                 }
             } catch (err: any) {
@@ -128,8 +128,7 @@ export default function ThemeVicinoSettings() {
                     vicino_history_ar: config.vicino_history_ar,
                     vicino_history_en: config.vicino_history_en,
                     vicino_images: config.vicino_images,
-                    theme_colors: config.theme_colors,
-                    default_language: config.default_language || "ar",
+                    theme_colors: { ...config.theme_colors, default_language: config.default_language || "ar" },
                 })
                 .eq("id", restaurantId)
                 .select();

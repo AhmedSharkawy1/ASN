@@ -81,7 +81,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const [currentLang, setCurrentLang] = useState<'ar'|'en'>(config.default_language === 'en' ? 'en' : 'ar');
+    const [currentLang, setCurrentLang] = useState<'ar'|'en'>((config.theme_colors?.default_language || config.default_language) === 'en' ? 'en' : 'ar');
     const isAr = currentLang === 'ar';
     const isDark = mounted && theme === 'dark';
     const cur = config.currency || (isAr ? "ج.م" : "EGP");
