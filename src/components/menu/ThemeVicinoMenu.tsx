@@ -2,6 +2,7 @@
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
 import { getVicinoColors } from '@/lib/vicinoVariants';
+import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -86,15 +87,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
     const isAr = currentLang === 'ar';
     const isDark = mounted && theme === 'dark';
     
-    let parsedCurrency = { ar: "ج.م", en: "EGP" };
-    if (config.currency) {
-        if (config.currency.startsWith('{')) {
-            try { parsedCurrency = { ...parsedCurrency, ...JSON.parse(config.currency) }; } catch {}
-        } else {
-            parsedCurrency = { ar: config.currency, en: config.currency };
-        }
-    }
-    const cur = isAr ? parsedCurrency.ar : parsedCurrency.en;
+    const cur = parseCurrency(config?.currency, isAr);
 
     const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor } = getVicinoColors(config, isDark);
 
