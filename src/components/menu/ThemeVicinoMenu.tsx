@@ -794,7 +794,6 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                 </div>
                             )}
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -865,7 +864,6 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                 )}
                             </div>
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -955,7 +953,6 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                 <p className="text-xs text-red-500 font-bold text-center">{isAr ? 'رقم الواتساب غير متوفر' : 'WhatsApp number is not available'}</p>
                             )}
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1006,7 +1003,6 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                 ))}
                             </div>
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

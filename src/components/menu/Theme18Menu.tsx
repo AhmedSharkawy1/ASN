@@ -756,7 +756,6 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 </div>
                             )}
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -827,7 +826,6 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 )}
                             </div>
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -878,7 +876,6 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                 ))}
                             </div>
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>

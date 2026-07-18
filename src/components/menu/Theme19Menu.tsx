@@ -761,7 +761,6 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 </div>
                             )}
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -832,7 +831,6 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 )}
                             </div>
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -922,7 +920,6 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 <p className="text-xs text-red-500 font-bold text-center">{isAr ? 'رقم الواتساب غير متوفر' : 'WhatsApp number is not available'}</p>
                             )}
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -973,7 +970,6 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 ))}
                             </div>
                         </motion.div>
-                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
