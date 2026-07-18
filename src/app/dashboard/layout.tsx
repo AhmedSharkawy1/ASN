@@ -561,7 +561,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/printer", icon: Printer, labelAr: "إعدادات الطابعة", labelEn: "Printer", key: "printer" },
                 { href: "/dashboard/branches", icon: Store, labelAr: "الفروع", labelEn: "Branches", key: "branches" },
                 { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", key: "theme" },
-                ...(tenantTheme?.toLowerCase().includes("vicino") ? [{ href: "/dashboard/theme-vicino", icon: Palette, labelAr: "تعديل الصفحة الرئيسية (Vicino)", labelEn: "Vicino Landing Page Settings", key: "theme_vicino" }] : []),
+                ...(tenantTheme?.toLowerCase()?.includes("vicino") ? [{ href: "/dashboard/theme-vicino", icon: Palette, labelAr: "تعديل الصفحة الرئيسية (Vicino)", labelEn: "Vicino Landing Page Settings", key: "theme_vicino" }] : []),
                 ...(!isDesktopApp ? [{ href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "qr" }] : []),
                 { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "settings_page" },
             ]
