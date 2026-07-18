@@ -16,10 +16,16 @@ interface VicinoLandingPageProps {
 }
 
 export default function VicinoLandingPage({ config, onContinue }: VicinoLandingPageProps) {
-    const { resolvedTheme } = useTheme();
+    const { resolvedTheme, setTheme } = useTheme();
     const [currentLang, setCurrentLang] = React.useState<'ar'|'en'>((config.theme_colors?.default_language || config.default_language) === 'en' ? 'en' : 'ar');
     const isAr = currentLang === 'ar';
     
+    React.useEffect(() => {
+        if (config.default_theme_mode && config.default_theme_mode !== 'system') {
+            setTheme(config.default_theme_mode);
+        }
+    }, [config.default_theme_mode, setTheme]);
+
     const isDark = resolvedTheme === 'dark';
     const bgBody = isDark ? '#0a0a0a' : '#ffffff';
     const textMain = isDark ? '#ffffff' : '#0a0a0a';
@@ -137,7 +143,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
             <div className="px-5 max-w-4xl mx-auto w-full relative z-20 mb-12">
                 <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Location */}
-                    <a href={config.map_link || "#"} target={config.map_link ? "_blank" : undefined} rel="noreferrer" className="flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                    <a href={config.map_link || (config.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config.address)}` : "#")} target={(config.map_link || config.address) ? "_blank" : undefined} rel="noreferrer" className="flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
                         <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                             <MapPin className="w-7 h-7" />
                         </div>

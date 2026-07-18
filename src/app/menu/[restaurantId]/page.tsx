@@ -1484,9 +1484,7 @@ export default function SmartMenuPage({
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
-          <div className="w-16 h-16 border-4 border-blue border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <div className="min-h-screen bg-background"></div>
       }
     >
       <SmartMenuContent params={params} />
