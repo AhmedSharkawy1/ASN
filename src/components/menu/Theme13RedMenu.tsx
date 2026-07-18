@@ -674,7 +674,7 @@ export default function Theme13RedMenu({ config, categories, restaurantId }: The
                                 {selectedItem.item.prices.length > 1 && (
                                     <div>
                                         <h3 className="font-bold text-sm mb-3 text-[--text-muted]" style={{ '--text-muted': textMuted } as React.CSSProperties}>{isAr ? 'اختر الحجم' : 'Select Size'}</h3>
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                                             {selectedItem.item.prices.map((p, idx) => {
                                                 const label = selectedItem.item.size_labels?.[idx] || (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`);
                                                 return (

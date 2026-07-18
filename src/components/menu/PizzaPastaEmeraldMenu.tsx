@@ -575,7 +575,7 @@ export default function PizzaPastaEmeraldMenu({ config, categories, language, re
                             <div className="flex-1 overflow-y-auto p-6 space-y-8" style={{ scrollbarWidth: "none" }}>
                                 <div>
                                     <h4 className="text-[11px] font-black text-right mb-4 text-zinc-400 uppercase tracking-widest">{isAr ? "اختر الحجم" : "Select Size"}</h4>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                                         {(selectedItem.item.prices?.length > 0 ? selectedItem.item.prices : [0]).map((p, idx) => (
                                             <button
                                                 key={idx}

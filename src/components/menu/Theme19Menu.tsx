@@ -405,7 +405,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                         return (
                             <div key={category.id} id={category.id.toString()} className="mb-8 pt-2">
                                 <h3 className="font-bold text-lg mb-4" style={{ color: primaryColor }}>{catName(category)}</h3>
-                                <div className={viewMode === 'grid' ? "grid grid-cols-2 gap-3" : "flex flex-col gap-3"}>
+                                <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4" : "flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"}>
                                     {items.map((item) => (
                                         <div 
                                             key={item.id} 
@@ -578,7 +578,7 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 {selectedItem.item.prices && selectedItem.item.prices.length > 1 && (
                                     <div className="mb-6">
                                         <label className="text-sm font-bold mb-3 block">{isAr ? 'اختر الحجم' : 'Choose Size'}</label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
                                             {selectedItem.item.prices.map((p, idx) => {
                                                 const label = selectedItem.item.size_labels?.[idx] || (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`);
                                                 const isSelected = sizeIdx === idx;

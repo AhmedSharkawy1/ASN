@@ -582,7 +582,7 @@ export default function Theme10SkyMenu({ config, categories, restaurantId }: The
                                             <List className="w-4 h-4 text-slate-400" />
                                             {isAr ? 'اختر الحجم' : 'Select Size'}
                                         </h3>
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                                             {selectedItem.item.prices.map((p, idx) => {
                                                 const label = selectedItem.item.size_labels?.[idx] || (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`);
                                                 return (

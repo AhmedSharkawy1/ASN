@@ -486,7 +486,7 @@ export default function Theme6EmeraldMenu({ config, categories, restaurantId }: 
 
                                 {/* size options */}
                                 {selectedItem.item.prices.length > 1 && (
-                                    <div className="flex flex-col gap-3">
+                                    <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                                         <h3 className="font-bold text-sm flex items-center gap-1 justify-end" style={{ color: T6 }}>
                                             {isAr ? 'اختر' : 'Choose'} <span className="text-lg">👇</span>
                                         </h3>

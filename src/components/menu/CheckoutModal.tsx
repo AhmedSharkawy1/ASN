@@ -531,7 +531,7 @@ export default function CheckoutModal({
                         <>
                             {/* Show order type buttons only if both are enabled */}
                             {pickupEnabled && deliveryEnabled && (
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                                 <button
                                     onClick={() => setOrderType('delivery')}
                                     className={`flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all ${orderType === 'delivery'

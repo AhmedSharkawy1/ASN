@@ -941,7 +941,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                         </div>
                         <div className="flex-1 overflow-y-auto bg-[#fffdfd] p-4">
                             {searchQuery.trim().length > 0 ? (
-                                <div className="flex flex-col gap-3">
+                                <div className="flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                                     {categories.flatMap(c => c.items.map(i => ({...i, catName: catName(c), catImage: c.image_url})))
                                         .filter(i => i.is_available !== false && itemName(i).toLowerCase().includes(searchQuery.toLowerCase()))
                                         .map((item, idx) => (

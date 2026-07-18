@@ -531,7 +531,7 @@ export default function AtyabOrientalCyanMenu({ config, categories, language, re
                                     </div>
                                 )}
                                 <h4 className="text-sm font-black text-right mb-4 opacity-70 uppercase tracking-widest">{isAr ? "اختر الحجم / السعر" : "Select Size / Variation"}</h4>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
                                     {(selectedItem.item.prices.length > 0 ? selectedItem.item.prices : [0]).map((p, idx) => (
                                         <button key={idx} onClick={() => { setTempSizeIdx(idx); haptic(5); }}
                                             className={`p-4 rounded-3xl border-2 transition-all flex flex-col items-center gap-1 ${tempSizeIdx === idx ? "border-[#0891b2] bg-[#0891b2]/10" : "border-transparent bg-zinc-100 dark:bg-white/5"}`}>
