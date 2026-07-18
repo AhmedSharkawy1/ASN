@@ -229,7 +229,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                     </div>
                     <div className="flex flex-col items-center">
                         {config.logo_url && (
-                            <OptimizedMenuImage src={config.vicino_logo_url || config.logo_url} alt={config.name} className="h-32 w-32 rounded-3xl object-contain shadow-sm mb-4 bg-white/10 p-2" useOriginal={true} />
+                            <OptimizedMenuImage src={config.vicino_logo_url || config.logo_url} alt={config.name} className="h-24 w-24 rounded-3xl object-contain shadow-sm mb-4 bg-white/10 p-2" useOriginal={true} />
                         )}
                         <h1 className="text-xl font-black text-center">{config.name}</h1>
                         {(config.slogan_ar || config.slogan_en) && (
@@ -559,12 +559,11 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
 
                         <div className="flex-1 overflow-y-auto pb-24">
                             {/* Image */}
-                            <div className="w-full h-[320px] relative">
+                            <div className="w-full h-[320px] relative pt-4">
                                 <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-contain" useOriginal={true} />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                             </div>
 
-                            <div className="p-6 -mt-8 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
+                            <div className="p-6 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
                                 {/* Title & Price Row */}
                                 <div className="flex flex-col mb-4">
                                     <h2 className="text-3xl font-black mb-2 leading-tight">{itemName(selectedItem.item)}</h2>

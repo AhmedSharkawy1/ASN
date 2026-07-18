@@ -310,11 +310,13 @@ export default function ThemePage() {
 
             setMessage({
                 type: 'success',
-                text: isArabic ? "تم حفظ التغييرات بنجاح!" : "Changes saved successfully!"
+                text: isArabic ? "تم حفظ التغييرات بنجاح! سيتم تحديث الصفحة..." : "Changes saved successfully! Reloading..."
             });
 
-            // Clear message after 3 seconds
-            setTimeout(() => setMessage(null), 3000);
+            // Reload page to update the layout sidebar and current settings
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } catch (err) {
             console.error("Error saving theme:", err);
             setMessage({
