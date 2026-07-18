@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,7 +74,7 @@ class OrderNotificationService {
 
     AppLogger.info('New order received: $orderId', name: 'OrderNotification');
 
-    const androidDetails = AndroidNotificationDetails(
+    final androidDetails = AndroidNotificationDetails(
       'orders_channel',
       'New Orders',
       channelDescription: 'Notifications for new incoming orders',
@@ -81,6 +82,15 @@ class OrderNotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
+      color: const Color(0xFF00B4D8), // Teal primary color
+      ledColor: const Color(0xFF00B4D8),
+      ledOnMs: 1000,
+      ledOffMs: 500,
+      styleInformation: BigTextStyleInformation(
+        'طلب جديد من $customerName بقيمة $total جنيه',
+        contentTitle: 'طلب جديد! 🚀',
+        summaryText: 'يوجد طلب جديد في الانتظار',
+      ),
     );
     
     const iosDetails = DarwinNotificationDetails(
@@ -89,7 +99,7 @@ class OrderNotificationService {
       presentSound: true,
     );
     
-    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+    final details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
     await _localNotifications.show(
       id: newOrder['id']?.hashCode ?? 0,

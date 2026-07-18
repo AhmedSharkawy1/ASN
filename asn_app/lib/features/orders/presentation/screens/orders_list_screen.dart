@@ -9,6 +9,7 @@ import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart'
 import 'package:asn_app/features/orders/domain/entities/order_entity.dart';
 import 'package:asn_app/features/orders/presentation/providers/orders_provider.dart';
 import 'package:asn_app/shared/presentation/widgets/app_navigation_drawer.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrdersListScreen extends ConsumerStatefulWidget {
   const OrdersListScreen({super.key});
@@ -426,13 +427,31 @@ class _OrderDetailsWidget extends ConsumerWidget {
               ),
             ),
             const Divider(height: 32),
+            if (order.customerPhone != null && order.customerPhone!.isNotEmpty) ...[
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final url = Uri.parse('tel:${order.customerPhone}');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  }
+                },
+                icon: const Icon(Icons.phone, size: 18),
+                label: const Text('اتصل بالعميل'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: const BorderSide(color: AppColors.tealPrimary),
+                  foregroundColor: AppColors.tealPrimary,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                ),
+              ),
+              AppSpacing.heightSm,
+            ],
             _buildActionButtons(context, ref),
           ],
         ),
       ),
     );
   }
-
   Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(ordersNotifierProvider.notifier);
 

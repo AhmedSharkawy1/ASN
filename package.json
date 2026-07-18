@@ -4,11 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@img/sharp-linux-x64": "^0.35.1",
     "@supabase/supabase-js": "^2.99.1",
     "@vladmandic/face-api": "^1.7.15",
     "clsx": "^2.1.1",
@@ -25,7 +26,6 @@
     "react-dom": "^18",
     "react-icons": "^5.5.0",
     "sharp": "^0.35.1",
-    "@img/sharp-linux-x64": "^0.35.1",
     "sonner": "^2.0.7",
     "swiper": "^12.1.2",
     "tailwind-merge": "^3.5.0",
@@ -35,6 +35,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "cross-env": "^10.1.0",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
     "postcss": "^8",

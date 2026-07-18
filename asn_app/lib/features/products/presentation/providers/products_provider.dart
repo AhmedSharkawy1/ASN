@@ -55,6 +55,62 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
       throw Exception('Failed to update: $e');
     }
   }
+  Future<void> addProduct(String name, double price, String? description, String? imageUrl, bool isAvailable) async {
+    final authState = ref.read(authNotifierProvider);
+    final restaurantId = authState.maybeWhen(
+      authenticated: (user) => user.restaurantId,
+      orElse: () => null,
+    );
+
+    if (restaurantId == null) throw Exception('User not authenticated or missing restaurant ID');
+
+    try {
+      await SupabaseClientManager.client.from('products').insert({
+        'tenant_id': restaurantId,
+        'name': name,
+        'price': price,
+        'description': description,
+        'image_url': imageUrl,
+        'is_available': isAvailable,
+      });
+      await refresh();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to add product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      throw Exception('Failed to add product: $e');
+    }
+  }
+
+  Future<void> updateProduct(String productId, String name, double price, String? description, String? imageUrl, bool isAvailable) async {
+    try {
+      await SupabaseClientManager.client
+          .from('products')
+          .update({
+            'name': name,
+            'price': price,
+            'description': description,
+            'image_url': imageUrl,
+            'is_available': isAvailable,
+          })
+          .eq('id', productId);
+      await refresh();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to update product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      throw Exception('Failed to update product: $e');
+    }
+  }
+
+  Future<void> deleteProduct(String productId) async {
+    try {
+      await SupabaseClientManager.client
+          .from('products')
+          .delete()
+          .eq('id', productId);
+      await refresh();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to delete product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      throw Exception('Failed to delete product: $e');
+    }
+  }
 }
 
 final productsNotifierProvider = NotifierProvider<ProductsNotifier, AsyncValue<List<ProductModel>>>(() {

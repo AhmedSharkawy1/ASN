@@ -97,7 +97,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/pos',
-        builder: (context, state) => const PosScreen(),
+        builder: (context, state) => const POSScreen(),
       ),
       GoRoute(
         path: '/kitchen',
