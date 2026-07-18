@@ -1,7 +1,7 @@
 name: iOS Build (Unsigned IPA)
 
 on:
-  workflow_dispatch: # Allows you to manually trigger the build from GitHub
+  workflow_dispatch:
 
 jobs:
   build_ios:
@@ -21,6 +21,15 @@ jobs:
       - name: Install dependencies
         working-directory: ./asn_app
         run: flutter pub get
+
+      - name: Clean previous build artifacts
+        working-directory: ./asn_app
+        run: flutter clean && flutter pub get
+
+      - name: Set iOS deployment target to 15.0
+        working-directory: ./asn_app
+        run: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = 13.0/IPHONEOS_DEPLOYMENT_TARGET = 15.0/g' ios/Runner.xcodeproj/project.pbxproj
 
       - name: Build iOS (No Codesign)
         working-directory: ./asn_app
