@@ -155,13 +155,28 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                     </div>
 
                     {/* Phone */}
-                    <a href={config.phone ? `tel:${config.phone}` : "#"} className="flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                    <button 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            if (config.phone_numbers && config.phone_numbers.length > 0) {
+                                document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers }));
+                            } else if (config.phone) {
+                                window.location.href = `tel:${config.phone}`;
+                            }
+                        }}
+                        className="w-full flex flex-col items-center p-6 rounded-[2rem] shadow-sm bg-black/5 dark:bg-white/5 border transition-all duration-300 hover:-translate-y-2 hover:shadow-lg" 
+                        style={{ borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}
+                    >
                         <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                             <Phone className="w-7 h-7" />
                         </div>
                         <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "اتصل بنا" : "Call Us"}</h3>
-                        <p className="text-sm text-center font-medium opacity-70 line-clamp-2" dir="ltr" style={{ color: textMuted }}>{config.phone || (isAr ? "اتصال" : "Call Now")}</p>
-                    </a>
+                        <p className="text-sm text-center font-medium opacity-70 line-clamp-2 leading-relaxed" dir="ltr" style={{ color: textMuted }}>
+                            {config.phone_numbers && config.phone_numbers.length > 0 
+                                ? config.phone_numbers.map((p: any) => p.number).join(' • ') 
+                                : (config.phone || (isAr ? "اتصال" : "Call Now"))}
+                        </p>
+                    </button>
                 </motion.div>
             </div>
 
