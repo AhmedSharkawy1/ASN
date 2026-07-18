@@ -47,9 +47,9 @@ export default function StarsBackground() {
     return (
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-[#020617]">
             {/* Nebula Layer — pure CSS, no JS animations */}
-            <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-indigo-900/30 blur-[150px] mix-blend-screen animate-nebula1" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-fuchsia-900/20 blur-[120px] mix-blend-screen animate-nebula2" />
-            <div className="absolute top-[30%] left-[30%] w-[50vw] h-[50vw] rounded-full bg-blue-900/40 blur-[180px] mix-blend-screen animate-nebula3" />
+            <div className="hidden md:block absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-indigo-900/30 blur-[150px] mix-blend-screen animate-nebula1" />
+            <div className="hidden md:block absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-fuchsia-900/20 blur-[120px] mix-blend-screen animate-nebula2" />
+            <div className="hidden md:block absolute top-[30%] left-[30%] w-[50vw] h-[50vw] rounded-full bg-blue-900/40 blur-[180px] mix-blend-screen animate-nebula3" />
 
             {/* Stars — pure CSS twinkle */}
             {stars.map((star) => (

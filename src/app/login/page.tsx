@@ -192,8 +192,8 @@ function LoginContent() {
         <main className="min-h-screen bg-[#020817] relative flex items-center justify-center p-4 sm:p-8 overflow-hidden font-sans" dir={isAr ? "rtl" : "ltr"}>
             {/* Cinematic Background */}
             <div className="absolute inset-0 z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-teal-600/20 rounded-full blur-[120px] mix-blend-screen opacity-50 animate-pulse-slow" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40vw] h-[40vw] bg-emerald-600/20 rounded-full blur-[100px] mix-blend-screen opacity-50" />
+                <div className="absolute top-[-10%] left-[-10%] w-[80vw] h-[80vw] md:w-[50vw] md:h-[50vw] bg-teal-600/20 rounded-full blur-[60px] md:blur-[120px] mix-blend-screen opacity-50 animate-pulse-slow" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[80vw] h-[80vw] md:w-[40vw] md:h-[40vw] bg-emerald-600/20 rounded-full blur-[60px] md:blur-[100px] mix-blend-screen opacity-50" />
                 <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
             </div>
 
@@ -207,7 +207,7 @@ function LoginContent() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full max-w-[1000px] relative z-10 flex flex-col md:flex-row min-h-[600px] rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(2,20,30,0.5)] border border-white/10 bg-black/40 backdrop-blur-2xl"
+                className="w-full max-w-[1000px] relative z-10 flex flex-col md:flex-row min-h-[600px] rounded-3xl overflow-hidden shadow-[0_0_40px_rgba(2,20,30,0.5)] md:shadow-[0_0_80px_rgba(2,20,30,0.5)] border border-white/10 bg-black/40 backdrop-blur-md md:backdrop-blur-2xl"
             >
                 {/* Left Side: Branding */}
                 <div className="hidden md:flex flex-col w-1/2 p-12 relative overflow-hidden bg-gradient-to-br from-teal-900/40 to-emerald-900/40 border-r border-white/5">
