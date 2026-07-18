@@ -18,6 +18,7 @@ interface VicinoConfig {
     vicino_history_en: string;
     vicino_images: string[];
     theme_colors: any;
+    default_language: string;
 }
 
 export default function ThemeVicinoSettings() {
@@ -40,6 +41,7 @@ export default function ThemeVicinoSettings() {
         vicino_history_en: "",
         vicino_images: [],
         theme_colors: {},
+        default_language: "ar",
     });
 
     useEffect(() => {
@@ -81,7 +83,7 @@ export default function ThemeVicinoSettings() {
 
                 const { data, error } = await supabase
                     .from("restaurants")
-                    .select("vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images, theme_colors")
+                    .select("vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images, theme_colors, default_language")
                     .eq("id", rId)
                     .single();
 
@@ -97,6 +99,7 @@ export default function ThemeVicinoSettings() {
                         vicino_history_en: data.vicino_history_en || "",
                         vicino_images: data.vicino_images || [],
                         theme_colors: data.theme_colors || {},
+                        default_language: data.default_language || "ar",
                     });
                 }
             } catch (err: any) {
@@ -126,6 +129,7 @@ export default function ThemeVicinoSettings() {
                     vicino_history_en: config.vicino_history_en,
                     vicino_images: config.vicino_images,
                     theme_colors: config.theme_colors,
+                    default_language: config.default_language || "ar",
                 })
                 .eq("id", restaurantId)
                 .select();
@@ -284,6 +288,21 @@ export default function ThemeVicinoSettings() {
                         />
                         <div className="w-11 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600"></div>
                     </label>
+                </div>
+
+                <div className="flex items-center justify-between bg-stone-50 dark:bg-[#111] p-4 rounded-xl">
+                    <div>
+                        <h3 className="font-bold">{isAr ? "لغة المنيو الافتراضية" : "Default Menu Language"}</h3>
+                        <p className="text-sm text-slate-500">{isAr ? "اللغة التي سيفتح بها المنيو تلقائياً للعملاء" : "The language the menu will automatically open in"}</p>
+                    </div>
+                    <select
+                        value={config.default_language || "ar"}
+                        onChange={(e) => setConfig({ ...config, default_language: e.target.value })}
+                        className="bg-white dark:bg-[#1c1c1e] border border-slate-200 dark:border-zinc-800 rounded-lg px-4 py-2 font-bold focus:outline-none focus:ring-2 focus:ring-teal-600"
+                    >
+                        <option value="ar">{isAr ? "العربية (تلقائي)" : "Arabic (Default)"}</option>
+                        <option value="en">{isAr ? "الإنجليزية" : "English"}</option>
+                    </select>
                 </div>
 
                 <div className="space-y-4">
