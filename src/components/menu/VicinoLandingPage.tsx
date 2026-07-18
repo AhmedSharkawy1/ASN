@@ -34,6 +34,15 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
     const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
     const finalLogoSrc = currentLogo || config.logo_url;
 
+    const [showSplash, setShowSplash] = React.useState(!!config.theme_colors?.vicino_loading_logo);
+
+    React.useEffect(() => {
+        if (showSplash) {
+            const timer = setTimeout(() => setShowSplash(false), 2500);
+            return () => clearTimeout(timer);
+        }
+    }, [showSplash]);
+
     const heroMedia = config.vicino_video_url 
         ? { type: 'video', src: config.vicino_video_url } 
         : (config.vicino_images?.[0] || config.cover_images?.[0] 
@@ -55,6 +64,17 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
         { icon: FaSnapchatGhost, url: config.snapchat_url, color: '#FFFC00', name: 'Snapchat', textColor: '#000000' },
         { icon: Youtube, url: config.youtube_url, color: '#FF0000', name: 'YouTube' },
     ].filter(link => link.url);
+
+    if (showSplash) {
+        return (
+            <div className="fixed inset-0 z-[9999] bg-[#0a0a0a] flex items-center justify-center selection:bg-black/10">
+                <div className="relative w-48 h-48 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full border-[4px] border-[#B8860B]/20 border-t-[#B8860B] animate-spin"></div>
+                    <OptimizedMenuImage src={config.theme_colors?.vicino_loading_logo} alt="Loading" className="w-32 h-32 object-contain animate-pulse rounded-full" />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen font-cairo flex flex-col selection:bg-black/10" style={{ backgroundColor: bgBody, color: textMain }} dir={isAr ? 'rtl' : 'ltr'}>
@@ -89,24 +109,24 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
 
             {/* --- MEDIA SECTION --- */}
             {heroMedia && (
-                <div className="w-full px-4 md:px-8 max-w-4xl mx-auto mb-10 relative z-10">
+                <div className="w-full mb-10 relative z-10 bg-black/5 dark:bg-white/5 border-y border-black/5 dark:border-white/10">
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center border border-black/5 dark:border-white/10"
+                        className="w-full overflow-hidden flex items-center justify-center"
                     >
                         {heroMedia.type === 'video' ? (
                             <video 
                                 src={heroMedia.src} 
-                                autoPlay muted loop playsInline controls={true}
-                                className="w-full h-auto max-h-[60vh] object-contain"
+                                autoPlay muted loop playsInline controls={false}
+                                className="w-full h-auto max-h-[75vh] object-cover"
                             />
                         ) : (
                             <OptimizedMenuImage 
                                 src={heroMedia.src} 
                                 alt="Hero" 
-                                className="w-full h-auto max-h-[60vh] object-contain"
+                                className="w-full h-auto max-h-[75vh] object-cover"
                             />
                         )}
                     </motion.div>

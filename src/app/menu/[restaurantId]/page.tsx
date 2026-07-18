@@ -330,11 +330,6 @@ function SmartMenuContent({
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <div className="w-16 h-16 border-4 border-blue border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-silver font-medium animate-pulse">
-          {language === "ar"
-            ? "جاري تحضير المنيو المذهل..."
-            : "Preparing Amazing Menu..."}
-        </p>
       </div>
     );
   }

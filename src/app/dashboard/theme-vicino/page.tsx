@@ -17,6 +17,7 @@ interface VicinoConfig {
     vicino_history_ar: string;
     vicino_history_en: string;
     vicino_images: string[];
+    theme_colors: any;
 }
 
 export default function ThemeVicinoSettings() {
@@ -38,6 +39,7 @@ export default function ThemeVicinoSettings() {
         vicino_history_ar: "",
         vicino_history_en: "",
         vicino_images: [],
+        theme_colors: {},
     });
 
     useEffect(() => {
@@ -79,7 +81,7 @@ export default function ThemeVicinoSettings() {
 
                 const { data, error } = await supabase
                     .from("restaurants")
-                    .select("vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images")
+                    .select("vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images, theme_colors")
                     .eq("id", rId)
                     .single();
 
@@ -94,6 +96,7 @@ export default function ThemeVicinoSettings() {
                         vicino_history_ar: data.vicino_history_ar || "",
                         vicino_history_en: data.vicino_history_en || "",
                         vicino_images: data.vicino_images || [],
+                        theme_colors: data.theme_colors || {},
                     });
                 }
             } catch (err: any) {
@@ -122,6 +125,7 @@ export default function ThemeVicinoSettings() {
                     vicino_history_ar: config.vicino_history_ar,
                     vicino_history_en: config.vicino_history_en,
                     vicino_images: config.vicino_images,
+                    theme_colors: config.theme_colors,
                 })
                 .eq("id", restaurantId)
                 .select();
@@ -164,6 +168,24 @@ export default function ThemeVicinoSettings() {
             if (result?.originalUrl) {
                 updateLogo(mode, result.originalUrl);
                 toast.success(isAr ? "تم رفع الشعار بنجاح" : "Logo uploaded successfully");
+            }
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
+
+    const handleLoadingLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingLogo(true);
+        try {
+            const result = await uploadImageWithThumb(file, `vicino/loading_logo_${Date.now()}`);
+            if (result?.originalUrl) {
+                setConfig({
+                    ...config,
+                    theme_colors: { ...config.theme_colors, vicino_loading_logo: result.originalUrl }
+                });
+                toast.success(isAr ? "تم رفع شعار التحميل بنجاح" : "Loading logo uploaded successfully");
             }
         } finally {
             setUploadingLogo(false);
@@ -322,6 +344,24 @@ export default function ThemeVicinoSettings() {
                                         </label>
                                     )}
                                 </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t dark:border-zinc-800">
+                                <label className="block text-sm mb-1">{isAr ? "لوجو شاشة التحميل (ذهبي متحرك)" : "Loading Screen Logo (Gold Spinner)"}</label>
+                                <p className="text-xs text-slate-500 mb-4">{isAr ? "سيظهر هذا اللوجو داخل دائرة ذهبية تدور أثناء تحميل الصفحة." : "This logo will appear inside a spinning gold circle during page load."}</p>
+                                
+                                {config.theme_colors?.vicino_loading_logo ? (
+                                    <div className="relative w-full md:w-1/2 h-32 rounded-lg overflow-hidden border bg-[#111] flex items-center justify-center group">
+                                        <img src={config.theme_colors.vicino_loading_logo} className="w-full h-full object-contain p-2" alt="Loading Logo" />
+                                        <button onClick={() => setConfig({...config, theme_colors: { ...config.theme_colors, vicino_loading_logo: '' }})} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4"/></button>
+                                    </div>
+                                ) : (
+                                    <label className="flex flex-col items-center justify-center w-full md:w-1/2 h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-zinc-800 transition-colors">
+                                        {uploadingLogo ? <Loader2 className="w-8 h-8 animate-spin text-teal-600" /> : <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />}
+                                        <span className="text-sm font-bold text-slate-500">{isAr ? "اختر شعار التحميل" : "Select loading logo"}</span>
+                                        <input type="file" accept="image/*" className="hidden" onChange={handleLoadingLogoUpload} disabled={uploadingLogo} />
+                                    </label>
+                                )}
                             </div>
                         </div>
                     </div>
