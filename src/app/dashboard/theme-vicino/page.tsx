@@ -111,7 +111,7 @@ export default function ThemeVicinoSettings() {
         if (!restaurantId) return;
         setSaving(true);
         try {
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from("restaurants")
                 .update({
                     vicino_landing_enabled: config.vicino_landing_enabled,
