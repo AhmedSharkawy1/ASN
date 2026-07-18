@@ -229,7 +229,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                     </div>
                     <div className="flex flex-col items-center">
                         {config.logo_url && (
-                            <OptimizedMenuImage src={config.vicino_logo_url || config.logo_url} alt={config.name} className="h-24 w-24 rounded-3xl object-contain shadow-sm mb-4 bg-white/10 p-2" useOriginal={true} />
+                            <OptimizedMenuImage src={config.vicino_logo_url || config.logo_url} alt={config.name} className="h-20 w-20 rounded-3xl object-contain shadow-sm mb-4 bg-white/10 p-2" useOriginal={true} />
                         )}
                         <h1 className="text-xl font-black text-center">{config.name}</h1>
                         {(config.slogan_ar || config.slogan_en) && (

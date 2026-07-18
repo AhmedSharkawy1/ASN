@@ -4,6 +4,7 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { Palette, Check, Save, Loader2, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { posDb } from "@/lib/pos-db";
 import { motion } from "framer-motion";
 
 const THEMES = [
@@ -307,6 +308,15 @@ export default function ThemePage() {
                 .eq('id', restaurantId);
 
             if (error) throw error;
+
+            // Update local cache so that reload fetches the new theme immediately
+            const currentConfig = await posDb.settings.get('current_config');
+            if (currentConfig) {
+                await posDb.settings.put({
+                    ...currentConfig,
+                    theme: selectedTheme
+                });
+            }
 
             setMessage({
                 type: 'success',
