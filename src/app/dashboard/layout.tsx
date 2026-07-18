@@ -76,6 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [restaurantName, setRestaurantName] = useState("");
+    const [tenantTheme, setTenantTheme] = useState("");
     const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
     const [isOnline, setIsOnline] = useState(true);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
@@ -179,6 +180,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const userId = finalSession.user.id;
             let rId: string | null = null;
             let rName = "";
+            let rTheme = "";
             let rLogo = null;
             let tempPermissions: Record<string, boolean> = {};
 
@@ -200,6 +202,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     rId = rest.id;
                     rName = rest.name + ' (Impersonating)';
                     rLogo = rest.logo_url;
+                    rTheme = rest.theme || '';
                     if (rest.is_marketing_account) tempPermissions['marketing_links'] = true;
                 }
             } else if (roleData && roleData.role === 'super_admin') {
@@ -212,7 +215,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             if (!rId) {
                 if (email?.endsWith(".asn") || (roleData && roleData.role === 'staff')) {
                     isStaffFlag = true;
-                    const { data: staff, error: staffError } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', userId).maybeSingle();
+                    const { data: staff, error: staffError } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at, theme)').eq('auth_id', userId).maybeSingle();
                     
                     if (staffError) console.error("ASN_LOG: Staff Lookup Error:", staffError);
 
@@ -230,6 +233,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         rId = staff.restaurant_id;
                         rName = staff.restaurants?.name || "";
                         rLogo = staff.restaurants?.logo_url || null;
+                        rTheme = (staff.restaurants as any)?.theme || '';
 
                         if (staff.permissions) {
                             tempPermissions = typeof staff.permissions === 'string' ? JSON.parse(staff.permissions) : staff.permissions;
@@ -245,6 +249,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         rId = rest.id;
                         rName = rest.name;
                         rLogo = rest.logo_url;
+                        rTheme = rest.theme || '';
                         if (rest.subscription_expires_at && new Date(rest.subscription_expires_at) < new Date()) {
                             router.push('/subscription-expired');
                             return;
@@ -253,7 +258,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     } else {
                         // Fallback: check if this auth user is linked as a team member by auth_id
                         console.log("ASN_LOG: No restaurant found for email, trying team_members by auth_id:", userId);
-                        const { data: staffFallback } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at)').eq('auth_id', userId).maybeSingle();
+                        const { data: staffFallback } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at, theme)').eq('auth_id', userId).maybeSingle();
                         
                         if (staffFallback) {
                             isStaffFlag = true;
@@ -269,6 +274,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             rId = staffFallback.restaurant_id;
                             rName = staffFallback.restaurants?.name || "";
                             rLogo = staffFallback.restaurants?.logo_url || null;
+                            rTheme = (staffFallback.restaurants as any)?.theme || '';
                             if (staffFallback.permissions) {
                                 tempPermissions = typeof staffFallback.permissions === 'string' ? JSON.parse(staffFallback.permissions) : staffFallback.permissions;
                             }
@@ -341,10 +347,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     restaurant_logo: rLogo,
                     currency: 'EGP', // Default
                     language: language,
+                    theme: rTheme,
                     permissions_json: JSON.stringify(tempPermissions)
                 });
 
                 setRestaurantName(rName);
+                setTenantTheme(rTheme);
                 setRestaurantLogo(rLogo);
                 restaurantIdRef.current = rId;
                 setRestaurantId(rId);
@@ -388,7 +396,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 }
             } catch (err) {
                 console.log("ASN_LOG: Auth fallback triggered", err);
-                if (!hasCache) {
+                if (hasCache) {
+                    setLoading(false);
+                } else {
                     // Check offline_session as last resort
                     const offlineSession = localStorage.getItem('offline_session');
                     if (offlineSession) {
