@@ -109,12 +109,12 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
 
             {/* --- MEDIA SECTION --- */}
             {heroMedia && (
-                <div className="w-full mb-10 relative z-10 bg-black/5 dark:bg-white/5 border-y border-black/5 dark:border-white/10">
+                <div className="w-full px-4 md:px-8 max-w-4xl mx-auto mb-10 relative z-10">
                     <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className="w-full overflow-hidden flex items-center justify-center"
+                        className="w-full rounded-3xl overflow-hidden shadow-2xl bg-black flex items-center justify-center border border-white/10"
                     >
                         {heroMedia.type === 'video' ? (
                             <video 
