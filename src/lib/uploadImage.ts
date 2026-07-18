@@ -4,10 +4,10 @@ const BUCKET_NAME = 'menu-images';
 
 /**
  * Convert any image File/Blob to WebP using the browser's Canvas API.
- * Max width: 1200px. Quality: 70%.
+ * Max width: 1600px. Quality: 85% (Ensures high quality while maintaining reasonable file size).
  * Falls back to original if conversion fails or runs outside browser.
  */
-async function convertToWebP(file: File | Blob, maxWidth = 1200, quality = 0.70): Promise<Blob> {
+async function convertToWebP(file: File | Blob, maxWidth = 1600, quality = 0.85): Promise<Blob> {
     return new Promise((resolve) => {
         // If not in browser, return as-is
         if (typeof window === 'undefined' || typeof document === 'undefined') {
@@ -178,8 +178,8 @@ export async function uploadImageWithThumb(file: File | Blob, customPath: string
         let uploadBlob: Blob = file;
         try {
             // Compress client-side first to avoid Next.js / Vercel 4.5MB payload limit
-            // Use 2000px and 0.85 quality to preserve details for the backend Sharp processing
-            uploadBlob = await convertToWebP(file, 2000, 0.85);
+            // Use 1600px and 0.85 quality to balance high quality and smaller storage size since backend Sharp is bypassed
+            uploadBlob = await convertToWebP(file, 1600, 0.85);
         } catch (convErr) {
             console.warn('WebP pre-compression failed, uploading original:', convErr);
         }
