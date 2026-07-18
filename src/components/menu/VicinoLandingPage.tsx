@@ -119,8 +119,8 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                         {heroMedia.type === 'video' ? (
                             <video 
                                 src={heroMedia.src} 
-                                autoPlay muted loop playsInline controls={false}
-                                className="w-full h-auto max-h-[75vh] object-cover"
+                                autoPlay muted loop playsInline controls={true}
+                                className="w-full h-auto max-h-[75vh] object-cover animate-[cinematicZoom_20s_ease-in-out_infinite]"
                             />
                         ) : (
                             <OptimizedMenuImage 
@@ -142,7 +142,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                             <MapPin className="w-7 h-7" />
                         </div>
                         <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "الموقع" : "Location"}</h3>
-                        <p className="text-sm text-center font-medium opacity-70 line-clamp-2" style={{ color: textMuted }}>{config.address || (isAr ? "عرض على الخريطة" : "View on Map")}</p>
+                        <p className="text-sm text-center font-medium opacity-70 break-words whitespace-pre-wrap leading-relaxed" style={{ color: textMuted }}>{config.address || (isAr ? "عرض على الخريطة" : "View on Map")}</p>
                     </a>
                     
                     {/* Working Hours */}
@@ -256,7 +256,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                     className="w-full max-w-md py-4 md:py-5 rounded-full font-black text-lg md:text-xl text-white shadow-[0_8px_40px_rgb(0,0,0,0.3)] transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] hover:brightness-110 flex items-center justify-center gap-3 pointer-events-auto border border-white/20 overflow-hidden group"
                     style={{ backgroundColor: primaryColor }}
                 >
-                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:animate-[shimmer_1.5s_infinite]"></div>
+                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-[shimmer_2.5s_infinite]"></div>
                     <span className="relative z-10 tracking-wider drop-shadow-md">{isAr ? "عــرض المنيـــو" : "View Menu"}</span>
                     <ArrowRight className={`w-6 h-6 md:w-7 md:h-7 relative z-10 transition-transform duration-300 drop-shadow-md ${isAr ? "rotate-180 group-hover:-translate-x-1" : "group-hover:translate-x-1"}`} />
                 </button>
@@ -266,7 +266,13 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                 .swiper-pagination-bullet { background: ${primaryColor} !important; opacity: 0.5; }
                 .swiper-pagination-bullet-active { opacity: 1; transform: scale(1.2); }
                 @keyframes shimmer {
-                    100% { transform: translateX(100%); }
+                    0% { transform: translateX(-150%); }
+                    100% { transform: translateX(150%); }
+                }
+                @keyframes cinematicZoom {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.04); }
+                    100% { transform: scale(1); }
                 }
             `}} />
         </div>
