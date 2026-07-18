@@ -565,7 +565,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
 
                         <div className="flex-1 overflow-y-auto">
                             {/* Image */}
-                            <div className="w-full h-[280px] md:h-[350px] shrink-0 relative">
+                            <div className="w-full aspect-square shrink-0 relative">
                                 <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
                             </div>
 

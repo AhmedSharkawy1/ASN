@@ -548,7 +548,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
 
                         <div className="flex-1 overflow-y-auto">
                             {/* Image */}
-                            <div className="w-full h-[280px] md:h-[350px] shrink-0 relative">
+                            <div className="w-full aspect-square shrink-0 relative">
                                 <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                             </div>
