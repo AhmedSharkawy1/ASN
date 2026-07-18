@@ -69,7 +69,7 @@ interface ThemeVicinoMenuProps {
 }
 
 export default function ThemeVicinoMenu({ config, categories, restaurantId }: ThemeVicinoMenuProps) {
-    const { theme, setTheme } = useTheme();
+    const { theme, resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
@@ -228,9 +228,18 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                         </button>
                     </div>
                     <div className="flex flex-col items-center">
-                        {config.logo_url && (
-                            <OptimizedMenuImage src={config.vicino_logo_url || config.logo_url} alt={config.name} className="h-20 w-20 rounded-3xl object-contain shadow-sm mb-4 bg-white/10 p-2" useOriginal={true} />
-                        )}
+                        {(() => {
+                            let parsedLogos = { light: config.vicino_logo_url, dark: config.vicino_logo_url };
+                            if (config.vicino_logo_url?.startsWith('{')) {
+                                try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch {}
+                            }
+                            const currentLogo = resolvedTheme === 'dark' ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
+                            const finalLogoSrc = currentLogo || config.logo_url;
+                            if (!finalLogoSrc) return null;
+                            return (
+                                <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="h-20 w-20 rounded-3xl object-contain shadow-sm mb-4 bg-white/10 p-2" useOriginal={true} />
+                            );
+                        })()}
                         <h1 className="text-xl font-black text-center">{config.name}</h1>
                         {(config.slogan_ar || config.slogan_en) && (
                             <p className="text-xs font-bold mt-1 opacity-60 text-center">
@@ -286,7 +295,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                     <Swiper key={isAr ? 'rtl' : 'ltr'} modules={[Autoplay]} autoplay={{ delay: 3000 }} className="w-full rounded-2xl overflow-hidden shadow-sm">
                         {config.cover_images.map((img, i) => (
                             <SwiperSlide key={i}>
-                                <OptimizedMenuImage src={img} alt="Offer" className="w-full h-[180px] object-contain" />
+                                <OptimizedMenuImage src={img} alt="Offer" className="w-full h-[180px] object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
@@ -310,7 +319,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                         onClick={() => openModal(item, item.catName || '')}
                                     >
                                         <div className="relative h-[160px]">
-                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-contain" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                             {/* Offer Badge */}
                                             <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                                                 <span>{isAr ? 'عرض خاص' : 'Special Offer'}</span>
@@ -423,7 +432,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                         >
                                             {/* Image container */}
                                             <div className={`relative shrink-0 ${viewMode === 'list' ? 'h-24 w-24 rounded-2xl overflow-hidden' : 'h-[130px] w-full'}`}>
-                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className={`w-full h-full object-contain ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} />
+                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} />
                                                 {/* Special Offer Badge */}
                                                 {item.is_popular && (
                                                     <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
@@ -560,7 +569,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                         <div className="flex-1 overflow-y-auto pb-24">
                             {/* Image */}
                             <div className="w-full h-[320px] relative">
-                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-contain" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
                             </div>
 
                             <div className="p-6 mt-0 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>
@@ -678,7 +687,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                                             onClick={() => openModal(item, item.catName || '')}
                                                         >
                                                             <div className="relative h-[120px]">
-                                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-contain" />
+                                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
                                                                 {item.is_popular && (
                                                                     <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
                                                                         {isAr ? 'عرض خاص' : 'Offer'}
@@ -748,7 +757,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                     <div className="p-4 space-y-4">
                                         {cart.map((c, i) => (
                                             <div key={i} className="flex gap-4 p-4 rounded-3xl shadow-sm border" style={{ backgroundColor: bgCard, borderColor }}>
-                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-20 h-20 rounded-2xl object-contain shrink-0" />
+                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
                                                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                                                     <div className="flex justify-between items-start">
                                                         <h4 className="font-bold text-sm line-clamp-2">{itemName(c.item)}</h4>

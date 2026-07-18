@@ -110,14 +110,31 @@ export default function ThemeVicinoSettings() {
     };
 
     
-    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const parsedLogos = (() => {
+        try {
+            if (!config.vicino_logo_url) return { light: '', dark: '' };
+            if (config.vicino_logo_url.startsWith('{')) {
+                return JSON.parse(config.vicino_logo_url);
+            }
+            return { light: config.vicino_logo_url, dark: '' };
+        } catch {
+            return { light: config.vicino_logo_url, dark: '' };
+        }
+    })();
+
+    const updateLogo = (mode: 'light' | 'dark', url: string) => {
+        const newLogos = { ...parsedLogos, [mode]: url };
+        setConfig({ ...config, vicino_logo_url: JSON.stringify(newLogos) });
+    };
+
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>, mode: 'light' | 'dark') => {
         const file = e.target.files?.[0];
         if (!file) return;
         setUploadingLogo(true);
         try {
-            const result = await uploadImageWithThumb(file, `vicino/logo/${Date.now()}`);
+            const result = await uploadImageWithThumb(file, `vicino/logo/${mode}_${Date.now()}`);
             if (result?.originalUrl) {
-                setConfig({ ...config, vicino_logo_url: result.originalUrl });
+                updateLogo(mode, result.originalUrl);
                 toast.success(isAr ? "تم رفع الشعار بنجاح" : "Logo uploaded successfully");
             }
         } finally {
@@ -242,21 +259,41 @@ export default function ThemeVicinoSettings() {
                                 )}
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm mb-1">{isAr ? "اللوجو المخصص لصفحة الهبوط" : "Custom Landing Page Logo"}</label>
-                            <div className="flex items-center gap-4">
-                                {config.vicino_logo_url ? (
-                                    <div className="relative w-full h-32 rounded-lg overflow-hidden border dark:border-zinc-800 flex items-center justify-center bg-stone-50 dark:bg-[#111] group">
-                                        <img src={config.vicino_logo_url} className="w-full h-full object-contain p-2" alt="Logo" />
-                                        <button onClick={() => setConfig({...config, vicino_logo_url: ''})} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4"/></button>
-                                    </div>
-                                ) : (
-                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed dark:border-zinc-700 rounded-lg cursor-pointer hover:bg-stone-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                        {uploadingLogo ? <Loader2 className="w-8 h-8 animate-spin text-teal-600" /> : <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />}
-                                        <span className="text-sm font-bold text-slate-500">{isAr ? "اختر صورة الشعار" : "Select logo image"}</span>
-                                        <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploadingLogo} />
-                                    </label>
-                                )}
+                        <div className="col-span-1 md:col-span-2">
+                            <label className="block text-sm mb-1">{isAr ? "اللوجو المخصص (وضع فاتح / داكن)" : "Custom Logo (Light / Dark)"}</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Light Mode */}
+                                <div>
+                                    <span className="block text-xs mb-1 text-slate-500">{isAr ? "الوضع الفاتح (Light)" : "Light Mode"}</span>
+                                    {parsedLogos.light ? (
+                                        <div className="relative w-full h-32 rounded-lg overflow-hidden border bg-white flex items-center justify-center group">
+                                            <img src={parsedLogos.light} className="w-full h-full object-contain p-2" alt="Light Logo" />
+                                            <button onClick={() => updateLogo('light', '')} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4"/></button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-stone-50 transition-colors">
+                                            {uploadingLogo ? <Loader2 className="w-8 h-8 animate-spin text-teal-600" /> : <UploadCloud className="w-8 h-8 text-slate-400 mb-2" />}
+                                            <span className="text-sm font-bold text-slate-500">{isAr ? "اختر شعار الفاتح" : "Select light logo"}</span>
+                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoUpload(e, 'light')} disabled={uploadingLogo} />
+                                        </label>
+                                    )}
+                                </div>
+                                {/* Dark Mode */}
+                                <div>
+                                    <span className="block text-xs mb-1 text-slate-500">{isAr ? "الوضع الداكن (Dark)" : "Dark Mode"}</span>
+                                    {parsedLogos.dark ? (
+                                        <div className="relative w-full h-32 rounded-lg overflow-hidden border border-zinc-800 bg-[#111] flex items-center justify-center group">
+                                            <img src={parsedLogos.dark} className="w-full h-full object-contain p-2" alt="Dark Logo" />
+                                            <button onClick={() => updateLogo('dark', '')} className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"><X className="w-4 h-4"/></button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-zinc-700 border-dashed bg-zinc-900 rounded-lg cursor-pointer hover:bg-zinc-800 transition-colors">
+                                            {uploadingLogo ? <Loader2 className="w-8 h-8 animate-spin text-teal-600" /> : <UploadCloud className="w-8 h-8 text-zinc-500 mb-2" />}
+                                            <span className="text-sm font-bold text-zinc-400">{isAr ? "اختر شعار الداكن" : "Select dark logo"}</span>
+                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleLogoUpload(e, 'dark')} disabled={uploadingLogo} />
+                                        </label>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
