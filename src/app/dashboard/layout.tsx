@@ -339,17 +339,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     tempPermissions = { ...merged, _isAdmin: false };
                 }
                 
-                // Update local cache (Requirement #5)
-                await posDb.settings.put({
-                    id: 'current_config',
-                    restaurant_id: rId,
-                    restaurant_name: rName,
-                    restaurant_logo: rLogo,
-                    currency: 'EGP', // Default
-                    language: language,
-                    theme: rTheme,
-                    permissions_json: JSON.stringify(tempPermissions)
-                });
+                try {
+                    // Update local cache (Requirement #5)
+                    await posDb.settings.put({
+                        id: 'current_config',
+                        restaurant_id: rId,
+                        restaurant_name: rName,
+                        restaurant_logo: rLogo,
+                        currency: 'EGP', // Default
+                        language: language,
+                        theme: rTheme,
+                        permissions_json: JSON.stringify(tempPermissions)
+                    });
+                } catch (cacheErr) {
+                    console.warn("ASN_LOG: Could not update offline cache due to quota/indexeddb error", cacheErr);
+                }
 
                 setRestaurantName(rName);
                 setTenantTheme(rTheme);
