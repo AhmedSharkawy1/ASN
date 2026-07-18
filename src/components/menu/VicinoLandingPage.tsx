@@ -67,21 +67,19 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                         <video 
                             src={heroMedia.src} 
                             autoPlay muted loop playsInline 
-                            className="w-full h-full object-cover opacity-60 mix-blend-luminosity"
-                            style={{ filter: 'brightness(0.7) contrast(1.2)' }}
+                            className="w-full h-full object-cover"
                         />
                     ) : heroMedia?.type === 'image' ? (
                         <OptimizedMenuImage 
                             src={heroMedia.src} 
                             alt="Hero" 
-                            className="w-full h-full object-cover opacity-60 mix-blend-luminosity"
-                            style={{ filter: 'brightness(0.7) contrast(1.2)' }}
+                            className="w-full h-full object-cover"
                         />
                     ) : (
                         <div className="w-full h-full" style={{ backgroundColor: primaryColor, opacity: 0.15 }}></div>
                     )}
                     {/* Premium Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/90"></div>
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/90 pointer-events-none"></div>
                 </div>
 
                 {/* Top Language Toggle (Glassmorphic) */}
@@ -105,11 +103,8 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                             <div className="absolute inset-0 rounded-full blur-3xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" style={{ backgroundColor: primaryColor }}></div>
                             
                             {/* Circular Premium Logo Container */}
-                            <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-4 border-white/20 shadow-2xl bg-white/5 backdrop-blur-md p-1 md:p-2 flex items-center justify-center transform transition-transform duration-500 hover:scale-105">
-                                {/* Inner circle to handle transparent/white logos elegantly */}
-                                <div className="w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-transparent">
-                                    <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain scale-95" useOriginal={true} />
-                                </div>
+                            <div className="relative z-10 w-full h-full rounded-full overflow-hidden border-[6px] border-white/10 shadow-2xl bg-white flex items-center justify-center transform transition-transform duration-500 hover:scale-105 p-1">
+                                <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
                             </div>
                         </div>
                     )}
@@ -136,39 +131,36 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
             </div>
 
             {/* --- CREATIVE QUICK INFO GRID --- */}
-            {(config.address || config.working_hours || config.phone || config.map_link) && (
-                <div className="px-5 max-w-4xl mx-auto w-full relative z-20 -mt-12 md:-mt-16 mb-8">
-                    <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {config.map_link && (
-                            <a href={config.map_link} target="_blank" rel="noreferrer" className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
-                                    <MapPin className="w-7 h-7" />
-                                </div>
-                                <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "الموقع" : "Location"}</h3>
-                                <p className="text-sm text-center font-medium opacity-70 line-clamp-2" style={{ color: textMuted }}>{config.address || (isAr ? "عرض على الخريطة" : "View on Map")}</p>
-                            </a>
-                        )}
-                        {config.working_hours && (
-                            <div className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
-                                    <Clock className="w-7 h-7" />
-                                </div>
-                                <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "ساعات العمل" : "Working Hours"}</h3>
-                                <p className="text-sm text-center font-medium opacity-70 line-clamp-2" style={{ color: textMuted }}>{config.working_hours}</p>
-                            </div>
-                        )}
-                        {config.phone && (
-                            <a href={`tel:${config.phone}`} className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
-                                <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
-                                    <Phone className="w-7 h-7" />
-                                </div>
-                                <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "اتصل بنا" : "Call Us"}</h3>
-                                <p className="text-sm text-center font-medium opacity-70 line-clamp-2" dir="ltr" style={{ color: textMuted }}>{config.phone}</p>
-                            </a>
-                        )}
-                    </motion.div>
-                </div>
-            )}
+            <div className="px-5 max-w-4xl mx-auto w-full relative z-20 -mt-12 md:-mt-16 mb-8">
+                <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Location */}
+                    <a href={config.map_link || "#"} target={config.map_link ? "_blank" : undefined} rel="noreferrer" className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                            <MapPin className="w-7 h-7" />
+                        </div>
+                        <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "الموقع" : "Location"}</h3>
+                        <p className="text-sm text-center font-medium opacity-70 line-clamp-2" style={{ color: textMuted }}>{config.address || (isAr ? "عرض على الخريطة" : "View on Map")}</p>
+                    </a>
+                    
+                    {/* Working Hours */}
+                    <div className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                            <Clock className="w-7 h-7" />
+                        </div>
+                        <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "ساعات العمل" : "Working Hours"}</h3>
+                        <p className="text-sm text-center font-medium opacity-70 line-clamp-2" style={{ color: textMuted }}>{config.working_hours || (isAr ? "متاح دائماً" : "Always Open")}</p>
+                    </div>
+
+                    {/* Phone */}
+                    <a href={config.phone ? `tel:${config.phone}` : "#"} className="flex flex-col items-center p-6 rounded-[2rem] shadow-xl backdrop-blur-xl border transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl" style={{ backgroundColor: isDark ? 'rgba(20,20,20,0.7)' : 'rgba(255,255,255,0.85)', borderColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }}>
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                            <Phone className="w-7 h-7" />
+                        </div>
+                        <h3 className="font-bold text-base mb-1" style={{ color: textMain }}>{isAr ? "اتصل بنا" : "Call Us"}</h3>
+                        <p className="text-sm text-center font-medium opacity-70 line-clamp-2" dir="ltr" style={{ color: textMuted }}>{config.phone || (isAr ? "اتصال" : "Call Now")}</p>
+                    </a>
+                </motion.div>
+            </div>
 
             {/* --- CONTENT SECTION --- */}
             {hasContent && (
