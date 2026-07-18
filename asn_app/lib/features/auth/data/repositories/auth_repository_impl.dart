@@ -154,17 +154,14 @@ class AuthRepositoryImpl implements AuthRepository {
       await _localDataSource.cacheUserSession(userModel);
       
       return userModel.toEntity();
-    } catch (e) {
-      // If any network/server exception occurs during online login, attempt offline fallback
-      if (e is ServerException || e is NetworkException || e.toString().contains('Dio') || e.toString().contains('SocketException')) {
-        AppLogger.warning('Online login failed due to network/server, falling back to offline mode. Error: $e', name: 'AuthRepo');
-        return await performOfflineLogin();
-      }
-      rethrow;
-    }
     } on AuthException {
       rethrow;
     } catch (e, stackTrace) {
+      // If any network/server exception occurs during online login, attempt offline fallback
+      if (e is ServerException || e is NetworkException || e.toString().contains('Dio') || e.toString().contains('SocketException') || e.toString().contains('ClientException')) {
+        AppLogger.warning('Online login failed due to network/server, falling back to offline mode. Error: $e', name: 'AuthRepo');
+        return await performOfflineLogin();
+      }
       AppLogger.error('Login process failed', error: e, stackTrace: stackTrace, name: 'AuthRepo');
       throw ServerException(e.toString());
     }

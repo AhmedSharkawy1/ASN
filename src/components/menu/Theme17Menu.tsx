@@ -108,7 +108,7 @@ type CartItem = {
 
 export default function Theme17Menu({ config, categories, restaurantId }: { config: RestaurantConfig, categories: Category[], restaurantId: string }) {
     const isRTL = config.default_language !== 'en';
-    const cur = parseCurrency(config?.currency, isAr);
+    const cur = parseCurrency(config?.currency, isRTL);
     const primaryColor = '#d32f2f'; // Lusha Red
 
     const [view, setView] = useState<'home' | 'menu'>('home');

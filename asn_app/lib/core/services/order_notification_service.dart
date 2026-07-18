@@ -23,7 +23,7 @@ class OrderNotificationService {
     const initSettings = InitializationSettings(android: androidSettings, iOS: iosSettings);
     
     await _localNotifications.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: (details) {
         AppLogger.info('Notification clicked: ${details.payload}', name: 'OrderNotification');
       },
@@ -92,10 +92,10 @@ class OrderNotificationService {
     const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
 
     await _localNotifications.show(
-      newOrder['id']?.hashCode ?? 0,
-      'طلب جديد! 🚀',
-      'طلب جديد من $customerName بقيمة $total جنيه',
-      details,
+      id: newOrder['id']?.hashCode ?? 0,
+      title: 'طلب جديد! 🚀',
+      body: 'طلب جديد من $customerName بقيمة $total جنيه',
+      notificationDetails: details,
       payload: '/orders/$orderId',
     );
   }
