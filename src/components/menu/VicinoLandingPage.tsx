@@ -8,7 +8,7 @@ import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/pagination';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface VicinoLandingPageProps {
     config: any;
@@ -19,6 +19,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
     const { resolvedTheme, setTheme } = useTheme();
     const [currentLang, setCurrentLang] = React.useState<'ar'|'en'>((config.theme_colors?.default_language || config.default_language) === 'en' ? 'en' : 'ar');
     const isAr = currentLang === 'ar';
+    const [showPhoneModal, setShowPhoneModal] = React.useState(false);
     
     React.useEffect(() => {
         if (config.default_theme_mode && config.default_theme_mode !== 'system') {
@@ -165,7 +166,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                         onClick={(e) => {
                             e.preventDefault();
                             if (config.phone_numbers && config.phone_numbers.length > 0) {
-                                document.dispatchEvent(new CustomEvent('openDeliveryModal', { detail: config.phone_numbers }));
+                                setShowPhoneModal(true);
                             } else if (config.phone) {
                                 window.location.href = `tel:${config.phone}`;
                             }
