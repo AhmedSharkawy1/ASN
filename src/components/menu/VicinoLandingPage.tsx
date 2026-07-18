@@ -17,7 +17,7 @@ interface VicinoLandingPageProps {
 
 export default function VicinoLandingPage({ config, onContinue }: VicinoLandingPageProps) {
     const { resolvedTheme } = useTheme();
-    const [currentLang, setCurrentLang] = React.useState<'ar'|'en'>(config.default_language === 'en' ? 'en' : 'ar');
+    const [currentLang, setCurrentLang] = React.useState<'ar'|'en'>((config.theme_colors?.default_language || config.default_language) === 'en' ? 'en' : 'ar');
     const isAr = currentLang === 'ar';
     
     const isDark = resolvedTheme === 'dark';
