@@ -36,6 +36,7 @@ const Theme16Menu = dynamic(() => import("@/components/menu/Theme16Menu"));
 const Theme17Menu = dynamic(() => import("@/components/menu/Theme17Menu"));
 const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
 const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
+const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
 const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
@@ -225,7 +226,7 @@ function SmartMenuContent({
 
         let query1: any = supabase
           .from("restaurants")
-          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode");
+          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images");
 
         if (params.restaurantId === 'demo') {
           query1 = query1.eq("is_marketing_account", true).limit(1).maybeSingle();
@@ -238,7 +239,7 @@ function SmartMenuContent({
         if (e1 || !d1) {
           let query2: any = supabase
             .from("restaurants")
-            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address, currency, branches_enabled, branches, default_theme_mode, theme_colors, order_channel");
+            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address, currency, branches_enabled, branches, default_theme_mode, theme_colors, order_channel, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images");
           
           if (params.restaurantId === 'demo') {
             query2 = query2.eq("is_marketing_account", true).limit(1).maybeSingle();
@@ -455,6 +456,9 @@ function SmartMenuContent({
   // If Theme 18 (MenuMasr Replica)
   if (config?.theme === "theme18") {
     return <Theme18Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "vicino") {
+    return <ThemeVicinoMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme === "theme19") {
     return <Theme19Menu config={config} categories={categories} restaurantId={config.id} />;

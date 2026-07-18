@@ -122,12 +122,27 @@ const THEMES = [
     },
     {
         id: "theme18",
+        name_ar: "نكهة الشام (ثيم 18)",
+        name_en: "Sham Flavor (Theme 18)",
+        description_ar: "تصميم عصري سريع جداً",
+        description_en: "Very fast modern design",
+        preview_color: "#16a34a",
+    },
+    {
         id: "theme19",
         name_ar: "منيو مصر المطابق",
         name_en: "MenuMasr Replica",
         description_ar: "تصميم مستوحى من منيو مصر الشهير، سريع وعملي.",
         description_en: "Design inspired by the famous MenuMasr, fast and practical.",
         preview_color: "#2563eb",
+    },
+    {
+        id: "vicino",
+        name_ar: "ثيم فيتشينو المذهل",
+        name_en: "Theme Vicino",
+        description_ar: "تصميم رائع بصفحة هبوط تحتوي على فيديو ونبذة عن المكان.",
+        description_en: "Amazing design with a landing page containing video and about section.",
+        preview_color: "#B8860B", // Metallic Gold
     },
     // ===== PizzaPasta Color Variations =====
     { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#0891b2" },
