@@ -25,9 +25,9 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<UserEntity> login(String usernameOrEmail, String password) async {
     final isOnline = await _networkInfo.isConnected;
 
-    if (!isOnline) {
-      AppLogger.warning('Offline login triggered for: $usernameOrEmail', name: 'AuthRepo');
-      // Offline Flow
+    // Helper for offline fallback
+    Future<UserEntity> performOfflineLogin() async {
+      AppLogger.warning('Attempting offline login for: $usernameOrEmail', name: 'AuthRepo');
       final cachedUser = await _localDataSource.getCachedUserSession();
       final cachedPw = await _localDataSource.getOfflinePassword();
 
@@ -38,6 +38,10 @@ class AuthRepositoryImpl implements AuthRepository {
         }
       }
       throw const NetworkException('أنت أوفلاين. تأكد من البيانات أو اتصل بالإنترنت أولاً.');
+    }
+
+    if (!isOnline) {
+      return await performOfflineLogin();
     }
 
     // Online Flow
@@ -148,8 +152,16 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // Cache session locally
       await _localDataSource.cacheUserSession(userModel);
-
+      
       return userModel.toEntity();
+    } catch (e) {
+      // If any network/server exception occurs during online login, attempt offline fallback
+      if (e is ServerException || e is NetworkException || e.toString().contains('Dio') || e.toString().contains('SocketException')) {
+        AppLogger.warning('Online login failed due to network/server, falling back to offline mode. Error: $e', name: 'AuthRepo');
+        return await performOfflineLogin();
+      }
+      rethrow;
+    }
     } on AuthException {
       rethrow;
     } catch (e, stackTrace) {

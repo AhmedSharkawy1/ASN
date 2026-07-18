@@ -29,24 +29,67 @@ export default function UserDashboardPage() {
             let rPlan: string | null = null;
             let rExpires: string | null = null;
 
+            const impersonatingTenant = sessionStorage.getItem('impersonating_tenant');
             const cached = await posDb.settings.get('current_config');
             
-            if (cached?.restaurant_id) {
-                rId = cached.restaurant_id;
-                rName = cached.restaurant_name;
-                
-                // Fetch the extra subscription and slug info
+            if (impersonatingTenant) {
+                rId = impersonatingTenant;
                 const { data: rest } = await supabase
                     .from('restaurants')
-                    .select('slug, subscription_plan, subscription_expires_at')
+                    .select('name, slug, subscription_plan, subscription_expires_at')
                     .eq('id', rId)
                     .single();
-                    
                 if (rest) {
+                    rName = rest.name + ' (Impersonating)';
                     (window as any).rSlug = rest.slug;
                     rPlan = rest.subscription_plan;
                     rExpires = rest.subscription_expires_at;
                 }
+            } else {
+                 // Fetch directly from supabase or fallback to cache
+                 const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+                 
+                 let foundRest = false;
+                 
+                 if (!foundRest && roleData?.role !== 'super_admin') {
+                     const { data: rest } = await supabase.from('restaurants').select('id, name, slug, subscription_plan, subscription_expires_at').ilike('email', user.email!).maybeSingle();
+                     if (rest) {
+                         rId = rest.id;
+                         rName = rest.name;
+                         (window as any).rSlug = rest.slug;
+                         rPlan = rest.subscription_plan;
+                         rExpires = rest.subscription_expires_at;
+                         foundRest = true;
+                     }
+                 }
+                 
+                 if (!foundRest && roleData?.role !== 'super_admin') {
+                     // try team members
+                     const { data: staff } = await supabase.from('team_members').select('restaurant_id, restaurants(name, slug, subscription_plan, subscription_expires_at)').eq('auth_id', user.id).maybeSingle();
+                     if (staff && staff.restaurant_id) {
+                         rId = staff.restaurant_id;
+                         rName = staff.restaurants?.name || "";
+                         (window as any).rSlug = staff.restaurants?.slug;
+                         rPlan = staff.restaurants?.subscription_plan || null;
+                         rExpires = staff.restaurants?.subscription_expires_at || null;
+                         foundRest = true;
+                     }
+                 }
+                 
+                 if (!foundRest && cached?.restaurant_id) {
+                     rId = cached.restaurant_id;
+                     rName = cached.restaurant_name;
+                     const { data: rest } = await supabase
+                         .from('restaurants')
+                         .select('slug, subscription_plan, subscription_expires_at')
+                         .eq('id', rId)
+                         .single();
+                     if (rest) {
+                         (window as any).rSlug = rest.slug;
+                         rPlan = rest.subscription_plan;
+                         rExpires = rest.subscription_expires_at;
+                     }
+                 }
             }
 
             if (rId) {

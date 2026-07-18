@@ -15,6 +15,7 @@ import 'package:asn_app/features/auth/data/datasources/auth_remote_datasource.da
 import 'package:asn_app/features/auth/data/datasources/auth_local_datasource.dart';
 import 'package:asn_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:asn_app/core/error/error_handler.dart';
+import 'package:asn_app/core/services/order_notification_service.dart';
 
 part 'auth_provider.freezed.dart';
 
@@ -100,6 +101,9 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = await ref.read(checkSessionUseCaseProvider).call();
       if (user != null) {
         state = AuthState.authenticated(user);
+        if (user.restaurantId != null) {
+          ref.read(orderNotificationServiceProvider).startListening(user.restaurantId!);
+        }
       } else {
         state = const AuthState.unauthenticated();
       }
@@ -113,6 +117,9 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final user = await ref.read(loginUseCaseProvider).call(usernameOrEmail, password);
       state = AuthState.authenticated(user);
+      if (user.restaurantId != null) {
+        ref.read(orderNotificationServiceProvider).startListening(user.restaurantId!);
+      }
     } catch (e) {
       final failure = ErrorHandler.handleException(e);
       final message = ErrorHandler.getMessage(failure, language: language);
@@ -123,6 +130,7 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     state = const AuthState.loading();
     try {
+      ref.read(orderNotificationServiceProvider).stopListening();
       await ref.read(logoutUseCaseProvider).call();
       state = const AuthState.unauthenticated();
     } catch (e) {
