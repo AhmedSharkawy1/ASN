@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { posDb } from "@/lib/pos-db";
 
 export default function UserDashboardPage() {
     const { language } = useLanguage();
@@ -23,28 +24,28 @@ export default function UserDashboardPage() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
-            const impTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
             let rId: string | null = null;
             let rName = "";
             let rPlan: string | null = null;
             let rExpires: string | null = null;
 
-            if (impTenant) {
-                const { data: rest } = await supabase.from('restaurants').select('id, name, slug, subscription_plan, subscription_expires_at').eq('id', impTenant).single();
-                if (rest) { rId = rest.id; rName = rest.name || ""; (window as any).rSlug = rest.slug; rPlan = rest.subscription_plan; rExpires = rest.subscription_expires_at; }
-            } else {
-                const { data: rest } = await supabase.from('restaurants').select('id, name, slug, subscription_plan, subscription_expires_at').eq('email', user.email).single();
+            const cached = await posDb.settings.get('current_config');
+            
+            if (cached?.restaurant_id) {
+                rId = cached.restaurant_id;
+                rName = cached.restaurant_name;
+                
+                // Fetch the extra subscription and slug info
+                const { data: rest } = await supabase
+                    .from('restaurants')
+                    .select('slug, subscription_plan, subscription_expires_at')
+                    .eq('id', rId)
+                    .single();
+                    
                 if (rest) {
-                    rId = rest.id; rName = rest.name || ""; (window as any).rSlug = rest.slug;
-                    rPlan = rest.subscription_plan; rExpires = rest.subscription_expires_at;
-                } else {
-                    // Fallback for staff users
-                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, restaurants(name, slug)').eq('auth_id', user.id).single();
-                    if (staff) { 
-                        rId = staff.restaurant_id; 
-                        rName = (staff as any).restaurants?.name || ""; 
-                        (window as any).rSlug = (staff as any).restaurants?.slug;
-                    }
+                    (window as any).rSlug = rest.slug;
+                    rPlan = rest.subscription_plan;
+                    rExpires = rest.subscription_expires_at;
                 }
             }
 

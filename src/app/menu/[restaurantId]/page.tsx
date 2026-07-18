@@ -791,7 +791,7 @@ function SmartMenuContent({
         size: c.size_label !== "عادي" ? c.size_label : undefined,
       }));
       const total = cartTotal;
-      const { error } = await supabase.from("orders").insert({
+      const { data: newOrder, error } = await supabase.from("orders").insert({
         restaurant_id: config.id,
         status: "pending",
         items,
@@ -804,8 +804,22 @@ function SmartMenuContent({
         customer_address: customerInfo.address,
         is_draft: false,
         created_at: new Date().toISOString(),
-      });
-      if (!error) {
+      }).select().single();
+      if (!error && newOrder) {
+        try {
+          await fetch('/api/notify/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              restaurantId: config.id,
+              orderId: newOrder.id,
+              customerName: customerInfo.name,
+              total,
+              itemsCount: items.length
+            })
+          });
+        } catch (e) { console.error('Telegram notification error:', e); }
+
         setOrderSuccess(true);
         setCart([]);
         setTimeout(() => { setShowCart(false); setOrderSuccess(false); }, 3000);
@@ -844,7 +858,7 @@ function SmartMenuContent({
         size: c.size_label !== "عادي" ? c.size_label : undefined,
       }));
       const total = cartTotal;
-      await supabase.from("orders").insert({
+      const { data: newOrder } = await supabase.from("orders").insert({
         restaurant_id: config.id,
         status: "pending",
         items,
@@ -857,7 +871,23 @@ function SmartMenuContent({
         customer_address: customerInfo.address,
         is_draft: false,
         created_at: new Date().toISOString(),
-      });
+      }).select().single();
+
+      if (newOrder) {
+        try {
+          await fetch('/api/notify/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              restaurantId: config.id,
+              orderId: newOrder.id,
+              customerName: customerInfo.name,
+              total,
+              itemsCount: items.length
+            })
+          });
+        } catch (e) { console.error('Telegram notification error:', e); }
+      }
     } catch (err) {
       console.error("Order save error (non-blocking):", err);
     } finally {

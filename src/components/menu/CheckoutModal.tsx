@@ -333,7 +333,7 @@ export default function CheckoutModal({
                 extrasTotal: currentExtrasTotal,
                 total: currentTotal
             });
-            setStep(hasAddons ? 5 : 4);
+            setStep(hasAddons ? 4 : 3);
             onOrderSuccess?.();
             
             // Do not redirect programmatically here because iOS Facebook browser blocks it.
@@ -380,16 +380,16 @@ export default function CheckoutModal({
     if (!isOpen) return null;
 
     const stepLabels = hasAddons
-        ? { 1: isAr ? "الإضافات" : "Extras", 2: isAr ? "بيانات العميل" : "Customer Info", 3: isAr ? "نوع الطلب" : "Order Type", 4: isAr ? "تأكيد الطلب" : "Confirm Order", 5: isAr ? "تم الطلب! 🎉" : "Order Placed! 🎉" }
-        : { 1: isAr ? "بيانات العميل" : "Customer Info", 2: isAr ? "نوع الطلب" : "Order Type", 3: isAr ? "تأكيد الطلب" : "Confirm Order", 4: isAr ? "تم الطلب! 🎉" : "Order Placed! 🎉" };
+        ? { 1: isAr ? "الإضافات" : "Extras", 2: isAr ? "بيانات العميل" : "Customer Info", 3: isAr ? "نوع الطلب" : "Order Type", 4: isAr ? "تم الطلب! 🎉" : "Order Placed! 🎉" }
+        : { 1: isAr ? "بيانات العميل" : "Customer Info", 2: isAr ? "نوع الطلب" : "Order Type", 3: isAr ? "تم الطلب! 🎉" : "Order Placed! 🎉" };
 
-    // When no addons, remap steps: 1->customer, 2->type, 3->summary, 4->success
+    // When no addons, remap steps: 1->customer, 2->type, 3->success
     const effectiveStep = hasAddons ? step : step + 1;
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center py-16 px-6 mb-safe" dir={isAr ? "rtl" : "ltr"}>
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={effectiveStep < 5 ? onClose : undefined} />
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={effectiveStep < 4 ? onClose : undefined} />
 
             {/* Modal */}
             <div
@@ -670,133 +670,11 @@ export default function CheckoutModal({
                             )}
 
                             <div className="flex gap-2 mt-2">
-                                <button onClick={() => setStep(hasAddons ? 2 : 1)} className="flex-1 py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
+                                <button onClick={() => setStep(hasAddons ? 2 : 1)} className="w-[100px] py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
                                     {isAr ? "← رجوع" : "← Back"}
                                 </button>
                                 <button
-                                    disabled={!canProceedStep3}
-                                    onClick={() => setStep(hasAddons ? 4 : 3)}
-                                    className="flex-1 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed transition text-sm"
-                                >
-                                    {isAr ? "التالي ←" : "Next →"}
-                                </button>
-                            </div>
-                        </>
-                    )}
-
-                    {/* ════════ STEP: SUMMARY ════════ */}
-                    {effectiveStep === 4 && (
-                        <>
-                            {/* Items list with extras */}
-                            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-3 space-y-3 max-h-48 overflow-y-auto">
-                                {getFinalItems().map((item, i) => {
-                                    const itemExtrasTotal = (item.extras || []).reduce((s, e) => s + e.price * e.qty, 0);
-                                    const itemTotal = (item.price * item.qty) + (itemExtrasTotal * item.qty);
-                                    return (
-                                        <div key={i} className="border-b border-zinc-100 dark:border-zinc-700 pb-2 last:border-0">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-zinc-700 dark:text-zinc-300 font-bold">{item.title}{item.size && item.size !== 'عادي' ? ` (${item.size})` : ''} × {item.qty}</span>
-                                                <span className="font-bold text-zinc-900 dark:text-white">{itemTotal} {currency}</span>
-                                            </div>
-                                            {item.category && (
-                                                <p className="text-[10px] text-zinc-400 mt-0.5">🗂️ {item.category}</p>
-                                            )}
-                                            {item.extras && item.extras.length > 0 && (
-                                                <div className="mt-1 space-y-0.5">
-                                                    {item.extras.map((e, ei) => (
-                                                        <p key={ei} className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                                                            🔹 {e.name} ×{e.qty} = {e.price * e.qty} {currency}
-                                                        </p>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Totals */}
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
-                                    <span>{isAr ? "المجموع الفرعي" : "Subtotal"}</span>
-                                    <span>{subtotal} {currency}</span>
-                                </div>
-                                {extrasTotal > 0 && (
-                                    <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
-                                        <span>{isAr ? "الإضافات" : "Extras"}</span>
-                                        <span>{extrasTotal} {currency}</span>
-                                    </div>
-                                )}
-                                {deliveryFee > 0 && (
-                                    <div className="flex justify-between text-zinc-500 dark:text-zinc-400">
-                                        <span>{isAr ? "رسوم التوصيل" : "Delivery Fee"}</span>
-                                        {appliedPromo?.freeShipping ? (
-                                            <span className="flex items-center gap-2">
-                                                <span className="text-emerald-500 font-bold">0 {currency}</span>
-                                                <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 font-bold px-1.5 py-0.5 rounded">{isAr ? 'شحن مجاني' : 'Free'}</span>
-                                            </span>
-                                        ) : (
-                                            <span>{deliveryFee} {currency}</span>
-                                        )}
-                                    </div>
-                                )}
-                                {appliedPromo && promoDiscount > 0 && (
-                                    <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-xl border border-amber-200 dark:border-amber-500/20">
-                                        <div className="flex items-center gap-1.5">
-                                            <Tag className="w-3.5 h-3.5 text-amber-500" />
-                                            <span className="text-amber-700 dark:text-amber-300 font-bold text-xs">{isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)}</span>
-                                        </div>
-                                        <span className="font-bold text-amber-600 text-sm">-{promoDiscount} {currency}</span>
-                                    </div>
-                                )}
-                                <div className="flex justify-between font-extrabold text-lg text-zinc-900 dark:text-white pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                                    <span>{isAr ? "الإجمالي" : "Total"}</span>
-                                    <span className="text-emerald-500">{total} {currency}</span>
-                                </div>
-                            </div>
-
-                            {/* Customer summary */}
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg">
-                                    <span className="text-zinc-400 block">{isAr ? "الاسم" : "Name"}</span>
-                                    <span className="font-bold text-zinc-700 dark:text-zinc-200">{name}</span>
-                                </div>
-                                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg">
-                                    <span className="text-zinc-400 block">{isAr ? "الهاتف" : "Phone"}</span>
-                                    <span className="font-bold text-zinc-700 dark:text-zinc-200" dir="ltr">{phone}</span>
-                                </div>
-                                <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg col-span-2">
-                                    <span className="text-zinc-400 block">{isAr ? "نوع الطلب" : "Type"}</span>
-                                    <span className="font-bold text-zinc-700 dark:text-zinc-200">
-                                        {orderType === 'delivery' ? (isAr ? `🏍️ دليفري — ${selectedZone?.name_ar}` : `🏍️ Delivery — ${selectedZone?.name_en || selectedZone?.name_ar}`) : (isAr ? "🏪 استلام من المطعم" : "🏪 Pickup")}
-                                    </span>
-                                </div>
-                                {localBranches && localBranches.length > 0 && selectedBranch && (
-                                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg col-span-2">
-                                        <span className="text-zinc-400 block">{isAr ? "الفرع" : "Branch"}</span>
-                                        <span className="font-bold text-zinc-700 dark:text-zinc-200">🏢 {selectedBranch}</span>
-                                    </div>
-                                )}
-                                {orderType === 'delivery' && address && (
-                                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg col-span-2">
-                                        <span className="text-zinc-400 block">{isAr ? "العنوان" : "Address"}</span>
-                                        <span className="font-bold text-zinc-700 dark:text-zinc-200">{address}</span>
-                                    </div>
-                                )}
-                                {notes && (
-                                    <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-lg col-span-2">
-                                        <span className="text-zinc-400 block">{isAr ? "ملاحظات" : "Notes"}</span>
-                                        <span className="font-bold text-zinc-700 dark:text-zinc-200">{notes}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="flex gap-2">
-                                <button onClick={() => setStep(hasAddons ? 3 : 2)} className="w-[100px] py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
-                                    {isAr ? "← رجوع" : "← Back"}
-                                </button>
-                                <button
-                                    disabled={loading}
+                                    disabled={!canProceedStep3 || loading}
                                     onClick={() => handleSubmit(true)}
                                     className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
                                 >
@@ -811,7 +689,7 @@ export default function CheckoutModal({
                     )}
 
                     {/* ════════ STEP: SUCCESS ════════ */}
-                    {effectiveStep === 5 && (
+                    {effectiveStep === 4 && (
                         <div className="text-center space-y-4 py-4" ref={printRef}>
                             <div className="w-20 h-20 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
                                 <CheckCircle className="w-10 h-10 text-emerald-500" />
@@ -883,9 +761,9 @@ export default function CheckoutModal({
                 </div>
 
                 {/* Step indicator */}
-                {effectiveStep < 5 && (
+                {effectiveStep < 4 && (
                     <div className="flex justify-center gap-2 pb-5">
-                        {(hasAddons ? [1, 2, 3, 4] : [1, 2, 3]).map(s => (
+                        {(hasAddons ? [1, 2, 3] : [1, 2]).map(s => (
                             <div key={s} className={`h-1.5 rounded-full transition-all ${s === step ? 'w-8 bg-emerald-500' : s < step ? 'w-4 bg-emerald-300' : 'w-4 bg-zinc-200 dark:bg-zinc-700'}`} />
                         ))}
                     </div>
