@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_core/firebase_core.dart';
+
 import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/core/storage/preferences.dart';
 import 'package:asn_app/core/theme/theme_provider.dart';
@@ -22,13 +22,7 @@ Future<ProviderContainer> bootstrap() async {
     AppLogger.error('Failed to load SharedPreferences', error: e, stackTrace: stackTrace, name: 'Bootstrap');
   }
 
-  // 3. Initialize Firebase (fail silently/gracefully if config is missing)
-  try {
-    await Firebase.initializeApp();
-    AppLogger.info('Firebase initialized successfully', name: 'Bootstrap');
-  } catch (e) {
-    AppLogger.warning('Firebase initialization skipped/failed: $e', name: 'Bootstrap');
-  }
+  // Firebase removed to fix iOS build errors without GoogleService-Info.plist
 
   // 4. Initialize Supabase
   try {
