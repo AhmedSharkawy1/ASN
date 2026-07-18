@@ -27,11 +27,23 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     final authState = ref.watch(authNotifierProvider);
 
     final user = authState.maybeWhen(
-      authenticated: (user) => user,
+      authenticated: (u) => u,
       orElse: () => null,
     );
 
-    if (user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (authState == const AuthState.loading()) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.orders)),
+        drawer: const AppNavigationDrawer(),
+        body: const Center(
+          child: Text('Unauthorized. Please log in.', style: TextStyle(color: Colors.red)),
+        ),
+      );
+    }
 
     final ordersAsync = ref.watch(ordersNotifierProvider);
 
@@ -424,15 +436,28 @@ class _OrderDetailsWidget extends ConsumerWidget {
   Widget _buildActionButtons(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(ordersNotifierProvider.notifier);
 
+    Future<void> handleUpdate(String newStatus) async {
+      try {
+        await notifier.updateStatus(order.id, newStatus);
+        if (context.mounted) Navigator.pop(context);
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update order: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+
     if (order.status == 'pending') {
       return Row(
         children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: () async {
-                await notifier.updateStatus(order.id, 'preparing');
-                if (context.mounted) Navigator.pop(context);
-              },
+              onPressed: () => handleUpdate('preparing'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.tealPrimary,
                 foregroundColor: Colors.white,
@@ -444,10 +469,7 @@ class _OrderDetailsWidget extends ConsumerWidget {
           ),
           AppSpacing.widthSm,
           ElevatedButton(
-            onPressed: () async {
-              await notifier.updateStatus(order.id, 'cancelled');
-              if (context.mounted) Navigator.pop(context);
-            },
+            onPressed: () => handleUpdate('cancelled'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.error.withValues(alpha: 0.1),
               foregroundColor: AppColors.error,
@@ -461,10 +483,7 @@ class _OrderDetailsWidget extends ConsumerWidget {
       );
     } else if (order.status == 'preparing') {
       return ElevatedButton(
-        onPressed: () async {
-          await notifier.updateStatus(order.id, 'completed');
-          if (context.mounted) Navigator.pop(context);
-        },
+        onPressed: () => handleUpdate('completed'),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.success,
           foregroundColor: Colors.white,

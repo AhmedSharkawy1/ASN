@@ -380,8 +380,8 @@ export default function CheckoutModal({
     if (!isOpen) return null;
 
     const stepLabels = hasAddons
-        ? { 1: isAr ? "الإضافات" : "Extras", 2: isAr ? "بيانات العميل" : "Customer Info", 3: isAr ? "نوع الطلب" : "Order Type", 4: isAr ? "تم الطلب! 🎉" : "Order Placed! 🎉" }
-        : { 1: isAr ? "بيانات العميل" : "Customer Info", 2: isAr ? "نوع الطلب" : "Order Type", 3: isAr ? "تم الطلب! 🎉" : "Order Placed! 🎉" };
+        ? { 1: isAr ? "الإضافات" : "Extras", 2: isAr ? "بيانات العميل" : "Customer Info", 3: isAr ? "نوع الطلب" : "Order Type", 4: isAr ? "إرسال الطلب 🎉" : "Send Order 🎉" }
+        : { 1: isAr ? "بيانات العميل" : "Customer Info", 2: isAr ? "نوع الطلب" : "Order Type", 3: isAr ? "إرسال الطلب 🎉" : "Send Order 🎉" };
 
     // When no addons, remap steps: 1->customer, 2->type, 3->success
     const effectiveStep = hasAddons ? step : step + 1;
@@ -681,7 +681,7 @@ export default function CheckoutModal({
                                     {loading ? (
                                         <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Sending..."}</>
                                     ) : (
-                                        <><FaWhatsapp className="w-4 h-4" /> {isAr ? "طلب عبر واتساب" : "Order via WhatsApp"}</>
+                                        <>{isAr ? "التالي" : "Next"}</>
                                     )}
                                 </button>
                             </div>
@@ -695,10 +695,10 @@ export default function CheckoutModal({
                                 <CheckCircle className="w-10 h-10 text-emerald-500" />
                             </div>
                             <div>
-                                <p className="text-2xl font-extrabold text-zinc-900 dark:text-white">{isAr ? "تم إرسال الأوردر!" : "Order Sent!"}</p>
+                                <p className="text-2xl font-extrabold text-zinc-900 dark:text-white">{isAr ? "برجاء إرسال الأوردر" : "Please Send Order"}</p>
                                 <p className="text-4xl font-black text-emerald-500 mt-2">#{orderNumber}</p>
                                 <p className="text-sm text-zinc-500 mt-2 font-bold">
-                                    {isAr ? "تم حفظ الاوردر! يرجى الضغط على زر الواتساب بالأسفل لإرساله للمطعم." : "Order saved! Please click the WhatsApp button below to send it to the restaurant."}
+                                    {isAr ? "برجاء الضغط على زر الواتساب بالأسفل لارسال الطلب." : "Please click the WhatsApp button below to send the order."}
                                 </p>
                             </div>
 
