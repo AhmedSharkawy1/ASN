@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Phone, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { getVicinoColors } from '@/lib/vicinoVariants';
 
 interface CustomerLeadPopupProps {
     config: any;
@@ -28,6 +30,18 @@ export default function CustomerLeadPopup({
     const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    const { theme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    const actualIsDark = mounted && theme === 'dark';
+    const { 
+        primaryColor: themePrimary, 
+        bgBody: themeBg, 
+        textMain: themeText, 
+        textMuted: themeMuted 
+    } = getVicinoColors(config, actualIsDark);
 
     const logoUrl = config.logo_url || config.vicino_logo_url;
 
@@ -84,21 +98,21 @@ export default function CustomerLeadPopup({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6 backdrop-blur-md"
-                style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)' }}
+                style={{ backgroundColor: actualIsDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)' }}
             >
                 <motion.div
                     initial={{ scale: 0.9, opacity: 0, y: 20 }}
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
                     className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl relative"
-                    style={{ backgroundColor: bgBody, color: textMain }}
+                    style={{ backgroundColor: themeBg, color: themeText }}
                     dir={isAr ? 'rtl' : 'ltr'}
                 >
                     {/* Skip Button */}
                     <button
                         onClick={handleSkip}
                         className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10"
-                        style={{ color: textMuted, right: isAr ? 'auto' : '1rem', left: isAr ? '1rem' : 'auto' }}
+                        style={{ color: themeMuted, right: isAr ? 'auto' : '1rem', left: isAr ? '1rem' : 'auto' }}
                     >
                         <X size={20} />
                     </button>
@@ -109,7 +123,7 @@ export default function CustomerLeadPopup({
                             {logoUrl ? (
                                 <img src={logoUrl} alt="Logo" className="w-24 h-24 object-contain rounded-full shadow-lg border-4 border-white/10" />
                             ) : (
-                                <div className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: primaryColor, color: '#fff' }}>
+                                <div className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: themePrimary, color: '#fff' }}>
                                     <span className="text-2xl font-bold">{config.name?.charAt(0)}</span>
                                 </div>
                             )}
@@ -118,9 +132,9 @@ export default function CustomerLeadPopup({
                         {/* Title & Description */}
                         <div className="text-center mb-8">
                             <h2 className="text-2xl font-bold mb-2">
-                                {isAr ? 'أهلاً بك في' : 'Welcome to'} <span style={{ color: primaryColor }}>{config.name}</span>
+                                {isAr ? 'أهلاً بك في' : 'Welcome to'} <span style={{ color: themePrimary }}>{config.name}</span>
                             </h2>
-                            <p className="text-sm opacity-80" style={{ color: textMuted }}>
+                            <p className="text-sm opacity-80" style={{ color: themeMuted }}>
                                 {isAr 
                                     ? 'سجل بياناتك لتصلك أحدث عروضنا وأخبارنا أولاً بأول!' 
                                     : 'Enter your details to receive our latest offers and news!'}
@@ -130,7 +144,7 @@ export default function CustomerLeadPopup({
                         {/* Form */}
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="relative">
-                                <div className={`absolute top-1/2 -translate-y-1/2 ${isAr ? 'right-4' : 'left-4'}`} style={{ color: textMuted }}>
+                                <div className={`absolute top-1/2 -translate-y-1/2 ${isAr ? 'right-4' : 'left-4'}`} style={{ color: themeMuted }}>
                                     <User size={18} />
                                 </div>
                                 <input
@@ -138,23 +152,23 @@ export default function CustomerLeadPopup({
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
                                     placeholder={isAr ? 'الاسم' : 'Full Name'}
-                                    className={`w-full py-3.5 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2 focus:ring-opacity-50 ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/40' : 'bg-black/5 border-black/10 text-black placeholder-black/40'}`}
+                                    className={`w-full py-3.5 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2 focus:ring-opacity-50 ${actualIsDark ? 'bg-white/5 border-white/10 text-white placeholder-white/40' : 'bg-black/5 border-black/10 text-black placeholder-black/40'}`}
                                     style={{ 
-                                        color: textMain,
+                                        color: themeText,
                                     }}
                                     onFocus={(e) => {
-                                        e.target.style.borderColor = primaryColor;
-                                        e.target.style.boxShadow = `0 0 0 2px ${primaryColor}40`;
+                                        e.target.style.borderColor = themePrimary;
+                                        e.target.style.boxShadow = `0 0 0 2px ${themePrimary}40`;
                                     }}
                                     onBlur={(e) => {
-                                        e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                                        e.target.style.borderColor = actualIsDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
                                         e.target.style.boxShadow = 'none';
                                     }}
                                 />
                             </div>
 
                             <div className="relative">
-                                <div className={`absolute top-1/2 -translate-y-1/2 ${isAr ? 'right-4' : 'left-4'}`} style={{ color: textMuted }}>
+                                <div className={`absolute top-1/2 -translate-y-1/2 ${isAr ? 'right-4' : 'left-4'}`} style={{ color: themeMuted }}>
                                     <Phone size={18} />
                                 </div>
                                 <input
@@ -162,17 +176,17 @@ export default function CustomerLeadPopup({
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
                                     placeholder={isAr ? 'رقم التلفون' : 'Phone Number'}
-                                    className={`w-full py-3.5 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2 focus:ring-opacity-50 text-left ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/40' : 'bg-black/5 border-black/10 text-black placeholder-black/40'}`}
+                                    className={`w-full py-3.5 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2 focus:ring-opacity-50 text-left ${actualIsDark ? 'bg-white/5 border-white/10 text-white placeholder-white/40' : 'bg-black/5 border-black/10 text-black placeholder-black/40'}`}
                                     style={{ 
-                                        color: textMain,
+                                        color: themeText,
                                         direction: 'ltr'
                                     }}
                                     onFocus={(e) => {
-                                        e.target.style.borderColor = primaryColor;
-                                        e.target.style.boxShadow = `0 0 0 2px ${primaryColor}40`;
+                                        e.target.style.borderColor = themePrimary;
+                                        e.target.style.boxShadow = `0 0 0 2px ${themePrimary}40`;
                                     }}
                                     onBlur={(e) => {
-                                        e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                                        e.target.style.borderColor = actualIsDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
                                         e.target.style.boxShadow = 'none';
                                     }}
                                 />
@@ -192,7 +206,7 @@ export default function CustomerLeadPopup({
                                 type="submit"
                                 disabled={loading}
                                 className="w-full py-3.5 rounded-xl text-white font-bold text-lg flex items-center justify-center gap-2 mt-4 hover:opacity-90 transition-opacity disabled:opacity-70"
-                                style={{ backgroundColor: primaryColor }}
+                                style={{ backgroundColor: themePrimary }}
                             >
                                 {loading ? (
                                     <span className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
