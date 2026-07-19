@@ -149,7 +149,7 @@ export function buildWhatsAppMessage(params: {
     msg += `💵 *${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${currency}*\n`;
     msg += `------------------------------\n`;
 
-    msg += `✅ *${isAr ? 'تأكيد:' : 'Confirmation:'}* ${isAr ? 'سيتم مراجعة الطلب من قبل المطعم وتأكيده معكم فوراً.' : 'Your order will be reviewed and confirmed shortly.'}\n`;
+    msg += `✅ *${isAr ? 'تأكيد:' : 'Confirmation:'}* ${isAr ? 'سيتم تأكيد الطلب وتأكيده معكم فوراً.' : 'Your order will be confirmed shortly.'}\n`;
     msg += `❤️ ${isAr ? 'مع تحيات إدارة' : 'With greetings from the management of'} *${restaurantName}*\n`;
     msg += `------------------------------\n`;
     msg += `${isAr ? 'شكراً لاختياركم' : 'Thank you for choosing'} ${restaurantName} 🍕🍝`;
