@@ -142,10 +142,10 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                             heroMedia.embed ? (
                                 <iframe
                                     src={heroMedia.embed}
-                                    className="w-full h-[70vh] md:h-[80vh] block"
+                                    className="w-full aspect-video md:aspect-video block"
                                     allow="autoplay; fullscreen; picture-in-picture"
                                     allowFullScreen
-                                    style={{ border: 'none' }}
+                                    style={{ border: 'none', backgroundColor: '#000' }}
                                 ></iframe>
                             ) : (
                                 <video 

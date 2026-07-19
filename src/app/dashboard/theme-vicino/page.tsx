@@ -328,9 +328,9 @@ export default function ThemeVicinoSettings() {
                                         {getEmbedUrl(config.vicino_video_url) ? (
                                             <iframe
                                                 src={getEmbedUrl(config.vicino_video_url)!}
-                                                className="w-full h-full block opacity-70"
+                                                className="w-full aspect-video block opacity-70"
                                                 allow="autoplay; fullscreen"
-                                                style={{ border: 'none' }}
+                                                style={{ border: 'none', backgroundColor: '#000' }}
                                             ></iframe>
                                         ) : (
                                             <video src={config.vicino_video_url} className="w-full h-full object-cover opacity-70" />
