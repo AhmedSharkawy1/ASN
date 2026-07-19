@@ -16,6 +16,7 @@ type RestaurantData = {
     address?: string;
     receipt_logo_url?: string;
     slug?: string;
+    starting_order_number?: number;
 };
 
 export function useRestaurant() {
@@ -55,7 +56,7 @@ export function useRestaurant() {
                     // Try fetching with all fields
                     const { data: d1, error: e1 } = await supabase
                         .from('restaurants')
-                        .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, receipt_logo_url, slug')
+                        .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, receipt_logo_url, slug, starting_order_number')
                         .eq('id', rId)
                         .single();
 
@@ -66,7 +67,7 @@ export function useRestaurant() {
                         // Fallback: omit 'receipt_logo_url' if it doesn't exist
                         const { data: d2, error: e2 } = await supabase
                             .from('restaurants')
-                            .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, slug')
+                            .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, slug, starting_order_number')
                             .eq('id', rId)
                             .single();
                         if (d2) {

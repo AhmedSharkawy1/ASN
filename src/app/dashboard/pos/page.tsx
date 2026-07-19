@@ -438,7 +438,7 @@ export default function POSPage() {
         try {
             // If editing, use the same order number and ID
             const orderId = editingOrderId || generateId();
-            const orderNumber = originalOrderNumber || await getPosNextOrderNumber(restaurantId);
+            const orderNumber = originalOrderNumber || Math.max(await getPosNextOrderNumber(restaurantId), restaurant?.starting_order_number || 1);
 
             // 1. If editing, revert previous inventory deductions first
             if (editingOrderId) {

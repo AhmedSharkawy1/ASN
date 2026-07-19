@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
 import { formatCurrency, formatQuantity, formatDate, statusLabel, statusColor, nextStatuses, elapsedTime, timeAgo } from "@/lib/helpers/formatters";
-import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff, Monitor, Globe, Edit2 } from "lucide-react";
+import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock, FileText, RefreshCw, Printer, WifiOff, Monitor, Globe, Edit2, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getPrinterSettings } from "@/lib/helpers/printerSettings";
 import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
@@ -170,6 +170,19 @@ export default function OrdersPage() {
         if (orderLogs[orderId]) return;
         const { data } = await supabase.from('order_logs').select('*').eq('order_id', orderId).order('created_at', { ascending: false });
         setOrderLogs(prev => ({ ...prev, [orderId]: (data as OrderLog[]) || [] }));
+    };
+
+    const deleteOrder = async (orderId: string) => {
+        if (!confirm(isAr ? "هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to permanently delete this order? This cannot be undone.")) return;
+        
+        try {
+            await supabase.from('orders').delete().eq('id', orderId);
+            await posDb.orders.delete(orderId);
+            setOrders(orders.filter(o => o.id !== orderId));
+        } catch (err) {
+            console.error(err);
+            alert(isAr ? "تعذر حذف الطلب." : "Failed to delete order.");
+        }
     };
 
     const toggleExpand = (orderId: string) => {
@@ -455,6 +468,11 @@ export default function OrdersPage() {
                                                         className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all active:scale-95 border border-blue-200 dark:border-zinc-800/20">
                                                         <Edit2 className="w-4 h-4" />
                                                         {isAr ? "تعديل الطلب" : "Edit Order"}
+                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); deleteOrder(order.id); }}
+                                                        className="flex items-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-xs rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-all active:scale-95 border border-red-200 dark:border-zinc-800/20">
+                                                        <Trash2 className="w-4 h-4" />
+                                                        {isAr ? "حذف نهائي" : "Delete"}
                                                     </button>
                                                 </div>
 

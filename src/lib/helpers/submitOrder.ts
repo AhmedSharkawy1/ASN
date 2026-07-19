@@ -91,7 +91,7 @@ export function buildWhatsAppMessage(params: {
     } = params;
     const isAr = language === 'ar';
 
-    let msg = `🧾 *${isAr ? 'فاتورة طلب جديدة' : 'New Order Invoice'} - ${restaurantName} 🍕🍝*\n`;
+    let msg = `🧾 *${isAr ? 'الطلب رقم' : 'Order No.'} #${orderNumber} - ${restaurantName} 🍕🍝*\n`;
     msg += `------------------------------\n`;
     msg += `👤 *${isAr ? 'الاسم:' : 'Name:'}* ${customerName}\n`;
     msg += `📞 *${isAr ? 'الموبايل:' : 'Phone:'}* ${customerPhone}\n`;
@@ -150,7 +150,7 @@ export function buildWhatsAppMessage(params: {
     msg += `------------------------------\n`;
 
     msg += `✅ *${isAr ? 'تأكيد:' : 'Confirmation:'}* ${isAr ? 'سيتم مراجعة الطلب من قبل المطعم وتأكيده معكم فوراً.' : 'Your order will be reviewed and confirmed shortly.'}\n`;
-    msg += `❤️ ${isAr ? 'مع تحيات إدارة مطعم' : 'With love from'} *${restaurantName}*\n`;
+    msg += `❤️ ${isAr ? 'مع تحيات إدارة' : 'With greetings from the management of'} *${restaurantName}*\n`;
     msg += `------------------------------\n`;
     msg += `${isAr ? 'شكراً لاختياركم' : 'Thank you for choosing'} ${restaurantName} 🍕🍝`;
 
@@ -360,7 +360,16 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             .limit(1)
             .maybeSingle();
 
-        const nextOrderNumber = (maxOrderData?.order_number || 0) + 1;
+        const { data: restaurantData } = await supabase
+            .from('restaurants')
+            .select('auto_approve_website_orders, starting_order_number')
+            .eq('id', restaurantId)
+            .maybeSingle();
+
+        let nextOrderNumber = (maxOrderData?.order_number || 0) + 1;
+        if (restaurantData?.starting_order_number && nextOrderNumber < restaurantData.starting_order_number) {
+            nextOrderNumber = restaurantData.starting_order_number;
+        }
 
         // 2. Insert Order
         const { data: order, error: orderError } = await supabase
@@ -449,11 +458,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         });
 
         // 6. Process inventory deduction (blocking for status determination)
-        const { data: restaurantData } = await supabase
-            .from('restaurants')
-            .select('auto_approve_website_orders')
-            .eq('id', restaurantId)
-            .maybeSingle();
             
         const autoApprove = restaurantData?.auto_approve_website_orders === true;
         let finalStatus = autoApprove ? 'completed' : 'pending';

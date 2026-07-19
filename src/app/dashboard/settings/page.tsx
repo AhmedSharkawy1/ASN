@@ -76,6 +76,7 @@ type RestaurantProfile = {
     youtube_url?: string;
     whatsapp_group_url?: string;
     default_theme_mode?: 'light' | 'dark' | 'system';
+    starting_order_number?: number;
 };
 
 export default function SettingsPage() {
@@ -114,7 +115,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, starting_order_number')
                 .eq('id', resolvedRest.id)
                 .single();
 
@@ -122,7 +123,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, theme_colors, order_channel, receipt_logo_url')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, theme_colors, order_channel, receipt_logo_url, starting_order_number')
                     .eq('id', resolvedRest.id)
                     .single();
                 finalData = d2;
@@ -197,6 +198,7 @@ export default function SettingsPage() {
                     youtube_url: profile.youtube_url || '',
                     whatsapp_group_url: profile.whatsapp_group_url || '',
                     default_theme_mode: profile.default_theme_mode || 'system',
+                    starting_order_number: profile.starting_order_number || 1,
                 })
                 .eq('id', profile.id);
 
@@ -238,6 +240,7 @@ export default function SettingsPage() {
                         youtube_url: profile.youtube_url || '',
                         whatsapp_group_url: profile.whatsapp_group_url || '',
                         default_theme_mode: profile.default_theme_mode || 'system',
+                        starting_order_number: profile.starting_order_number || 1,
                         theme_colors: profile.theme_colors || {},
                         order_channel: profile.order_channel || 'whatsapp',
                         receipt_logo_url: profile.receipt_logo_url,
@@ -514,6 +517,11 @@ export default function SettingsPage() {
                         <div className="space-y-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "اسم المطعم" : "Restaurant Name"}</label>
                             <input required type="text" value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "رقم بداية الطلبات" : "Starting Order Number"}</label>
+                            <input type="number" min="1" value={profile.starting_order_number || 1} onChange={e => setProfile({ ...profile, starting_order_number: parseInt(e.target.value) || 1 })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all font-bold text-base" />
                         </div>
                         <div className="space-y-2">
