@@ -137,15 +137,19 @@ export default function CustomerLeadPopup({
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    placeholder={isAr ? 'الاسم الكريم' : 'Full Name'}
-                                    className="w-full py-3 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2"
+                                    placeholder={isAr ? 'الاسم' : 'Full Name'}
+                                    className={`w-full py-3.5 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2 focus:ring-opacity-50 ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/40' : 'bg-black/5 border-black/10 text-black placeholder-black/40'}`}
                                     style={{ 
-                                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
                                         color: textMain,
                                     }}
-                                    onFocus={(e) => e.target.style.borderColor = primaryColor}
-                                    onBlur={(e) => e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = primaryColor;
+                                        e.target.style.boxShadow = `0 0 0 2px ${primaryColor}40`;
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                                        e.target.style.boxShadow = 'none';
+                                    }}
                                 />
                             </div>
 
@@ -157,16 +161,20 @@ export default function CustomerLeadPopup({
                                     type="tel"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    placeholder={isAr ? 'رقم الجوال' : 'Phone Number'}
-                                    className="w-full py-3 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2 text-left"
+                                    placeholder={isAr ? 'رقم التلفون' : 'Phone Number'}
+                                    className={`w-full py-3.5 px-12 rounded-xl border outline-none transition-all duration-300 focus:ring-2 focus:ring-opacity-50 text-left ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-white/40' : 'bg-black/5 border-black/10 text-black placeholder-black/40'}`}
                                     style={{ 
-                                        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-                                        borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
                                         color: textMain,
                                         direction: 'ltr'
                                     }}
-                                    onFocus={(e) => e.target.style.borderColor = primaryColor}
-                                    onBlur={(e) => e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
+                                    onFocus={(e) => {
+                                        e.target.style.borderColor = primaryColor;
+                                        e.target.style.boxShadow = `0 0 0 2px ${primaryColor}40`;
+                                    }}
+                                    onBlur={(e) => {
+                                        e.target.style.borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                                        e.target.style.boxShadow = 'none';
+                                    }}
                                 />
                             </div>
 
