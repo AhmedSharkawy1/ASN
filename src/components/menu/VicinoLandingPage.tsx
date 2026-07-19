@@ -151,8 +151,14 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                                 <video 
                                     src={heroMedia.src} 
                                     autoPlay muted loop playsInline controls={true}
-                                    className="w-full aspect-auto object-cover block"
-                                    style={{ maxHeight: '85vh', backgroundColor: '#000' }}
+                                    onLoadedMetadata={(e) => {
+                                        const target = e.currentTarget;
+                                        if (target.videoWidth && target.videoHeight) {
+                                            target.style.aspectRatio = `${target.videoWidth}/${target.videoHeight}`;
+                                        }
+                                    }}
+                                    className="w-full object-cover block"
+                                    style={{ maxHeight: '85vh', backgroundColor: '#000', objectFit: 'cover' }}
                                 />
                             )
                         ) : (
