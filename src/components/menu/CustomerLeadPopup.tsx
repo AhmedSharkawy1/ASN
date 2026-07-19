@@ -136,7 +136,7 @@ export default function CustomerLeadPopup({
                             </h2>
                             <p className="text-sm opacity-80" style={{ color: themeMuted }}>
                                 {isAr 
-                                    ? 'سجل بياناتك لتصلك أحدث عروضنا وأخبارنا أولاً بأول!' 
+                                    ? 'سجل بياناتك لتصلك أحدث عروضنا وأخبارنا أولاً بأول' 
                                     : 'Enter your details to receive our latest offers and news!'}
                             </p>
                         </div>
