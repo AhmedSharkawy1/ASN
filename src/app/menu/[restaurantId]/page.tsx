@@ -38,6 +38,7 @@ const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
 const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
 const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
 const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
+const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
 const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
@@ -180,6 +181,7 @@ function SmartMenuContent({
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<RestaurantConfig | null>(null);
   const [showLanding, setShowLanding] = useState(false);
+  const [showLeadPopup, setShowLeadPopup] = useState(false);
   const [showGlobalSplash, setShowGlobalSplash] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -278,6 +280,11 @@ function SmartMenuContent({
           setShowLanding(true);
         } else if (!restData.theme?.startsWith('vicino')) {
           setShowGlobalSplash(true);
+        } else if (restData.theme?.startsWith('vicino')) {
+          const isLeadCaptured = typeof window !== 'undefined' ? localStorage.getItem(`lead_captured_${restData.id}`) : false;
+          if (!isLeadCaptured) {
+            setShowLeadPopup(true);
+          }
         }
 
         const { data: catsData } = await supabase
@@ -483,7 +490,26 @@ function SmartMenuContent({
     return <Theme16Menu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (showLanding) {
-    return <VicinoLandingPage config={config} onContinue={() => setShowLanding(false)} />;
+    return <VicinoLandingPage config={config} onContinue={() => {
+      setShowLanding(false);
+      const isLeadCaptured = typeof window !== 'undefined' ? localStorage.getItem(`lead_captured_${config?.id}`) : false;
+      if (!isLeadCaptured && config?.theme?.startsWith("vicino")) {
+        setShowLeadPopup(true);
+      }
+    }} />;
+  }
+
+  if (showLeadPopup) {
+    return <CustomerLeadPopup 
+              config={config} 
+              isAr={language === 'ar'} 
+              isDark={false} 
+              primaryColor={config?.theme_colors?.primary || '#000'} 
+              bgBody={config?.theme_colors?.background || '#fff'} 
+              textMain={config?.theme_colors?.text || '#000'} 
+              textMuted="#666" 
+              onComplete={() => setShowLeadPopup(false)} 
+            />;
   }
 
   // If Theme 17 (Lusha Theme)
