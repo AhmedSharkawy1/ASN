@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -485,6 +485,7 @@ export default function Theme7SkyMenu({ config, categories, restaurantId }: { co
                                             const sel = sizeIdx === idx;
                                             return (
                                                 <label key={idx}
+                                                    onClick={() => setSizeIdx(idx)}
                                                     className="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all"
                                                     style={{
                                                         borderColor: sel ? T7_GOLD : (isDarkMode ? T7_BORDER : '#0284c7'),

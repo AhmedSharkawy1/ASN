@@ -519,6 +519,7 @@ export default function Theme7RedMenu({ config, categories, restaurantId }: { co
                                             const sel = sizeIdx === idx;
                                             return (
                                                 <label key={idx}
+                                                    onClick={() => setSizeIdx(idx)}
                                                     className="flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all"
                                                     style={{
                                                         borderColor: sel ? T7_GOLD : (isDarkMode ? T7_BORDER : '#e2e8f0'),
