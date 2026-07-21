@@ -383,7 +383,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                 {/* Categories Bar */}
                 {!searchQuery && (
                     <div className="sticky top-0 z-30 pt-2 pb-4 mb-2" style={{ backgroundColor: bgBody }}>
-                        <div className="flex gap-4 overflow-x-auto scrollbar-hide px-2" dir={isAr ? 'rtl' : 'ltr'}>
+                        <div className="flex gap-4 sm:gap-5 overflow-x-auto hide-scrollbar scrollbar-hide no-scrollbar px-2 py-1" dir={isAr ? 'rtl' : 'ltr'}>
                             <button 
                                 id="nav-cat-all"
                                 onClick={() => {
@@ -392,13 +392,13 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                 }}
                                 className="flex flex-col items-center gap-2 shrink-0 group transition-all"
                             >
-                                <div className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all border-[3px]"
+                                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all border-[3px]"
                                      style={{ 
                                          backgroundColor: bgCard,
                                          borderColor: activeCategory === 'all' ? primaryColor : 'transparent',
                                          boxShadow: activeCategory === 'all' ? `0 4px 15px ${primaryColor}40` : 'none'
                                      }}>
-                                     <LayoutGrid className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
+                                     <LayoutGrid className="w-10 h-10 sm:w-12 sm:h-12" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
                                 </div>
                                 <span className="font-bold text-xs sm:text-sm" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
                                     {isAr ? 'الكل' : 'All'}
@@ -418,7 +418,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                     }}
                                     className="flex flex-col items-center gap-2 shrink-0 group transition-all"
                                 >
-                                    <div className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden transition-all border-[3px] bg-white dark:bg-[#1c1c1e]"
+                                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden transition-all border-[3px] bg-white dark:bg-[#1c1c1e]"
                                          style={{ 
                                              borderColor: activeCategory === cat.id.toString() ? primaryColor : 'transparent',
                                              boxShadow: activeCategory === cat.id.toString() ? `0 4px 15px ${primaryColor}40` : 'none'

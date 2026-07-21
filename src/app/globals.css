@@ -126,12 +126,12 @@
     text-shadow: 0 0 20px hsla(var(--glow-color) / 0.8), 0 0 40px hsla(var(--glow-color) / 0.4);
   }
 
-  .hide-scrollbar {
+  .hide-scrollbar, .scrollbar-hide, .no-scrollbar {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
   }
   
-  .hide-scrollbar::-webkit-scrollbar {
+  .hide-scrollbar::-webkit-scrollbar, .scrollbar-hide::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
     display: none; /* Chrome, Safari and Opera */
   }
 }
