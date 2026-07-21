@@ -5,7 +5,7 @@ import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -63,13 +63,13 @@ interface RestaurantType {
     [key: string]: any;
 }
 
-interface Theme18MenuProps {
+interface LametZamanMenuProps {
     config: RestaurantType;
     categories: CategoryWithItemsType[];
     restaurantId: string;
 }
 
-export default function Theme18Menu({ config, categories, restaurantId }: Theme18MenuProps) {
+export default function LametZamanMenu({ config, categories, restaurantId }: LametZamanMenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -87,8 +87,8 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
     const isDark = mounted && theme === 'dark';
     const cur = parseCurrency(config?.currency, isAr);
 
-    const T18_PRIMARY = '#f97316'; // orange-500
-    const primaryColor = config.theme_colors?.primary || T18_PRIMARY;
+    const T19_PRIMARY = '#f97316'; // orange-500
+    const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
     
     // Theme colors matching the screenshots
     const bgBody = isDark ? '#111111' : '#f9fafb';
@@ -115,6 +115,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
     const [showCheckout, setShowCheckout] = useState(false);
     const [showContactModal, setShowContactModal] = useState(false);
     const [showMenuCategories, setShowMenuCategories] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
@@ -195,16 +196,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
 
     const searchedCategories = categories.map(cat => ({
         ...cat,
-        items: (cat.items || []).filter(item => {
-            if (!searchQuery) return true;
-            const q = searchQuery.toLowerCase();
-            return (
-                (item.title_ar || '').toLowerCase().includes(q) ||
-                (item.title_en || '').toLowerCase().includes(q) ||
-                (item.description_ar || item.desc_ar || '').toLowerCase().includes(q) ||
-                (item.description_en || item.desc_en || '').toLowerCase().includes(q)
-            );
-        })
+        items: (cat.items || []).filter(item => itemName(item).toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => cat.items.length > 0);
 
     const displayCategories = searchQuery ? searchedCategories : activeCatList;
@@ -239,8 +231,14 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                             </p>
                         )}
                     </div>
-                    {/* Replaced LogOut button with an empty div for spacing balance */}
-                    <div className="w-10 h-10"></div>
+                    {/* Payment methods icon */}
+                    {config.payment_methods && config.payment_methods.length > 0 ? (
+                        <button onClick={() => setShowPaymentModal(true)} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm text-green-600 dark:text-green-500 hover:scale-110" title={isAr ? "طرق الدفع" : "Payment Methods"}>
+                            <CreditCard className="w-5 h-5" />
+                        </button>
+                    ) : (
+                        <div className="w-10 h-10"></div>
+                    )}
                 </div>
 
                 {/* Language Toggle */}
@@ -351,39 +349,58 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                 
                 {/* Categories Bar */}
                 {!searchQuery && (
-                    <div className="flex gap-3 overflow-x-auto pb-4 mb-2 scrollbar-hide" dir={isAr ? 'rtl' : 'ltr'}>
-                        <button 
-                            onClick={() => setActiveCategory('all')}
-                            className="px-6 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-colors shrink-0"
-                            style={{ 
-                                backgroundColor: activeCategory === 'all' ? primaryColor : bgCard,
-                                color: activeCategory === 'all' ? '#fff' : textMain,
-                                border: `1px solid ${activeCategory === 'all' ? primaryColor : borderColor}`
-                            }}
-                        >
-                            {isAr ? 'الكل' : 'All'}
-                        </button>
-                        {categories.map((cat) => (
+                    <div className="sticky top-0 z-30 pt-2 pb-4 mb-2" style={{ backgroundColor: bgBody }}>
+                        <div className="flex gap-4 overflow-x-auto scrollbar-hide px-2" dir={isAr ? 'rtl' : 'ltr'}>
                             <button 
-                                key={cat.id}
-                                onClick={() => {
-                                    setActiveCategory(cat.id.toString());
-                                    const el = document.getElementById(cat.id.toString());
-                                    if(el) {
-                                        const y = el.getBoundingClientRect().top + window.scrollY - 100;
-                                        window.scrollTo({ top: y, behavior: 'smooth' });
-                                    }
-                                }}
-                                className="px-6 py-2.5 rounded-full font-bold text-sm whitespace-nowrap transition-colors shrink-0"
-                                style={{ 
-                                    backgroundColor: activeCategory === cat.id.toString() ? primaryColor : bgCard,
-                                    color: activeCategory === cat.id.toString() ? '#fff' : textMain,
-                                    border: `1px solid ${activeCategory === cat.id.toString() ? primaryColor : borderColor}`
-                                }}
+                                onClick={() => setActiveCategory('all')}
+                                className="flex flex-col items-center gap-2 shrink-0 group transition-all"
                             >
-                                {catName(cat)}
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all border-[3px]"
+                                     style={{ 
+                                         backgroundColor: bgCard,
+                                         borderColor: activeCategory === 'all' ? primaryColor : 'transparent',
+                                         boxShadow: activeCategory === 'all' ? `0 4px 15px ${primaryColor}40` : 'none'
+                                     }}>
+                                     <LayoutGrid className="w-8 h-8" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
+                                </div>
+                                <span className="font-bold text-xs" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
+                                    {isAr ? 'الكل' : 'All'}
+                                </span>
                             </button>
-                        ))}
+                            {categories.map((cat) => (
+                                <button 
+                                    key={cat.id}
+                                    onClick={() => {
+                                        setActiveCategory(cat.id.toString());
+                                        const el = document.getElementById(cat.id.toString());
+                                        if(el) {
+                                            const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                                            window.scrollTo({ top: y, behavior: 'smooth' });
+                                        }
+                                    }}
+                                    className="flex flex-col items-center gap-2 shrink-0 group transition-all"
+                                >
+                                    <div className="w-16 h-16 rounded-full overflow-hidden transition-all border-[3px] bg-white dark:bg-[#1c1c1e]"
+                                         style={{ 
+                                             borderColor: activeCategory === cat.id.toString() ? primaryColor : 'transparent',
+                                             boxShadow: activeCategory === cat.id.toString() ? `0 4px 15px ${primaryColor}40` : 'none'
+                                         }}>
+                                        <img 
+                                            src={cat.image_url || cat.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
+                                            alt={catName(cat)} 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                const target = e.target as HTMLImageElement;
+                                                target.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
+                                            }}
+                                        />
+                                    </div>
+                                    <span className="font-bold text-xs whitespace-nowrap" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
+                                        {catName(cat)}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 )}
 
@@ -407,9 +424,7 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
 
                         return (
                             <div key={category.id} id={category.id.toString()} className="mb-8 pt-2">
-                                {searchQuery && (
-                                    <h3 className="font-bold text-lg mb-4" style={{ color: primaryColor }}>{catName(category)}</h3>
-                                )}
+                                <h3 className="font-bold text-lg mb-4" style={{ color: primaryColor }}>{catName(category)}</h3>
                                 <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4" : "flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"}>
                                     {items.map((item) => (
                                         <div 
@@ -835,6 +850,95 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
                                     </div>
                                 )}
                             </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Payment Info Modal */}
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[400] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setShowPaymentModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative max-h-[85vh] overflow-y-auto"
+                            style={{ backgroundColor: bgCard, color: textMain }}
+                            onClick={e => e.stopPropagation()}
+                            dir={isAr ? 'rtl' : 'ltr'}
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-black">{isAr ? 'الدفع الإلكتروني' : 'Online Payment'}</h3>
+                                <button onClick={() => setShowPaymentModal(false)} className="w-8 h-8 flex items-center justify-center bg-black/5 dark:bg-white/10 rounded-full hover:bg-black/10 dark:hover:bg-white/20 transition-colors"><X className="w-5 h-5" /></button>
+                            </div>
+                            
+                            <div className="flex flex-col items-center justify-center text-center mb-6">
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                                    <CreditCard className="w-8 h-8" />
+                                </div>
+                                <p className="font-black text-[1.1rem] mb-2 leading-snug">
+                                    {isAr ? 'يجب إرسال سكرين شوت بعد التحويل' : 'A screenshot must be sent after the transfer'}
+                                </p>
+                                <p className="text-sm opacity-70 font-medium">
+                                    {isAr ? 'يرجى إرسال صورة إيصال التحويل على رقم الواتساب الخاص بالمطعم لتأكيد الدفع.' : 'Please send the transfer receipt screenshot to the restaurant\'s WhatsApp number to confirm your payment.'}
+                                </p>
+                            </div>
+
+                            {/* Render Payment Methods */}
+                            {config.payment_methods && config.payment_methods.length > 0 && (
+                                <div className="flex flex-col gap-3 mb-6">
+                                    {config.payment_methods.map((pm: any) => (
+                                        <div key={pm.id} className="bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-2xl p-4 text-start flex flex-col transition-all">
+                                            <h4 className="font-bold text-lg mb-1">{isAr ? pm.name_ar : pm.name_en || pm.name_ar}</h4>
+                                            {(pm.desc_ar || pm.desc_en) && (
+                                                <p className="text-xs font-medium opacity-70 mb-3">{isAr ? pm.desc_ar : pm.desc_en || pm.desc_ar}</p>
+                                            )}
+                                            {pm.number && (
+                                                <div className="flex items-center justify-between bg-white dark:bg-black/40 px-3 py-2 rounded-xl border border-black/5 dark:border-white/5 mb-3">
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(pm.number!);
+                                                            alert(isAr ? "تم نسخ الرقم!" : "Number copied!");
+                                                        }}
+                                                        className="text-xs font-bold px-3 py-1.5 rounded-lg active:scale-95 transition-colors"
+                                                        style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                                                    >
+                                                        {isAr ? "نسخ" : "Copy"}
+                                                    </button>
+                                                    <span className="font-bold tabular-nums text-sm tracking-widest" dir="ltr">{pm.number}</span>
+                                                </div>
+                                            )}
+                                            {pm.link && (
+                                                <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-3 rounded-xl mt-1 active:scale-95 transition-transform" style={{ backgroundColor: primaryColor }}>
+                                                    {isAr ? "رابط الدفع / انستا باي" : "Payment Link / InstaPay"}
+                                                </a>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                                
+                            {config.whatsapp_number ? (
+                                <a
+                                    href={`https://wa.me/${config.whatsapp_number.replace('+', '')}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="w-full h-12 rounded-xl flex items-center justify-center gap-2 text-white font-bold text-lg shadow-md transition-transform hover:scale-[1.02]"
+                                    style={{ backgroundColor: '#25D366' }}
+                                >
+                                    <FaWhatsapp className="w-6 h-6" />
+                                    <span dir="ltr" className="tracking-wider">{config.whatsapp_number}</span>
+                                </a>
+                            ) : (
+                                <p className="text-xs text-red-500 font-bold text-center">{isAr ? 'رقم الواتساب غير متوفر' : 'WhatsApp number is not available'}</p>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}

@@ -65,6 +65,7 @@ const MarketingThemes = [
     { key: "theme19-pink", nameEn: "Theme 19 (Pink)", nameAr: "ثيم 19 (وردي)" },
     { key: "theme18", nameEn: "MenuMasr Replica", nameAr: "منيو مصر المطابق" },
         { key: "theme19", nameEn: "Theme 19", nameAr: "ثيم 19" },
+    { key: "lamet-zaman", nameEn: "Lamet Zaman Theme", nameAr: "ثيم لمة زمان" },
     { key: "vicino", nameEn: "Theme 20 (Vicino)", nameAr: "ثيم 20 (فيتشينو)" },
     { key: "vicino-red", nameEn: "Theme 20 (Red)", nameAr: "ثيم 20 (أحمر)" },
     { key: "vicino-cyan", nameEn: "Theme 20 (Cyan)", nameAr: "ثيم 20 (سماوي)" },

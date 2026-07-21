@@ -36,6 +36,7 @@ const Theme16Menu = dynamic(() => import("@/components/menu/Theme16Menu"));
 const Theme17Menu = dynamic(() => import("@/components/menu/Theme17Menu"));
 const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
 const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
+const LametZamanMenu = dynamic(() => import("@/components/menu/LametZamanMenu"));
 const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
 const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
 const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
@@ -525,6 +526,9 @@ function SmartMenuContent({
   }
   if (config?.theme === "theme19") {
     return <Theme19Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "lamet-zaman") {
+    return <LametZamanMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme === "theme18-red") {
     return <Theme18RedMenu config={config} categories={categories} restaurantId={config.id} />;
