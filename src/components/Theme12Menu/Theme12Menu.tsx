@@ -156,8 +156,8 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
         return all.filter(item => {
             return (item.title_ar || '').toLowerCase().includes(q) ||
                    (item.title_en || '').toLowerCase().includes(q) ||
-                   (item.description_ar || item.desc_ar || '').toLowerCase().includes(q) ||
-                   (item.description_en || item.desc_en || '').toLowerCase().includes(q);
+                   ((item as any).description_ar || (item as any).desc_ar || '').toLowerCase().includes(q) ||
+                   ((item as any).description_en || (item as any).desc_en || '').toLowerCase().includes(q);
         });
     }, [searchQuery, categories, isAr]);
     const headerRef = useRef<HTMLElement>(null);
@@ -508,7 +508,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                                 }}
                                             >
                                                 <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100 dark:border-white/5">
-                                                    <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'} alt={itemName(item)} className="w-full h-full object-cover" />
+                                                    <OptimizedMenuImage thumbnailSrc={(item as any).thumbnail_url} originalSrc={item.image_url || item.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'} alt={itemName(item)} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex-1 min-w-0 text-left" dir={isAr ? 'rtl' : 'ltr'}>
                                                     <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1 truncate">{itemName(item)}</h4>
@@ -548,7 +548,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                                     <div>
                                                         <h3 className="text-sm sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 line-clamp-2 leading-tight group-hover:text-[#6c63ff] transition-colors">{itemName(item)}</h3>
                                                         {(item.desc_ar || item.description_ar || item.desc_en || item.description_en) && (
-                                                            <p className="block text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-2 sm:mb-4">{isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}</p>
+                                                            <p className="block text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-1 leading-relaxed mb-2 sm:mb-4">{isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}</p>
                                                         )}
                                                         {item.size_labels && item.size_labels.length > 0 && (
                                                             <div className="flex flex-wrap gap-2 mb-4">
@@ -612,14 +612,18 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
 
                                     <div className="absolute bottom-4 left-4 right-4 z-20" dir={isAr ? 'rtl' : 'ltr'}>
                                         <h2 className="text-2xl sm:text-3xl font-black text-white drop-shadow-md mb-1">{itemName(selectedItem.item)}</h2>
-                                        <p className="text-white/90 text-sm sm:text-base font-bold drop-shadow-sm line-clamp-2">
-                                            {isAr ? selectedItem.item.description_ar : (selectedItem.item.description_en || selectedItem.item.description_ar)}
-                                        </p>
                                     </div>
                                 </div>
 
                                 {/* Modal Content */}
                                 <div className="flex-1 overflow-y-auto p-5 pb-24 text-gray-800 dark:text-[#f5f6fa]">
+
+                                    {/* Description */}
+                                    {(selectedItem.item.description_ar || selectedItem.item.desc_ar || selectedItem.item.description_en || selectedItem.item.desc_en) && (
+                                        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed mb-6" dir={isAr ? 'rtl' : 'ltr'}>
+                                            {isAr ? ((selectedItem.item as any).description_ar || (selectedItem.item as any).desc_ar) : ((selectedItem.item as any).description_en || (selectedItem.item as any).desc_en || (selectedItem.item as any).description_ar || (selectedItem.item as any).desc_ar)}
+                                        </p>
+                                    )}
 
                                     {/* Base Price */}
                                     <div className="flex justify-between items-center bg-gray-50 dark:bg-[#16213e] border border-gray-100 dark:border-white/10 p-4 rounded-xl mb-6">

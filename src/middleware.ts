@@ -50,6 +50,7 @@ export default function middleware(req: NextRequest) {
     // ═══════════════════════════════════════════════════════════════
     // 0. النطاقات المخصصة (Custom Domain Mappings)
     // ═══════════════════════════════════════════════════════════════
+    const path = url.pathname;
     const customDomainMappings: Record<string, string> = {
         'ezzelsham-aboragwan.vercel.app': 'ezzelshamaboragwan',
         'www.ezzelsham-aboragwan.vercel.app': 'ezzelshamaboragwan'
@@ -66,7 +67,6 @@ export default function middleware(req: NextRequest) {
     }
 
     const isMainDomain = subdomain === '' || subdomain === 'www';
-    const path = url.pathname;
 
     // ═══════════════════════════════════════════════════════════════
     // 1. الدومين الأساسي (Redirect)
