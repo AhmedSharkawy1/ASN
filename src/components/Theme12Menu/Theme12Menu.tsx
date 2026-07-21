@@ -2,7 +2,7 @@
 'use client';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Menu, Globe, ChevronLeft, Search, X, MonitorSmartphone, Facebook, Instagram, X as LucideX, Plus, Minus, AlertCircle, FileText, Moon, Sun, MapPin, PhoneCall } from 'lucide-react';
@@ -149,6 +149,17 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
 
+    const searchResults = useMemo(() => {
+        if (!searchQuery) return [];
+        const q = searchQuery.toLowerCase();
+        const all = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c), catImg: c.image_url})));
+        return all.filter(item => {
+            return (item.title_ar || '').toLowerCase().includes(q) ||
+                   (item.title_en || '').toLowerCase().includes(q) ||
+                   (item.description_ar || item.desc_ar || '').toLowerCase().includes(q) ||
+                   (item.description_en || item.desc_en || '').toLowerCase().includes(q);
+        });
+    }, [searchQuery, categories, isAr]);
     const headerRef = useRef<HTMLElement>(null);
     const catNavRef = useRef<HTMLDivElement>(null);
     const isManualScroll = useRef(false);
@@ -480,10 +491,36 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                         {/* Search Results Dropdown */}
                         {isSearchOpen && searchQuery && (
                             <div className="absolute top-full left-0 right-0 mt-3 bg-white dark:bg-[#16213e] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-gray-100 dark:border-white/5 overflow-hidden z-40 max-h-[400px] overflow-y-auto">
-                                <div className="p-8 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center gap-3">
-                                    <Search size={40} className="opacity-30" />
-                                    <p>لم يتم العثور على نتائج</p>
-                                </div>
+                                {searchResults.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500 dark:text-gray-400 flex flex-col items-center gap-3">
+                                        <Search size={40} className="opacity-30" />
+                                        <p>{isAr ? 'لم يتم العثور على نتائج' : 'No results found'}</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col">
+                                        {searchResults.map((item, idx) => (
+                                            <div 
+                                                key={`${item.id}-${idx}`}
+                                                className="flex items-center gap-4 p-4 border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-[#1a1a2e] cursor-pointer transition-colors"
+                                                onClick={() => {
+                                                    openModal(item, item.catName || '', item.catImg);
+                                                    setIsSearchOpen(false);
+                                                }}
+                                            >
+                                                <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100 dark:border-white/5">
+                                                    <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c'} alt={itemName(item)} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 min-w-0 text-left" dir={isAr ? 'rtl' : 'ltr'}>
+                                                    <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-1 truncate">{itemName(item)}</h4>
+                                                    <p className="text-xs text-gray-500 truncate">{item.catName}</p>
+                                                </div>
+                                                <div className="font-black text-[#6c63ff] shrink-0 whitespace-nowrap ml-2 mr-2">
+                                                    {item.prices?.[0] || 0} <span className="text-xs font-semibold">{config?.currency || 'EGP'}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
