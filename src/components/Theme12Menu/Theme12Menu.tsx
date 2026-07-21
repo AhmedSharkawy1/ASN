@@ -547,8 +547,8 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                                 <div className="p-3 sm:p-5 flex-1 flex flex-col justify-between">
                                                     <div>
                                                         <h3 className="text-sm sm:text-lg font-bold text-gray-800 dark:text-gray-100 mb-1 sm:mb-2 line-clamp-2 leading-tight group-hover:text-[#6c63ff] transition-colors">{itemName(item)}</h3>
-                                                        {(item.desc_ar || item.desc_en) && (
-                                                            <p className="hidden sm:block text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4">{isAr ? item.desc_ar : (item.desc_en || item.desc_ar)}</p>
+                                                        {(item.desc_ar || item.description_ar || item.desc_en || item.description_en) && (
+                                                            <p className="block text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-2 sm:mb-4">{isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}</p>
                                                         )}
                                                         {item.size_labels && item.size_labels.length > 0 && (
                                                             <div className="flex flex-wrap gap-2 mb-4">
