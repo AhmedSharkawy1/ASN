@@ -915,7 +915,7 @@ export default function AtyabEtoileMenu({ config, categories, language, restaura
                     100% { transform: translateX(50%); }
                 }
                 .etoile-marquee {
-                    animation: etoile-marquee 15s linear infinite;
+                    animation: etoile-marquee 30s linear infinite;
                 }
             `}</style>
         </div>

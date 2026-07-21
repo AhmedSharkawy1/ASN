@@ -31,7 +31,7 @@ export default function SharedMarquee({
                 animate={{ x: direction === 'rtl' ? '-100%' : '100%' }}
                 transition={{
                     repeat: Infinity,
-                    duration: 40,
+                    duration: 80,
                     ease: 'linear',
                 }}
             >

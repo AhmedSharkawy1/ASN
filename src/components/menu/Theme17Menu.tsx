@@ -589,7 +589,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                     100% { transform: translateX(0); }
                 }
                 .animate-marquee17 {
-                    animation: marquee17 15s linear infinite;
+                    animation: marquee17 30s linear infinite;
                 }
             `}</style>
 
