@@ -480,23 +480,10 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                         {isAr ? 'عرض خاص' : 'Offer'}
                                                     </div>
                                                 )}
-                                                {/* Plus Button */}
-                                                {config.orders_enabled !== false && (
-                                                    <div 
-                                                        className={`absolute ${viewMode === 'list' ? '-bottom-1 -left-1 scale-75' : '-bottom-4 left-3'} w-8 h-8 rounded-full flex items-center justify-center text-white shadow-md border-[3px]`}
-                                                        style={{ backgroundColor: primaryColor, borderColor: bgCard }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openModal(item, catName(category), category.image_url);
-                                                        }}
-                                                    >
-                                                        <Plus className="w-5 h-5" />
-                                                    </div>
-                                                )}
-                                            </div>
+                                             </div>
                                             
                                             {/* Content */}
-                                            <div className={`flex flex-col flex-1 ${viewMode === 'list' ? 'py-1 pr-1' : 'p-3 pt-6'}`}>
+                                            <div className={`flex flex-col flex-1 ${viewMode === 'list' ? 'py-1 pr-1' : 'p-3'}`}>
                                                 <h3 className="font-bold text-[0.95rem] mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
                                                 {(item.description_ar || item.desc_ar) && (
                                                     <p className="text-[11px] mb-2 line-clamp-2" style={{ color: textMuted }}>
@@ -520,6 +507,21 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                         </div>
                                                     ))}
                                                 </div>
+
+                                                {/* Add to Cart Button */}
+                                                {config.orders_enabled !== false && (
+                                                    <button
+                                                        className="mt-3 w-full py-2 px-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 text-white transition-all active:scale-95 shadow-sm hover:opacity-90"
+                                                        style={{ backgroundColor: primaryColor }}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openModal(item, catName(category), category.image_url);
+                                                        }}
+                                                    >
+                                                        <ShoppingCart className="w-3.5 h-3.5" />
+                                                        <span>{isAr ? 'إضافة إلى السلة' : 'Add To Card'}</span>
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -921,8 +923,20 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                                     <CreditCard className="w-8 h-8" />
                                 </div>
-                                <p className="font-black text-[1.1rem] mb-2 leading-snug">
-                                    {isAr ? 'يجب إرسال سكرين شوت بعد التحويل' : 'A screenshot must be sent after the transfer'}
+                                <p className="font-black text-[1.1rem] mb-2 leading-relaxed">
+                                    {isAr ? (
+                                        <>
+                                            يجب إرسال سكرين شوت
+                                            <br />
+                                            <span className="block mt-1 font-extrabold text-base">بعد التحويل</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            A screenshot must be sent
+                                            <br />
+                                            <span className="block mt-1 font-extrabold text-base">after the transfer</span>
+                                        </>
+                                    )}
                                 </p>
                                 <p className="text-sm opacity-70 font-medium">
                                     {isAr ? 'يرجى إرسال صورة إيصال التحويل على رقم الواتساب الخاص بالمطعم لتأكيد الدفع.' : 'Please send the transfer receipt screenshot to the restaurant\'s WhatsApp number to confirm your payment.'}

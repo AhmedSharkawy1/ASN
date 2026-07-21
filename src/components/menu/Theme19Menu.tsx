@@ -864,8 +864,20 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-inner" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
                                     <CreditCard className="w-8 h-8" />
                                 </div>
-                                <p className="font-black text-[1.1rem] mb-2 leading-snug">
-                                    {isAr ? 'يجب إرسال سكرين شوت بعد التحويل' : 'A screenshot must be sent after the transfer'}
+                                <p className="font-black text-[1.1rem] mb-2 leading-relaxed">
+                                    {isAr ? (
+                                        <>
+                                            يجب إرسال سكرين شوت
+                                            <br />
+                                            <span className="block mt-1 font-extrabold text-base">بعد التحويل</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            A screenshot must be sent
+                                            <br />
+                                            <span className="block mt-1 font-extrabold text-base">after the transfer</span>
+                                        </>
+                                    )}
                                 </p>
                                 <p className="text-sm opacity-70 font-medium">
                                     {isAr ? 'يرجى إرسال صورة إيصال التحويل على رقم الواتساب الخاص بالمطعم لتأكيد الدفع.' : 'Please send the transfer receipt screenshot to the restaurant\'s WhatsApp number to confirm your payment.'}
