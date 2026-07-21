@@ -103,6 +103,39 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     const [navTab, setNavTab] = useState('menu'); // menu, cart, contact
     const [viewMode, setViewMode] = useState<'grid'|'list'>('grid');
 
+    // Scroll Spy
+    useEffect(() => {
+        const handleScroll = () => {
+            if (searchQuery) return;
+            const scrollPosition = window.scrollY + 120;
+            
+            if (window.scrollY < 200) {
+                if (activeCategory !== 'all') {
+                    setActiveCategory('all');
+                    document.getElementById('nav-cat-all')?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+                return;
+            }
+
+            let newActive = activeCategory;
+            for (let i = categories.length - 1; i >= 0; i--) {
+                const el = document.getElementById(categories[i].id.toString());
+                if (el && el.offsetTop <= scrollPosition) {
+                    newActive = categories[i].id.toString();
+                    break;
+                }
+            }
+
+            if (newActive !== activeCategory && newActive !== 'all') {
+                setActiveCategory(newActive);
+                document.getElementById(`nav-cat-${newActive}`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [categories, activeCategory, searchQuery]);
+
     // Modals & Cart
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string; catImg?: string } | null>(null);
@@ -352,24 +385,29 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                     <div className="sticky top-0 z-30 pt-2 pb-4 mb-2" style={{ backgroundColor: bgBody }}>
                         <div className="flex gap-4 overflow-x-auto scrollbar-hide px-2" dir={isAr ? 'rtl' : 'ltr'}>
                             <button 
-                                onClick={() => setActiveCategory('all')}
+                                id="nav-cat-all"
+                                onClick={() => {
+                                    setActiveCategory('all');
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
                                 className="flex flex-col items-center gap-2 shrink-0 group transition-all"
                             >
-                                <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all border-[3px]"
+                                <div className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all border-[3px]"
                                      style={{ 
                                          backgroundColor: bgCard,
                                          borderColor: activeCategory === 'all' ? primaryColor : 'transparent',
                                          boxShadow: activeCategory === 'all' ? `0 4px 15px ${primaryColor}40` : 'none'
                                      }}>
-                                     <LayoutGrid className="w-8 h-8" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
+                                     <LayoutGrid className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
                                 </div>
-                                <span className="font-bold text-xs" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
+                                <span className="font-bold text-xs sm:text-sm" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
                                     {isAr ? 'الكل' : 'All'}
                                 </span>
                             </button>
                             {categories.map((cat) => (
                                 <button 
                                     key={cat.id}
+                                    id={`nav-cat-${cat.id}`}
                                     onClick={() => {
                                         setActiveCategory(cat.id.toString());
                                         const el = document.getElementById(cat.id.toString());
@@ -380,7 +418,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                     }}
                                     className="flex flex-col items-center gap-2 shrink-0 group transition-all"
                                 >
-                                    <div className="w-16 h-16 rounded-full overflow-hidden transition-all border-[3px] bg-white dark:bg-[#1c1c1e]"
+                                    <div className="w-[72px] h-[72px] sm:w-20 sm:h-20 rounded-full overflow-hidden transition-all border-[3px] bg-white dark:bg-[#1c1c1e]"
                                          style={{ 
                                              borderColor: activeCategory === cat.id.toString() ? primaryColor : 'transparent',
                                              boxShadow: activeCategory === cat.id.toString() ? `0 4px 15px ${primaryColor}40` : 'none'
@@ -395,7 +433,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                             }}
                                         />
                                     </div>
-                                    <span className="font-bold text-xs whitespace-nowrap" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
+                                    <span className="font-bold text-xs sm:text-sm whitespace-nowrap" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
                                         {catName(cat)}
                                     </span>
                                 </button>
