@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase/client';
 import { processOrderInventory } from '@/lib/helpers/inventoryService';
 import { calculateOrderCost } from '@/lib/helpers/costService';
+import { parseCurrency } from '@/lib/currency';
 
 export type OrderItemExtra = {
     name: string;
@@ -90,6 +91,7 @@ export function buildWhatsAppMessage(params: {
         promotionName, discountAmount, discountType, branchName
     } = params;
     const isAr = language === 'ar';
+    const cur = parseCurrency(currency, isAr);
 
     let msg = `🧾 *${isAr ? 'الطلب رقم' : 'Order No.'} #${orderNumber} - ${restaurantName} 🍕🍝*\n`;
     msg += `------------------------------\n`;
@@ -118,18 +120,18 @@ export function buildWhatsAppMessage(params: {
         if (item.category) {
             msg += `   🗂️ ${isAr ? 'القسم:' : 'Category:'} ${item.category}\n`;
         }
-        msg += `   💵 ${isAr ? 'السعر:' : 'Price:'} ${item.price} ${currency}\n`;
+        msg += `   💵 ${isAr ? 'السعر:' : 'Price:'} ${item.price} ${cur}\n`;
         if (item.size && item.size !== 'عادي' && item.size !== 'Default') {
             msg += `   📏 ${isAr ? 'الحجم:' : 'Size:'} ${item.size}\n`;
         }
         if (item.extras && item.extras.length > 0) {
             msg += `   ➕ ${isAr ? 'الإضافات:' : 'Extras:'}\n`;
             item.extras.forEach(e => {
-                msg += `      🔹 ${e.name} (×${e.qty}) ${isAr ? 'بقيمة' : 'worth'} ${e.price * e.qty} ${currency}\n`;
+                msg += `      🔹 ${e.name} (×${e.qty}) ${isAr ? 'بقيمة' : 'worth'} ${e.price * e.qty} ${cur}\n`;
             });
         }
         msg += `   🔢 ${isAr ? 'الكمية:' : 'Qty:'} ${item.qty}\n`;
-        msg += `   💰 ${isAr ? 'المجموع:' : 'Total:'} *${itemTotal} ${currency}*\n\n`;
+        msg += `   💰 ${isAr ? 'المجموع:' : 'Total:'} *${itemTotal} ${cur}*\n\n`;
     });
 
     if (notes) {
@@ -137,22 +139,22 @@ export function buildWhatsAppMessage(params: {
     }
     msg += `------------------------------\n`;
     if (deliveryFee && deliveryFee > 0) {
-        msg += `🛒 ${isAr ? 'مجموع الأصناف:' : 'Items Subtotal:'} ${subtotal} ${currency}\n`;
-        msg += `🚚 ${isAr ? 'خدمة التوصيل:' : 'Delivery Fee:'} ${deliveryFee} ${currency}\n`;
+        msg += `🛒 ${isAr ? 'مجموع الأصناف:' : 'Items Subtotal:'} ${subtotal} ${cur}\n`;
+        msg += `🚚 ${isAr ? 'خدمة التوصيل:' : 'Delivery Fee:'} ${deliveryFee} ${cur}\n`;
     } else if (orderType === 'delivery' && !deliveryZoneName) {
         msg += `⚠️ *${isAr ? 'ملاحظة: السعر غير شامل خدمة التوصيل' : 'Note: Price does not include delivery fee'}*\n`;
     }
     if (promotionName && discountAmount && discountAmount > 0) {
         msg += `🎁 *${isAr ? 'عرض مطبق:' : 'Promotion:'}* ${promotionName}\n`;
-        msg += `💰 *${isAr ? 'الخصم:' : 'Discount:'}* -${discountAmount} ${currency}${discountType === 'free_shipping' ? ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})` : ''}\n`;
+        msg += `💰 *${isAr ? 'الخصم:' : 'Discount:'}* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})` : ''}\n`;
     }
-    msg += `💵 *${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${currency}*\n`;
+    msg += `💵 *${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${cur}*\n`;
     msg += `------------------------------\n`;
 
     msg += `✅ *${isAr ? 'تأكيد:' : 'Confirmation:'}* ${isAr ? 'سيتم تأكيد الطلب وتأكيده معكم فوراً.' : 'Your order will be confirmed shortly.'}\n`;
     msg += `❤️ ${isAr ? 'مع تحيات إدارة' : 'With greetings from the management of'} *${restaurantName}*\n`;
     msg += `------------------------------\n`;
-    msg += `${isAr ? 'شكراً لاختياركم' : 'Thank you for choosing'} ${restaurantName} 🍕🍝`;
+    msg += `${isAr ? 'شكراً لااختياركم' : 'Thank you for choosing'} ${restaurantName} 🍕🍝`;
 
     return stripVS16(msg);
 }
@@ -185,6 +187,7 @@ function buildTelegramMessage(params: {
         items, subtotal, total, notes, currency = 'ج',
         promotionName, discountAmount, discountType, branchName
     } = params;
+    const cur = parseCurrency(currency, true);
 
     let msg = `🧾 *فاتورة طلب جديد #${orderNumber} — ${restaurantName}*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
@@ -213,18 +216,18 @@ function buildTelegramMessage(params: {
         if (item.category) {
             msg += `   🗂️ القسم: ${item.category}\n`;
         }
-        msg += `   💵 السعر: ${item.price} ${currency}\n`;
+        msg += `   💵 السعر: ${item.price} ${cur}\n`;
         if (item.size && item.size !== 'عادي' && item.size !== 'Default') {
             msg += `   📏 الحجم: ${item.size}\n`;
         }
         if (item.extras && item.extras.length > 0) {
             msg += `   ➕ الإضافات:\n`;
             item.extras.forEach(e => {
-                msg += `      🔹 ${e.name} (×${e.qty}) بقيمة ${e.price * e.qty} ${currency}\n`;
+                msg += `      🔹 ${e.name} (×${e.qty}) بقيمة ${e.price * e.qty} ${cur}\n`;
             });
         }
         msg += `   🔢 الكمية: ${item.qty}\n`;
-        msg += `   💰 المجموع: *${itemTotal} ${currency}*\n\n`;
+        msg += `   💰 المجموع: *${itemTotal} ${cur}*\n\n`;
     });
 
     if (notes) {
@@ -232,16 +235,16 @@ function buildTelegramMessage(params: {
     }
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
     if (deliveryFee && deliveryFee > 0) {
-        msg += `🛒 مجموع الأصناف: ${subtotal} ${currency}\n`;
-        msg += `🚚 خدمة التوصيل: ${deliveryFee} ${currency}\n`;
+        msg += `🛒 مجموع الأصناف: ${subtotal} ${cur}\n`;
+        msg += `🚚 خدمة التوصيل: ${deliveryFee} ${cur}\n`;
     } else if (orderType === 'delivery' && !deliveryZoneName) {
         msg += `⚠️ *ملاحظة: السعر غير شامل خدمة التوصيل*\n`;
     }
     if (promotionName && discountAmount && discountAmount > 0) {
         msg += `🎁 *عرض مطبق:* ${promotionName}\n`;
-        msg += `💰 *الخصم:* -${discountAmount} ${currency}${discountType === 'free_shipping' ? ' (شحن مجاني)' : ''}\n`;
+        msg += `💰 *الخصم:* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ' (شحن مجاني)' : ''}\n`;
     }
-    msg += `💵 *الإجمالي المطلوب: ${total} ${currency}*\n`;
+    msg += `💵 *الإجمالي المطلوب: ${total} ${cur}*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `⏰ ${new Date().toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' })}\n`;
     msg += `❤️ مع تحيات إدارة مطعم *${restaurantName}*`;
@@ -422,7 +425,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         await supabase.from('notifications').insert({
             restaurant_id: restaurantId,
             title: `طلب جديد #${order.order_number}`,
-            body: `${customerName} — ${items.length} أصناف — ${total} ${currency || 'ج.م'} — ${orderType === 'delivery' ? 'دليفري' : 'استلام'}`,
+            body: `${customerName} — ${items.length} أصناف — ${total} ${parseCurrency(currency, true)} — ${orderType === 'delivery' ? 'دليفري' : 'استلام'}`,
             type: 'order',
             is_read: false,
         });

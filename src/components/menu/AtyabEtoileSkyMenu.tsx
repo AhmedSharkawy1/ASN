@@ -1,4 +1,5 @@
 "use client";
+import { parseCurrency } from '@/lib/currency';
 import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
 /* eslint-disable @next/next/no-img-element */
 
@@ -294,7 +295,7 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
         e.currentTarget.src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500&auto=format&fit=crop";
     };
 
-    const currency = config.currency || (isAr ? "ج.م" : "EGP");
+    const currency = parseCurrency(config?.currency, isAr);
     const PRIMARY = "#0284c7";
 
     return (
