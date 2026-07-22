@@ -243,7 +243,6 @@ export default function SettingsPage() {
                         starting_order_number: profile.starting_order_number || 1,
                         theme_colors: profile.theme_colors || {},
                         order_channel: profile.order_channel || 'whatsapp',
-                        receipt_logo_url: profile.receipt_logo_url,
                     })
                     .eq('id', profile.id);
                 error = fallbackUpdate.error;

@@ -190,7 +190,9 @@ export default function Theme18Menu({ config, categories, restaurantId }: Theme1
     const activeCatList = categories;
 
     // Flatten all items for search & featured
-    const allItems = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c)})));
+    // Annotated so the MenuItem index signature survives the spread — without it
+    // TS narrows to a literal type and loses thumbnail_url / old_prices.
+    const allItems: (MenuItem & { catName: string })[] = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c)})));
     const featuredItems = allItems.filter(item => item.is_popular); 
 
     const searchedCategories = categories.map(cat => ({

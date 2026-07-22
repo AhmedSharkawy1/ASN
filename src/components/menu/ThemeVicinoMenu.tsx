@@ -47,11 +47,16 @@ interface CategoryWithItemsType {
 interface RestaurantType {
     name: string;
     theme?: string;
+    // theme_colors is a free-form JSON settings bag in the DB — it also carries
+    // non-colour keys such as default_language and the cart hint strings.
     theme_colors?: {
         primary?: string;
         secondary?: string;
         background?: string;
         text?: string;
+        default_language?: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [key: string]: any;
     };
     cover_images?: string[];
     marquee_enabled?: boolean;
@@ -185,7 +190,9 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
     const activeCatList = categories;
 
     // Flatten all items for search & featured
-    const allItems = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c)})));
+    // Annotated so the MenuItem index signature survives the spread — without it
+    // TS narrows to a literal type and loses thumbnail_url / old_prices.
+    const allItems: (MenuItem & { catName: string })[] = categories.flatMap(c => (c.items || []).map(i => ({...i, catName: catName(c)})));
     const featuredItems = allItems.filter(item => item.is_popular); 
 
     const searchedCategories = categories.map(cat => ({

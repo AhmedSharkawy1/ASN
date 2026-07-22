@@ -162,6 +162,16 @@ type RestaurantConfig = {
   youtube_url?: string;
   whatsapp_group_url?: string;
   default_theme_mode?: 'light' | 'dark' | 'system';
+  // Vicino landing page fields (fetched in the selects above).
+  // vicino_logo_url may hold a JSON string: {"light":"...","dark":"..."}.
+  vicino_landing_enabled?: boolean;
+  vicino_video_url?: string;
+  vicino_logo_url?: string;
+  vicino_about_ar?: string;
+  vicino_about_en?: string;
+  vicino_history_ar?: string;
+  vicino_history_en?: string;
+  vicino_images?: string[];
 };
 
 type CartItem = {

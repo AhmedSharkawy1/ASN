@@ -24,6 +24,10 @@ type Item = {
     is_popular: boolean;
     is_spicy: boolean;
     image_url?: string;
+    // 400px variant served on the menu instead of the original — the whole
+    // point is keeping Supabase egress down.
+    thumbnail_url?: string | null;
+    old_prices?: number[];
     is_available: boolean;
     sell_by_weight: boolean;
     weight_unit?: string;
@@ -35,6 +39,7 @@ type Category = {
     name_en?: string;
     emoji?: string;
     image_url?: string;
+    thumbnail_url?: string | null;
     items: Item[];
 };
 
