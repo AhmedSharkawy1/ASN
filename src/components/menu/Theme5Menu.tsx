@@ -119,7 +119,7 @@ export default function Theme5Menu({ config, categories, language, restaurantId 
     const categoryNavRef = useRef<HTMLDivElement>(null);
     const isManualScroll = useRef(false);
 
-    const currency = config.currency || (isAr ? "ج.م" : "EGP");
+    const currency = parseCurrency(config?.currency, isAr);
 
     const filteredCategories = categories.map(cat => ({
         ...cat,

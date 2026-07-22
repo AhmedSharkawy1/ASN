@@ -14,6 +14,7 @@ import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
 import ASNFooter from '@/components/menu/ASNFooter';
+import { parseCurrency } from '@/lib/currency';
 
 type Item = {
     id: string;
@@ -61,6 +62,18 @@ type RestaurantConfig = {
     orders_enabled?: boolean;
     order_channel?: 'whatsapp' | 'website' | 'both';
     show_asn_branding?: boolean;
+    // theme_colors is a free-form JSON settings bag in the DB — besides colours
+    // it carries the cart hint strings rendered above the price list.
+    theme_colors?: {
+        primary?: string;
+        secondary?: string;
+        background?: string;
+        text?: string;
+        cart_hint_ar?: string;
+        cart_hint_en?: string;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        [key: string]: any;
+    };
     phone_numbers?: { label: string; number: string }[];
     payment_methods?: {
         id: string;
@@ -256,6 +269,8 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
     };
 
     const isAr = language === "ar";
+    // currency may be a bilingual JSON string in the DB - parse before display.
+    const currency = parseCurrency(config?.currency, isAr);
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#050505] text-zinc-900 dark:text-zinc-200 antialiased selection:bg-rose-500/30 font-cairo" dir="rtl">
@@ -398,7 +413,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                 <span className="font-black text-base">{isAr ? "مراجعة الفاتورة والطلب" : "Review order"}</span>
                             </div>
                             <div className="flex flex-col items-end">
-                                <span className="font-black text-lg leading-none">{cartTotal} {config.currency || (isAr ? "ج" : "EGP")}</span>
+                                <span className="font-black text-lg leading-none">{cartTotal} {currency}</span>
                                 <span className="text-[10px] opacity-70 font-bold">{isAr ? "الإجمالي" : "Total"}</span>
                             </div>
                         </motion.button>
@@ -495,7 +510,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                                 ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-3xl border border-zinc-200 dark:border-white/5 hover:border-rose-500/40 shadow-sm"}`}
                                                             >
                                                                 <span className={`${hasManyPrices ? "text-rose-600 dark:text-rose-500 text-lg" : "text-rose-600 text-base"} font-black leading-none tabular-nums`}>{price}</span>
-                                                                <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{config.currency || (isAr ? "ج" : "EGP")}</span>
+                                                                <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{currency}</span>
                                                             </div>
                                                         </button>
                                                     ) : (
@@ -516,7 +531,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                                 ${hasManyPrices ? "" : "bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-3xl border border-zinc-200 dark:border-white/5 shadow-sm"}`}
                                                             >
                                                                 <span className={`${hasManyPrices ? "text-rose-600 dark:text-rose-500 text-lg" : "text-rose-600 text-base"} font-black leading-none tabular-nums`}>{price}</span>
-                                                                <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{config.currency || (isAr ? "ج" : "EGP")}</span>
+                                                                <span className="text-zinc-400 dark:text-zinc-500 text-[9px] font-black">{currency}</span>
                                                             </div>
                                                         </div>
                                                     )
@@ -583,7 +598,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                 <span className={`text-[9px] font-black uppercase ${tempSizeIdx === idx ? "text-rose-600" : "text-zinc-400"}`}>
                                                     {selectedItem.item.size_labels?.[idx] || "عادي"}
                                                 </span>
-                                                <span className="text-lg font-black tabular-nums">{p} {config.currency || (isAr ? "ج" : "EGP")}</span>
+                                                <span className="text-lg font-black tabular-nums">{p} {currency}</span>
                                             </button>
                                         ))}
                                     </div>
@@ -609,7 +624,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                     >
                                         <ShoppingCart className="w-5 h-5" />
                                         {isAr ? "إضافة للطلب - " : "Add to Order - "}
-                                        {selectedItem.item.prices?.[tempSizeIdx] || 0} {config.currency || (isAr ? "ج" : "EGP")}
+                                        {selectedItem.item.prices?.[tempSizeIdx] || 0} {currency}
                                     </button>
                                 )}
                             </div>
@@ -649,7 +664,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                                                 <div className="flex-1 text-right">
                                                     <h4 className="font-black text-sm">{isAr ? c.item.title_ar : (c.item.title_en || c.item.title_ar)}</h4>
                                                     <p className="text-[9px] text-zinc-500 font-bold">{c.size_label !== "عادي" ? c.size_label : ""}</p>
-                                                    <p className="text-xs font-black mt-1 text-rose-600">{c.price * c.quantity} {config.currency || (isAr ? "ج" : "EGP")}</p>
+                                                    <p className="text-xs font-black mt-1 text-rose-600">{c.price * c.quantity} {currency}</p>
                                                 </div>
                                                 <div className="flex items-center gap-2.5 bg-white dark:bg-zinc-800 p-1 rounded-xl shadow-sm border border-zinc-100 dark:border-white/10">
                                                     <button onClick={() => updateCartQty(c.id, 1)} className="w-7 h-7 flex items-center justify-center bg-rose-600 text-white rounded-lg font-black text-sm">+</button>
@@ -665,7 +680,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                             <div className="p-6 border-t border-zinc-100 dark:border-white/5 bg-zinc-50 dark:bg-white/5">
                                 <div className="flex items-center justify-between mb-4 px-2">
                                     <div className="flex flex-col items-start">
-                                        <span className="text-2xl font-black tabular-nums text-rose-600">{cartTotal} {config.currency || (isAr ? "ج" : "EGP")}</span>
+                                        <span className="text-2xl font-black tabular-nums text-rose-600">{cartTotal} {currency}</span>
                                         <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">{isAr ? "إجمالي الحساب" : "Total Amount"}</span>
                                     </div>
                                     <span className="text-base font-black text-zinc-500">{isAr ? "الحساب الكلي" : "Grand Total"}</span>
@@ -742,7 +757,7 @@ export default function PizzaPastaMenu({ config, categories, language, restauran
                 restaurantId={restaurantId}
                 restaurantName={config.name}
                 whatsappNumber={config.whatsapp_number || config.phone}
-                currency={config.currency || (isAr ? 'ج.م' : 'EGP')}
+                currency={currency}
                 language={isAr ? 'ar' : 'en'}
                 orderChannel={config.order_channel}
                 onOrderSuccess={() => { setCart([]); setShowCart(false); }}

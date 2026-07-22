@@ -15,6 +15,7 @@ import { Autoplay, EffectFade } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-fade";
 import ASNFooter from '@/components/menu/ASNFooter';
+import { parseCurrency } from '@/lib/currency';
 
 // ─── Types (same interface as other themes) ───
 type Item = {
@@ -214,7 +215,8 @@ export default function BabAlHaraEmeraldMenu({ config, categories, language, res
         setCart(prev => prev.map(c => c.id === cartId ? { ...c, notes: note } : c));
     };
 
-    const currency = config.currency || (isAr ? "ج.م" : "EGP");
+    // currency may be a bilingual JSON string in the DB - parse before display.
+    const currency = parseCurrency(config?.currency, isAr);
     const PRIMARY = "#059669";
 
     const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {

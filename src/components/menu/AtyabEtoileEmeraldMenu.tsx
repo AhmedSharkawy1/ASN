@@ -889,7 +889,7 @@ export default function AtyabEtoileEmeraldMenu({ config, categories, language, r
                 restaurantId={restaurantId}
                 restaurantName={config.name}
                 whatsappNumber={config.whatsapp_number || config.phone}
-                currency={config.currency || (isAr ? 'ج.م' : 'EGP')}
+                currency={currency}
                 language={isAr ? 'ar' : 'en'}
                 orderChannel={config.order_channel}
                 onOrderSuccess={() => { setCart([]); setShowCart(false); }}

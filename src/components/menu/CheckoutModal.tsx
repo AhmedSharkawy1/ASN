@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { submitOrder, buildWhatsAppMessage, OrderItem, OrderItemExtra } from "@/lib/helpers/submitOrder";
 import { fetchActivePromotions, evaluatePromotions, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
+import { parseCurrency } from "@/lib/currency";
 import { FaWhatsapp } from "react-icons/fa";
 import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag } from "lucide-react";
 
@@ -52,14 +53,16 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
     const isAr = language === "ar";
     const printRef = useRef<HTMLDivElement>(null);
-    const [currency, setCurrency] = useState(propCurrency);
+    // The currency column may hold a bilingual JSON string ({"ar":"ج.م","en":"EGP"}),
+    // so always parse before it reaches the screen.
+    const [currency, setCurrency] = useState(() => parseCurrency(propCurrency, isAr));
 
     // Sync propCurrency with local state
     useEffect(() => {
         if (propCurrency) {
-            setCurrency(propCurrency);
+            setCurrency(parseCurrency(propCurrency, isAr));
         }
-    }, [propCurrency]);
+    }, [propCurrency, isAr]);
 
     // Steps: 1=extras, 2=customer info, 3=order type, 4=summary, 5=success
     const [step, setStep] = useState(1);
@@ -127,7 +130,7 @@ export default function CheckoutModal({
                     }
 
                     if (data.currency) {
-                        setCurrency(data.currency);
+                        setCurrency(parseCurrency(data.currency, isAr));
                     }
 
                     // Set order type visibility
@@ -147,7 +150,7 @@ export default function CheckoutModal({
                 console.error("Error fetching restaurant config in CheckoutModal:", err);
             }
         })();
-    }, [isOpen, restaurantId, propBranches]);
+    }, [isOpen, restaurantId, propBranches, isAr]);
 
     // Fetch addons
     useEffect(() => {

@@ -13,6 +13,7 @@ import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import ASNFooter from '@/components/menu/ASNFooter';
+import { parseCurrency } from '@/lib/currency';
 
 type MenuItem = {
     id: string | number;
@@ -71,7 +72,8 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
 
     const isAr = config.default_language === 'ar' || true; // Defaulting to true for now since design is RTL primary
     const isDark = mounted && theme === 'dark';
-    const cur = '';
+    // currency can be a bilingual JSON string in the DB — parse before display.
+    const cur = parseCurrency(config.currency, isAr);
     const bgBody = isDark ? '#1a1a2e' : '#f5f6fa';
     const textMain = isDark ? '#f5f6fa' : '#2d3436';
     const primaryColor = config.theme_colors?.primary || '#6c63ff';
@@ -515,7 +517,7 @@ export default function Theme12Menu({ config, categories, restaurantId }: Theme1
                                                     <p className="text-xs text-gray-500 truncate">{item.catName}</p>
                                                 </div>
                                                 <div className="font-black text-[#6c63ff] shrink-0 whitespace-nowrap ml-2 mr-2">
-                                                    {item.prices?.[0] || 0} <span className="text-xs font-semibold">{config?.currency || 'EGP'}</span>
+                                                    {item.prices?.[0] || 0} <span className="text-xs font-semibold">{cur}</span>
                                                 </div>
                                             </div>
                                         ))}
