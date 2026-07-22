@@ -1,6 +1,13 @@
+import { parseCurrency } from "@/lib/currency";
+
 // Currency formatter
 export function formatCurrency(amount: number, currency: string = "EGP", locale: string = "ar-EG"): string {
-    return new Intl.NumberFormat(locale, { style: "decimal", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount) + ` ${currency === "EGP" ? "ج.م" : currency}`;
+    const isAr = locale.startsWith("ar");
+    let parsedCur = parseCurrency(currency, isAr);
+    if (parsedCur === "EGP" && isAr) {
+        parsedCur = "ج.م";
+    }
+    return new Intl.NumberFormat(locale, { style: "decimal", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount) + ` ${parsedCur}`;
 }
 
 // Date formatter
