@@ -93,7 +93,7 @@ export function buildWhatsAppMessage(params: {
     const isAr = language === 'ar';
     const cur = parseCurrency(currency, isAr);
 
-    let msg = `🧾 *${isAr ? 'الطلب رقم' : 'Order No.'} #${orderNumber} - ${restaurantName} 🍕🍝*\n`;
+    let msg = `🧾 *${isAr ? 'الطلب رقم' : 'Order No.'} #${orderNumber} - ${restaurantName}*\n`;
     msg += `------------------------------\n`;
     msg += `👤 *${isAr ? 'الاسم:' : 'Name:'}* ${customerName}\n`;
     msg += `📞 *${isAr ? 'الموبايل:' : 'Phone:'}* ${customerPhone}\n`;
@@ -145,8 +145,8 @@ export function buildWhatsAppMessage(params: {
         msg += `⚠️ *${isAr ? 'ملاحظة: السعر غير شامل خدمة التوصيل' : 'Note: Price does not include delivery fee'}*\n`;
     }
     if (promotionName && discountAmount && discountAmount > 0) {
-        msg += `🎁 *${isAr ? 'عرض مطبق:' : 'Promotion:'}* ${promotionName}\n`;
-        msg += `💰 *${isAr ? 'الخصم:' : 'Discount:'}* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})` : ''}\n`;
+        msg += `🎁 *عرض مطبق:* ${promotionName}\n`;
+        msg += `💰 *الخصم:* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})` : ''}\n`;
     }
     msg += `💵 *${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${cur}*\n`;
     msg += `------------------------------\n`;
@@ -154,7 +154,7 @@ export function buildWhatsAppMessage(params: {
     msg += `✅ *${isAr ? 'تأكيد:' : 'Confirmation:'}* ${isAr ? 'سيتم تأكيد الطلب وتأكيده معكم فوراً.' : 'Your order will be confirmed shortly.'}\n`;
     msg += `❤️ ${isAr ? 'مع تحيات إدارة' : 'With greetings from the management of'} *${restaurantName}*\n`;
     msg += `------------------------------\n`;
-    msg += `${isAr ? 'شكراً لااختياركم' : 'Thank you for choosing'} ${restaurantName} 🍕🍝`;
+    msg += `${isAr ? 'شكراً لاختياركم' : 'Thank you for choosing'} ${restaurantName}`;
 
     return stripVS16(msg);
 }
