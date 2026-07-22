@@ -311,8 +311,8 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                 <div className="px-5 mb-8">
                     <Swiper key={isAr ? 'rtl' : 'ltr'} modules={[Autoplay]} autoplay={{ delay: 3000 }} className="w-full rounded-2xl overflow-hidden shadow-sm">
                         {config.cover_images.map((img, i) => (
-                            <SwiperSlide key={i}>
-                                <OptimizedMenuImage src={img} alt="Offer" className="w-full h-[180px] object-cover" />
+                            <SwiperSlide key={i} className="flex items-center justify-center">
+                                <img src={img} alt="Offer" className="w-full h-auto max-h-[400px] object-contain rounded-2xl mx-auto" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
@@ -969,7 +969,10 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                             )}
                                             {pm.link && (
                                                 <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-3 rounded-xl mt-1 active:scale-95 transition-transform" style={{ backgroundColor: primaryColor }}>
-                                                    {isAr ? "رابط الدفع / انستا باي" : "Payment Link / InstaPay"}
+                                                    {isAr 
+                                                        ? (pm.name_ar ? `رابط الدفع / ${pm.name_ar}` : "رابط الدفع")
+                                                        : (pm.name_en ? `Payment Link / ${pm.name_en}` : (pm.name_ar ? `Payment Link / ${pm.name_ar}` : "Payment Link"))
+                                                    }
                                                 </a>
                                             )}
                                         </div>

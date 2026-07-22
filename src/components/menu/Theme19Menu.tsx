@@ -910,7 +910,10 @@ export default function Theme19Menu({ config, categories, restaurantId }: Theme1
                                             )}
                                             {pm.link && (
                                                 <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-3 rounded-xl mt-1 active:scale-95 transition-transform" style={{ backgroundColor: primaryColor }}>
-                                                    {isAr ? "رابط الدفع / انستا باي" : "Payment Link / InstaPay"}
+                                                    {isAr 
+                                                        ? (pm.name_ar ? `رابط الدفع / ${pm.name_ar}` : "رابط الدفع")
+                                                        : (pm.name_en ? `Payment Link / ${pm.name_en}` : (pm.name_ar ? `Payment Link / ${pm.name_ar}` : "Payment Link"))
+                                                    }
                                                 </a>
                                             )}
                                         </div>
