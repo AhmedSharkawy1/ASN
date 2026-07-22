@@ -9,6 +9,7 @@ import { getBestImageFromClipboard, getBestImageFromPasteEvent } from "@/lib/cli
 import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
 import { exportMenuImages, importMenuImages } from "@/lib/menuImages";
+import { parseCurrency } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Item = {
@@ -737,22 +738,22 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
                             <input value={sizeLabels[idx] || ''} onChange={e => { const nl = [...sizeLabels]; nl[idx] = e.target.value; setSizeLabels(nl); }}
                                 placeholder={language === "ar" ? "اسم الحجم (مثال: وسط)" : "Size (e.g. Medium)"} className="w-full sm:flex-1 px-3 py-2 rounded-lg bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-base font-bold" />
                             <div className="flex items-center gap-2 justify-between sm:justify-start w-full sm:w-auto">
-                                <div className="flex items-center gap-2 flex-1 sm:flex-none">
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                                <div className="flex items-center gap-2 flex-1 sm:flex-none min-w-0">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none min-w-0">
                                         <label className="text-[10px] text-silver font-bold sm:hidden">{language === "ar" ? "السعر" : "Price"}</label>
                                         <input type="number" value={p || ''} onChange={e => { const np = [...prices]; np[idx] = parseFloat(e.target.value) || 0; setPrices(np); }}
                                             placeholder={language === "ar" ? "السعر" : "0"} className="w-full sm:w-24 px-3 py-2 rounded-lg bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-base font-bold tabular-nums text-center" dir="ltr" />
                                     </div>
-                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none min-w-0">
                                         <label className="text-[10px] text-red-400 font-bold sm:hidden">{language === "ar" ? "قبل الخصم (اختياري)" : "Old Price"}</label>
                                         <input type="number" value={oldPrices[idx] || ''} onChange={e => { const no = [...oldPrices]; no[idx] = parseFloat(e.target.value) || 0; setOldPrices(no); }}
                                             placeholder={language === "ar" ? "بدل" : "Old"} className="w-full sm:w-20 px-3 py-2 rounded-lg bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums text-center text-red-500" dir="ltr" />
                                     </div>
-                                    <span className="text-sm font-bold text-silver self-end sm:self-auto mb-2 sm:mb-0 px-1">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
+                                    <span className="text-sm font-bold text-silver shrink-0 px-1">{parseCurrency(currency, language === "ar")}</span>
                                 </div>
                                 {prices.length > 1 && (
                                     <button onClick={() => { setPrices(prices.filter((_, i) => i !== idx)); setSizeLabels(sizeLabels.filter((_, i) => i !== idx)); setOldPrices(oldPrices.filter((_, i) => i !== idx)); }}
-                                        className="p-2 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition self-end sm:self-auto mb-1 sm:mb-0"><X className="w-5 h-5 sm:w-4 sm:h-4" /></button>
+                                        className="p-2 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition shrink-0"><X className="w-5 h-5 sm:w-4 sm:h-4" /></button>
                                 )}
                             </div>
                         </div>
@@ -895,7 +896,7 @@ function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, 
                 {(item.prices || []).map((price, pIdx) => (
                     <div key={pIdx} className="bg-white dark:bg-black/40 border border-glass-border rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
                         <span className="text-xs sm:text-sm text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
-                        <span className="font-bold text-foreground text-sm sm:text-base">{price} {currency || (language === "ar" ? "ج.م" : "EGP")}</span>
+                        <span className="font-bold text-foreground text-sm sm:text-base">{price} {parseCurrency(currency, language === "ar")}</span>
                     </div>
                 ))}
             </div>
@@ -1081,20 +1082,20 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
                         <input value={localLabels[idx] || ''} onChange={e => { const nl = [...localLabels]; nl[idx] = e.target.value; setLocalLabels(nl); }}
                             placeholder={language === "ar" ? "اسم الحجم (مثال: كبير)" : "Size (e.g. Large)"} className="w-full sm:flex-1 px-3 py-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold" />
                         <div className="flex items-center gap-2 justify-between sm:justify-start w-full sm:w-auto">
-                            <div className="flex items-center gap-2 flex-1 sm:flex-none">
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                            <div className="flex items-center gap-2 flex-1 sm:flex-none min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none min-w-0">
                                     <label className="text-[10px] text-silver font-bold sm:hidden">{language === "ar" ? "السعر" : "Price"}</label>
                                     <input type="number" value={price} onChange={e => { const np = [...localPrices]; np[idx] = parseFloat(e.target.value) || 0; setLocalPrices(np); }}
                                         placeholder={language === "ar" ? "السعر" : "0"} className="w-full sm:w-24 px-3 py-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm sm:text-base font-bold tabular-nums text-center" dir="ltr" />
                                 </div>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 flex-1 sm:flex-none min-w-0">
                                     <label className="text-[10px] text-red-400 font-bold sm:hidden">{language === "ar" ? "قبل الخصم (اختياري)" : "Old Price"}</label>
                                     <input type="number" value={localOldPrices[idx] || ''} onChange={e => { const no = [...localOldPrices]; no[idx] = parseFloat(e.target.value) || 0; setLocalOldPrices(no); }}
                                         placeholder={language === "ar" ? "بدل" : "Old"} className="w-full sm:w-20 px-3 py-2 rounded-lg bg-slate-50 dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums text-center text-red-500" dir="ltr" />
                                 </div>
-                                <span className="text-sm font-bold text-silver self-end sm:self-auto mb-2 sm:mb-0 px-1">{currency || (language === "ar" ? "ج.م" : "EGP")}</span>
+                                <span className="text-sm font-bold text-silver shrink-0 px-1">{parseCurrency(currency, language === "ar")}</span>
                             </div>
-                            {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); setLocalOldPrices(localOldPrices.filter((_, i) => i !== idx)); }} className="p-2 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition self-end sm:self-auto mb-1 sm:mb-0"><X className="w-5 h-5 sm:w-4 sm:h-4" /></button>}
+                            {localPrices.length > 1 && <button onClick={() => { setLocalPrices(localPrices.filter((_, i) => i !== idx)); setLocalLabels(localLabels.filter((_, i) => i !== idx)); setLocalOldPrices(localOldPrices.filter((_, i) => i !== idx)); }} className="p-2 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-lg transition shrink-0"><X className="w-5 h-5 sm:w-4 sm:h-4" /></button>}
                         </div>
                     </div>
                 ))}
