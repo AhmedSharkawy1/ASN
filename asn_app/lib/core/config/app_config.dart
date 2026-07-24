@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
+
 import 'package:asn_app/core/config/env.dart';
 
 class AppConfig {
@@ -15,15 +17,23 @@ class AppConfig {
 
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'https://asntechnology.net',
+    // Must be the canonical www host: the bare domain 307-redirects and
+    // POST bodies (uploads, auth lookup) don't survive the redirect.
+    defaultValue: 'https://www.asntechnology.net',
   );
 
   static AppEnv get environment {
-    const envString = String.fromEnvironment('APP_ENV', defaultValue: 'development');
-    return AppEnv.values.firstWhere(
-      (e) => e.name == envString,
-      orElse: () => AppEnv.development,
-    );
+    const envString = String.fromEnvironment('APP_ENV', defaultValue: '');
+    if (envString.isNotEmpty) {
+      return AppEnv.values.firstWhere(
+        (e) => e.name == envString,
+        orElse: () => AppEnv.development,
+      );
+    }
+    // No explicit APP_ENV: a release binary is production by definition.
+    // Deriving it from the build mode means a forgotten --dart-define can
+    // never leave verbose logging enabled in a shipped app.
+    return kReleaseMode ? AppEnv.production : AppEnv.development;
   }
 
   static bool get isProduction => environment == AppEnv.production;

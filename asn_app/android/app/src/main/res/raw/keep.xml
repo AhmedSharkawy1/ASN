@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The notification icon is only referenced by name from Dart at runtime, so
+  the resource shrinker cannot see it is used and strips it from release
+  builds (which made every notification fail with invalid_icon).
+-->
+<resources
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification"
+    tools:shrinkMode="safe" />

@@ -13,8 +13,9 @@ abstract class AuthLocalDataSource {
   Future<String?> getRefreshToken();
   Future<void> deleteRefreshToken();
 
-  Future<void> saveOfflinePassword(String password);
-  Future<String?> getOfflinePassword();
+  /// Stores a salted hash for offline verification — never the password.
+  Future<void> saveOfflinePasswordHash(String password);
+  Future<bool> verifyOfflinePassword(String password);
   Future<void> deleteOfflinePassword();
 
   Future<void> cacheUserSession(UserModel user);
@@ -47,10 +48,12 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> deleteRefreshToken() => _secureStorage.deleteRefreshToken();
 
   @override
-  Future<void> saveOfflinePassword(String password) => _secureStorage.saveOfflinePassword(password);
+  Future<void> saveOfflinePasswordHash(String password) =>
+      _secureStorage.saveOfflinePasswordHash(password);
 
   @override
-  Future<String?> getOfflinePassword() => _secureStorage.getOfflinePassword();
+  Future<bool> verifyOfflinePassword(String password) =>
+      _secureStorage.verifyOfflinePassword(password);
 
   @override
   Future<void> deleteOfflinePassword() => _secureStorage.deleteOfflinePassword();

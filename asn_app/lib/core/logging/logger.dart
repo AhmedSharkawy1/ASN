@@ -11,6 +11,15 @@ enum LogLevel {
 class AppLogger {
   AppLogger._();
 
+  /// Receives errors/warnings even in production so crashes stay visible.
+  /// Wired to the on-device error store in bootstrap.
+  static void Function(
+    String message, {
+    String? name,
+    Object? error,
+    StackTrace? stackTrace,
+  })? onError;
+
   static void log(
     String message, {
     LogLevel level = LogLevel.info,
@@ -18,9 +27,15 @@ class AppLogger {
     Object? error,
     StackTrace? stackTrace,
   }) {
+    // Errors are always recorded — silencing them in production is what makes
+    // field failures impossible to diagnose.
+    if (level == LogLevel.error) {
+      onError?.call(message, name: name, error: error, stackTrace: stackTrace);
+    }
+
     if (AppConfig.isProduction) {
-      // In production, we don't log to standard out to avoid sensitive data leakage
-      // You can integrate Crashlytics/Sentry here for Error logs
+      // Never write verbose logs to logcat in a shipped build: they can carry
+      // customer phone numbers, order details and token fragments.
       return;
     }
 

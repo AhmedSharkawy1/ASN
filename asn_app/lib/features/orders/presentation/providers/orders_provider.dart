@@ -72,6 +72,9 @@ class OrdersNotifier extends Notifier<AsyncValue<List<OrderEntity>>> {
       _subscription?.cancel();
     });
 
+    // activeBranchProvider yields 'all' for owners, so it alone would not
+    // change when a super admin switches restaurants — watch the id too.
+    ref.watch(activeRestaurantIdProvider);
     final branchId = ref.watch(activeBranchProvider);
     unawaited(_loadAndSubscribe(branchId));
     
@@ -114,8 +117,8 @@ class OrdersNotifier extends Notifier<AsyncValue<List<OrderEntity>>> {
   void _onNewOrderReceived(OrderEntity newOrder) {
     AppLogger.info('Realtime new order received in state notifier: ${newOrder.id}', name: 'OrdersNotifier');
 
-    unawaited(ref.read(notificationsServiceProvider).showNewOrderNotification(newOrder));
-
+    // The app-wide OrderNotificationService owns the local notification;
+    // here we only update the on-screen list.
     final currentOrders = state.value ?? [];
     if (currentOrders.any((o) => o.id == newOrder.id)) return;
 

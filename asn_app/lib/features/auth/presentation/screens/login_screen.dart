@@ -7,6 +7,7 @@ import 'package:asn_app/core/utils/validators.dart';
 import 'package:asn_app/core/localization/locale_provider.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:asn_app/core/localization/l10n/app_localizations.dart';
+import 'package:asn_app/shared/presentation/widgets/app_snackbar.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -56,20 +57,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           context.go('/dashboard');
         },
         error: (message) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                message,
-                textAlign: isAr ? TextAlign.right : TextAlign.left,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: AppColors.error,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              ),
-            ),
-          );
+          showAppSnackBar(context, message, type: AppSnackBarType.error);
         },
         orElse: () {},
       );

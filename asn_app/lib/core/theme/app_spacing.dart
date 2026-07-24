@@ -12,13 +12,25 @@ class AppSpacing {
   static const double xxl = 48.0;
   static const double xxxl = 64.0;
 
-  // BorderRadius
-  static const double radiusXs = 4.0;
-  static const double radiusSm = 8.0;
-  static const double radiusMd = 12.0;
-  static const double radiusLg = 16.0;
-  static const double radiusXl = 24.0;
+  // BorderRadius — Liquid Glass: everything soft, nothing sharp.
+  static const double radiusXs = 8.0;
+  static const double radiusSm = 12.0;
+  static const double radiusMd = 18.0; // buttons, inputs
+  static const double radiusLg = 24.0; // cards
+  static const double radiusXl = 28.0; // dialogs
+  static const double radiusSheet = 32.0; // bottom sheets
   static const double radiusRound = 999.0;
+
+  // Glass surface tuning. Blur is deliberately restrained: heavy blur on
+  // scrolling content destroys frame times on mid-range devices.
+  static const double blurSoft = 18.0;
+  static const double blurStrong = 30.0;
+
+  // Motion
+  static const Duration motionFast = Duration(milliseconds: 180);
+  static const Duration motionBase = Duration(milliseconds: 240);
+  static const Duration motionSlow = Duration(milliseconds: 280);
+  static const Curve motionCurve = Curves.easeOutCubic;
 
   // SizedBox spacing helpers
   static const SizedBox heightXs = SizedBox(height: xs);

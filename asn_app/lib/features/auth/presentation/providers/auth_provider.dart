@@ -16,6 +16,7 @@ import 'package:asn_app/features/auth/data/datasources/auth_local_datasource.dar
 import 'package:asn_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:asn_app/core/error/error_handler.dart';
 import 'package:asn_app/core/services/order_notification_service.dart';
+import 'package:asn_app/core/services/background_order_service.dart';
 
 part 'auth_provider.freezed.dart';
 
@@ -89,6 +90,18 @@ final checkSessionUseCaseProvider = Provider<CheckSessionUseCase>((ref) {
 });
 
 // State Notifier Provider
+/// The restaurant every data provider should scope to.
+///
+/// Data providers watch this so that switching restaurants (super-admin
+/// impersonation) rebuilds them and refetches — otherwise they would keep
+/// serving the previous restaurant's cached rows.
+final activeRestaurantIdProvider = Provider<String?>((ref) {
+  return ref.watch(authNotifierProvider).maybeWhen(
+        authenticated: (user) => user.restaurantId,
+        orElse: () => null,
+      );
+});
+
 class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() {
@@ -102,7 +115,10 @@ class AuthNotifier extends Notifier<AuthState> {
       if (user != null) {
         state = AuthState.authenticated(user);
         if (user.restaurantId != null) {
-          ref.read(orderNotificationServiceProvider).startListening(user.restaurantId!);
+          final notifService = ref.read(orderNotificationServiceProvider);
+          notifService.startListening(user.restaurantId!);
+          await notifService.requestPermissions();
+          await BackgroundOrderService.start(user.restaurantId!);
         }
       } else {
         state = const AuthState.unauthenticated();
@@ -118,7 +134,12 @@ class AuthNotifier extends Notifier<AuthState> {
       final user = await ref.read(loginUseCaseProvider).call(usernameOrEmail, password);
       state = AuthState.authenticated(user);
       if (user.restaurantId != null) {
-        ref.read(orderNotificationServiceProvider).startListening(user.restaurantId!);
+        final notifService = ref.read(orderNotificationServiceProvider);
+        notifService.startListening(user.restaurantId!);
+        await notifService.requestPermissions();
+        // Keep alerts flowing after the app is closed (Android).
+        await BackgroundOrderService.requestIgnoreBatteryOptimization();
+        await BackgroundOrderService.start(user.restaurantId!);
       }
     } catch (e) {
       final failure = ErrorHandler.handleException(e);
@@ -127,10 +148,26 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  /// Repoints the signed-in session at a different restaurant.
+  ///
+  /// Used by super-admin impersonation: every screen reads `restaurantId`
+  /// from the auth state, so switching it here scopes the whole app without
+  /// touching any other provider. Passing null restores the account's own
+  /// restaurant (null for a super admin, who owns none).
+  void setActiveRestaurant(String? restaurantId) {
+    state.maybeWhen(
+      authenticated: (user) {
+        state = AuthState.authenticated(user.copyWith(restaurantId: restaurantId));
+      },
+      orElse: () {},
+    );
+  }
+
   Future<void> logout() async {
     state = const AuthState.loading();
     try {
       ref.read(orderNotificationServiceProvider).stopListening();
+      await BackgroundOrderService.stop();
       await ref.read(logoutUseCaseProvider).call();
       state = const AuthState.unauthenticated();
     } catch (e) {

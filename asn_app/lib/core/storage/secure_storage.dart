@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:asn_app/core/logging/logger.dart';
 
@@ -59,7 +63,51 @@ class SecureStorage {
   Future<String?> getRefreshToken() => read(_refreshTokenKey);
   Future<void> deleteRefreshToken() => delete(_refreshTokenKey);
 
-  Future<void> saveOfflinePassword(String pw) => write(_offlinePwKey, pw);
-  Future<String?> getOfflinePassword() => read(_offlinePwKey);
+  // ---------------------------------------------------------------------
+  // Offline login credential
+  //
+  // Stored as `salt:sha256(salt + password)` — never the password itself.
+  // Offline sign-in only needs to *verify* the password, so there is no
+  // reason to keep a recoverable copy on the device.
+  // ---------------------------------------------------------------------
+
+  Future<void> saveOfflinePasswordHash(String pw) async {
+    final salt = _newSalt();
+    await write(_offlinePwKey, '$salt:${_hash(salt, pw)}');
+  }
+
+  Future<bool> verifyOfflinePassword(String pw) async {
+    final stored = await read(_offlinePwKey);
+    if (stored == null || stored.isEmpty) return false;
+
+    final separator = stored.indexOf(':');
+    // Legacy values were plaintext. Reject them rather than comparing: the
+    // user simply signs in online once and a hash is written.
+    if (separator <= 0) return false;
+
+    final salt = stored.substring(0, separator);
+    final expected = stored.substring(separator + 1);
+    return _constantTimeEquals(_hash(salt, pw), expected);
+  }
+
   Future<void> deleteOfflinePassword() => delete(_offlinePwKey);
+
+  static String _newSalt() {
+    final rng = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rng.nextInt(256));
+    return base64Url.encode(bytes);
+  }
+
+  static String _hash(String salt, String pw) =>
+      sha256.convert(utf8.encode('$salt$pw')).toString();
+
+  /// Length-independent comparison to avoid leaking match position by timing.
+  static bool _constantTimeEquals(String a, String b) {
+    if (a.length != b.length) return false;
+    var diff = 0;
+    for (var i = 0; i < a.length; i++) {
+      diff |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
+    }
+    return diff == 0;
+  }
 }

@@ -17,7 +17,7 @@ class NotificationsService {
     try {
       AppLogger.info('Initializing local notifications service...', name: 'Notifications');
 
-      const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidSettings = AndroidInitializationSettings('ic_notification');
       const iosSettings = DarwinInitializationSettings(
         requestAlertPermission: true,
         requestBadgePermission: true,

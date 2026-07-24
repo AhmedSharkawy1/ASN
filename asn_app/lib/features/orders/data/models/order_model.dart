@@ -1,60 +1,125 @@
-// ignore_for_file: invalid_annotation_target
-
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:asn_app/features/orders/domain/entities/order_entity.dart';
 
-part 'order_model.freezed.dart';
-part 'order_model.g.dart';
+/// Order item from the orders.items jsonb column.
+///
+/// Two shapes exist in production:
+///  - web menu/checkout: {id, title, qty, size, price, category}
+///  - mobile POS:        {id, product_id, product_name, quantity, price}
+/// This parser accepts both.
+class OrderItemModel {
+  final String? id;
+  final String? title;
+  final int quantity;
+  final double price;
+  final String? size;
+  final String? category;
+  final List<Map<String, dynamic>> addons;
 
-@freezed
-abstract class OrderItemModel with _$OrderItemModel {
-  const OrderItemModel._();
+  const OrderItemModel({
+    this.id,
+    this.title,
+    this.quantity = 1,
+    this.price = 0,
+    this.size,
+    this.category,
+    this.addons = const [],
+  });
 
-  const factory OrderItemModel({
-    required String id,
-    @JsonKey(name: 'product_id') required String productId,
-    @JsonKey(name: 'products') required Map<String, dynamic>? productInfo,
-    required int quantity,
-    required double price,
-    required List<Map<String, dynamic>>? addons,
-  }) = _OrderItemModel;
-
-  factory OrderItemModel.fromJson(Map<String, dynamic> json) => _$OrderItemModelFromJson(json);
+  factory OrderItemModel.fromJson(Map<String, dynamic> json) {
+    return OrderItemModel(
+      id: json['id']?.toString(),
+      title: (json['title'] ?? json['product_name'])?.toString(),
+      quantity: ((json['qty'] ?? json['quantity']) as num? ?? 1).toInt(),
+      price: (json['price'] as num? ?? 0).toDouble(),
+      size: json['size']?.toString(),
+      category: json['category']?.toString(),
+      addons: (json['addons'] as List?)?.whereType<Map<String, dynamic>>().toList() ?? const [],
+    );
+  }
 
   OrderItemEntity toEntity() {
-    final productName = productInfo?['name'] as String? ?? 'Product';
     return OrderItemEntity(
-      id: id,
-      productId: productId,
-      productName: productName,
+      id: id ?? '',
+      productId: id ?? '',
+      productName: title ?? 'Product',
       quantity: quantity,
       price: price,
-      addons: addons ?? [],
+      size: (size != null && size!.trim().isNotEmpty) ? size!.trim() : null,
+      category: (category != null && category!.trim().isNotEmpty) ? category!.trim() : null,
+      addons: addons,
     );
   }
 }
 
-@freezed
-abstract class OrderModel with _$OrderModel {
-  const OrderModel._();
+class OrderModel {
+  final String id;
+  final String restaurantId;
+  final String? branchId;
 
-  const factory OrderModel({
-    required String id,
-    @JsonKey(name: 'restaurant_id') required String restaurantId,
-    @JsonKey(name: 'branch_id') required String? branchId,
-    @JsonKey(name: 'order_number') required String orderNumber,
-    required String status,
-    @JsonKey(name: 'total_price') required double totalPrice,
-    @JsonKey(name: 'created_at') required String createdAt,
-    @JsonKey(name: 'payment_method') required String paymentMethod,
-    @JsonKey(name: 'customer_name') required String? customerName,
-    @JsonKey(name: 'customer_phone') required String? customerPhone,
-    @JsonKey(name: 'customer_address') required String? customerAddress,
-    required String? notes,
-    @JsonKey(name: 'order_items') required List<OrderItemModel>? items,
-  }) = _OrderModel;
+  /// order_number is a serial (int) in the DB, but older mobile-created rows
+  /// stored strings — normalized to String for display.
+  final String orderNumber;
+  final String status;
+  final double totalPrice;
+  final String createdAt;
+  final String paymentMethod;
+  final String? customerName;
+  final String? customerPhone;
+  final String? customerAddress;
+  final String? notes;
+  final List<OrderItemModel> items;
 
-  factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
+  /// dine_in | takeaway | pickup | delivery
+  final String? orderType;
+  final double subtotal;
+  final double discount;
+  final double deliveryFee;
+
+  const OrderModel({
+    required this.id,
+    required this.restaurantId,
+    this.branchId,
+    required this.orderNumber,
+    required this.status,
+    required this.totalPrice,
+    required this.createdAt,
+    required this.paymentMethod,
+    this.customerName,
+    this.customerPhone,
+    this.customerAddress,
+    this.notes,
+    this.items = const [],
+    this.orderType,
+    this.subtotal = 0,
+    this.discount = 0,
+    this.deliveryFee = 0,
+  });
+
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
+    return OrderModel(
+      id: json['id'] as String,
+      restaurantId: json['restaurant_id'] as String? ?? '',
+      branchId: json['branch_id'] as String?,
+      orderNumber: json['order_number']?.toString() ?? '',
+      status: json['status'] as String? ?? 'pending',
+      totalPrice: (json['total'] as num? ?? 0).toDouble(),
+      createdAt: json['created_at'] as String,
+      paymentMethod: json['payment_method']?.toString() ?? 'cash',
+      customerName: json['customer_name'] as String?,
+      customerPhone: json['customer_phone'] as String?,
+      customerAddress: json['customer_address'] as String?,
+      notes: json['notes'] as String?,
+      items: (json['items'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(OrderItemModel.fromJson)
+              .toList() ??
+          const [],
+      orderType: json['order_type']?.toString(),
+      subtotal: (json['subtotal'] as num? ?? 0).toDouble(),
+      discount: (json['discount'] as num? ?? 0).toDouble(),
+      deliveryFee: (json['delivery_fee'] as num? ?? 0).toDouble(),
+    );
+  }
 
   OrderEntity toEntity() {
     return OrderEntity(
@@ -70,7 +135,11 @@ abstract class OrderModel with _$OrderModel {
       customerPhone: customerPhone,
       customerAddress: customerAddress,
       notes: notes,
-      items: items?.map((i) => i.toEntity()).toList() ?? const [],
+      items: items.map((i) => i.toEntity()).toList(),
+      orderType: orderType,
+      subtotal: subtotal,
+      discount: discount,
+      deliveryFee: deliveryFee,
     );
   }
 }

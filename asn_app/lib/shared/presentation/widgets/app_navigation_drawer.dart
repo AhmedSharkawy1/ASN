@@ -7,6 +7,8 @@ import 'package:asn_app/core/theme/app_colors.dart';
 import 'package:asn_app/core/theme/app_spacing.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:asn_app/features/permissions/presentation/providers/permissions_provider.dart';
+import 'package:asn_app/core/config/app_modules.dart';
+import 'package:asn_app/features/superadmin/presentation/providers/impersonation_provider.dart';
 
 class NavigationDrawerItem {
   final String titleKey;
@@ -30,6 +32,7 @@ class AppNavigationDrawer extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final authState = ref.watch(authNotifierProvider);
     final permsNotifier = ref.read(permissionsProvider.notifier);
+    final impersonation = ref.watch(impersonationProvider);
 
     // Resolved User Details
     final user = authState.maybeWhen(
@@ -77,10 +80,59 @@ class AppNavigationDrawer extends ConsumerWidget {
         routePath: '/reports',
         icon: Icons.analytics_outlined,
       ),
+      NavigationDrawerItem(
+        titleKey: 'inventory',
+        pageKey: 'inventory',
+        routePath: '/inventory',
+        icon: Icons.inventory_2_outlined,
+      ),
+      NavigationDrawerItem(
+        titleKey: 'tables',
+        pageKey: 'tables',
+        routePath: '/tables',
+        icon: Icons.table_restaurant_outlined,
+      ),
+      NavigationDrawerItem(
+        titleKey: 'delivery',
+        pageKey: 'delivery',
+        routePath: '/delivery',
+        icon: Icons.delivery_dining_outlined,
+      ),
+      NavigationDrawerItem(
+        titleKey: 'promotions',
+        pageKey: 'promotions',
+        routePath: '/promotions',
+        icon: Icons.local_offer_outlined,
+      ),
+      NavigationDrawerItem(
+        titleKey: 'hr',
+        pageKey: 'hr_employees',
+        routePath: '/hr',
+        icon: Icons.badge_outlined,
+      ),
+      NavigationDrawerItem(
+        titleKey: 'recipes',
+        pageKey: 'recipes',
+        routePath: '/recipes',
+        icon: Icons.menu_book_outlined,
+      ),
+      NavigationDrawerItem(
+        titleKey: 'qr',
+        pageKey: 'qr',
+        routePath: '/qr',
+        icon: Icons.qr_code_2_outlined,
+      ),
     ];
 
-    // Filter items based on dynamic permissions
-    final allowedItems = allItems.where((item) => permsNotifier.hasPermission(item.pageKey)).toList();
+    // Filter items based on dynamic permissions.
+    // HR is reachable through any of its sub-page permissions, matching the web sidebar.
+    final allowedItems = allItems.where((item) {
+      // A super admin managing a tenant gets the full module set; restaurant
+      // users only see the modules exposed in this app.
+      if (permsNotifier.isSuperAdmin) return true;
+      if (!AppModules.visibleRoutes.containsKey(item.routePath)) return false;
+      return permsNotifier.hasPermission(item.pageKey);
+    }).toList();
 
     // Active path logic to highlight selected item
     final currentRoute = GoRouterState.of(context).uri.path;
@@ -100,6 +152,20 @@ class AppNavigationDrawer extends ConsumerWidget {
           return l10n.customers;
         case 'reports':
           return l10n.reports;
+        case 'inventory':
+          return l10n.inventory;
+        case 'tables':
+          return l10n.tables;
+        case 'delivery':
+          return l10n.delivery;
+        case 'promotions':
+          return l10n.promotions;
+        case 'hr':
+          return l10n.hr;
+        case 'qr':
+          return l10n.qrTitle;
+        case 'recipes':
+          return l10n.recipes;
         default:
           return key;
       }
@@ -188,6 +254,28 @@ class AppNavigationDrawer extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    // Which restaurant a super admin is currently inside.
+                    if (impersonation != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.storefront, color: Colors.white, size: 14),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              impersonation.restaurantName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -235,6 +323,17 @@ class AppNavigationDrawer extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                     child: Divider(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
                   ),
+                  if (permsNotifier.isSuperAdmin)
+                    _buildDrawerTile(
+                      context: context,
+                      title: 'كل المطاعم',
+                      icon: Icons.storefront_outlined,
+                      isActive: currentRoute == '/super-admin',
+                      onTap: () {
+                        Navigator.pop(context);
+                        context.go('/super-admin');
+                      },
+                    ),
                   _buildDrawerTile(
                     context: context,
                     title: l10n.settings,

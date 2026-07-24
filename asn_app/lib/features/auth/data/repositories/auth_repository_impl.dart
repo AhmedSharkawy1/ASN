@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart' show User;
+
 import 'package:asn_app/core/network/network_info.dart';
 import 'package:asn_app/core/error/exceptions.dart';
 import 'package:asn_app/core/logging/logger.dart';
@@ -29,9 +31,9 @@ class AuthRepositoryImpl implements AuthRepository {
     Future<UserEntity> performOfflineLogin() async {
       AppLogger.warning('Attempting offline login for: $usernameOrEmail', name: 'AuthRepo');
       final cachedUser = await _localDataSource.getCachedUserSession();
-      final cachedPw = await _localDataSource.getOfflinePassword();
+      final passwordMatches = await _localDataSource.verifyOfflinePassword(password);
 
-      if (cachedUser != null && cachedPw == password) {
+      if (cachedUser != null && passwordMatches) {
         if (cachedUser.email == usernameOrEmail || cachedUser.name == usernameOrEmail) {
           AppLogger.info('Offline login success for cached user: ${cachedUser.id}', name: 'AuthRepo');
           return cachedUser.toEntity();
@@ -67,10 +69,41 @@ class AuthRepositoryImpl implements AuthRepository {
       if (session.refreshToken != null) {
         await _localDataSource.saveRefreshToken(session.refreshToken!);
       }
-      await _localDataSource.saveOfflinePassword(password);
+      await _localDataSource.saveOfflinePasswordHash(password);
 
+      return await _buildProfile(
+        user: user,
+        resolvedEmail: resolvedEmail,
+        fallbackName: usernameOrEmail,
+      );
+    } on AuthException {
+      rethrow;
+    } catch (e, stackTrace) {
+      // If any network/server exception occurs during online login, attempt offline fallback
+      if (e is ServerException || e is NetworkException || e.toString().contains('Dio') || e.toString().contains('SocketException') || e.toString().contains('ClientException')) {
+        AppLogger.warning('Online login failed due to network/server, falling back to offline mode. Error: $e', name: 'AuthRepo');
+        return await performOfflineLogin();
+      }
+      AppLogger.error('Login process failed', error: e, stackTrace: stackTrace, name: 'AuthRepo');
+      throw ServerException(e.toString());
+    }
+  }
+
+  /// Resolves role, restaurant and permissions for an already-authenticated
+  /// Supabase user, then caches the session.
+  ///
+  /// Split out of [login] so session restore can rebuild the same profile from
+  /// a refresh token alone — previously it re-ran a full password login, which
+  /// was the only reason the password had to be kept on the device.
+  Future<UserEntity> _buildProfile({
+    required User user,
+    required String resolvedEmail,
+    required String fallbackName,
+  }) async {
+    final usernameOrEmail = fallbackName;
+    {
       // Fetch User Role
-      final role = await _remoteDataSource.fetchUserRole(user.id) ?? 'staff';
+      final role = await _remoteDataSource.fetchUserRole(user.id);
       String? restaurantId;
       String name = usernameOrEmail;
       Map<String, bool> permissions = {};
@@ -79,7 +112,7 @@ class AuthRepositoryImpl implements AuthRepository {
         name = 'Super Admin';
         permissions = {'_isSuperAdmin': true};
       } else if (role == 'staff' || resolvedEmail.endsWith('.asn')) {
-        // Staff Profile
+        // Confirmed staff user (explicit role or internal .asn email)
         final staffProfile = await _remoteDataSource.fetchStaffProfile(user.id);
         if (staffProfile == null) {
           throw const AuthException('لم يتم العثور على حساب الموظف');
@@ -113,7 +146,8 @@ class AuthRepositoryImpl implements AuthRepository {
         }
         permissions['_isAdmin'] = false;
       } else {
-        // Owner Profile
+        // Role is null (no user_roles entry) or an explicit owner/admin role.
+        // Try owner path first: check if the user's email matches a restaurant.
         final restProfile = await _remoteDataSource.fetchRestaurantProfile(resolvedEmail);
         if (restProfile != null) {
           restaurantId = restProfile['id'] as String?;
@@ -129,11 +163,34 @@ class AuthRepositoryImpl implements AuthRepository {
           }
           permissions['_isAdmin'] = true;
         } else {
-          // Fallback check if owner email matches staff profile (rare)
+          // No restaurant profile found — fall back to staff profile check.
+          // This handles cases where user_roles is missing but the user is
+          // actually a team member, or rare edge cases.
           final staffFallback = await _remoteDataSource.fetchStaffProfile(user.id);
           if (staffFallback != null) {
+            final isActive = staffFallback['is_active'] as bool? ?? false;
+            if (!isActive) {
+              throw const AuthException('هذا الحساب غير مفعل حالياً');
+            }
             restaurantId = staffFallback['restaurant_id'] as String?;
             name = staffFallback['name'] as String? ?? usernameOrEmail;
+            
+            // Parse staff permissions for fallback path
+            final fallbackPermsJson = staffFallback['permissions'];
+            Map<String, bool> fallbackPerms = {};
+            if (fallbackPermsJson is Map) {
+              fallbackPerms = Map<String, bool>.from(fallbackPermsJson.map((k, v) => MapEntry(k.toString(), v == true)));
+            }
+            if (restaurantId != null) {
+              final clientPages = await _remoteDataSource.fetchClientPageAccess(restaurantId);
+              for (final page in clientPages) {
+                final key = page['page_key'] as String;
+                final isEnabled = page['enabled'] as bool? ?? true;
+                if (fallbackPerms.containsKey(key)) {
+                  permissions[key] = fallbackPerms[key]! && isEnabled;
+                }
+              }
+            }
             permissions['_isAdmin'] = false;
           } else {
             throw const AuthException('تعذر العثور على بيانات المطعم المرتبطة');
@@ -145,25 +202,15 @@ class AuthRepositoryImpl implements AuthRepository {
         id: user.id,
         email: user.email ?? resolvedEmail,
         name: name,
-        role: role,
+        role: role ?? (permissions['_isAdmin'] == true ? 'admin' : 'staff'),
         restaurantId: restaurantId,
         permissions: permissions,
       );
 
       // Cache session locally
       await _localDataSource.cacheUserSession(userModel);
-      
+
       return userModel.toEntity();
-    } on AuthException {
-      rethrow;
-    } catch (e, stackTrace) {
-      // If any network/server exception occurs during online login, attempt offline fallback
-      if (e is ServerException || e is NetworkException || e.toString().contains('Dio') || e.toString().contains('SocketException') || e.toString().contains('ClientException')) {
-        AppLogger.warning('Online login failed due to network/server, falling back to offline mode. Error: $e', name: 'AuthRepo');
-        return await performOfflineLogin();
-      }
-      AppLogger.error('Login process failed', error: e, stackTrace: stackTrace, name: 'AuthRepo');
-      throw ServerException(e.toString());
     }
   }
 
@@ -214,12 +261,21 @@ class AuthRepositoryImpl implements AuthRepository {
       if (refreshToken != null && refreshToken.isNotEmpty) {
         AppLogger.info('Refreshing user session silenty...', name: 'AuthRepo');
         final response = await SupabaseClientManager.client.auth.setSession(refreshToken);
-        if (response.session != null && response.user != null) {
-          // Re-login flow to load updated permissions
-          final cachedPw = await _localDataSource.getOfflinePassword();
-          if (cachedPw != null && cachedPw.isNotEmpty) {
-            return await login(response.user!.email ?? '', cachedPw);
+        final refreshedUser = response.user;
+        if (response.session != null && refreshedUser != null) {
+          // Rebuild role/permissions from the refreshed session — no password
+          // needed, so none has to be stored.
+          final email = refreshedUser.email ?? '';
+          await _localDataSource.saveAuthToken(response.session!.accessToken);
+          final newRefresh = response.session!.refreshToken;
+          if (newRefresh != null && newRefresh.isNotEmpty) {
+            await _localDataSource.saveRefreshToken(newRefresh);
           }
+          return await _buildProfile(
+            user: refreshedUser,
+            resolvedEmail: email,
+            fallbackName: email,
+          );
         }
       }
     } catch (e, stackTrace) {

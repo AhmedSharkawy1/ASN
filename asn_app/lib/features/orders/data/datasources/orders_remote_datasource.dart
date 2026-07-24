@@ -17,7 +17,7 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
   OrdersRemoteDataSourceImpl() : _supabaseClient = SupabaseClientManager.client;
 
   // Selection string for joined order details
-  static const String _orderSelect = '*, order_items(*, products(name))';
+  static const String _orderSelect = '*';
 
   @override
   Future<List<OrderModel>> getOrders(
