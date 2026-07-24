@@ -384,25 +384,25 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                 
                 {/* Categories Bar */}
                 {!searchQuery && (
-                    <div className="sticky top-0 z-30 pt-2 pb-4 mb-2" style={{ backgroundColor: bgBody }}>
-                        <div className="flex gap-4 sm:gap-5 overflow-x-auto hide-scrollbar scrollbar-hide no-scrollbar px-2 py-1" dir={isAr ? 'rtl' : 'ltr'}>
+                    <div className="sticky top-0 z-30 py-2 -mx-5 px-5 mb-3 backdrop-blur-md border-b border-black/5 dark:border-white/5" style={{ backgroundColor: bgBody }}>
+                        <div className="flex gap-3 sm:gap-4 overflow-x-auto hide-scrollbar scrollbar-hide no-scrollbar px-1 py-1" dir={isAr ? 'rtl' : 'ltr'}>
                             <button 
                                 id="nav-cat-all"
                                 onClick={() => {
                                     setActiveCategory('all');
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
                                 }}
-                                className="flex flex-col items-center gap-2 shrink-0 group transition-all"
+                                className="flex flex-col items-center gap-1.5 shrink-0 group transition-all"
                             >
-                                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex items-center justify-center transition-all border-[3px]"
+                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center transition-all border-2"
                                      style={{ 
                                          backgroundColor: bgCard,
                                          borderColor: activeCategory === 'all' ? primaryColor : 'transparent',
-                                         boxShadow: activeCategory === 'all' ? `0 4px 15px ${primaryColor}40` : 'none'
+                                         boxShadow: activeCategory === 'all' ? `0 4px 12px ${primaryColor}40` : 'none'
                                      }}>
-                                     <LayoutGrid className="w-10 h-10 sm:w-12 sm:h-12" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
+                                     <LayoutGrid className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
                                 </div>
-                                <span className="font-bold text-xs sm:text-sm" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
+                                <span className="font-bold text-xs" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
                                     {isAr ? 'الكل' : 'All'}
                                 </span>
                             </button>
@@ -414,16 +414,16 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                         setActiveCategory(cat.id.toString());
                                         const el = document.getElementById(cat.id.toString());
                                         if(el) {
-                                            const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                                            const y = el.getBoundingClientRect().top + window.scrollY - 85;
                                             window.scrollTo({ top: y, behavior: 'smooth' });
                                         }
                                     }}
-                                    className="flex flex-col items-center gap-2 shrink-0 group transition-all"
+                                    className="flex flex-col items-center gap-1.5 shrink-0 group transition-all"
                                 >
-                                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden transition-all border-[3px] bg-white dark:bg-[#1c1c1e]"
+                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
                                          style={{ 
                                              borderColor: activeCategory === cat.id.toString() ? primaryColor : 'transparent',
-                                             boxShadow: activeCategory === cat.id.toString() ? `0 4px 15px ${primaryColor}40` : 'none'
+                                             boxShadow: activeCategory === cat.id.toString() ? `0 4px 12px ${primaryColor}40` : 'none'
                                          }}>
                                         <img 
                                             src={cat.image_url || cat.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
@@ -435,7 +435,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                             }}
                                         />
                                     </div>
-                                    <span className="font-bold text-xs sm:text-sm whitespace-nowrap" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
+                                    <span className="font-bold text-xs whitespace-nowrap" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
                                         {catName(cat)}
                                     </span>
                                 </button>
