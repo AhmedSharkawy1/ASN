@@ -145,6 +145,14 @@ const THEMES = [
         description_en: "Amazing design with a landing page containing video and about section.",
         preview_color: "#B8860B", // Metallic Gold
     },
+    {
+        id: "lamet-zaman",
+        name_ar: "ثيم لمة زمان",
+        name_en: "Lamet Zaman Theme",
+        description_ar: "تصميم عصري مميز بأقسام دائرية وشريط تنقل مثبت وعرض دبابيس وسلة ممتازة.",
+        description_en: "Modern design with circular category navigation, sticky header, and full order support.",
+        preview_color: "#f97316", // Orange
+    },
     // ===== PizzaPasta Color Variations =====
     { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#0891b2" },
 { id: "pizzapasta-red", name_ar: "بيتزا باستا (أحمر)", name_en: "Pizza Pasta (Red)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#dc2626" },
