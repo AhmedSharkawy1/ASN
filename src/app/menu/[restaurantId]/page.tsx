@@ -52,6 +52,13 @@ const Theme18GoldMenu = dynamic(() => import("@/components/menu/Theme18GoldMenu"
 const Theme19GoldMenu = dynamic(() => import("@/components/menu/Theme19GoldMenu"));
 const Theme18PinkMenu = dynamic(() => import("@/components/menu/Theme18PinkMenu"));
 const Theme19PinkMenu = dynamic(() => import("@/components/menu/Theme19PinkMenu"));
+const Theme22Menu = dynamic(() => import("@/components/menu/Theme22Menu"));
+const Theme22RedMenu = dynamic(() => import("@/components/menu/Theme22RedMenu"));
+const Theme22CyanMenu = dynamic(() => import("@/components/menu/Theme22CyanMenu"));
+const Theme22EmeraldMenu = dynamic(() => import("@/components/menu/Theme22EmeraldMenu"));
+const Theme22SkyMenu = dynamic(() => import("@/components/menu/Theme22SkyMenu"));
+const Theme22GoldMenu = dynamic(() => import("@/components/menu/Theme22GoldMenu"));
+const Theme22PinkMenu = dynamic(() => import("@/components/menu/Theme22PinkMenu"));
 const PizzaPastaCyanMenu = dynamic(() => import("@/components/menu/PizzaPastaCyanMenu"));
 const PizzaPastaRedMenu = dynamic(() => import("@/components/menu/PizzaPastaRedMenu"));
 const PizzaPastaEmeraldMenu = dynamic(() => import("@/components/menu/PizzaPastaEmeraldMenu"));
@@ -575,6 +582,27 @@ function SmartMenuContent({
   }
   if (config?.theme === "theme19-gold") {
     return <Theme19GoldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme22") {
+    return <Theme22Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme22-red") {
+    return <Theme22RedMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme22-cyan") {
+    return <Theme22CyanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme22-emerald") {
+    return <Theme22EmeraldMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme22-sky") {
+    return <Theme22SkyMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme22-pink") {
+    return <Theme22PinkMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme === "theme22-gold") {
+    return <Theme22GoldMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   // If Theme PizzaPasta Cyan
   if (config?.theme === "pizzapasta-cyan") {

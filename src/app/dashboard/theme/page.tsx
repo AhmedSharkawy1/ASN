@@ -209,15 +209,14 @@ const THEMES = [
     { id: "theme18-pink", name_ar: "ثيم 18 (وردي)", name_en: "Theme18 (Pink)", description_ar: "نفس التصميم ثيم 18 بلون وردي", description_en: "Theme18 design with Pink color", preview_color: "#ec4899" },
     { id: "theme19-pink", name_ar: "ثيم 19 (وردي)", name_en: "Theme19 (Pink)", description_ar: "نفس التصميم ثيم 19 بلون وردي", description_en: "Theme19 design with Pink color", preview_color: "#ec4899" },
     { id: "theme18-gold", name_ar: "ثيم 18 (ذهبي)", name_en: "Theme18 (Gold)", description_ar: "نفس التصميم ثيم 18 بلون ذهبي", description_en: "Theme18 design with Gold color", preview_color: "#D4A017" },
-    { id: "theme19-gold", name_ar: "ثيم 19 (ذهبي)", name_en: "Theme19 (Gold)", description_ar: "نفس التصميم ثيم 19 بلون ذهبي", description_en: "Theme19 design with Gold color", preview_color: "#D4A017" },
-    { id: "lamet-zaman", name_ar: "ثيم لمة زمان", name_en: "Lamet Zaman Theme", description_ar: "ثيم مشابه لثيم 19 مع صور للأقسام بشكل دائري وبار أقسام ثابت", description_en: "Similar to Theme 19 with circular category images and sticky categories bar", preview_color: "#f97316" },
-    { id: "vicino", name_ar: "ثيم 20 (Vicino)", name_en: "Theme 20 (Vicino)", description_ar: "التصميم الأساسي", description_en: "Default design", preview_color: "#B8860B" },
-    { id: "vicino-red", name_ar: "ثيم 20 (أحمر)", name_en: "Theme 20 (Red)", description_ar: "نسخة حمراء", description_en: "Red variant", preview_color: "#ef4444" },
-    { id: "vicino-cyan", name_ar: "ثيم 20 (سماوي)", name_en: "Theme 20 (Cyan)", description_ar: "نسخة سماوية", description_en: "Cyan variant", preview_color: "#06b6d4" },
-    { id: "vicino-emerald", name_ar: "ثيم 20 (زمردي)", name_en: "Theme 20 (Emerald)", description_ar: "نسخة زمردية", description_en: "Emerald variant", preview_color: "#10b981" },
-    { id: "vicino-purple", name_ar: "ثيم 20 (بنفسجي)", name_en: "Theme 20 (Purple)", description_ar: "نسخة بنفسجية", description_en: "Purple variant", preview_color: "#8b5cf6" },
-    { id: "vicino-dark", name_ar: "ثيم 20 (داكن جداً)", name_en: "Theme 20 (Midnight Gold)", description_ar: "داكن مع ذهبي", description_en: "Midnight Gold variant", preview_color: "#111111" },
-
+    // ===== Theme 22 (Theme 19 with Add to Cart text button) =====
+    { id: "theme22", name_ar: "ثيم 22 (زر إضافة للسلة)", name_en: "Theme 22 (Add to Cart Button)", description_ar: "نفس ثيم 19 بزر إضافة إلى السلة صريح بدلاً من علامة +", description_en: "Same as Theme 19 with explicit Add to Cart button instead of + icon", preview_color: "#f97316" },
+    { id: "theme22-red", name_ar: "ثيم 22 (أحمر)", name_en: "Theme 22 (Red)", description_ar: "نفس ثيم 22 بلون أحمر", description_en: "Theme 22 design with Red color", preview_color: "#ef4444" },
+    { id: "theme22-cyan", name_ar: "ثيم 22 (Cyan)", name_en: "Theme 22 (Cyan)", description_ar: "نفس ثيم 22 بلون Cyan", description_en: "Theme 22 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme22-emerald", name_ar: "ثيم 22 (Emerald)", name_en: "Theme 22 (Emerald)", description_ar: "نفس ثيم 22 بلون Emerald", description_en: "Theme 22 design with Emerald color", preview_color: "#059669" },
+    { id: "theme22-sky", name_ar: "ثيم 22 (Sky)", name_en: "Theme 22 (Sky)", description_ar: "نفس ثيم 22 بلون Sky", description_en: "Theme 22 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme22-pink", name_ar: "ثيم 22 (وردي)", name_en: "Theme 22 (Pink)", description_ar: "نفس ثيم 22 بلون وردي", description_en: "Theme 22 design with Pink color", preview_color: "#ec4899" },
+    { id: "theme22-gold", name_ar: "ثيم 22 (ذهبي)", name_en: "Theme 22 (Gold)", description_ar: "نفس ثيم 22 بلون ذهبي", description_en: "Theme 22 design with Gold color", preview_color: "#D4A017" },
 ];
 
 const DEFAULT_COLORS = {
