@@ -394,13 +394,13 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                 }}
                                 className="flex flex-col items-center gap-1.5 shrink-0 group transition-all"
                             >
-                                <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full flex items-center justify-center transition-all border-2"
+                                <div className="w-16 h-16 rounded-full flex items-center justify-center transition-all border-2"
                                      style={{ 
                                          backgroundColor: bgCard,
                                          borderColor: activeCategory === 'all' ? primaryColor : 'transparent',
                                          boxShadow: activeCategory === 'all' ? `0 4px 12px ${primaryColor}40` : 'none'
                                      }}>
-                                     <LayoutGrid className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
+                                     <LayoutGrid className="w-6 h-6" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
                                 </div>
                                 <span className="font-bold text-xs" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
                                     {isAr ? 'الكل' : 'All'}
@@ -414,13 +414,13 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                         setActiveCategory(cat.id.toString());
                                         const el = document.getElementById(cat.id.toString());
                                         if(el) {
-                                            const y = el.getBoundingClientRect().top + window.scrollY - 92;
+                                            const y = el.getBoundingClientRect().top + window.scrollY - 88;
                                             window.scrollTo({ top: y, behavior: 'smooth' });
                                         }
                                     }}
                                     className="flex flex-col items-center gap-1.5 shrink-0 group transition-all"
                                 >
-                                    <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
+                                    <div className="w-16 h-16 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
                                          style={{ 
                                              borderColor: activeCategory === cat.id.toString() ? primaryColor : 'transparent',
                                              boxShadow: activeCategory === cat.id.toString() ? `0 4px 12px ${primaryColor}40` : 'none'
