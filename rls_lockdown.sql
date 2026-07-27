@@ -270,6 +270,71 @@ REVOKE SELECT (telegram_bot_token, telegram_chat_id, email)
 
 
 -- ===========================================================================
+-- PART 6 — access control tables: super admin, client dashboard, staff pages.
+--
+-- Three things have to hold at once, and the listing showed one of them does
+-- not currently:
+--
+--   a) the super admin sees and edits every restaurant from /super-admin
+--   b) the per-restaurant page show/hide set in /super-admin actually applies
+--   c) the client can do everything inside their own dashboard
+--
+-- (a) holds: every owner_access policy added above carries
+--     `OR public.is_super_admin_safe()`, and that function is SECURITY DEFINER
+--     so it reads user_roles regardless of the RLS on user_roles itself.
+--
+-- (b) client_page_access already has unified_cpa_access
+--     `(tenant_id = get_my_tenant_id() OR is_super_admin_safe())`, so the
+--     dashboard can read its own row and the super admin can write it. Only
+--     needs RLS actually switched on.
+--
+-- (c) page_permissions is the gap. Its ONLY policy is super_admin_access_all,
+--     so a restaurant owner can neither read nor write the page permissions of
+--     their own staff — dashboard/staff/page.tsx is locked out. That is the
+--     staff-visibility feature, and it is broken today, before any of this.
+--     page_permissions.user_id holds team_members.id, so the policy below
+--     scopes a row through the staff member it belongs to.
+-- ===========================================================================
+
+ALTER TABLE public.client_page_access ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS owner_access ON public.client_page_access;
+CREATE POLICY owner_access ON public.client_page_access FOR ALL TO authenticated
+USING (tenant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
+WITH CHECK (tenant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
+
+ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS owner_access ON public.team_members;
+CREATE POLICY owner_access ON public.team_members FOR ALL TO authenticated
+USING (
+  public.is_super_admin_safe()
+  OR restaurant_id = public.get_my_tenant_id()
+  OR auth_id = auth.uid()          -- a staff member can always see their own row
+)
+WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
+
+ALTER TABLE public.page_permissions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS owner_access ON public.page_permissions;
+CREATE POLICY owner_access ON public.page_permissions FOR ALL TO authenticated
+USING (
+  public.is_super_admin_safe()
+  OR EXISTS (SELECT 1 FROM public.team_members tm
+              WHERE tm.id = page_permissions.user_id
+                AND (tm.restaurant_id = public.get_my_tenant_id() OR tm.auth_id = auth.uid()))
+)
+WITH CHECK (
+  public.is_super_admin_safe()
+  OR EXISTS (SELECT 1 FROM public.team_members tm
+              WHERE tm.id = page_permissions.user_id
+                AND tm.restaurant_id = public.get_my_tenant_id())
+);
+
+-- user_roles is deliberately left exactly as it is. is_super_admin_safe() is
+-- SECURITY DEFINER and reads it as the owner, so every super-admin check above
+-- keeps working; adding a policy here would only widen who can see who is an
+-- admin.
+
+
+-- ===========================================================================
 -- PART 5 — order numbering + customers.  Needs the deployed app code.
 --
 -- Checkout used to read customers by phone and scan orders for the highest
@@ -364,71 +429,6 @@ GRANT EXECUTE ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric
 
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders    ENABLE ROW LEVEL SECURITY;
-
-
--- ===========================================================================
--- PART 6 — access control tables: super admin, client dashboard, staff pages.
---
--- Three things have to hold at once, and the listing showed one of them does
--- not currently:
---
---   a) the super admin sees and edits every restaurant from /super-admin
---   b) the per-restaurant page show/hide set in /super-admin actually applies
---   c) the client can do everything inside their own dashboard
---
--- (a) holds: every owner_access policy added above carries
---     `OR public.is_super_admin_safe()`, and that function is SECURITY DEFINER
---     so it reads user_roles regardless of the RLS on user_roles itself.
---
--- (b) client_page_access already has unified_cpa_access
---     `(tenant_id = get_my_tenant_id() OR is_super_admin_safe())`, so the
---     dashboard can read its own row and the super admin can write it. Only
---     needs RLS actually switched on.
---
--- (c) page_permissions is the gap. Its ONLY policy is super_admin_access_all,
---     so a restaurant owner can neither read nor write the page permissions of
---     their own staff — dashboard/staff/page.tsx is locked out. That is the
---     staff-visibility feature, and it is broken today, before any of this.
---     page_permissions.user_id holds team_members.id, so the policy below
---     scopes a row through the staff member it belongs to.
--- ===========================================================================
-
-ALTER TABLE public.client_page_access ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS owner_access ON public.client_page_access;
-CREATE POLICY owner_access ON public.client_page_access FOR ALL TO authenticated
-USING (tenant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-WITH CHECK (tenant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
-
-ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS owner_access ON public.team_members;
-CREATE POLICY owner_access ON public.team_members FOR ALL TO authenticated
-USING (
-  public.is_super_admin_safe()
-  OR restaurant_id = public.get_my_tenant_id()
-  OR auth_id = auth.uid()          -- a staff member can always see their own row
-)
-WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
-
-ALTER TABLE public.page_permissions ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS owner_access ON public.page_permissions;
-CREATE POLICY owner_access ON public.page_permissions FOR ALL TO authenticated
-USING (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.team_members tm
-              WHERE tm.id = page_permissions.user_id
-                AND (tm.restaurant_id = public.get_my_tenant_id() OR tm.auth_id = auth.uid()))
-)
-WITH CHECK (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.team_members tm
-              WHERE tm.id = page_permissions.user_id
-                AND tm.restaurant_id = public.get_my_tenant_id())
-);
-
--- user_roles is deliberately left exactly as it is. is_super_admin_safe() is
--- SECURITY DEFINER and reads it as the owner, so every super-admin check above
--- keeps working; adding a policy here would only widen who can see who is an
--- admin.
 
 
 -- ---------------------------------------------------------------------------
