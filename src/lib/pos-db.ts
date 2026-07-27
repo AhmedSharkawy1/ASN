@@ -143,6 +143,17 @@ export type PosBranch = {
     is_active: boolean;
 };
 
+/**
+ * A range of order numbers the server has granted to THIS device.
+ * `next` is the one to issue; `end` is the last one owned, inclusive.
+ */
+export type PosNumberRange = { next: number; end: number };
+export type PosNumberBlock = {
+    restaurant_id: string;
+    /** Ranges owned by this device, issued from front to back. */
+    ranges: PosNumberRange[];
+};
+
 /* ── Database ── */
 class PosOfflineDB extends Dexie {
     categories!: Table<PosCategory>;
@@ -154,6 +165,7 @@ class PosOfflineDB extends Dexie {
     inventory_items!: Table<PosInventoryItem>;
     delivery_zones!: Table<PosDeliveryZone>;
     branches!: Table<PosBranch>;
+    number_blocks!: Table<PosNumberBlock>;
 
     constructor() {
         super('asn_pos_offline_db');
@@ -169,18 +181,94 @@ class PosOfflineDB extends Dexie {
             delivery_zones: 'id, restaurant_id, name_ar, is_active',
             branches: 'id, restaurant_id, is_active',
         });
+
+        // v6 adds number_blocks: the ranges of order numbers the server has
+        // granted to THIS device, which it may issue from with no connection.
+        // Only the new store is listed — Dexie carries the rest forward, and
+        // existing offline orders on a till are untouched by the upgrade.
+        this.version(6).stores({
+            number_blocks: 'restaurant_id',
+        });
     }
 }
 
 export const posDb = new PosOfflineDB();
 
-/* ── Helper: get next order number for a restaurant ── */
-export async function getPosNextOrderNumber(restaurantId: string): Promise<number> {
-    const last = await posDb.orders
-        .where('restaurant_id').equals(restaurantId)
-        .sortBy('order_number');
-    const lastOrder = last[last.length - 1];
-    return (lastOrder?.order_number || 0) + 1;
+/** How many numbers a till takes at a time, and when it tops up. */
+const BLOCK_SIZE = 100;
+const TOP_UP_WHEN_BELOW = 25;
+
+/**
+ * Ask the server for a fresh range. Returns null when offline or when the
+ * function does not exist yet — not fatal on its own, since the caller only
+ * needs one once the ranges it already holds are spent.
+ */
+async function reserveRange(restaurantId: string): Promise<PosNumberRange | null> {
+    try {
+        const { supabase } = await import('@/lib/supabase/client');
+        const { data, error } = await supabase.rpc('reserve_order_numbers', {
+            p_restaurant_id: restaurantId,
+            p_count: BLOCK_SIZE,
+        });
+        if (error || typeof data !== 'number') return null;
+        return { next: data, end: data + BLOCK_SIZE - 1 };
+    } catch {
+        return null;
+    }
+}
+
+async function loadBlock(restaurantId: string): Promise<PosNumberBlock> {
+    const rec = await posDb.number_blocks.get(restaurantId);
+    return rec ?? { restaurant_id: restaurantId, ranges: [] };
+}
+
+const remainingIn = (b: PosNumberBlock) =>
+    b.ranges.reduce((n, r) => n + (r.end - r.next + 1), 0);
+
+/**
+ * Next order number for this till.
+ *
+ * This used to be `max(order_number in THIS DEVICE'S IndexedDB) + 1`, which is
+ * only correct on a single-device restaurant: two tablets each counted their
+ * own orders and both reached the same next number, and neither could tell.
+ *
+ * Now the server hands each device a private block and the till issues from
+ * it, so no two devices are ever offered the same number, offline or not.
+ * Because the server counter only moves forward, a deleted order's number is
+ * retired rather than handed out again.
+ *
+ * Returns null when the block is spent and the server cannot be reached — the
+ * caller must surface that rather than invent a number, since inventing one is
+ * exactly how duplicates got created before.
+ */
+export async function getPosNextOrderNumber(restaurantId: string): Promise<number | null> {
+    const block = await loadBlock(restaurantId);
+    block.ranges = block.ranges.filter((r) => r.next <= r.end);
+
+    if (block.ranges.length === 0) {
+        const fresh = await reserveRange(restaurantId);
+        if (!fresh) return null;
+        block.ranges.push(fresh);
+    }
+
+    const issued = block.ranges[0].next;
+    block.ranges[0].next = issued + 1;
+    if (block.ranges[0].next > block.ranges[0].end) block.ranges.shift();
+    await posDb.number_blocks.put(block);
+
+    // Top up early, while a connection is still available, so the till does not
+    // discover it is out of numbers in the middle of service. Ranges queue up,
+    // so a top-up never discards numbers the device already owns.
+    if (remainingIn(block) < TOP_UP_WHEN_BELOW) {
+        void reserveRange(restaurantId).then(async (fresh) => {
+            if (!fresh) return;
+            const current = await loadBlock(restaurantId);
+            current.ranges.push(fresh);
+            await posDb.number_blocks.put(current);
+        });
+    }
+
+    return issued;
 }
 
 /** Convert File to base64 data URL */

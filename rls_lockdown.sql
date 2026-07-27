@@ -262,41 +262,62 @@ CREATE TABLE IF NOT EXISTS public.order_counters (
 );
 ALTER TABLE public.order_counters ENABLE ROW LEVEL SECURITY;
 
-CREATE OR REPLACE FUNCTION public.next_order_number(p_restaurant_id uuid)
+-- Hands out a CONTIGUOUS BLOCK of numbers and returns the first one, so the
+-- caller owns [first, first + p_count - 1] and nobody else can be given them.
+--
+-- One block reservation is what lets the offline POS be correct. A till
+-- reserves, say, 100 numbers while it has a connection and then issues from
+-- its own block with no network at all — two tablets in one restaurant can
+-- never collide because they were never handed the same range.
+--
+-- The counter only moves forward, so a deleted order's number is retired: it
+-- is never handed out again.
+CREATE OR REPLACE FUNCTION public.reserve_order_numbers(
+  p_restaurant_id uuid,
+  p_count integer DEFAULT 1
+)
 RETURNS integer AS $$
 DECLARE
   start_num integer;
-  result    integer;
+  first_num integer;
 BEGIN
+  IF p_count IS NULL OR p_count < 1 THEN p_count := 1; END IF;
+  IF p_count > 1000 THEN p_count := 1000; END IF;
+
   SELECT starting_order_number INTO start_num
     FROM public.restaurants WHERE id = p_restaurant_id;
 
   -- Seed from the orders already on file so an existing restaurant carries on
-  -- from where it is rather than restarting.
+  -- from where it is rather than restarting at 1.
   INSERT INTO public.order_counters (restaurant_id, last_number)
   SELECT p_restaurant_id, COALESCE(MAX(order_number), 0)
     FROM public.orders WHERE restaurant_id = p_restaurant_id
   ON CONFLICT (restaurant_id) DO NOTHING;
 
-  -- GREATEST against the live MAX keeps the counter honest if a number ever
-  -- arrives from somewhere else (an import, the POS writing a number directly)
-  -- without ever letting a deletion drag it backwards.
-  -- The UPDATE takes a row lock, so two overlapping checkouts serialise here
-  -- instead of both reading the same MAX — which is what produced the existing
-  -- duplicates at 39 and 40.
+  -- GREATEST against the live MAX lets the counter catch up if a number ever
+  -- arrives from somewhere it does not control (an import, a legacy POS sync)
+  -- while never letting a deletion drag it backwards.
+  -- UPDATE ... RETURNING takes a row lock, so concurrent callers serialise
+  -- here rather than all reading the same value.
   UPDATE public.order_counters c
      SET last_number = GREATEST(
            c.last_number,
            COALESCE((SELECT MAX(o.order_number) FROM public.orders o
                       WHERE o.restaurant_id = p_restaurant_id), 0),
            COALESCE(start_num, 1) - 1
-         ) + 1
+         ) + p_count
    WHERE c.restaurant_id = p_restaurant_id
-   RETURNING c.last_number INTO result;
+   RETURNING c.last_number - p_count + 1 INTO first_num;
 
-  RETURN result;
+  RETURN first_num;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+-- The website takes exactly one number per checkout.
+CREATE OR REPLACE FUNCTION public.next_order_number(p_restaurant_id uuid)
+RETURNS integer AS $$
+  SELECT public.reserve_order_numbers(p_restaurant_id, 1);
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
 
 -- Returns only the customer id — never the row, never anyone else's.
 -- The running totals are incremented here rather than in the browser. The old
@@ -337,8 +358,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+REVOKE ALL ON FUNCTION public.reserve_order_numbers(uuid, integer) FROM public;
 REVOKE ALL ON FUNCTION public.next_order_number(uuid) FROM public;
 REVOKE ALL ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric) FROM public;
+-- Only a signed-in till reserves blocks; the anonymous website never does.
+GRANT EXECUTE ON FUNCTION public.reserve_order_numbers(uuid, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.next_order_number(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric) TO anon, authenticated;
 

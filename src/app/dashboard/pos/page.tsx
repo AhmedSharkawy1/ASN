@@ -438,7 +438,25 @@ export default function POSPage() {
         try {
             // If editing, use the same order number and ID
             const orderId = editingOrderId || generateId();
-            const orderNumber = originalOrderNumber || Math.max(await getPosNextOrderNumber(restaurantId), restaurant?.starting_order_number || 1);
+
+            // The server owns the numbering now, so the till can be refused —
+            // it has spent the block it reserved and cannot reach the server to
+            // get another. Making one up here is precisely how two tablets ended
+            // up issuing the same number, so stop instead.
+            let orderNumber = originalOrderNumber;
+            if (!orderNumber) {
+                const issued = await getPosNextOrderNumber(restaurantId);
+                if (issued === null) {
+                    toast.error(
+                        language === 'ar'
+                            ? 'تعذر الحصول على رقم طلب جديد. اتصل بالإنترنت لحظة ثم أعد المحاولة.'
+                            : 'Could not obtain a new order number. Reconnect briefly and try again.'
+                    );
+                    setSubmitting(false);
+                    return;
+                }
+                orderNumber = issued;
+            }
 
             // 1. If editing, revert previous inventory deductions first
             if (editingOrderId) {
