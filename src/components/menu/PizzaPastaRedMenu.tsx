@@ -742,6 +742,7 @@ export default function PizzaPastaRedMenu({ config, categories, language, restau
                     price: c.price,
                     size: c.size_label,
                     category: c.category_name,
+                    notes: c.notes,
                 }))}
                 subtotal={cartTotal}
                 restaurantId={restaurantId}

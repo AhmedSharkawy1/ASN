@@ -860,6 +860,7 @@ export default function Theme5CyanMenu({ config, categories, language, restauran
                     price: c.price,
                     size: c.size_label,
                     category: c.category_name,
+                    notes: c.notes,
                 }))}
                 subtotal={cartTotal}
                 restaurantId={restaurantId}

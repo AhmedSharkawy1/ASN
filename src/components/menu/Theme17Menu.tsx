@@ -1300,6 +1300,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                     qty: c.quantity,
                     size: c.size_label !== 'عادي' ? c.size_label : undefined,
                     category: c.category_name,
+                    notes: c.note,
                     categoryType: undefined,
                 }))}
                 subtotal={cartTotal}

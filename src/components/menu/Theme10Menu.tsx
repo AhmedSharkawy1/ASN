@@ -773,6 +773,7 @@ export default function Theme10Menu({ config, categories, restaurantId }: Theme1
                     price: c.price,
                     size: c.sizeLabel,
                     category: c.catName,
+                    notes: c.notes,
                 }))}
                 subtotal={cartTotal}
                 restaurantId={restaurantId}

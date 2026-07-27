@@ -83,6 +83,7 @@ type CartItem = {
     size_label: string;
     quantity: number;
     category_name: string;
+    notes?: string;
 };
 
 type Props = {
@@ -153,7 +154,7 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
         setCart((prev) => {
             const ex = prev.find((c) => c.id === cartId);
             if (ex) return prev.map((c) => (c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c));
-            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName }];
+            return [...prev, { id: cartId, item, price, size_label: sizeLabel, quantity: 1, category_name: cName, notes: itemNotes.trim() || undefined }];
         });
         setSelectedItem(null); setItemNotes('');
         haptic(20);
@@ -884,6 +885,7 @@ export default function AtyabEtoileSkyMenu({ config, categories, language, resta
                     price: c.price,
                     size: c.size_label,
                     category: c.category_name,
+                    notes: c.notes,
                 }))}
                 subtotal={cartTotal}
                 restaurantId={restaurantId}

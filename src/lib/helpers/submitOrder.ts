@@ -149,6 +149,10 @@ export function buildWhatsAppMessage(params: {
             });
         }
         msg += `   🔢 ${isAr ? 'الكمية:' : 'Qty:'} ${item.qty}\n`;
+        // Per-item note: the kitchen needs it beside the item it belongs to.
+        if (item.notes && item.notes.trim()) {
+            msg += `   📝 ${isAr ? 'ملاحظة:' : 'Note:'} _${item.notes.trim()}_\n`;
+        }
         msg += `   💰 ${isAr ? 'المجموع:' : 'Total:'} *${itemTotal} ${cur}*\n\n`;
     });
 
@@ -245,6 +249,10 @@ function buildTelegramMessage(params: {
             });
         }
         msg += `   🔢 الكمية: ${item.qty}\n`;
+        // Per-item note, shown with the item rather than lumped into order notes.
+        if (item.notes && item.notes.trim()) {
+            msg += `   📝 ملاحظة: _${item.notes.trim()}_\n`;
+        }
         msg += `   💰 المجموع: *${itemTotal} ${cur}*\n\n`;
     });
 
