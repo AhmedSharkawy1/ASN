@@ -336,7 +336,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 p_phone: customerPhone,
                 p_name: customerName,
                 p_order_total: total,
-                p_address: customerAddress || null,
             }
         );
 

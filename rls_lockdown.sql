@@ -56,6 +56,37 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 
 -- ---------------------------------------------------------------------------
+-- PART 0b — clear out the policies that are already there.
+--
+-- The advisory is "Policy Exists RLS Disabled", i.e. these tables already carry
+-- policies that are currently inert because RLS is off. Enabling RLS would
+-- switch every one of them back on, and any leftover "USING (true) TO public"
+-- would quietly undo this whole script. Drop them all first so what is left is
+-- only what is written below.
+--
+-- Inspect before running if you want to keep any:
+--   SELECT tablename, policyname, roles, cmd, qual FROM pg_policies
+--    WHERE schemaname = 'public' ORDER BY tablename;
+-- ---------------------------------------------------------------------------
+
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname
+      FROM pg_policies
+     WHERE schemaname = 'public'
+       AND tablename IN ('restaurants','categories','items','customers','orders',
+                         'order_logs','notifications','tables','delivery_zones',
+                         'promotions','inventory_items')
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
+    RAISE NOTICE 'dropped pre-existing policy %.% -> %', r.schemaname, r.tablename, r.policyname;
+  END LOOP;
+END $$;
+
+
+-- ---------------------------------------------------------------------------
 -- PART 1 — tables the public site never touches.
 -- Staff only. Zero risk to the menu: nothing anonymous reads these.
 -- ---------------------------------------------------------------------------
@@ -142,7 +173,9 @@ WITH CHECK (id = public.get_my_tenant_id() OR public.is_super_admin_safe());
 
 -- Nothing on the public menu selects these; the dashboard reads them as an
 -- authenticated user, which is unaffected.
-REVOKE SELECT (telegram_bot_token, telegram_chat_id, desktop_permissions, email)
+-- (desktop_permissions is deliberately absent from this list — the column does
+-- not exist on this database, and naming it here would abort the script.)
+REVOKE SELECT (telegram_bot_token, telegram_chat_id, email)
   ON public.restaurants FROM anon;
 
 
@@ -154,25 +187,42 @@ REVOKE SELECT (telegram_bot_token, telegram_chat_id, desktop_permissions, email)
 -- read anyone's, including their own.
 -- ---------------------------------------------------------------------------
 
-DO $$
-DECLARE t text;
-BEGIN
-  FOREACH t IN ARRAY ARRAY['notifications', 'order_logs'] LOOP
-    IF to_regclass('public.' || t) IS NULL THEN CONTINUE; END IF;
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+-- notifications carries restaurant_id directly.
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
-    EXECUTE format('DROP POLICY IF EXISTS public_insert ON public.%I', t);
-    EXECUTE format('CREATE POLICY public_insert ON public.%I FOR INSERT TO anon, authenticated WITH CHECK (true)', t);
+DROP POLICY IF EXISTS public_insert ON public.notifications;
+CREATE POLICY public_insert ON public.notifications
+FOR INSERT TO anon, authenticated WITH CHECK (true);
 
-    EXECUTE format('DROP POLICY IF EXISTS tenant_read ON public.%I', t);
-    EXECUTE format($f$
-      CREATE POLICY tenant_read ON public.%I
-      FOR ALL TO authenticated
-      USING (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-      WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-    $f$, t);
-  END LOOP;
-END $$;
+DROP POLICY IF EXISTS tenant_read ON public.notifications;
+CREATE POLICY tenant_read ON public.notifications
+FOR ALL TO authenticated
+USING (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
+WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
+
+-- order_logs has no restaurant_id of its own (columns are order_id, action,
+-- created_at), so the tenant is reached through the order it belongs to.
+ALTER TABLE public.order_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS public_insert ON public.order_logs;
+CREATE POLICY public_insert ON public.order_logs
+FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS tenant_read ON public.order_logs;
+CREATE POLICY tenant_read ON public.order_logs
+FOR ALL TO authenticated
+USING (
+  public.is_super_admin_safe()
+  OR EXISTS (SELECT 1 FROM public.orders o
+             WHERE o.id = order_logs.order_id
+               AND o.restaurant_id = public.get_my_tenant_id())
+)
+WITH CHECK (
+  public.is_super_admin_safe()
+  OR EXISTS (SELECT 1 FROM public.orders o
+             WHERE o.id = order_logs.order_id
+               AND o.restaurant_id = public.get_my_tenant_id())
+);
 
 
 -- ===========================================================================
@@ -217,12 +267,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- The running totals are incremented here rather than in the browser. The old
 -- client-side read-then-write lost updates whenever two orders for the same
 -- phone overlapped; "total_spent = total_spent + x" cannot.
+-- No address parameter: this table has no address column. The delivery address
+-- lives on the order row (orders.customer_address), which is where the old
+-- code put it too.
 CREATE OR REPLACE FUNCTION public.upsert_order_customer(
   p_restaurant_id uuid,
   p_phone text,
   p_name text,
-  p_order_total numeric DEFAULT 0,
-  p_address text DEFAULT NULL
+  p_order_total numeric DEFAULT 0
 )
 RETURNS uuid AS $$
 DECLARE
@@ -233,14 +285,13 @@ BEGIN
 
   IF cid IS NULL THEN
     INSERT INTO public.customers
-      (restaurant_id, phone, name, address, total_orders, total_spent, last_order_date)
+      (restaurant_id, phone, name, total_orders, total_spent, last_order_date)
     VALUES
-      (p_restaurant_id, p_phone, p_name, p_address, 1, p_order_total, now())
+      (p_restaurant_id, p_phone, p_name, 1, p_order_total, now())
     RETURNING id INTO cid;
   ELSE
     UPDATE public.customers
        SET name            = COALESCE(NULLIF(p_name, ''), name),
-           address         = COALESCE(NULLIF(p_address, ''), address),
            total_orders    = COALESCE(total_orders, 0) + 1,
            total_spent     = COALESCE(total_spent, 0) + p_order_total,
            last_order_date = now()
@@ -252,9 +303,9 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 REVOKE ALL ON FUNCTION public.next_order_number(uuid) FROM public;
-REVOKE ALL ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric, text) FROM public;
+REVOKE ALL ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric) FROM public;
 GRANT EXECUTE ON FUNCTION public.next_order_number(uuid) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric) TO anon, authenticated;
 
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS public_read   ON public.customers;   -- remove any blanket read
