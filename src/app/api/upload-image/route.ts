@@ -9,8 +9,15 @@ const BUCKET_NAME = 'menu-images';
 
 /** Longest edge kept for the full-size copy. */
 const ORIGINAL_MAX_DIM = 1600;
-/** Longest edge for the variant every public menu actually renders. */
-const THUMB_MAX_DIM = 400;
+/**
+ * Thumbnails are bounded by WIDTH, not by longest edge, because that is the
+ * convention every existing good thumbnail follows (400x533, 400x500, ...) and
+ * what the themes ask for via sizes="...400px". Capping the longest edge
+ * instead would shrink portrait photos to 300px wide and soften them.
+ * The height bound is only a backstop against pathologically tall images.
+ */
+const THUMB_MAX_WIDTH = 400;
+const THUMB_MAX_HEIGHT = 1200;
 /** Refuse absurd inputs before handing them to the encoder, not after. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
@@ -63,7 +70,7 @@ async function renderVariants(input: Buffer, fallbackType: string): Promise<Rend
             .toBuffer(),
       sharp(input, opts)
         .rotate()
-        .resize(THUMB_MAX_DIM, THUMB_MAX_DIM, { fit: 'inside', withoutEnlargement: true })
+        .resize(THUMB_MAX_WIDTH, THUMB_MAX_HEIGHT, { fit: 'inside', withoutEnlargement: true })
         .webp({ quality: 72 })
         .toBuffer(),
     ]);
