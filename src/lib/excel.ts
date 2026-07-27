@@ -129,15 +129,25 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                 let recipesCreated = 0;
                 let materialsCreated = 0;
 
+                // A row is keyed by whichever name it actually has. An
+                // English-only sheet leaves every Arabic cell blank, and keying
+                // on Arabic alone silently skipped every row of it.
+                const nameKey = (ar: string, en: string) => (ar || en).trim().toLowerCase();
+
                 // 1. Fetch existing categories to avoid duplicates
                 const { data: existingCats } = await supabase
                     .from('categories')
-                    .select('id, name_ar')
+                    .select('id, name_ar, name_en')
                     .eq('restaurant_id', restaurantId);
 
                 const catMap = new Map<string, string>();
                 if (existingCats) {
-                    existingCats.forEach(c => catMap.set(c.name_ar.trim(), c.id));
+                    existingCats.forEach(c => {
+                        // Register under both names so a sheet written in either
+                        // language still matches the category already on file.
+                        if (c.name_ar) catMap.set(c.name_ar.trim().toLowerCase(), c.id);
+                        if (c.name_en) catMap.set(c.name_en.trim().toLowerCase(), c.id);
+                    });
                 }
 
                 // 2. Fetch existing inventory items to avoid duplicating materials
@@ -158,28 +168,35 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                 // Process categories
                 for (const row of rows) {
                     const catAr = String(row['Category AR'] || '').trim();
-                    if (!catAr) continue;
+                    const catEn = String(row['Category EN'] || '').trim();
+                    const catKey = nameKey(catAr, catEn);
+                    if (!catKey) continue;
 
-                    if (!processedCats.has(catAr)) {
-                        processedCats.add(catAr);
+                    if (!processedCats.has(catKey)) {
+                        processedCats.add(catKey);
 
-                        if (!catMap.has(catAr)) {
-                            const { data: newCat } = await supabase.from('categories').insert({
+                        if (!catMap.has(catKey)) {
+                            const { data: newCat, error: catError } = await supabase.from('categories').insert({
                                 restaurant_id: restaurantId,
-                                name_ar: catAr,
-                                name_en: String(row['Category EN'] || '').trim() || catAr,
+                                // Each column falls back to the other, so a sheet
+                                // filled in one language still produces a complete
+                                // row rather than a NOT NULL violation.
+                                name_ar: catAr || catEn,
+                                name_en: catEn || catAr,
                                 emoji: String(row['Emoji'] || '').trim() || '🍽️',
                                 sort_order: catOrderCounter++
                             }).select('id').single();
 
                             if (newCat) {
-                                catMap.set(catAr, newCat.id);
+                                catMap.set(catKey, newCat.id);
+                            } else if (catError) {
+                                console.error(`Failed to create category ${catAr || catEn}:`, catError);
                             }
                         } else {
                             // Update sort_order for existing category to match file order
                             await supabase.from('categories')
                                 .update({ sort_order: catOrderCounter++ })
-                                .eq('id', catMap.get(catAr));
+                                .eq('id', catMap.get(catKey));
                         }
                     }
                 }
@@ -189,10 +206,17 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                 // Process items sequentially to handle relational linking reliably
                 for (const row of rows) {
                     const catAr = String(row['Category AR'] || '').trim();
+                    const catEn = String(row['Category EN'] || '').trim();
                     const itemAr = String(row['Item AR'] || '').trim();
-                    if (!catAr || !itemAr) continue;
+                    const itemEn = String(row['Item EN'] || '').trim();
 
-                    const catId = catMap.get(catAr);
+                    const catKey = nameKey(catAr, catEn);
+                    // Whichever name the sheet supplies is the one used for the
+                    // recipe/inventory records generated below.
+                    const itemName = itemAr || itemEn;
+                    if (!catKey || !itemName) continue;
+
+                    const catId = catMap.get(catKey);
                     if (!catId) continue;
 
                     const pricesStr = String(row['Prices'] || '0').split(',');
@@ -219,7 +243,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                                 // 1. Create a Final Product Inventory Item
                                 const { data: finalInv } = await supabase.from('inventory_items').insert({
                                     restaurant_id: restaurantId,
-                                    name: `${itemAr} (جاهز)`,
+                                    name: `${itemName} (جاهز)`,
                                     quantity: 0,
                                     unit: 'كيلو', // Default to kg for bulk recipes, pieces or kg
                                     item_type: 'product',
@@ -232,7 +256,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                                     // 2. Create the Recipe
                                     const { data: recipe } = await supabase.from('recipes').insert({
                                         restaurant_id: restaurantId,
-                                        product_name: `وصفة ${itemAr}`,
+                                        product_name: `وصفة ${itemName}`,
                                         inventory_item_id: inventoryItemId,
                                         product_cost: baseCost
                                     }).select('id').single();
@@ -297,7 +321,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                                 }
                             }
                         } catch (err) {
-                            console.error(`Error processing recipe for ${itemAr}:`, err);
+                            console.error(`Error processing recipe for ${itemName}:`, err);
                             // We swallow the error and insert the item without a recipe if it fails
                         }
                     }
@@ -305,8 +329,17 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     // Insert the Menu Item
                     const { error: itemError } = await supabase.from('items').insert({
                         category_id: catId,
-                        title_ar: itemAr,
-                        title_en: String(row['Item EN'] || '').trim() || null,
+                        // Same fallback as the category: an English-only sheet
+                        // still yields a usable title_ar, and every theme reads
+                        // `title_en || title_ar`, so an English-only menu shows
+                        // English in both language modes.
+                        title_ar: itemAr || itemEn,
+                        // Only title_ar falls back, because it is the column the
+                        // themes read when nothing else is set. Leaving title_en
+                        // null for an Arabic-only sheet keeps "this item has no
+                        // English name" distinguishable from "its English name
+                        // happens to be Arabic text" on the next export.
+                        title_en: itemEn || null,
                         desc_ar: String(row['Description AR'] || '').trim() || null,
                         desc_en: String(row['Description EN'] || '').trim() || null,
                         price: prices[0] || 0,
@@ -325,13 +358,27 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     if (!itemError) {
                         itemsImported++;
                     } else {
-                        console.error(`Failed to insert ${itemAr}:`, itemError);
+                        console.error(`Failed to insert ${itemName}:`, itemError);
                     }
                 }
 
-                resolve({ 
-                    success: true, 
-                    message: `تم رفع ${itemsImported} صنف بنجاح. ${recipesCreated > 0 ? `تم إنشاء ${recipesCreated} وصفة و ${materialsCreated} خامة جديدة تلقائياً.` : ''}` 
+                // Reporting success after importing nothing is what made the
+                // English-only failure so hard to place: the file looked fine,
+                // the upload said it worked, and no items appeared.
+                if (itemsImported === 0) {
+                    const headers = Object.keys(rows[0] || {}).join(' | ');
+                    return resolve({
+                        success: false,
+                        message:
+                            `لم يتم رفع أي صنف. تأكد أن الملف يحتوي على عمود اسم القسم ` +
+                            `(Category AR أو Category EN) وعمود اسم الصنف (Item AR أو Item EN) ` +
+                            `وأن الصفوف غير فارغة.\n\nالأعمدة الموجودة في الملف: ${headers}`,
+                    });
+                }
+
+                resolve({
+                    success: true,
+                    message: `تم رفع ${itemsImported} صنف بنجاح. ${recipesCreated > 0 ? `تم إنشاء ${recipesCreated} وصفة و ${materialsCreated} خامة جديدة تلقائياً.` : ''}`
                 });
             } catch (err: unknown) {
                 console.error("Import exception:", err);
