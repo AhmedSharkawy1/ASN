@@ -295,9 +295,12 @@ function SmartMenuContent({
           }
         }
 
+        // Only the columns the mapping below actually copies. `select("*")`
+        // pulled every category column across the wire and then discarded all
+        // but five of them.
         const { data: catsData } = await supabase
           .from("categories")
-          .select("*")
+          .select("id, name_ar, name_en, emoji, image_url, thumbnail_url, sort_order")
           .eq("restaurant_id", restData.id)
           .order("sort_order", { ascending: true });
 
@@ -316,6 +319,9 @@ function SmartMenuContent({
             name_en: cat.name_en,
             emoji: cat.emoji,
             image_url: cat.image_url,
+            // Was missing: 37 themes read cat.thumbnail_url, so dropping it here
+            // silently forced every one of them onto the full-size image_url.
+            thumbnail_url: cat.thumbnail_url,
             items: itemsData
               ? itemsData.filter((i) => i.category_id === cat.id).map(item => {
                   if (item.size_labels && item.size_labels.some((l: string) => l && l.includes('::'))) {
