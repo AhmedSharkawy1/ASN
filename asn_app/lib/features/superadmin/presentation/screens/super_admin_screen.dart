@@ -92,7 +92,7 @@ class _SuperAdminScreenState extends ConsumerState<SuperAdminScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('كل المطاعم'),
+        title: const Text('كل المتاجر'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -109,7 +109,7 @@ class _SuperAdminScreenState extends ConsumerState<SuperAdminScreen> {
             child: TextField(
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
-                hintText: 'ابحث عن مطعم...',
+                hintText: 'ابحث عن متجر...',
                 prefixIcon: const Icon(Icons.search, size: 22),
                 isDense: true,
                 border: OutlineInputBorder(
@@ -135,7 +135,7 @@ class _SuperAdminScreenState extends ConsumerState<SuperAdminScreen> {
                 if (list.isEmpty) {
                   return const AppEmptyState(
                     icon: Icons.storefront_outlined,
-                    message: 'لا توجد مطاعم',
+                    message: 'لا توجد متاجر',
                   );
                 }
 
@@ -201,7 +201,7 @@ class _ActiveBanner extends ConsumerWidget {
               onPressed: () async {
                 await ref.read(impersonationProvider.notifier).exit();
                 if (context.mounted) {
-                  showAppSnackBar(context, 'تم الخروج من المطعم',
+                  showAppSnackBar(context, 'تم الخروج من المتجر',
                       type: AppSnackBarType.info);
                 }
               },

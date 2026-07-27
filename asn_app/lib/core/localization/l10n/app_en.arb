@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appName": "ASN Restaurant",
+  "appName": "ASN Menu",
   "loginTitle": "Sign In",
   "loginSubtitle": "Enter your credentials to access your account",
   "usernameOrEmail": "Email or Username",
@@ -193,5 +193,6 @@
   "ingredients": "Ingredients",
   "addIngredient": "Add Ingredient",
   "ingredient": "Ingredient",
+  "deliveryZone": "Zone",
   "noIngredients": "No ingredients yet."
 }

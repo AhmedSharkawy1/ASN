@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In ar, this message translates to:
-  /// **'مطعم ASN'**
+  /// **'ASN Menu'**
   String get appName;
 
   /// No description provided for @loginTitle.
@@ -1255,6 +1255,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'المكوّن'**
   String get ingredient;
+
+  /// No description provided for @deliveryZone.
+  ///
+  /// In ar, this message translates to:
+  /// **'المنطقة'**
+  String get deliveryZone;
 
   /// No description provided for @noIngredients.
   ///

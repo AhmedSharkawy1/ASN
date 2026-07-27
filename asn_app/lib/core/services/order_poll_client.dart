@@ -80,7 +80,7 @@ class OrderPollClient {
 
       final url = '${AppConfig.supabaseUrl}/rest/v1/orders'
           '?select=id,order_number,customer_name,customer_phone,customer_address,notes,'
-          'total,subtotal,discount,delivery_fee,payment_method,order_type,items,is_draft,created_at'
+          'total,subtotal,discount,delivery_fee,payment_method,order_type,delivery_zone_name,items,is_draft,created_at'
           '&restaurant_id=eq.$restaurantId'
           '&created_at=gt.${Uri.encodeQueryComponent(sinceUtc.toIso8601String())}'
           '&order=created_at.asc';

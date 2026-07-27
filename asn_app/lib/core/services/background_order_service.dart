@@ -76,7 +76,7 @@ class BackgroundOrderService {
 
     await FlutterForegroundTask.startService(
       serviceId: 4401,
-      notificationTitle: 'ASN — تنبيهات الطلبات',
+      notificationTitle: 'ASN Menu — تنبيهات الطلبات',
       notificationText: 'في انتظار الطلبات الجديدة',
       callback: startOrderListenerCallback,
     );

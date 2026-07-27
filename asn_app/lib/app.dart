@@ -53,7 +53,7 @@ class _AsnAppState extends ConsumerState<AsnApp> {
     OrderNotificationService.navigateTo = router.go;
 
     return MaterialApp.router(
-      title: 'ASN Restaurant',
+      title: 'ASN Menu',
       debugShowCheckedModeBanner: false,
       themeMode: themeMode,
       theme: AppTheme.lightTheme,

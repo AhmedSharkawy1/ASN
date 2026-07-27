@@ -37,6 +37,7 @@ class OrderAlert {
     final name = (order['customer_name'] as String?)?.trim();
     final phone = (order['customer_phone'] as String?)?.trim();
     final address = (order['customer_address'] as String?)?.trim();
+    final zone = (order['delivery_zone_name'] as String?)?.trim();
     final notes = (order['notes'] as String?)?.trim();
     final total = (order['total'] as num?)?.toDouble() ?? 0;
     final deliveryFee = (order['delivery_fee'] as num?)?.toDouble() ?? 0;
@@ -51,6 +52,7 @@ class OrderAlert {
       if (name != null && name.isNotEmpty)
         '👤 $name${phone != null && phone.isNotEmpty ? '  •  📞 $phone' : ''}',
       ..._itemLines(order['items']),
+      if (zone != null && zone.isNotEmpty) '🗺️ المنطقة: $zone',
       if (address != null && address.isNotEmpty) '📍 $address',
       if (notes != null && notes.isNotEmpty) '📝 $notes',
       if (discount > 0) '🏷️ خصم: ${_fmt(discount)}',
@@ -134,6 +136,13 @@ class OrderAlert {
       if (size != null && size.trim().isNotEmpty) buffer.write(' (${size.trim()})');
       if (category != null && category.trim().isNotEmpty) buffer.write(' — ${category.trim()}');
       lines.add(buffer.toString());
+
+      // The customer's note for this item goes on its own indented line so it
+      // reads as belonging to the item above it.
+      final note = (raw['notes'] ?? raw['note'])?.toString();
+      if (note != null && note.trim().isNotEmpty && note != 'null') {
+        lines.add('     📝 ${note.trim()}');
+      }
     }
     if (items.length > 5) lines.add('… و${items.length - 5} أصناف أخرى');
     return lines;

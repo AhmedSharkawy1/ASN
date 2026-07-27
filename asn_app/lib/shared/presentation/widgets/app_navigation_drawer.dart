@@ -326,7 +326,7 @@ class AppNavigationDrawer extends ConsumerWidget {
                   if (permsNotifier.isSuperAdmin)
                     _buildDrawerTile(
                       context: context,
-                      title: 'كل المطاعم',
+                      title: 'كل المتاجر',
                       icon: Icons.storefront_outlined,
                       isActive: currentRoute == '/super-admin',
                       onTap: () {

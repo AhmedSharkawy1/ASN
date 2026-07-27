@@ -1,6 +1,6 @@
 {
   "@@locale": "ar",
-  "appName": "مطعم ASN",
+  "appName": "ASN Menu",
   "loginTitle": "تسجيل الدخول",
   "loginSubtitle": "أدخل بياناتك للمتابعة إلى حسابك",
   "usernameOrEmail": "البريد الإلكتروني أو اسم المستخدم",
@@ -193,5 +193,6 @@
   "ingredients": "المكونات",
   "addIngredient": "إضافة مكوّن",
   "ingredient": "المكوّن",
+  "deliveryZone": "المنطقة",
   "noIngredients": "لا توجد مكونات بعد."
 }

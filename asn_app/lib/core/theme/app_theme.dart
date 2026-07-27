@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:asn_app/core/theme/app_colors.dart';
 import 'package:asn_app/core/theme/app_typography.dart';
@@ -35,9 +36,10 @@ class AppTheme {
         labelSmall: _t(AppTypography.labelSmall).copyWith(color: muted),
       ).apply(bodyColor: body, displayColor: body);
 
-  // Subtle, quick, never bouncy.
+  // Subtle, quick, never bouncy. (Not const: CupertinoPageTransitionsBuilder
+  // stopped being a const constructor in Flutter 3.44.)
   static const PageTransitionsTheme _transitions = PageTransitionsTheme(
-    builders: {
+    builders: <TargetPlatform, PageTransitionsBuilder>{
       TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
       TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
     },

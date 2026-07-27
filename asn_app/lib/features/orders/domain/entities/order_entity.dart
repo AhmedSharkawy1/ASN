@@ -12,6 +12,9 @@ class OrderItemEntity {
 
   /// Menu category the item belongs to.
   final String? category;
+
+  /// Free-text note the customer attached to this specific item.
+  final String? note;
   final List<Map<String, dynamic>> addons;
 
   const OrderItemEntity({
@@ -22,6 +25,7 @@ class OrderItemEntity {
     required this.price,
     this.size,
     this.category,
+    this.note,
     this.addons = const [],
   });
 
@@ -45,6 +49,9 @@ class OrderEntity {
 
   /// dine_in | takeaway | pickup | delivery
   final String? orderType;
+
+  /// Delivery zone the customer picked (shown alongside the address).
+  final String? deliveryZoneName;
   final double subtotal;
   final double discount;
   final double deliveryFee;
@@ -64,6 +71,7 @@ class OrderEntity {
     this.notes,
     this.items = const [],
     this.orderType,
+    this.deliveryZoneName,
     this.subtotal = 0,
     this.discount = 0,
     this.deliveryFee = 0,
@@ -87,6 +95,7 @@ class OrderEntity {
       notes: notes,
       items: items,
       orderType: orderType,
+      deliveryZoneName: deliveryZoneName,
       subtotal: subtotal,
       discount: discount,
       deliveryFee: deliveryFee,

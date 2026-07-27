@@ -99,7 +99,7 @@ class _NotificationDiagnosticsScreenState
   Future<void> _runManualCheck() async {
     final rid = _restaurantId;
     if (rid == null) {
-      showAppSnackBar(context, 'لا يوجد مطعم مرتبط بالحساب', type: AppSnackBarType.error);
+      showAppSnackBar(context, 'لا يوجد متجر مرتبط بالحساب', type: AppSnackBarType.error);
       return;
     }
     setState(() => _checking = true);
@@ -210,7 +210,7 @@ class _NotificationDiagnosticsScreenState
                   _notificationsEnabled ?? false,
                 ),
                 _statusTile(
-                  'رقم المطعم في الخلفية',
+                  'رقم المتجر في الخلفية',
                   _bgRestaurantId?.isNotEmpty == true
                       ? _bgRestaurantId!
                       : 'غير محفوظ — سجّل الدخول مرة أخرى',

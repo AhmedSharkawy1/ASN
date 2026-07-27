@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'مطعم ASN';
+  String get appName => 'ASN Menu';
 
   @override
   String get loginTitle => 'تسجيل الدخول';
@@ -589,6 +589,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get ingredient => 'المكوّن';
+
+  @override
+  String get deliveryZone => 'المنطقة';
 
   @override
   String get noIngredients => 'لا توجد مكونات بعد.';

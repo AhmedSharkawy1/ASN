@@ -597,6 +597,23 @@ class OrderDetailsSheet extends ConsumerWidget {
                             ),
                           ],
                         ),
+                        if (order.deliveryZoneName?.trim().isNotEmpty == true) ...[
+                          AppSpacing.heightXs,
+                          Row(
+                            children: [
+                              const Icon(Icons.map_outlined,
+                                  size: 16, color: AppColors.info),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  '${l10n.deliveryZone}: ${order.deliveryZoneName}',
+                                  style: const TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                         if (order.customerAddress?.trim().isNotEmpty == true) ...[
                           AppSpacing.heightXs,
                           Row(
@@ -745,8 +762,27 @@ class _ItemRow extends StatelessWidget {
                 ),
                 if (item.addons.isNotEmpty)
                   Text(
-                    item.addons.map((a) => a['name'] ?? '').join('، '),
+                    item.addons.map((a) => a['name'] ?? a['title'] ?? '').join('، '),
                     style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                // Customer's note for this specific item — highlighted so the
+                // kitchen cannot miss it.
+                if (item.note?.isNotEmpty == true)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.warning.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusXs),
+                    ),
+                    child: Text(
+                      '📝 ${item.note}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                    ),
                   ),
               ],
             ),

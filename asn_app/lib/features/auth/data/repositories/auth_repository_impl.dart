@@ -193,7 +193,7 @@ class AuthRepositoryImpl implements AuthRepository {
             }
             permissions['_isAdmin'] = false;
           } else {
-            throw const AuthException('تعذر العثور على بيانات المطعم المرتبطة');
+            throw const AuthException('تعذر العثور على بيانات الحساب المرتبطة');
           }
         }
       }

@@ -13,6 +13,7 @@ class OrderItemModel {
   final double price;
   final String? size;
   final String? category;
+  final String? note;
   final List<Map<String, dynamic>> addons;
 
   const OrderItemModel({
@@ -22,6 +23,7 @@ class OrderItemModel {
     this.price = 0,
     this.size,
     this.category,
+    this.note,
     this.addons = const [],
   });
 
@@ -33,7 +35,12 @@ class OrderItemModel {
       price: (json['price'] as num? ?? 0).toDouble(),
       size: json['size']?.toString(),
       category: json['category']?.toString(),
-      addons: (json['addons'] as List?)?.whereType<Map<String, dynamic>>().toList() ?? const [],
+      // Web checkout stores "notes"; mobile POS stores "note".
+      note: (json['notes'] ?? json['note'])?.toString(),
+      addons: ((json['addons'] ?? json['extras']) as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .toList() ??
+          const [],
     );
   }
 
@@ -46,6 +53,7 @@ class OrderItemModel {
       price: price,
       size: (size != null && size!.trim().isNotEmpty) ? size!.trim() : null,
       category: (category != null && category!.trim().isNotEmpty) ? category!.trim() : null,
+      note: (note != null && note!.trim().isNotEmpty && note != 'null') ? note!.trim() : null,
       addons: addons,
     );
   }
@@ -71,6 +79,7 @@ class OrderModel {
 
   /// dine_in | takeaway | pickup | delivery
   final String? orderType;
+  final String? deliveryZoneName;
   final double subtotal;
   final double discount;
   final double deliveryFee;
@@ -90,6 +99,7 @@ class OrderModel {
     this.notes,
     this.items = const [],
     this.orderType,
+    this.deliveryZoneName,
     this.subtotal = 0,
     this.discount = 0,
     this.deliveryFee = 0,
@@ -115,6 +125,7 @@ class OrderModel {
               .toList() ??
           const [],
       orderType: json['order_type']?.toString(),
+      deliveryZoneName: json['delivery_zone_name']?.toString(),
       subtotal: (json['subtotal'] as num? ?? 0).toDouble(),
       discount: (json['discount'] as num? ?? 0).toDouble(),
       deliveryFee: (json['delivery_fee'] as num? ?? 0).toDouble(),
@@ -137,6 +148,8 @@ class OrderModel {
       notes: notes,
       items: items.map((i) => i.toEntity()).toList(),
       orderType: orderType,
+      deliveryZoneName:
+          (deliveryZoneName != null && deliveryZoneName!.trim().isNotEmpty) ? deliveryZoneName : null,
       subtotal: subtotal,
       discount: discount,
       deliveryFee: deliveryFee,
