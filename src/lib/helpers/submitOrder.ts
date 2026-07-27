@@ -321,58 +321,43 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             currency
         } = params;
 
-        // 1. Upsert customer — find by phone + restaurant, or create new
-        let customerId: string | undefined;
-        const { data: existingCustomer } = await supabase
-            .from('customers')
-            .select('id, total_orders, total_spent')
-            .eq('restaurant_id', restaurantId)
-            .eq('phone', customerPhone)
-            .maybeSingle();
+        // 1. Upsert customer.
+        // Done through a SECURITY DEFINER function rather than reading the
+        // customers table from the browser. Looking a customer up by phone
+        // needed anon SELECT on customers, and no RLS policy can narrow that to
+        // "just the phone you typed" — so the whole table stayed readable with
+        // the public key. The function returns only the id.
+        // It also increments the running totals server-side, which the old
+        // read-then-write could lose when two orders overlapped.
+        const { data: customerId, error: customerError } = await supabase.rpc(
+            'upsert_order_customer',
+            {
+                p_restaurant_id: restaurantId,
+                p_phone: customerPhone,
+                p_name: customerName,
+                p_order_total: total,
+                p_address: customerAddress || null,
+            }
+        );
 
-        if (existingCustomer) {
-            customerId = existingCustomer.id;
-            await supabase.from('customers').update({
-                name: customerName,
-                total_orders: (existingCustomer.total_orders || 0) + 1,
-                total_spent: (existingCustomer.total_spent || 0) + total,
-                last_order_date: new Date().toISOString(),
-            }).eq('id', customerId);
-        } else {
-            const { data: newCustomer } = await supabase
-                .from('customers')
-                .insert({
-                    restaurant_id: restaurantId,
-                    name: customerName,
-                    phone: customerPhone,
-                    total_orders: 1,
-                    total_spent: total,
-                    last_order_date: new Date().toISOString(),
-                })
-                .select('id')
-                .single();
-            customerId = newCustomer?.id;
+        if (customerError) {
+            console.error('Customer upsert failed', customerError);
         }
 
-        // 1.5 Calculate sequential order number for this specific restaurant
-        const { data: maxOrderData } = await supabase
-            .from('orders')
-            .select('order_number')
-            .eq('restaurant_id', restaurantId)
-            .order('order_number', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        // 1.5 Sequential order number for this restaurant.
+        // Also a function: scanning orders for max(order_number) required anon
+        // SELECT on orders, which exposed every order in the system.
+        const { data: rpcOrderNumber } = await supabase.rpc('next_order_number', {
+            p_restaurant_id: restaurantId,
+        });
 
         const { data: restaurantData } = await supabase
             .from('restaurants')
-            .select('auto_approve_website_orders, starting_order_number')
+            .select('auto_approve_website_orders')
             .eq('id', restaurantId)
             .maybeSingle();
 
-        let nextOrderNumber = (maxOrderData?.order_number || 0) + 1;
-        if (restaurantData?.starting_order_number && nextOrderNumber < restaurantData.starting_order_number) {
-            nextOrderNumber = restaurantData.starting_order_number;
-        }
+        const nextOrderNumber: number = rpcOrderNumber ?? 1;
 
         // 2. Insert Order
         const { data: order, error: orderError } = await supabase
