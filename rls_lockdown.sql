@@ -246,20 +246,55 @@ WITH CHECK (
 -- Apply this part ONLY together with the matching change to submitOrder.ts.
 -- ===========================================================================
 
+-- A per-restaurant counter that only ever moves forward.
+--
+-- MAX(order_number) + 1 cannot be used on its own, because the dashboard can
+-- delete orders (dashboard/orders/page.tsx). Delete the most recent order and
+-- MAX drops, so the next order is handed a number that has already been
+-- printed on a receipt and sent over WhatsApp — and the unique index would not
+-- object, because the row holding that number is gone.
+--
+-- Only the SECURITY DEFINER function below touches this table, and that runs
+-- as the owner, so RLS with no policies at all is exactly right here.
+CREATE TABLE IF NOT EXISTS public.order_counters (
+  restaurant_id uuid PRIMARY KEY REFERENCES public.restaurants(id) ON DELETE CASCADE,
+  last_number   integer NOT NULL DEFAULT 0
+);
+ALTER TABLE public.order_counters ENABLE ROW LEVEL SECURITY;
+
 CREATE OR REPLACE FUNCTION public.next_order_number(p_restaurant_id uuid)
 RETURNS integer AS $$
 DECLARE
-  next_num integer;
   start_num integer;
+  result    integer;
 BEGIN
-  SELECT COALESCE(MAX(order_number), 0) + 1 INTO next_num
-    FROM public.orders WHERE restaurant_id = p_restaurant_id;
   SELECT starting_order_number INTO start_num
     FROM public.restaurants WHERE id = p_restaurant_id;
-  IF start_num IS NOT NULL AND next_num < start_num THEN
-    next_num := start_num;
-  END IF;
-  RETURN next_num;
+
+  -- Seed from the orders already on file so an existing restaurant carries on
+  -- from where it is rather than restarting.
+  INSERT INTO public.order_counters (restaurant_id, last_number)
+  SELECT p_restaurant_id, COALESCE(MAX(order_number), 0)
+    FROM public.orders WHERE restaurant_id = p_restaurant_id
+  ON CONFLICT (restaurant_id) DO NOTHING;
+
+  -- GREATEST against the live MAX keeps the counter honest if a number ever
+  -- arrives from somewhere else (an import, the POS writing a number directly)
+  -- without ever letting a deletion drag it backwards.
+  -- The UPDATE takes a row lock, so two overlapping checkouts serialise here
+  -- instead of both reading the same MAX — which is what produced the existing
+  -- duplicates at 39 and 40.
+  UPDATE public.order_counters c
+     SET last_number = GREATEST(
+           c.last_number,
+           COALESCE((SELECT MAX(o.order_number) FROM public.orders o
+                      WHERE o.restaurant_id = p_restaurant_id), 0),
+           COALESCE(start_num, 1) - 1
+         ) + 1
+   WHERE c.restaurant_id = p_restaurant_id
+   RETURNING c.last_number INTO result;
+
+  RETURN result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 

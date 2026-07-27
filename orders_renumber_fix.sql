@@ -17,10 +17,21 @@
 -- there are none, so that window never reached production.
 --
 -- The two duplicates that DO exist are at numbers 39 and 40, not 1, so they
--- predate all of this. They are the old read-then-write race: two checkouts
--- overlapping both read max(order_number) = 38 and both wrote 39. That is the
--- race next_order_number() removes by computing the number inside the
--- database, and section 5 makes structurally impossible.
+-- predate all of this.
+--
+-- Their cause cannot be pinned down from the numbers alone, because this
+-- system has more than one thing assigning order numbers and none of them can
+-- see the others:
+--
+--   web checkout  submitOrder.ts    -> server, max(order_number) + 1
+--   POS           getPosNextOrderNumber() in pos-db.ts
+--                                   -> reads the DEVICE'S OWN IndexedDB store
+--
+-- The POS number is computed offline, per device, from that device's local
+-- orders. Two tablets taking orders in the same restaurant will both issue the
+-- same next number without either being wrong by its own reckoning, and the
+-- web checkout is a third source again. So a collision here is structural, not
+-- merely a race, and the pair at 39/40 could have come from either path.
 --
 -- Two things make "order_number = 1" NOT by itself a bug, and every query
 -- below is built around them:
@@ -188,13 +199,29 @@ SELECT r.name                                        AS restaurant,
 
 
 -- ---------------------------------------------------------------------------
--- 5. Optional guard so this class of bug cannot recur silently.
+-- 5. DO NOT ADD THE UNIQUE INDEX YET.
 --
--- Makes the database itself reject a duplicate number within a restaurant.
--- Run section 4 first — this will fail while duplicates still exist, which is
--- the point. next_order_number() computes max+1 and would raise on a genuine
--- race rather than quietly assigning a number that is already taken.
+-- An earlier version of this file recommended:
+--
+--   CREATE UNIQUE INDEX orders_restaurant_number_uniq
+--       ON public.orders (restaurant_id, order_number);
+--
+-- That recommendation was wrong for this system and is retracted. The POS
+-- assigns order numbers offline from each device's own IndexedDB, so two
+-- tablets in one restaurant routinely reach the same next number. With this
+-- index in place the second device's order would be REJECTED at sync time —
+-- turning a cosmetic numbering clash into a lost order in a live restaurant.
+--
+-- The constraint only becomes safe once every path draws from one authority.
+-- The web checkout now does, via next_order_number() and order_counters; the
+-- POS still does not, because it has to keep working with no connection.
+--
+-- Making that safe needs a decision about offline behaviour, roughly:
+--   a. POS reserves a block of numbers per device while online, or
+--   b. POS numbers are namespaced per device (e.g. a device prefix), or
+--   c. the number is assigned on sync rather than at the till, and the ticket
+--      shows a local reference until then.
+--
+-- Until one of those exists, keep detecting duplicates with section 1 rather
+-- than preventing them with a constraint.
 -- ---------------------------------------------------------------------------
-
--- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS orders_restaurant_number_uniq
---     ON public.orders (restaurant_id, order_number);
