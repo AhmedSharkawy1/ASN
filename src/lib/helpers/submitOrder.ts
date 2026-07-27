@@ -3,6 +3,24 @@ import { processOrderInventory } from '@/lib/helpers/inventoryService';
 import { calculateOrderCost } from '@/lib/helpers/costService';
 import { parseCurrency } from '@/lib/currency';
 
+/** RFC 4122 v4, with a fallback for non-secure contexts where crypto.randomUUID is absent. */
+function newUuid(): string {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+    }
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+        const b = crypto.getRandomValues(new Uint8Array(16));
+        b[6] = (b[6] & 0x0f) | 0x40;
+        b[8] = (b[8] & 0x3f) | 0x80;
+        const h = Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
+        return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+    });
+}
+
 export type OrderItemExtra = {
     name: string;
     qty: number;
@@ -279,27 +297,18 @@ async function sendTelegramNotification(params: {
     branchName?: string;
 }): Promise<void> {
     try {
-        // Fetch Telegram credentials for this restaurant
-        const { data: restaurant } = await supabase
-            .from('restaurants')
-            .select('telegram_bot_token, telegram_chat_id')
-            .eq('id', params.restaurantId)
-            .single();
-
-        if (!restaurant?.telegram_bot_token || !restaurant?.telegram_chat_id) {
-            return; // Telegram not configured, skip silently
-        }
-
-        const message = buildTelegramMessage(params);
-
-        // Call the server-side API route to send via Telegram Bot API
+        // The bot token is deliberately NOT read here. It used to be fetched
+        // from the restaurants table in the browser and posted to the API,
+        // which made it readable by anyone holding the anon key — anyone who
+        // opened the site — and a Telegram bot token is enough to take over the
+        // restaurant's bot. The route now looks it up server-side from the
+        // restaurantId, so the token never reaches the client at all.
         await fetch('/api/telegram', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                botToken: restaurant.telegram_bot_token,
-                chatId: restaurant.telegram_chat_id,
-                message,
+                restaurantId: params.restaurantId,
+                message: buildTelegramMessage(params),
             }),
         });
     } catch (err) {
@@ -414,10 +423,24 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             }
         }
 
-        // 2. Insert Order
-        const { data: order, error: orderError } = await supabase
+        // 2. Insert Order.
+        // The id is generated here rather than read back, because reading it
+        // back is what broke checkout under RLS: `.insert().select()` makes
+        // Postgres apply the SELECT policy to the RETURNING row, and the public
+        // menu deliberately has insert-without-read on orders. Granting the
+        // read to make RETURNING work would republish all 595 orders. Both
+        // values the caller needs are already known here — the number came from
+        // next_order_number, and the id is ours to choose.
+        // crypto.randomUUID exists only in a secure context, so it is not
+        // guaranteed. Falling back to undefined here would leave order.id
+        // undefined and silently break the order_logs and inventory writes
+        // below, so there is always a value.
+        const newOrderId = newUuid();
+
+        const { error: orderError } = await supabase
             .from('orders')
             .insert({
+                ...(newOrderId ? { id: newOrderId } : {}),
                 restaurant_id: restaurantId,
                 order_number: nextOrderNumber,
                 customer_id: customerId,
@@ -453,13 +476,14 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 discount_amount: discountAmount || 0,
                 discount_type: discountType || null,
                 branch_name: branchName || null,
-            })
-            .select('id, order_number')
-            .single();
+            });
 
-        if (orderError || !order) {
-            return { success: false, error: orderError?.message || 'Failed to create order' };
+        if (orderError) {
+            return { success: false, error: orderError.message || 'Failed to create order' };
         }
+
+        // Stands in for the row that used to be read back.
+        const order = { id: newOrderId as string, order_number: nextOrderNumber };
 
         // 3. Create notification for restaurant owner
         await supabase.from('notifications').insert({
