@@ -203,18 +203,49 @@ const TOP_UP_WHEN_BELOW = 25;
  * function does not exist yet — not fatal on its own, since the caller only
  * needs one once the ranges it already holds are spent.
  */
-async function reserveRange(restaurantId: string): Promise<PosNumberRange | null> {
+type ReserveResult =
+    | { ok: true; range: PosNumberRange }
+    /** The function is not in the database yet — rls_lockdown.sql not applied. */
+    | { ok: false; reason: 'not-deployed' }
+    /** Offline, or the call failed for some other reason. */
+    | { ok: false; reason: 'unavailable' };
+
+async function reserveRange(restaurantId: string): Promise<ReserveResult> {
     try {
         const { supabase } = await import('@/lib/supabase/client');
         const { data, error } = await supabase.rpc('reserve_order_numbers', {
             p_restaurant_id: restaurantId,
             p_count: BLOCK_SIZE,
         });
-        if (error || typeof data !== 'number') return null;
-        return { next: data, end: data + BLOCK_SIZE - 1 };
+
+        // PGRST202 is PostgREST for "no such function". Distinguishing it from
+        // a network failure is the whole point: a missing function means the
+        // migration has not run yet and the old behaviour is still correct,
+        // whereas being offline means we genuinely must not invent a number.
+        if (error) {
+            const missing = error.code === 'PGRST202' || /Could not find the function/i.test(error.message || '');
+            return { ok: false, reason: missing ? 'not-deployed' : 'unavailable' };
+        }
+        if (typeof data !== 'number') return { ok: false, reason: 'unavailable' };
+
+        return { ok: true, range: { next: data, end: data + BLOCK_SIZE - 1 } };
     } catch {
-        return null;
+        return { ok: false, reason: 'unavailable' };
     }
+}
+
+/**
+ * Pre-migration numbering: highest order number in THIS device's local store.
+ * Wrong on a multi-device restaurant, which is what the block reservation
+ * fixes — but it is what the till did before, so it is the right thing to fall
+ * back to during the window where the code is deployed and the SQL is not.
+ */
+async function legacyLocalNumber(restaurantId: string, minNumber = 1): Promise<number> {
+    const sorted = await posDb.orders
+        .where('restaurant_id').equals(restaurantId)
+        .sortBy('order_number');
+    const last = sorted[sorted.length - 1];
+    return Math.max((last?.order_number || 0) + 1, minNumber);
 }
 
 async function loadBlock(restaurantId: string): Promise<PosNumberBlock> {
@@ -237,18 +268,40 @@ const remainingIn = (b: PosNumberBlock) =>
  * Because the server counter only moves forward, a deleted order's number is
  * retired rather than handed out again.
  *
- * Returns null when the block is spent and the server cannot be reached — the
+ * Returns null ONLY when the block is spent and the server is unreachable. The
  * caller must surface that rather than invent a number, since inventing one is
- * exactly how duplicates got created before.
+ * exactly how duplicates were created before.
+ *
+ * `minNumber` is the restaurant's starting_order_number. The server applies it
+ * itself, so it is only used on the pre-migration fallback path.
  */
-export async function getPosNextOrderNumber(restaurantId: string): Promise<number | null> {
+export async function getPosNextOrderNumber(
+    restaurantId: string,
+    minNumber = 1
+): Promise<number | null> {
     const block = await loadBlock(restaurantId);
     block.ranges = block.ranges.filter((r) => r.next <= r.end);
 
     if (block.ranges.length === 0) {
-        const fresh = await reserveRange(restaurantId);
-        if (!fresh) return null;
-        block.ranges.push(fresh);
+        const result = await reserveRange(restaurantId);
+
+        if (!result.ok) {
+            // Migration not applied yet: the till keeps working exactly as it
+            // did before, so deploying this code ahead of the SQL cannot stop a
+            // restaurant taking orders. Once the SQL is in, this path is dead.
+            if (result.reason === 'not-deployed') {
+                console.warn(
+                    '[POS] reserve_order_numbers is not in the database yet — ' +
+                    'falling back to local numbering. Apply rls_lockdown.sql to ' +
+                    'get collision-free numbers across devices.'
+                );
+                return legacyLocalNumber(restaurantId, minNumber);
+            }
+            // Genuinely offline with nothing left to issue.
+            return null;
+        }
+
+        block.ranges.push(result.range);
     }
 
     const issued = block.ranges[0].next;
@@ -260,10 +313,10 @@ export async function getPosNextOrderNumber(restaurantId: string): Promise<numbe
     // discover it is out of numbers in the middle of service. Ranges queue up,
     // so a top-up never discards numbers the device already owns.
     if (remainingIn(block) < TOP_UP_WHEN_BELOW) {
-        void reserveRange(restaurantId).then(async (fresh) => {
-            if (!fresh) return;
+        void reserveRange(restaurantId).then(async (result) => {
+            if (!result.ok) return;
             const current = await loadBlock(restaurantId);
-            current.ranges.push(fresh);
+            current.ranges.push(result.range);
             await posDb.number_blocks.put(current);
         });
     }

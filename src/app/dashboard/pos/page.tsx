@@ -445,7 +445,10 @@ export default function POSPage() {
             // up issuing the same number, so stop instead.
             let orderNumber = originalOrderNumber;
             if (!orderNumber) {
-                const issued = await getPosNextOrderNumber(restaurantId);
+                const issued = await getPosNextOrderNumber(
+                    restaurantId,
+                    restaurant?.starting_order_number || 1
+                );
                 if (issued === null) {
                     toast.error(
                         language === 'ar'
