@@ -155,8 +155,10 @@ END $$;
 DO $$
 DECLARE
   t text;
+  -- items is deliberately NOT here: it has no restaurant_id of its own and is
+  -- handled separately below. Listing it made this loop fail on the first run.
   by_restaurant text[] := ARRAY[
-    'categories','items','delivery_zones','promotions','addons','tables',
+    'categories','delivery_zones','promotions','addons','tables',
     'inventory_items','inventory_transactions','recipes','suppliers','supplies',
     'production_batches','production_requests','print_settings','customers','orders'
   ];
@@ -189,6 +191,7 @@ BEGIN
 END $$;
 
 -- items has no restaurant_id; it belongs to a tenant through its category.
+ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS owner_access ON public.items;
 CREATE POLICY owner_access ON public.items FOR ALL TO authenticated
 USING (public.is_super_admin_safe() OR EXISTS (
