@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import MenuClient from "./MenuClient";
 import { loadMenu } from "./menuData";
 
-// The menu must always reflect what the restaurant last published, so this
-// route opts out of caching entirely rather than risking a stale menu.
-export const dynamic = "force-dynamic";
+// Deliberately NOT force-dynamic: that flag also sets fetchCache to
+// default-no-store, which would silently disable the data cache in menuData
+// and make MENU_REVALIDATE_SECONDS a no-op. Reading searchParams already
+// makes this route render per-request; the caching we want is on the data.
 
 export default async function SmartMenuPage({
   params,

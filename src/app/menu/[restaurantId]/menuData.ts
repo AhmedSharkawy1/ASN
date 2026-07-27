@@ -84,18 +84,34 @@ const RESTAURANT_COLUMNS =
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
+ * How long a menu may be served from Next's data cache before it is refetched.
+ *
+ * This is the one knob with a business trade-off in this file: a restaurant
+ * that edits its menu will keep seeing the old one for up to this long. Kept
+ * deliberately short so an owner who saves and refreshes is not left thinking
+ * the save failed. Raising it cuts Supabase reads (and egress) roughly in
+ * proportion to traffic; lowering it toward 0 restores fetch-on-every-request.
+ */
+export const MENU_REVALIDATE_SECONDS = 60;
+
+/**
  * Server-side Supabase client for the public menu.
  *
- * `cache: "no-store"` matters: supabase-js calls through fetch, and Next
- * caches fetch by default inside Server Components. Without this a restaurant
- * could publish a menu change and keep being served the old one. This
- * preserves the always-fresh behaviour the client-side fetch had.
+ * supabase-js calls through fetch, so Next's data cache applies. Every
+ * restaurant has its own query URL and therefore its own cache entry, which
+ * means repeat visitors within the window are served without touching the
+ * database at all.
  */
 function serverSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { global: { fetch: (url, options) => fetch(url, { ...options, cache: "no-store" }) } }
+    {
+      global: {
+        fetch: (url, options) =>
+          fetch(url, { ...options, next: { revalidate: MENU_REVALIDATE_SECONDS } }),
+      },
+    }
   );
 }
 
