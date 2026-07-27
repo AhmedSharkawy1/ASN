@@ -108,7 +108,9 @@ export type PosSettings = {
     restaurant_phone?: string;
     currency: string;
     language: string;
-    theme?: 'dark' | 'light';
+    // The restaurant's menu theme name ("theme18", "vicino", ...), not a
+    // colour mode — both writers store a theme id here.
+    theme?: string;
     permissions_json?: string; // Cached JSON permissions
 };
 

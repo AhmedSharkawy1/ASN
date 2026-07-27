@@ -67,11 +67,17 @@ export default function UserDashboardPage() {
                      // try team members
                      const { data: staff } = await supabase.from('team_members').select('restaurant_id, restaurants(name, slug, subscription_plan, subscription_expires_at)').eq('auth_id', user.id).maybeSingle();
                      if (staff && staff.restaurant_id) {
+                         // supabase-js types an embedded relation as an array even
+                         // when it is to-one; at runtime PostgREST returns a single
+                         // object here. Normalise so either shape works.
+                         const embedded = staff.restaurants as unknown;
+                         const rest = (Array.isArray(embedded) ? embedded[0] : embedded) as
+                             { name?: string; slug?: string; subscription_plan?: string | null; subscription_expires_at?: string | null } | null;
                          rId = staff.restaurant_id;
-                         rName = staff.restaurants?.name || "";
-                         (window as any).rSlug = staff.restaurants?.slug;
-                         rPlan = staff.restaurants?.subscription_plan || null;
-                         rExpires = staff.restaurants?.subscription_expires_at || null;
+                         rName = rest?.name || "";
+                         (window as any).rSlug = rest?.slug;
+                         rPlan = rest?.subscription_plan || null;
+                         rExpires = rest?.subscription_expires_at || null;
                          foundRest = true;
                      }
                  }

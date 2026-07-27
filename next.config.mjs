@@ -2,8 +2,10 @@
 const nextConfig = {
     output: 'standalone',
     eslint: { ignoreDuringBuilds: true },
-    typescript: { ignoreBuildErrors: true },
     images: {
+        // Deliberate: Next's optimizer would re-fetch and re-encode every image
+        // on the origin, which is exactly the Supabase egress the thumbnail_url
+        // column exists to avoid. Menus serve the pre-made 400px variant instead.
         unoptimized: true,
         remotePatterns: [
             {

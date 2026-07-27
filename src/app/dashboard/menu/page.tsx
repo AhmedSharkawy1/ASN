@@ -76,7 +76,7 @@ export default function MenuBuilderPage() {
 
                 if (!restaurant && !impersonatingTenant) {
                     const { data: newRest } = await supabase
-                        .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency').single();
+                        .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency, name, parent_id').single();
                     restaurant = newRest;
                 }
 

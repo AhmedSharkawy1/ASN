@@ -349,9 +349,10 @@ export default function ThemePage() {
             }, 1000);
         } catch (err) {
             console.error("Error saving theme:", err);
+            const errMessage = err instanceof Error ? err.message : String(err);
             setMessage({
                 type: 'error',
-                text: isArabic ? `حدث خطأ أثناء الحفظ: ${err.message || err}` : `Error occurred while saving: ${err.message || err}`
+                text: isArabic ? `حدث خطأ أثناء الحفظ: ${errMessage}` : `Error occurred while saving: ${errMessage}`
             });
         } finally {
             setSaving(false);

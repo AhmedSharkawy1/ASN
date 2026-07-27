@@ -27,14 +27,16 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     
     stage = 'file-validation';
+    // formData.get() is typed `string | File | null`; narrow once here so the
+    // Blob/File members below are actually checked rather than cast at each use.
     const file = formData.get('file');
 
-    if (!file) {
+    if (!file || typeof file === 'string') {
       return NextResponse.json({ error: 'No file uploaded', stage }, { status: 400 });
     }
 
     stage = 'buffer-conversion';
-    const arrayBuffer = await (file as Blob).arrayBuffer();
+    const arrayBuffer = await file.arrayBuffer();
     
     // TEMPORARY DIAGNOSTIC: Bypass Sharp completely to see if Vercel still 502s
     stage = 'bypass-sharp';
