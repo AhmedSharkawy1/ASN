@@ -22,6 +22,7 @@ import { subscribeSyncStatus } from "@/lib/sync-service";
 import { Toaster, toast } from "sonner";
 import { posDb } from "@/lib/pos-db";
 import { SyncStatus } from "@/components/SyncStatus";
+import { useMobileDrawer } from "@/lib/hooks/useMobileDrawer";
 
 interface Branch {
     id: string;
@@ -85,6 +86,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [syncStatus, setSyncStatus] = useState({ pending: 0, lastSync: null, deviceId: null });
     const restaurantIdRef = useRef<string | null>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
+
+    const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+    useMobileDrawer(sidebarOpen, closeSidebar, pathname);
 
     // Tenant Switcher (Parent/Child Branches)
     const [tenantLinks, setTenantLinks] = useState<{id: string, name: string, is_parent: boolean}[]>([]);
@@ -584,15 +588,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-            {sidebarOpen && (
-                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
-            )}
+            {/* Always mounted so it can fade rather than pop in/out. */}
+            <div
+                className={`fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden transition-opacity duration-300
+                    ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setSidebarOpen(false)}
+                aria-hidden="true"
+            />
 
             {(
-            <aside className={`fixed md:sticky top-0 h-screen z-50 flex flex-col transition-all duration-300
+            <aside
+                id="dashboard-sidebar"
+                aria-label={language === "ar" ? "القائمة الرئيسية" : "Main navigation"}
+                // h-dvh, not h-screen: 100vh on a phone is measured with the
+                // browser bar retracted, so the logout button at the bottom sat
+                // underneath Safari/Chrome's toolbar and could not be tapped.
+                // `invisible` when closed keeps the off-screen links out of the
+                // tab order; it's in the transition list so it still slides out.
+                className={`fixed md:sticky top-0 h-dvh md:h-screen z-50 flex flex-col
+                transition-[transform,visibility,width] duration-300
                 ${language === 'ar' ? 'right-0' : 'left-0'}
-                ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0')}
-                ${sidebarCollapsed ? 'w-20' : 'w-[280px]'} bg-white dark:bg-card border-stone-200 dark:border-zinc-800/50
+                ${sidebarOpen ? 'translate-x-0' : `invisible md:visible ${language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+                ${sidebarCollapsed ? 'w-20' : 'w-[280px]'} max-w-[85vw] md:max-w-none bg-white dark:bg-card border-stone-200 dark:border-zinc-800/50
                 shadow-lg shadow-stone-100/50 dark:shadow-none
                 ${language === 'ar' ? 'border-l' : 'border-r'}
             `}>
@@ -615,7 +632,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </button>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-6" style={{ scrollbarWidth: 'none' }}>
+                <nav className="flex-1 overflow-y-auto overscroll-contain py-4 px-2 space-y-6" style={{ scrollbarWidth: 'none' }}>
                     {filteredNavSections.map((section, sIdx) => (
                         <div key={sIdx}>
                             {!sidebarCollapsed && (
@@ -649,7 +666,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     ))}
                 </nav>
 
-                <div className={`border-t border-stone-100 dark:border-zinc-800/50 ${sidebarCollapsed ? 'p-2' : 'p-4'} space-y-3 shrink-0`}>
+                <div className={`border-t border-stone-100 dark:border-zinc-800/50 ${sidebarCollapsed ? 'p-2' : 'p-4'} pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3 shrink-0`}>
                     {restaurantName && !sidebarCollapsed && (
                         <div className="bg-stone-50/60 hover:bg-stone-50 dark:bg-zinc-800/30 dark:hover:bg-zinc-800/50 transition-colors rounded-xl px-3 py-2.5 flex items-center gap-3 border border-stone-100/50 dark:border-zinc-800/50">
                             {restaurantLogo ? (
@@ -702,7 +719,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {(
                 <header className="h-[72px] border-b border-stone-100 dark:border-zinc-800/50 bg-white/80 dark:bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-6 sticky top-0 z-30 shrink-0 transition-colors">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            aria-label={language === "ar" ? "فتح القائمة" : "Open menu"}
+                            aria-expanded={sidebarOpen}
+                            aria-controls="dashboard-sidebar"
+                            className="md:hidden -m-1 p-3 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                        >
                             <Menu className="w-5 h-5" />
                         </button>
                         <div className="hidden md:flex items-center gap-2 text-slate-400 dark:text-zinc-500 text-sm">

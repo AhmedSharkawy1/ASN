@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useTheme } from "next-themes";
@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { Toaster } from "sonner";
 import { useLanguage } from "@/lib/context/LanguageContext";
+import { useMobileDrawer } from "@/lib/hooks/useMobileDrawer";
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
     const { language } = useLanguage();
@@ -23,6 +24,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [userEmail, setUserEmail] = useState("");
+
+    const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+    useMobileDrawer(sidebarOpen, closeSidebar, pathname);
 
     useEffect(() => setMounted(true), []);
 
@@ -86,16 +90,24 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-[#0a0f16] text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
             
-            {/* Mobile overlay */}
-            {sidebarOpen && (
-                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
-            )}
+            {/* Mobile overlay — always mounted so it fades instead of popping. */}
+            <div
+                className={`fixed inset-0 bg-black/40 dark:bg-black/60 z-40 md:hidden transition-opacity duration-300
+                    ${sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setSidebarOpen(false)}
+                aria-hidden="true"
+            />
 
             {/* ====== SIDEBAR ====== */}
-            <aside className={`fixed md:sticky top-0 h-screen z-50 flex flex-col transition-all duration-300
+            {/* See dashboard/layout.tsx for why this is h-dvh and `invisible`. */}
+            <aside
+                id="super-admin-sidebar"
+                aria-label="Main navigation"
+                className={`fixed md:sticky top-0 h-dvh md:h-screen z-50 flex flex-col
+                transition-[transform,visibility,width] duration-300
                 ${language === 'ar' ? 'right-0' : 'left-0'}
-                ${sidebarOpen ? 'translate-x-0' : (language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0')}
-                ${sidebarCollapsed ? 'w-20' : 'w-[280px]'} bg-[#131b26] border-stone-800
+                ${sidebarOpen ? 'translate-x-0' : `invisible md:visible ${language === 'ar' ? 'translate-x-full md:translate-x-0' : '-translate-x-full md:translate-x-0'}`}
+                ${sidebarCollapsed ? 'w-20' : 'w-[280px]'} max-w-[85vw] md:max-w-none bg-[#131b26] border-stone-800
                 shadow-2xl shadow-black/50
                 ${language === 'ar' ? 'border-l' : 'border-r'} border-[#232f40]
             `}>
@@ -122,7 +134,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1.5" style={{ scrollbarWidth: 'none' }}>
+                <nav className="flex-1 overflow-y-auto overscroll-contain py-6 px-3 space-y-1.5" style={{ scrollbarWidth: 'none' }}>
                     {navItems.map((item) => {
                         const active = isActive(item.href, item.exact);
                         return (
@@ -143,7 +155,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 </nav>
 
                 {/* Bottom: Logout */}
-                <div className={`border-t border-[#232f40] ${sidebarCollapsed ? 'p-2' : 'p-4'} shrink-0`}>
+                <div className={`border-t border-[#232f40] ${sidebarCollapsed ? 'p-2' : 'p-4'} pb-[max(1rem,env(safe-area-inset-bottom))] shrink-0`}>
                     {!sidebarCollapsed && (
                          <div className="mb-4 px-2">
                              <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">Logged in as</p>
@@ -172,7 +184,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 {/* Top Header Bar */}
                 <header className="h-[72px] border-b border-stone-200 dark:border-zinc-800/50 bg-white/80 dark:bg-[#0a0f16]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shrink-0 transition-colors">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition">
+                        <button
+                            onClick={() => setSidebarOpen(true)}
+                            aria-label="Open menu"
+                            aria-expanded={sidebarOpen}
+                            aria-controls="super-admin-sidebar"
+                            className="md:hidden -m-1 p-3 text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition"
+                        >
                             <Menu className="w-5 h-5" />
                         </button>
                         <div className="hidden md:flex items-center gap-2 text-slate-400 dark:text-zinc-500 text-sm">

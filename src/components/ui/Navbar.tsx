@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -8,6 +8,7 @@ import { Menu, X, Globe, Sun, Moon } from "lucide-react";
 import { FaPhoneAlt } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/context/LanguageContext";
+import { useMobileDrawer } from "@/lib/hooks/useMobileDrawer";
 import { useTheme } from "next-themes";
 
 export default function Navbar() {
@@ -19,12 +20,23 @@ export default function Navbar() {
     const { theme, setTheme } = useTheme();
     const { language, toggleLanguage } = useLanguage();
 
+    const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+    useMobileDrawer(isMobileMenuOpen, closeMobileMenu, pathname);
+
     useEffect(() => {
         setMounted(true);
+        // The listener fires on every scroll frame but only re-renders when the
+        // boolean actually flips, so the nav isn't re-rendered ~60x/second.
+        let last = false;
         const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
+            const next = window.scrollY > 50;
+            if (next !== last) {
+                last = next;
+                setIsScrolled(next);
+            }
         };
-        window.addEventListener("scroll", handleScroll);
+        handleScroll();
+        window.addEventListener("scroll", handleScroll, { passive: true });
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
@@ -140,18 +152,34 @@ export default function Navbar() {
                 {/* Mobile Nav Toggle */}
                 <div className="md:hidden flex items-center">
                     <button
-                        className="text-silver hover:text-white p-2"
+                        className="text-silver hover:text-white p-2 -mr-2 rtl:-ml-2 rtl:mr-0"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        aria-label="Toggle Menu"
+                        aria-label={language === "ar" ? "القائمة" : "Toggle Menu"}
+                        aria-expanded={isMobileMenuOpen}
+                        aria-controls="mobile-nav-panel"
                     >
                         {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
                     </button>
                 </div>
             </div>
 
+            {/* Tap-outside-to-close. Sits under the panel but over the page. */}
+            {isMobileMenuOpen && (
+                <div
+                    className="md:hidden fixed inset-0 top-full bg-black/40 -z-10"
+                    onClick={closeMobileMenu}
+                    aria-hidden="true"
+                />
+            )}
+
             {/* Mobile Menu */}
             {isMobileMenuOpen && (
-                <div className="md:hidden absolute top-full left-0 right-0 bg-background/70 backdrop-blur-3xl border-b border-glass-border p-6 flex flex-col gap-4 shadow-2xl">
+                <div
+                    id="mobile-nav-panel"
+                    // Capped to the space actually left below the bar and made
+                    // scrollable: at 6 rows of content the "ابدأ الآن" button used
+                    // to sit past the bottom of a short phone with no way to reach it.
+                    className="md:hidden absolute top-full left-0 right-0 max-h-[calc(100dvh-100%)] overflow-y-auto overscroll-contain bg-background/70 backdrop-blur-3xl border-b border-glass-border p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] flex flex-col gap-4 shadow-2xl">
                     {navLinks.map((link) => (
                         <Link
                             key={link.name}
