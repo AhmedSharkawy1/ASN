@@ -1,51 +1,65 @@
 -- ============================================================================
--- RLS LOCKDOWN
+-- RLS LOCKDOWN  (rewritten after reading the live pg_policies output)
 --
--- Fixes the "Policy Exists RLS Disabled" / "RLS Disabled in Public" advisories.
+-- The first version of this file dropped every policy on the tables it touched
+-- and rebuilt them. That was wrong here, for two reasons that only became
+-- visible once the actual policies were listed:
 --
--- Measured with the public anon key (the one shipped in every browser bundle)
--- before this script:
+--   * pci_access_*  uses is_my_child_tenant(), which is the parent/branch
+--     feature. final_*_access and unified_*_access encode the owner-by-email
+--     and team_members paths. Dropping those and substituting a simpler
+--     get_my_tenant_id() check would have cut parent restaurants off from
+--     their own branches.
 --
---     customers        304 rows readable
---     orders           595 rows readable
---     order_logs      1733 rows readable
---     notifications    353 rows readable
---     inventory_items   76 rows readable
---     restaurants       44 rows readable  (incl. telegram_bot_token)
+--   * the table list was far too short. It covered 11 tables. The real problem
+--     spans about 23, including HR and recipes, which were not in it at all.
 --
--- RLS being off also means anon can INSERT/UPDATE/DELETE these tables, because
--- PostgREST falls back to table GRANTs and Supabase grants anon full CRUD on
--- public tables by default.
+-- So this version ADDS rather than REPLACES. Every existing authenticated
+-- policy is left exactly as it is; policies are OR'ed, so adding one can only
+-- widen authenticated access, never narrow it. The only things dropped are the
+-- named wide-open {public} policies listed in part 1.
 --
--- Why the earlier unified_rls_fix.sql did not stick: every policy in it is
--- "TO authenticated". Turning RLS on with only those policies leaves anon with
--- nothing, which breaks the public menu — so RLS got switched back off. This
--- script gives anon exactly the narrow access the public menu actually needs
--- and nothing else.
+-- Why those matter: in Postgres the role `public` means EVERYONE, including
+-- anon — the key shipped in every browser bundle. A policy reading
+-- `{public} ALL USING (true)` is not a restriction, it is an open door.
+-- Measured with that key, before this script:
 --
--- RUN PARTS 1-4 FIRST. Part 5 needs the matching application change and is
--- marked accordingly. Run in the Supabase SQL editor; review before applying.
+--     order_logs             1735 rows      inventory_items         76 rows
+--     customers               304 rows      delivery_zones          50 rows
+--     inventory_transactions  304 rows      recipes                 24 rows
+--     orders                  595 rows      production_batches      12 rows
+--     production_requests      95 rows      promotions              10 rows
+--     notifications           353 rows      supplies                10 rows
+--     hr_employees              3 rows      hr_attendance            3 rows
+--     hr_locations              3 rows      suppliers                1 row
+--
+-- Most of those also carry {public} INSERT/UPDATE/DELETE, so the same key can
+-- write and delete them. hr_employees and hr_payroll are staff records and
+-- salaries; recipes are the restaurant's own costings.
+--
+-- Run part by part and test in between. Nothing here is irreversible: any
+-- table can be reopened with
+--     ALTER TABLE public.<table> DISABLE ROW LEVEL SECURITY;
 -- ============================================================================
 
 
 -- ---------------------------------------------------------------------------
--- PART 0 — helpers (same definitions as unified_rls_fix.sql, kept idempotent)
+-- PART 0 — helper used by the policies added below.
+-- is_my_child_tenant / is_sa_final / get_tid_final already exist and are left
+-- alone; this only (re)creates the two this script itself relies on.
 -- ---------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION public.is_super_admin_safe()
 RETURNS BOOLEAN AS $$
 BEGIN
-  RETURN EXISTS (
-    SELECT 1 FROM public.user_roles
-    WHERE user_id = auth.uid() AND role = 'super_admin'
-  );
+  RETURN EXISTS (SELECT 1 FROM public.user_roles
+                  WHERE user_id = auth.uid() AND role = 'super_admin');
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION public.get_my_tenant_id()
 RETURNS uuid AS $$
-DECLARE
-  tid uuid;
+DECLARE tid uuid;
 BEGIN
   SELECT restaurant_id INTO tid FROM public.team_members WHERE auth_id = auth.uid() LIMIT 1;
   IF tid IS NOT NULL THEN RETURN tid; END IF;
@@ -56,230 +70,232 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 
 -- ---------------------------------------------------------------------------
--- PART 0b — clear out the policies that are already there.
+-- PART 1 — drop ONLY the wide-open {public} policies, by name.
 --
--- The advisory is "Policy Exists RLS Disabled", i.e. these tables already carry
--- policies that are currently inert because RLS is off. Enabling RLS would
--- switch every one of them back on, and any leftover "USING (true) TO public"
--- would quietly undo this whole script. Drop them all first so what is left is
--- only what is written below.
+-- Everything named here was verified as `{public}` with `USING (true)` or an
+-- unconditional INSERT. Nothing else is touched: every pci_access_*, final_*,
+-- unified_*, and super_admin_access_all policy survives untouched.
 --
--- Inspect before running if you want to keep any:
---   SELECT tablename, policyname, roles, cmd, qual FROM pg_policies
---    WHERE schemaname = 'public' ORDER BY tablename;
+-- Deliberately NOT dropped, because the public menu needs them:
+--     categories.public_select_categories
+--     items.public_select_items
+--     restaurants.public_select_restaurants
+--     addons."Public can read active addons"   (already limited to is_active)
+--     print_settings."Restaurants can view own print settings"   (has a real qual)
+--     print_settings."Restaurants can update own print settings" (has a real qual)
 -- ---------------------------------------------------------------------------
 
 DO $$
-DECLARE r record;
+DECLARE
+  r record;
+  doomed text[][] := ARRAY[
+    ['addons','Restaurant owners can manage addons'],
+    ['hr_attendance','hr_attendance_all'],
+    ['hr_deduction_rules','hr_deduction_rules_all'],
+    ['hr_deductions','hr_deductions_all'],
+    ['hr_employees','hr_employees_all'],
+    ['hr_locations','hr_locations_all'],
+    ['hr_payroll','hr_payroll_all'],
+    ['hr_payroll_items','hr_payroll_items_all'],
+    ['hr_work_schedules','hr_work_schedules_all'],
+    ['inventory_items','inventory_items_select'],
+    ['inventory_items','inventory_items_insert'],
+    ['inventory_items','inventory_items_update'],
+    ['inventory_items','inventory_items_delete'],
+    ['inventory_transactions','inventory_transactions_select'],
+    ['inventory_transactions','inventory_transactions_insert'],
+    ['print_settings','Allow all authenticated operations'],
+    ['print_settings','Restaurants can insert own print settings'],
+    ['production_batches','production_batches_select'],
+    ['production_batches','production_batches_insert'],
+    ['production_batches','production_batches_update'],
+    ['production_batches','production_batches_delete'],
+    ['production_requests','production_requests_select'],
+    ['production_requests','production_requests_insert'],
+    ['production_requests','production_requests_update'],
+    ['production_requests','production_requests_delete'],
+    ['promotions','Users can view their restaurant promotions'],
+    ['promotions','Users can insert their restaurant promotions'],
+    ['promotions','Users can update their restaurant promotions'],
+    ['promotions','Users can delete their restaurant promotions'],
+    ['recipe_ingredients','recipe_ingredients_select'],
+    ['recipe_ingredients','recipe_ingredients_insert'],
+    ['recipe_ingredients','recipe_ingredients_update'],
+    ['recipe_ingredients','recipe_ingredients_delete'],
+    ['recipes','recipes_select'],
+    ['recipes','recipes_insert'],
+    ['recipes','recipes_update'],
+    ['recipes','recipes_delete'],
+    ['suppliers','suppliers_select'],
+    ['suppliers','suppliers_insert'],
+    ['suppliers','suppliers_update'],
+    ['suppliers','suppliers_delete'],
+    ['supplies','supplies_select'],
+    ['supplies','supplies_insert'],
+    ['supplies','supplies_update'],
+    ['supplies','supplies_delete']
+  ];
+  i int;
 BEGIN
-  FOR r IN
-    SELECT schemaname, tablename, policyname
-      FROM pg_policies
-     WHERE schemaname = 'public'
-       AND tablename IN ('restaurants','categories','items','customers','orders',
-                         'order_logs','notifications','tables','delivery_zones',
-                         'promotions','inventory_items')
-  LOOP
-    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
-    RAISE NOTICE 'dropped pre-existing policy %.% -> %', r.schemaname, r.tablename, r.policyname;
+  FOR i IN 1 .. array_length(doomed, 1) LOOP
+    IF to_regclass('public.' || doomed[i][1]) IS NOT NULL THEN
+      EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', doomed[i][2], doomed[i][1]);
+      RAISE NOTICE 'dropped open policy %.%', doomed[i][1], doomed[i][2];
+    END IF;
   END LOOP;
 END $$;
 
 
 -- ---------------------------------------------------------------------------
--- PART 1 — tables the public site never touches.
--- Staff only. Zero risk to the menu: nothing anonymous reads these.
+-- PART 2 — an owner/staff policy for every table, added alongside whatever is
+-- already there. Additive: policies are OR'ed, so this can only grant, and it
+-- fills the gaps where a table had only pci_access_* (branches) or nothing.
 -- ---------------------------------------------------------------------------
 
 DO $$
-DECLARE t text;
+DECLARE
+  t text;
+  by_restaurant text[] := ARRAY[
+    'categories','items','delivery_zones','promotions','addons','tables',
+    'inventory_items','inventory_transactions','recipes','suppliers','supplies',
+    'production_batches','production_requests','print_settings','customers','orders'
+  ];
+  by_tenant text[] := ARRAY[
+    'hr_employees','hr_payroll','hr_deductions','hr_deduction_rules',
+    'hr_attendance','hr_locations','hr_work_schedules','activity_logs'
+  ];
 BEGIN
-  FOREACH t IN ARRAY ARRAY['tables', 'inventory_items'] LOOP
+  FOREACH t IN ARRAY by_restaurant LOOP
     IF to_regclass('public.' || t) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
-    EXECUTE format('DROP POLICY IF EXISTS tenant_all ON public.%I', t);
+    EXECUTE format('DROP POLICY IF EXISTS owner_access ON public.%I', t);
     EXECUTE format($f$
-      CREATE POLICY tenant_all ON public.%I
-      FOR ALL TO authenticated
+      CREATE POLICY owner_access ON public.%I FOR ALL TO authenticated
       USING (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
       WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
     $f$, t);
   END LOOP;
-END $$;
 
-
--- ---------------------------------------------------------------------------
--- PART 2 — tables the public MENU reads.
---
--- anon gets SELECT and nothing else. This alone removes anonymous
--- INSERT/UPDATE/DELETE on the menu, which is open right now.
--- ---------------------------------------------------------------------------
-
-DO $$
-DECLARE t text;
-BEGIN
-  FOREACH t IN ARRAY ARRAY['categories', 'items', 'delivery_zones', 'promotions'] LOOP
+  FOREACH t IN ARRAY by_tenant LOOP
     IF to_regclass('public.' || t) IS NULL THEN CONTINUE; END IF;
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
-
-    EXECUTE format('DROP POLICY IF EXISTS public_read ON public.%I', t);
-    EXECUTE format('CREATE POLICY public_read ON public.%I FOR SELECT TO anon, authenticated USING (true)', t);
-
-    EXECUTE format('DROP POLICY IF EXISTS tenant_write ON public.%I', t);
+    EXECUTE format('DROP POLICY IF EXISTS owner_access ON public.%I', t);
     EXECUTE format($f$
-      CREATE POLICY tenant_write ON public.%I
-      FOR ALL TO authenticated
-      USING (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-      WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
+      CREATE POLICY owner_access ON public.%I FOR ALL TO authenticated
+      USING (tenant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
+      WITH CHECK (tenant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
     $f$, t);
   END LOOP;
 END $$;
 
--- items has no restaurant_id of its own; it inherits the tenant via category.
-DROP POLICY IF EXISTS tenant_write ON public.items;
-CREATE POLICY tenant_write ON public.items
-FOR ALL TO authenticated
-USING (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.categories c
-             WHERE c.id = items.category_id AND c.restaurant_id = public.get_my_tenant_id())
-)
-WITH CHECK (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.categories c
-             WHERE c.id = items.category_id AND c.restaurant_id = public.get_my_tenant_id())
-);
+-- items has no restaurant_id; it belongs to a tenant through its category.
+DROP POLICY IF EXISTS owner_access ON public.items;
+CREATE POLICY owner_access ON public.items FOR ALL TO authenticated
+USING (public.is_super_admin_safe() OR EXISTS (
+  SELECT 1 FROM public.categories c
+   WHERE c.id = items.category_id AND c.restaurant_id = public.get_my_tenant_id()))
+WITH CHECK (public.is_super_admin_safe() OR EXISTS (
+  SELECT 1 FROM public.categories c
+   WHERE c.id = items.category_id AND c.restaurant_id = public.get_my_tenant_id()));
+
+-- These three have no tenant column of their own; they hang off a parent row.
+ALTER TABLE public.order_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS owner_access ON public.order_logs;
+CREATE POLICY owner_access ON public.order_logs FOR ALL TO authenticated
+USING (public.is_super_admin_safe() OR EXISTS (
+  SELECT 1 FROM public.orders o
+   WHERE o.id = order_logs.order_id AND o.restaurant_id = public.get_my_tenant_id()));
+
+ALTER TABLE public.recipe_ingredients ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS owner_access ON public.recipe_ingredients;
+CREATE POLICY owner_access ON public.recipe_ingredients FOR ALL TO authenticated
+USING (public.is_super_admin_safe() OR EXISTS (
+  SELECT 1 FROM public.recipes r
+   WHERE r.id = recipe_ingredients.recipe_id AND r.restaurant_id = public.get_my_tenant_id()))
+WITH CHECK (public.is_super_admin_safe() OR EXISTS (
+  SELECT 1 FROM public.recipes r
+   WHERE r.id = recipe_ingredients.recipe_id AND r.restaurant_id = public.get_my_tenant_id()));
+
+ALTER TABLE public.hr_payroll_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS owner_access ON public.hr_payroll_items;
+CREATE POLICY owner_access ON public.hr_payroll_items FOR ALL TO authenticated
+USING (public.is_super_admin_safe() OR EXISTS (
+  SELECT 1 FROM public.hr_payroll p
+   WHERE p.id = hr_payroll_items.payroll_id AND p.tenant_id = public.get_my_tenant_id()));
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.restaurants   ENABLE ROW LEVEL SECURITY;
 
 
 -- ---------------------------------------------------------------------------
--- PART 3 — restaurants.
+-- PART 3 — the narrow anonymous access the public site genuinely needs.
 --
--- The menu needs anonymous SELECT here, but this table also holds secrets.
--- RLS is row-level only, so the secrets are handled with a column GRANT:
--- anon simply loses the privilege to select those columns at all.
+-- delivery_zones and promotions had NO {public} SELECT policy of their own,
+-- only the wide-open CRUD ones dropped above, so enabling RLS without these
+-- would blank the delivery zones and stop promotions applying at checkout.
 -- ---------------------------------------------------------------------------
 
-ALTER TABLE public.restaurants ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS public_read ON public.restaurants;
-CREATE POLICY public_read ON public.restaurants
+DROP POLICY IF EXISTS public_read ON public.delivery_zones;
+CREATE POLICY public_read ON public.delivery_zones
 FOR SELECT TO anon, authenticated USING (true);
 
-DROP POLICY IF EXISTS tenant_write ON public.restaurants;
-CREATE POLICY tenant_write ON public.restaurants
-FOR ALL TO authenticated
-USING (id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-WITH CHECK (id = public.get_my_tenant_id() OR public.is_super_admin_safe());
+DROP POLICY IF EXISTS public_read ON public.promotions;
+CREATE POLICY public_read ON public.promotions
+FOR SELECT TO anon, authenticated USING (true);
 
--- Nothing on the public menu selects these; the dashboard reads them as an
--- authenticated user, which is unaffected.
--- (desktop_permissions is deliberately absent from this list — the column does
--- not exist on this database, and naming it here would abort the script.)
-REVOKE SELECT (telegram_bot_token, telegram_chat_id, email)
-  ON public.restaurants FROM anon;
-
-
--- ---------------------------------------------------------------------------
--- PART 4 — write-only tables for the ordering flow.
---
--- The public checkout appends to these but has no reason to ever read them.
--- INSERT with no SELECT policy means a visitor can file a record and cannot
--- read anyone's, including their own.
--- ---------------------------------------------------------------------------
-
--- notifications carries restaurant_id directly.
-ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+-- Checkout appends to these and never reads them: INSERT with no SELECT policy
+-- means a visitor can file a record and cannot read anyone's, including theirs.
+DROP POLICY IF EXISTS public_insert ON public.orders;
+CREATE POLICY public_insert ON public.orders
+FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS public_insert ON public.notifications;
 CREATE POLICY public_insert ON public.notifications
 FOR INSERT TO anon, authenticated WITH CHECK (true);
 
-DROP POLICY IF EXISTS tenant_read ON public.notifications;
-CREATE POLICY tenant_read ON public.notifications
-FOR ALL TO authenticated
-USING (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
-
--- order_logs has no restaurant_id of its own (columns are order_id, action,
--- created_at), so the tenant is reached through the order it belongs to.
-ALTER TABLE public.order_logs ENABLE ROW LEVEL SECURITY;
-
 DROP POLICY IF EXISTS public_insert ON public.order_logs;
 CREATE POLICY public_insert ON public.order_logs
 FOR INSERT TO anon, authenticated WITH CHECK (true);
 
-DROP POLICY IF EXISTS tenant_read ON public.order_logs;
-CREATE POLICY tenant_read ON public.order_logs
-FOR ALL TO authenticated
-USING (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.orders o
-             WHERE o.id = order_logs.order_id
-               AND o.restaurant_id = public.get_my_tenant_id())
-)
-WITH CHECK (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.orders o
-             WHERE o.id = order_logs.order_id
-               AND o.restaurant_id = public.get_my_tenant_id())
-);
+
+-- ---------------------------------------------------------------------------
+-- PART 4 — secrets on restaurants.
+-- The menu needs anonymous SELECT on this table, but RLS is row-level only, so
+-- the secret columns are removed from anon with a column GRANT instead.
+-- (desktop_permissions is intentionally absent: no such column on this DB.)
+-- ---------------------------------------------------------------------------
+
+REVOKE SELECT (telegram_bot_token, telegram_chat_id, email)
+  ON public.restaurants FROM anon;
 
 
 -- ===========================================================================
--- PART 5 — customers and orders.  DO NOT RUN ON ITS OWN.
+-- PART 5 — order numbering + customers.  Needs the deployed app code.
 --
--- These two are the reason the whole thing was left open. src/lib/helpers/
--- submitOrder.ts runs the checkout in the BROWSER with the anon key, and it
--- needs to read before it writes:
+-- Checkout used to read customers by phone and scan orders for the highest
+-- number, both with the anon key. No policy can narrow "read customers" to
+-- "just the phone typed", so anon SELECT there kept all 304 customers
+-- readable. These functions do the read as the owner and return one value, so
+-- anon needs no read at all.
 --
---   customers : SELECT id,total_orders,total_spent WHERE restaurant_id + phone
---   orders    : SELECT max(order_number) WHERE restaurant_id
---
--- No RLS policy can express "only the row matching the phone you just typed",
--- so leaving anon with SELECT here would keep all 304 customers and 595 orders
--- readable — the exact hole we are closing.
---
--- The fix is to stop reading these tables from the browser at all. The two
--- SECURITY DEFINER functions below do the reads server-side and hand back only
--- the single value the checkout needs, so anon can be dropped to INSERT-only.
---
--- Apply this part ONLY together with the matching change to submitOrder.ts.
+-- Deploy the app first: the current code calls these and falls back to the old
+-- table queries when they are absent, but the OLD code reads the tables
+-- directly and this part removes that access.
 -- ===========================================================================
 
--- A per-restaurant counter that only ever moves forward.
---
--- MAX(order_number) + 1 cannot be used on its own, because the dashboard can
--- delete orders (dashboard/orders/page.tsx). Delete the most recent order and
--- MAX drops, so the next order is handed a number that has already been
--- printed on a receipt and sent over WhatsApp — and the unique index would not
--- object, because the row holding that number is gone.
---
--- Only the SECURITY DEFINER function below touches this table, and that runs
--- as the owner, so RLS with no policies at all is exactly right here.
 CREATE TABLE IF NOT EXISTS public.order_counters (
   restaurant_id uuid PRIMARY KEY REFERENCES public.restaurants(id) ON DELETE CASCADE,
   last_number   integer NOT NULL DEFAULT 0
 );
 ALTER TABLE public.order_counters ENABLE ROW LEVEL SECURITY;
 
--- Hands out a CONTIGUOUS BLOCK of numbers and returns the first one, so the
--- caller owns [first, first + p_count - 1] and nobody else can be given them.
---
--- One block reservation is what lets the offline POS be correct. A till
--- reserves, say, 100 numbers while it has a connection and then issues from
--- its own block with no network at all — two tablets in one restaurant can
--- never collide because they were never handed the same range.
---
--- The counter only moves forward, so a deleted order's number is retired: it
--- is never handed out again.
+-- Hands out a contiguous block and returns its first number, so a till can
+-- reserve 100 while online and issue them with no connection. The counter only
+-- moves forward, so a deleted order's number is retired, never reissued.
 CREATE OR REPLACE FUNCTION public.reserve_order_numbers(
-  p_restaurant_id uuid,
-  p_count integer DEFAULT 1
-)
+  p_restaurant_id uuid, p_count integer DEFAULT 1)
 RETURNS integer AS $$
-DECLARE
-  start_num integer;
-  first_num integer;
+DECLARE start_num integer; first_num integer;
 BEGIN
   IF p_count IS NULL OR p_count < 1 THEN p_count := 1; END IF;
   IF p_count > 1000 THEN p_count := 1000; END IF;
@@ -287,18 +303,11 @@ BEGIN
   SELECT starting_order_number INTO start_num
     FROM public.restaurants WHERE id = p_restaurant_id;
 
-  -- Seed from the orders already on file so an existing restaurant carries on
-  -- from where it is rather than restarting at 1.
   INSERT INTO public.order_counters (restaurant_id, last_number)
   SELECT p_restaurant_id, COALESCE(MAX(order_number), 0)
     FROM public.orders WHERE restaurant_id = p_restaurant_id
   ON CONFLICT (restaurant_id) DO NOTHING;
 
-  -- GREATEST against the live MAX lets the counter catch up if a number ever
-  -- arrives from somewhere it does not control (an import, a legacy POS sync)
-  -- while never letting a deletion drag it backwards.
-  -- UPDATE ... RETURNING takes a row lock, so concurrent callers serialise
-  -- here rather than all reading the same value.
   UPDATE public.order_counters c
      SET last_number = GREATEST(
            c.last_number,
@@ -313,28 +322,18 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- The website takes exactly one number per checkout.
 CREATE OR REPLACE FUNCTION public.next_order_number(p_restaurant_id uuid)
 RETURNS integer AS $$
   SELECT public.reserve_order_numbers(p_restaurant_id, 1);
 $$ LANGUAGE sql SECURITY DEFINER SET search_path = public;
 
--- Returns only the customer id — never the row, never anyone else's.
--- The running totals are incremented here rather than in the browser. The old
--- client-side read-then-write lost updates whenever two orders for the same
--- phone overlapped; "total_spent = total_spent + x" cannot.
--- No address parameter: this table has no address column. The delivery address
--- lives on the order row (orders.customer_address), which is where the old
--- code put it too.
+-- No address parameter: customers has no address column. The delivery address
+-- lives on orders.customer_address. Totals are incremented here rather than in
+-- the browser, which also closes the lost-update race in the old read-then-write.
 CREATE OR REPLACE FUNCTION public.upsert_order_customer(
-  p_restaurant_id uuid,
-  p_phone text,
-  p_name text,
-  p_order_total numeric DEFAULT 0
-)
+  p_restaurant_id uuid, p_phone text, p_name text, p_order_total numeric DEFAULT 0)
 RETURNS uuid AS $$
-DECLARE
-  cid uuid;
+DECLARE cid uuid;
 BEGIN
   SELECT id INTO cid FROM public.customers
    WHERE restaurant_id = p_restaurant_id AND phone = p_phone LIMIT 1;
@@ -342,8 +341,7 @@ BEGIN
   IF cid IS NULL THEN
     INSERT INTO public.customers
       (restaurant_id, phone, name, total_orders, total_spent, last_order_date)
-    VALUES
-      (p_restaurant_id, p_phone, p_name, 1, p_order_total, now())
+    VALUES (p_restaurant_id, p_phone, p_name, 1, p_order_total, now())
     RETURNING id INTO cid;
   ELSE
     UPDATE public.customers
@@ -353,7 +351,6 @@ BEGIN
            last_order_date = now()
      WHERE id = cid;
   END IF;
-
   RETURN cid;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -361,45 +358,41 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 REVOKE ALL ON FUNCTION public.reserve_order_numbers(uuid, integer) FROM public;
 REVOKE ALL ON FUNCTION public.next_order_number(uuid) FROM public;
 REVOKE ALL ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric) FROM public;
--- Only a signed-in till reserves blocks; the anonymous website never does.
 GRANT EXECUTE ON FUNCTION public.reserve_order_numbers(uuid, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.next_order_number(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.upsert_order_customer(uuid, text, text, numeric) TO anon, authenticated;
 
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS public_read   ON public.customers;   -- remove any blanket read
-DROP POLICY IF EXISTS tenant_all    ON public.customers;
-CREATE POLICY tenant_all ON public.customers
-FOR ALL TO authenticated
-USING (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
-
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS public_read    ON public.orders;
-DROP POLICY IF EXISTS public_insert  ON public.orders;
-DROP POLICY IF EXISTS tenant_all     ON public.orders;
-CREATE POLICY public_insert ON public.orders
-FOR INSERT TO anon, authenticated WITH CHECK (true);
-CREATE POLICY tenant_all ON public.orders
-FOR ALL TO authenticated
-USING (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe())
-WITH CHECK (restaurant_id = public.get_my_tenant_id() OR public.is_super_admin_safe());
+ALTER TABLE public.orders    ENABLE ROW LEVEL SECURITY;
 
 
 -- ---------------------------------------------------------------------------
--- VERIFY — every row should read rls_enabled = true and have policies > 0.
+-- VERIFY — every row should read rls_enabled = true with policies > 0, and the
+-- open_to_public column should be 0 everywhere except the menu tables that are
+-- meant to be readable (categories, items, restaurants, delivery_zones,
+-- promotions, addons) and the append-only ones (orders, notifications,
+-- order_logs).
 -- ---------------------------------------------------------------------------
 
 SELECT c.relname AS table_name,
        c.relrowsecurity AS rls_enabled,
-       count(p.polname) AS policies
+       count(p.polname) AS policies,
+       count(*) FILTER (
+         WHERE 'public' = ANY (SELECT rolname FROM pg_roles WHERE oid = ANY (p.polroles))
+            OR 'anon'   = ANY (SELECT rolname FROM pg_roles WHERE oid = ANY (p.polroles))
+       ) AS open_to_public
   FROM pg_class c
   JOIN pg_namespace n ON n.oid = c.relnamespace
   LEFT JOIN pg_policy p ON p.polrelid = c.oid
- WHERE n.nspname = 'public'
-   AND c.relkind = 'r'
+ WHERE n.nspname = 'public' AND c.relkind = 'r'
    AND c.relname IN ('restaurants','categories','items','customers','orders',
                      'order_logs','notifications','tables','delivery_zones',
-                     'promotions','inventory_items')
+                     'promotions','inventory_items','inventory_transactions',
+                     'recipes','recipe_ingredients','suppliers','supplies',
+                     'production_batches','production_requests','addons',
+                     'print_settings','activity_logs','order_counters',
+                     'hr_employees','hr_payroll','hr_payroll_items','hr_deductions',
+                     'hr_deduction_rules','hr_attendance','hr_locations',
+                     'hr_work_schedules')
  GROUP BY c.relname, c.relrowsecurity
  ORDER BY c.relrowsecurity, c.relname;
