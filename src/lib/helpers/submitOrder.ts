@@ -329,7 +329,14 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         // the public key. The function returns only the id.
         // It also increments the running totals server-side, which the old
         // read-then-write could lose when two orders overlapped.
-        const { data: customerId, error: customerError } = await supabase.rpc(
+        // Both RPCs are created by part 5 of rls_lockdown.sql. Until that has
+        // been run they do not exist, so each call falls back to the original
+        // table queries. This has to keep working in BOTH states: the code
+        // deploys before the SQL is applied, and the SQL closes anon's read
+        // access to these tables, which is what breaks the fallback — by which
+        // point the function exists and the fallback is never reached.
+        let customerId: string | undefined;
+        const { data: rpcCustomerId, error: customerRpcError } = await supabase.rpc(
             'upsert_order_customer',
             {
                 p_restaurant_id: restaurantId,
@@ -339,24 +346,73 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             }
         );
 
-        if (customerError) {
-            console.error('Customer upsert failed', customerError);
+        if (!customerRpcError && rpcCustomerId) {
+            customerId = rpcCustomerId as string;
+        } else {
+            const { data: existingCustomer } = await supabase
+                .from('customers')
+                .select('id, total_orders, total_spent')
+                .eq('restaurant_id', restaurantId)
+                .eq('phone', customerPhone)
+                .maybeSingle();
+
+            if (existingCustomer) {
+                customerId = existingCustomer.id;
+                await supabase.from('customers').update({
+                    name: customerName,
+                    total_orders: (existingCustomer.total_orders || 0) + 1,
+                    total_spent: (existingCustomer.total_spent || 0) + total,
+                    last_order_date: new Date().toISOString(),
+                }).eq('id', customerId);
+            } else {
+                const { data: newCustomer } = await supabase
+                    .from('customers')
+                    .insert({
+                        restaurant_id: restaurantId,
+                        name: customerName,
+                        phone: customerPhone,
+                        total_orders: 1,
+                        total_spent: total,
+                        last_order_date: new Date().toISOString(),
+                    })
+                    .select('id')
+                    .single();
+                customerId = newCustomer?.id;
+            }
         }
 
         // 1.5 Sequential order number for this restaurant.
-        // Also a function: scanning orders for max(order_number) required anon
-        // SELECT on orders, which exposed every order in the system.
-        const { data: rpcOrderNumber } = await supabase.rpc('next_order_number', {
-            p_restaurant_id: restaurantId,
-        });
+        // Same arrangement. Defaulting a missing value to 1 here would give
+        // every order in the system the number 1, so the fallback is not
+        // optional.
+        const { data: rpcOrderNumber, error: orderNumberRpcError } = await supabase.rpc(
+            'next_order_number',
+            { p_restaurant_id: restaurantId }
+        );
 
         const { data: restaurantData } = await supabase
             .from('restaurants')
-            .select('auto_approve_website_orders')
+            .select('auto_approve_website_orders, starting_order_number')
             .eq('id', restaurantId)
             .maybeSingle();
 
-        const nextOrderNumber: number = rpcOrderNumber ?? 1;
+        let nextOrderNumber: number;
+        if (!orderNumberRpcError && typeof rpcOrderNumber === 'number') {
+            nextOrderNumber = rpcOrderNumber;
+        } else {
+            const { data: maxOrderData } = await supabase
+                .from('orders')
+                .select('order_number')
+                .eq('restaurant_id', restaurantId)
+                .order('order_number', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            nextOrderNumber = (maxOrderData?.order_number || 0) + 1;
+            if (restaurantData?.starting_order_number && nextOrderNumber < restaurantData.starting_order_number) {
+                nextOrderNumber = restaurantData.starting_order_number;
+            }
+        }
 
         // 2. Insert Order
         const { data: order, error: orderError } = await supabase
