@@ -106,7 +106,15 @@ const Theme13RedMenu = dynamic(() => import("@/components/menu/Theme13RedMenu"))
 const Theme13EmeraldMenu = dynamic(() => import("@/components/menu/Theme13EmeraldMenu"));
 const Theme13SkyMenu = dynamic(() => import("@/components/menu/Theme13SkyMenu"));
 const Theme15SkyMenu = dynamic(() => import("@/components/menu/Theme15SkyMenu"));
-import { PaymentMethodEntry } from "@/app/dashboard/settings/page";
+// `import type` so the public menu never drags the dashboard settings page
+// (and its dependency tree) into this bundle just to borrow one type.
+import type { PaymentMethodEntry } from "@/app/dashboard/settings/page";
+
+// Single source of truth: this list used to be duplicated across a "fallback"
+// query, and the two copies were expected to differ. They had drifted back into
+// being identical, which made the fallback a guaranteed-identical retry.
+const RESTAURANT_COLUMNS =
+  "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images";
 
 type Item = {
   id: string;
@@ -254,34 +262,16 @@ function SmartMenuContent({
 
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.restaurantId);
 
-        let query1: any = supabase
-          .from("restaurants")
-          .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images");
+        let query: any = supabase.from("restaurants").select(RESTAURANT_COLUMNS);
 
         if (params.restaurantId === 'demo') {
-          query1 = query1.eq("is_marketing_account", true).limit(1).maybeSingle();
+          query = query.eq("is_marketing_account", true).limit(1).maybeSingle();
         } else {
-          query1 = query1.eq(isUUID ? "id" : "slug", params.restaurantId).single();
+          query = query.eq(isUUID ? "id" : "slug", params.restaurantId).single();
         }
 
-        const { data: d1, error: e1 } = await query1;
-
-        if (e1 || !d1) {
-          let query2: any = supabase
-            .from("restaurants")
-            .select("id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, address, currency, branches_enabled, branches, default_theme_mode, theme_colors, order_channel, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images");
-          
-          if (params.restaurantId === 'demo') {
-            query2 = query2.eq("is_marketing_account", true).limit(1).maybeSingle();
-          } else {
-            query2 = query2.eq(isUUID ? "id" : "slug", params.restaurantId).single();
-          }
-
-          const { data: d2 } = await query2;
-          restData = d2;
-        } else {
-          restData = d1;
-        }
+        const { data } = await query;
+        restData = data;
 
         if (!restData) {
           notFound();
