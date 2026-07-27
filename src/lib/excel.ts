@@ -125,7 +125,8 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     return resolve({ success: false, message: "File is empty." });
                 }
 
-                let itemsImported = 0;
+                let itemsCreated = 0;
+                let itemsUpdated = 0;
                 let recipesCreated = 0;
                 let materialsCreated = 0;
 
@@ -147,6 +148,27 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                         // language still matches the category already on file.
                         if (c.name_ar) catMap.set(c.name_ar.trim().toLowerCase(), c.id);
                         if (c.name_en) catMap.set(c.name_en.trim().toLowerCase(), c.id);
+                    });
+                }
+
+                // 1b. Fetch the items already on the menu, so re-uploading the
+                // same file updates them instead of creating a second copy of
+                // every dish. Keyed by category + name, registered under both
+                // language columns so a sheet in either language still matches.
+                const catIdsForLookup = existingCats?.map(c => c.id) ?? [];
+                type ExistingItem = { id: string; recipe_id: string | null };
+                const itemMap = new Map<string, ExistingItem>();
+
+                if (catIdsForLookup.length > 0) {
+                    const { data: existingItems } = await supabase
+                        .from('items')
+                        .select('id, category_id, title_ar, title_en, recipe_id')
+                        .in('category_id', catIdsForLookup);
+
+                    existingItems?.forEach(i => {
+                        const rec = { id: i.id, recipe_id: i.recipe_id };
+                        if (i.title_ar) itemMap.set(`${i.category_id}::${i.title_ar.trim().toLowerCase()}`, rec);
+                        if (i.title_en) itemMap.set(`${i.category_id}::${i.title_en.trim().toLowerCase()}`, rec);
                     });
                 }
 
@@ -193,9 +215,20 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                                 console.error(`Failed to create category ${catAr || catEn}:`, catError);
                             }
                         } else {
-                            // Update sort_order for existing category to match file order
+                            // Existing category: refresh what the sheet supplies
+                            // and keep the file's ordering. image_url and
+                            // thumbnail_url are deliberately not listed, so the
+                            // category artwork survives a re-upload.
+                            const catUpdate: Record<string, string | number> = {
+                                sort_order: catOrderCounter++,
+                            };
+                            if (catAr) catUpdate.name_ar = catAr;
+                            if (catEn) catUpdate.name_en = catEn;
+                            const emoji = String(row['Emoji'] || '').trim();
+                            if (emoji) catUpdate.emoji = emoji;
+
                             await supabase.from('categories')
-                                .update({ sort_order: catOrderCounter++ })
+                                .update(catUpdate)
                                 .eq('id', catMap.get(catKey));
                         }
                     }
@@ -219,6 +252,13 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     const catId = catMap.get(catKey);
                     if (!catId) continue;
 
+                    // Is this dish already on the menu? Registered under both
+                    // language columns, so an Arabic sheet matches an item that
+                    // was originally created from an English one and vice versa.
+                    const existing =
+                        itemMap.get(`${catId}::${itemName.trim().toLowerCase()}`) ??
+                        (itemEn ? itemMap.get(`${catId}::${itemEn.trim().toLowerCase()}`) : undefined);
+
                     const pricesStr = String(row['Prices'] || '0').split(',');
                     const sizesStr = String(row['Sizes'] || '').split(',');
                     const prices = pricesStr.map(p => parseFloat(p.trim()) || 0);
@@ -233,8 +273,10 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     let inventoryItemId = null;
                     let recipeId = null;
 
-                    // If a recipe is provided, build the whole inventory tree!
-                    if (recipeIngredientsStr) {
+                    // Only build the inventory tree for a dish that does not
+                    // already have one. Without this, every re-upload would
+                    // create another copy of the recipe and its raw materials.
+                    if (recipeIngredientsStr && !existing?.recipe_id) {
                         try {
                             // Format expected: "زبدة:0.5:kg, سكر:0.4:kg"
                             const ingredientsList = recipeIngredientsStr.split(',').map(s => s.trim()).filter(Boolean);
@@ -326,9 +368,12 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                         }
                     }
 
-                    // Insert the Menu Item
-                    const { error: itemError } = await supabase.from('items').insert({
-                        category_id: catId,
+                    // Everything the sheet is allowed to set. Note what is NOT
+                    // here: image_url and thumbnail_url. Leaving them out of the
+                    // update payload is what keeps the artwork after re-uploading
+                    // a corrected menu — the sheet has no image columns, so
+                    // including them would blank every photo.
+                    const itemFields = {
                         // Same fallback as the category: an English-only sheet
                         // still yields a usable title_ar, and every theme reads
                         // `title_en || title_ar`, so an English-only menu shows
@@ -349,23 +394,53 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                         is_spicy: String(row['Spicy'] || '').toLowerCase() === 'yes' || String(row['Spicy'] || '').toLowerCase() === 'نعم',
                         sell_by_weight: String(row['Sold By Weight'] || '').toLowerCase() === 'yes' || String(row['Sold By Weight'] || '').toLowerCase() === 'نعم',
                         weight_unit: String(row['الوحدة'] || 'كجم').trim() || null,
-                        is_available: true,
-                        inventory_item_id: inventoryItemId,
-                        recipe_id: recipeId,
                         sort_order: itemOrderCounter++
-                    });
+                    };
 
-                    if (!itemError) {
-                        itemsImported++;
+                    if (existing) {
+                        // is_available is left alone on purpose: an owner who
+                        // hid a dish should not have it silently switched back
+                        // on by re-uploading the price list.
+                        const update: Record<string, unknown> = { ...itemFields };
+                        if (recipeId) update.recipe_id = recipeId;
+                        if (inventoryItemId) update.inventory_item_id = inventoryItemId;
+
+                        const { error: updateError } = await supabase
+                            .from('items').update(update).eq('id', existing.id);
+
+                        if (!updateError) itemsUpdated++;
+                        else console.error(`Failed to update ${itemName}:`, updateError);
                     } else {
-                        console.error(`Failed to insert ${itemName}:`, itemError);
+                        const { data: created, error: itemError } = await supabase
+                            .from('items')
+                            .insert({
+                                ...itemFields,
+                                is_available: true,
+                                inventory_item_id: inventoryItemId,
+                                recipe_id: recipeId,
+                            })
+                            .select('id')
+                            .single();
+
+                        if (!itemError) {
+                            itemsCreated++;
+                            // Register it, so a file listing the same dish twice
+                            // updates the second time instead of inserting again.
+                            if (created) {
+                                const rec = { id: created.id, recipe_id: recipeId };
+                                itemMap.set(`${catId}::${itemName.trim().toLowerCase()}`, rec);
+                                if (itemEn) itemMap.set(`${catId}::${itemEn.trim().toLowerCase()}`, rec);
+                            }
+                        } else {
+                            console.error(`Failed to insert ${itemName}:`, itemError);
+                        }
                     }
                 }
 
                 // Reporting success after importing nothing is what made the
                 // English-only failure so hard to place: the file looked fine,
                 // the upload said it worked, and no items appeared.
-                if (itemsImported === 0) {
+                if (itemsCreated + itemsUpdated === 0) {
                     const headers = Object.keys(rows[0] || {}).join(' | ');
                     return resolve({
                         success: false,
@@ -376,10 +451,12 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     });
                 }
 
-                resolve({
-                    success: true,
-                    message: `تم رفع ${itemsImported} صنف بنجاح. ${recipesCreated > 0 ? `تم إنشاء ${recipesCreated} وصفة و ${materialsCreated} خامة جديدة تلقائياً.` : ''}`
-                });
+                const parts = [];
+                if (itemsCreated) parts.push(`تمت إضافة ${itemsCreated} صنف جديد`);
+                if (itemsUpdated) parts.push(`تم تحديث ${itemsUpdated} صنف موجود (مع الحفاظ على الصور)`);
+                if (recipesCreated) parts.push(`تم إنشاء ${recipesCreated} وصفة و ${materialsCreated} خامة`);
+
+                resolve({ success: true, message: parts.join('، ') + '.' });
             } catch (err: unknown) {
                 console.error("Import exception:", err);
                 const msg = err instanceof Error ? err.message : "Unknown error parsing Excel file.";
