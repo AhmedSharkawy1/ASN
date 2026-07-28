@@ -6,7 +6,7 @@ import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutGrid, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight } from 'lucide-react';
 import ASNFooter from '@/components/menu/ASNFooter';
 import UsaCheckoutModal from './UsaCheckoutModal';
 import UsaLandingPage from './UsaLandingPage';
@@ -135,7 +135,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     useEffect(() => {
         const handleScroll = () => {
             if (searchQuery || activeCategory === 'all') return;
-            const scrollPos = window.scrollY + 180;
+            const scrollPos = window.scrollY + 100;
             for (const cat of categories) {
                 const el = document.getElementById(`category-${cat.id}`);
                 if (el) {
@@ -159,7 +159,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
         } else {
             const el = document.getElementById(`category-${catId}`);
             if (el) {
-                const yOffset = -130;
+                const yOffset = -70;
                 const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
                 window.scrollTo({ top: y, behavior: 'smooth' });
             }
@@ -269,11 +269,12 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 />
             )}
 
-            {/* Header */}
-            <header className="sticky top-0 z-40 backdrop-blur-md border-b bg-slate-950/85 border-slate-800/80 shadow-md">
-                <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+            {/* Static Top Header (Not Sticky) */}
+            <header className="w-full bg-slate-950/90 border-b border-slate-800/80">
+                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
                     
-                    <div className="flex items-center gap-3 min-w-0">
+                    {/* Left: Back, Logo & Title */}
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                         {config.vicino_landing_enabled && (
                             <button
                                 onClick={() => setShowLanding(true)}
@@ -284,19 +285,20 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             </button>
                         )}
 
-                        {/* Restaurant Logo Image */}
+                        {/* Logo Image */}
                         {finalLogoSrc && (
                             <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-700/60 bg-white p-0.5 flex-shrink-0 shadow-sm">
                                 <OptimizedMenuImage src={finalLogoSrc} alt="Logo" className="w-full h-full object-contain" useOriginal={true} />
                             </div>
                         )}
 
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                             <h1 className="font-extrabold text-base md:text-lg text-slate-100 leading-tight truncate">{config.name}</h1>
                             <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest block leading-none">USA Theme Menu</span>
                         </div>
                     </div>
 
+                    {/* Right: Action Buttons */}
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
                             onClick={handleShare}
@@ -314,7 +316,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
                         </button>
 
-                        {/* Header Cart Button */}
+                        {/* Cart Button */}
                         {config.orders_enabled !== false && (
                             <button
                                 onClick={() => setIsCartDrawerOpen(true)}
@@ -333,7 +335,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 </div>
             </header>
 
-            {/* Search & Layout Selector */}
+            {/* Search Bar & View Mode Switcher */}
             <div className="max-w-5xl mx-auto w-full px-4 pt-4 pb-2 space-y-3">
                 
                 <div className="flex items-center gap-2">
@@ -386,8 +388,8 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
             </div>
 
-            {/* Sticky Category Bar */}
-            <div className="sticky top-[57px] z-30 backdrop-blur-md bg-slate-950/90 border-b border-slate-800/80 py-2.5 px-4 shadow-sm">
+            {/* ONLY Categories Bar is Sticky */}
+            <div className="sticky top-0 z-30 backdrop-blur-md bg-slate-950/95 border-b border-slate-800 py-2.5 px-4 shadow-lg">
                 <div className="max-w-5xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
                     <button
                         onClick={() => scrollToCategory('all')}
@@ -429,18 +431,18 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     </div>
                 ) : (
                     filteredCategories.map(category => (
-                        <section key={category.id} id={`category-${category.id}`} className="space-y-4 scroll-mt-36">
+                        <section key={category.id} id={`category-${category.id}`} className="space-y-4 scroll-mt-24">
                             
-                            {/* Category Header */}
-                            <div className="flex items-center gap-3 border-b pb-3 border-slate-800/80">
+                            {/* Left-Aligned Category Header */}
+                            <div className="flex items-center gap-3 border-b pb-3 border-slate-800/80 text-left">
                                 {category.image_url && (
                                     <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 flex-shrink-0">
                                         <OptimizedMenuImage src={category.image_url} alt={catName(category)} className="w-full h-full object-cover" />
                                     </div>
                                 )}
-                                <div>
-                                    <h2 className="font-extrabold text-xl text-slate-100 tracking-tight">{catName(category)}</h2>
-                                    <p className="text-xs text-slate-400">{category.items?.length || 0} delicious items available</p>
+                                <div className="text-left">
+                                    <h2 className="font-extrabold text-xl text-slate-100 tracking-tight text-left">{catName(category)}</h2>
+                                    <p className="text-xs text-slate-400 text-left">{category.items?.length || 0} delicious items available</p>
                                 </div>
                             </div>
 
@@ -492,13 +494,13 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
                                             {/* Item Info */}
                                             <div className={`p-3.5 md:p-4 flex-1 flex flex-col justify-between ${viewMode === 'list' ? 'p-0' : ''}`}>
-                                                <div className="space-y-1">
-                                                    <h3 className="font-bold text-sm md:text-base text-slate-100 group-hover:text-rose-400 transition-colors line-clamp-1">
+                                                <div className="space-y-1 text-left">
+                                                    <h3 className="font-bold text-sm md:text-base text-slate-100 group-hover:text-rose-400 transition-colors line-clamp-1 text-left">
                                                         {itemName(item)}
                                                     </h3>
 
                                                     {itemDesc(item) && (
-                                                        <p className="text-[11px] md:text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                                                        <p className="text-[11px] md:text-xs text-slate-400 line-clamp-2 leading-relaxed text-left">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
@@ -581,7 +583,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                     )}
                                 </div>
 
-                                {/* Sizes Selector (Centered for 1 size, beautiful grid for multiple) */}
+                                {/* Sizes Selector */}
                                 {selectedItem.item.prices && selectedItem.item.prices.length > 0 && (
                                     <div className="space-y-2 text-center">
                                         <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block text-center">
