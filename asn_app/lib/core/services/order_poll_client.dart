@@ -105,6 +105,14 @@ class OrderPollClient {
     }
   }
 
+  /// A token the caller can authenticate a socket with, refreshing first if
+  /// none is stored. Returns null when nobody is signed in.
+  Future<String?> currentAccessToken() async {
+    final token = await _storage.read(key: accessTokenKey);
+    if (token != null && token.isNotEmpty) return token;
+    return refreshAccessToken();
+  }
+
   /// Exchanges the stored refresh token for a new session, persisting both
   /// tokens so the app and the background isolate stay in sync.
   Future<String?> refreshAccessToken() async {

@@ -8,14 +8,16 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/core/services/order_alert_builder.dart';
 import 'package:asn_app/core/services/order_poll_client.dart';
+import 'package:asn_app/core/services/order_realtime_listener.dart';
 
 /// Keeps order alerts arriving when the app is closed — without Firebase.
 ///
 /// Android will not wake a fully-closed app for a message unless it comes
 /// through a push service (FCM) or the app runs a foreground service. Since
 /// this platform is Supabase-only, we run a foreground service whose isolate
-/// polls the `orders` table every 20s over plain authenticated REST and
-/// raises a local notification for anything new.
+/// holds a Realtime subscription on the `orders` table — so an alert fires the
+/// instant the row lands — with a periodic REST poll behind it as the
+/// guarantee that nothing is ever missed if the socket drops.
 ///
 /// Auth deliberately uses raw REST (not the Supabase SDK) inside the isolate:
 /// two isolates sharing the SDK fight over refresh-token rotation, which can
@@ -33,6 +35,9 @@ class BackgroundOrderService {
 
   /// Last notification the service attempted to show (diagnostics).
   static const String lastNotifiedKey = 'bg_last_notified';
+  /// Realtime state (subscribed / error), readable by the UI for diagnostics.
+  static const String realtimeStatusKey = 'bg_realtime_status';
+
   /// Realtime is the instant path; this poll is the guarantee behind it.
   /// 45s keeps alerts prompt while roughly halving the wake-ups a 20s cycle
   /// cost the battery over a long shift.
@@ -126,14 +131,39 @@ class _OrderListenerHandler extends TaskHandler {
   String? _restaurantId;
   DateTime _lastSeenUtc = DateTime.now().toUtc();
   final Set<String> _notified = {};
+  OrderRealtimeListener? _realtime;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     await _initNotifications();
     _restaurantId = await _resolveRestaurantId();
     AppLogger.info('BgOrders started (restaurant=${_restaurantId ?? "?"})', name: 'BgOrders');
-    // Do a first check right away instead of waiting a full interval.
+    // Do a first check right away instead of waiting a full interval. This
+    // also opens the Realtime socket once the restaurant id is known.
     await onRepeatEvent(timestamp);
+  }
+
+  /// Opens the instant path, or reconnects it after a drop. Called from the
+  /// poll cycle so the socket is re-established without its own timer, and so
+  /// it always uses the token the poll just validated.
+  Future<void> _syncRealtime(String accessToken) async {
+    final listener = _realtime ??= OrderRealtimeListener(
+      restaurantId: _restaurantId!,
+      onInsert: _handleOrderRow,
+    );
+    if (listener.isConnected) {
+      await listener.refreshAuth(accessToken);
+    } else {
+      await listener.start(accessToken);
+    }
+    try {
+      await FlutterForegroundTask.saveData(
+        key: BackgroundOrderService.realtimeStatusKey,
+        value: listener.status,
+      );
+    } catch (e) {
+      AppLogger.warning('Could not publish realtime status: $e', name: 'BgOrders');
+    }
   }
 
   /// Android can auto-restart this service (boot / package replace) *before*
@@ -189,8 +219,9 @@ class _OrderListenerHandler extends TaskHandler {
       return;
     }
 
-    final result = await const OrderPollClient()
-        .fetchNewOrders(restaurantId: _restaurantId!, sinceUtc: _lastSeenUtc);
+    const client = OrderPollClient();
+    final result = await client.fetchNewOrders(
+        restaurantId: _restaurantId!, sinceUtc: _lastSeenUtc);
     await _saveStatus(result);
 
     if (!result.ok) {
@@ -200,9 +231,12 @@ class _OrderListenerHandler extends TaskHandler {
 
     for (final row in result.rows) {
       await _handleOrderRow(row);
-      final created = DateTime.tryParse(row['created_at'] as String? ?? '')?.toUtc();
-      if (created != null && created.isAfter(_lastSeenUtc)) _lastSeenUtc = created;
     }
+
+    // Reuse the cycle that just proved the token works to open or re-auth the
+    // instant path, so Realtime needs no timer of its own.
+    final token = await client.currentAccessToken();
+    if (token != null && token.isNotEmpty) await _syncRealtime(token);
   }
 
   /// Publishes the last poll outcome so the in-app diagnostics screen can
@@ -218,12 +252,23 @@ class _OrderListenerHandler extends TaskHandler {
     }
   }
 
+  /// The single place an order becomes a notification, shared by the Realtime
+  /// push and the poll — so a row that arrives on both paths alerts once.
   Future<void> _handleOrderRow(Map<String, dynamic> order) async {
+    // Advance before the early returns: a draft that never alerts must still
+    // move the watermark, or every poll refetches it forever.
+    final created = DateTime.tryParse(order['created_at'] as String? ?? '')?.toUtc();
+    if (created != null && created.isAfter(_lastSeenUtc)) _lastSeenUtc = created;
+
     final orderId = order['id']?.toString() ?? '';
     if (orderId.isEmpty || _notified.contains(orderId)) return;
     final alert = OrderAlert.fromOrder(order);
     if (alert == null) return; // draft / invalid
     _notified.add(orderId);
+    // Bounded: a long shift must not grow this set without limit.
+    if (_notified.length > 500) {
+      _notified.remove(_notified.first);
+    }
 
     // Awaited: a fire-and-forget platform call can be dropped when the
     // isolate goes idle right after the poll.
@@ -247,6 +292,8 @@ class _OrderListenerHandler extends TaskHandler {
 
   @override
   Future<void> onDestroy(DateTime timestamp, bool isTimeout) async {
+    await _realtime?.stop();
+    _realtime = null;
     AppLogger.info('BgOrders stopped', name: 'BgOrders');
   }
 }

@@ -37,6 +37,7 @@ class _NotificationDiagnosticsScreenState
   bool _checking = false;
   String? _bgRestaurantId;
   String? _lastNotified;
+  String? _realtimeStatus;
   String _testResult = '';
 
   @override
@@ -68,6 +69,16 @@ class _NotificationDiagnosticsScreenState
       // Diagnostics only: a missing value renders as "unknown".
     }
 
+    // Tells apart "Realtime is down so alerts lag until the next poll" from a
+    // healthy instant path — the difference the user actually feels.
+    String? realtimeStatus;
+    try {
+      realtimeStatus = await FlutterForegroundTask.getData<String>(
+          key: BackgroundOrderService.realtimeStatusKey);
+    } catch (_) {
+      // Diagnostics only: a missing value renders as "unknown".
+    }
+
     final bgRid = await BackgroundOrderService.storedRestaurantId();
     String? lastNotified;
     try {
@@ -85,6 +96,7 @@ class _NotificationDiagnosticsScreenState
       _lastBackgroundPoll = lastPoll;
       _bgRestaurantId = bgRid;
       _lastNotified = lastNotified;
+      _realtimeStatus = realtimeStatus;
       _loading = false;
     });
   }
@@ -215,6 +227,13 @@ class _NotificationDiagnosticsScreenState
                       ? _bgRestaurantId!
                       : 'غير محفوظ — سجّل الدخول مرة أخرى',
                   _bgRestaurantId?.isNotEmpty == true,
+                ),
+                _statusTile(
+                  'الاتصال الفوري (Realtime)',
+                  _realtimeStatus?.isNotEmpty == true
+                      ? _realtimeStatus!
+                      : 'غير معروف',
+                  _realtimeStatus == 'subscribed',
                 ),
                 const Divider(height: AppSpacing.xl),
 
