@@ -49,6 +49,10 @@ export function getAswanColors(config: any, isDark: boolean): AswanThemeColors {
         primaryColor = tc.primary || '#8b5cf6';
         bgBody = isDark ? '#170b2e' : '#f5f3ff';
         bgCard = isDark ? '#261546' : '#ffffff';
+    } else if (t === 'aswan-gold') {
+        primaryColor = tc.primary || '#d4af37';
+        bgBody = isDark ? '#1a1405' : '#fffdf0';
+        bgCard = isDark ? '#2a200a' : '#ffffff';
     } else if (t === 'aswan-dark') {
         primaryColor = tc.primary || '#f59e0b';
         bgBody = '#05070a';

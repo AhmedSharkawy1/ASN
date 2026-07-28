@@ -1,246 +1,259 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Palette, Check, Save, Loader2, ExternalLink } from "lucide-react";
+import { Palette, Check, Save, Loader2, ExternalLink, Filter } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
 import { motion } from "framer-motion";
 
 const THEMES = [
+    // ===== ASWAN Theme Family (100% English & Custom Backgrounds) =====
     {
-        id: "pizzapasta",
-        name_ar: "بيتزا باستا (ديناميكية)",
-        name_en: "Pizza Pasta (Dynamic)",
-        description_ar: "تصميم عصري بخلفية داكنة، يدعم تغيير الألوان والخطوط.",
-        description_en: "Modern dark design, supports custom colors and fonts.",
-        preview_color: "#3b82f6", // Blue
+        id: "aswan",
+        family: "aswan",
+        name_ar: "أسوان الأنيق (بيج غامق)",
+        name_en: "ASWAN Original (Dark Beige)",
+        description_ar: "تصميم أسوان الإنجليزي باللون البيج الغامق الفاخر مع دعم خلفيات الصور.",
+        description_en: "Luxury English design with dark beige accent and custom background images.",
+        preview_color: "#B89B72",
     },
     {
-        id: "atyab-oriental",
-        name_ar: "أطياب مودرن (أورينتال)",
-        name_en: "Atyab Modern (Oriental)",
-        description_ar: "تصميم احترافي عالي التباين، بلمسات ذهبية وتأثيرات زجاجية وأنيميشن.",
-        description_en: "High-contrast professional design with gold accents and glassmorphism.",
-        preview_color: "#eab308", // Gold/Yellow
+        id: "aswan-cyan",
+        family: "aswan",
+        name_ar: "أسوان (سماوي Cyan)",
+        name_en: "ASWAN (Cyan Blue)",
+        description_ar: "ثيم أسوان الإنجليزي بلون أزرق سماوي منعش.",
+        description_en: "ASWAN English theme with vibrant cyan accent.",
+        preview_color: "#06b6d4",
     },
     {
-        id: "bab-alhara",
-        name_ar: "باب الحارة (سوري كلاسيك)",
-        name_en: "Bab Al-Hara (Syrian Classic)",
-        description_ar: "تصميم كلاسيكي بطابع سوري، بانر خلفية كبير، بطاقات صور بشبكة، وتنقل دائري.",
-        description_en: "Classic Syrian-style design with hero banner, grid cards with images, and circular nav.",
-        preview_color: "#e31e24", // Red
+        id: "aswan-emerald",
+        family: "aswan",
+        name_ar: "أسوان (زمردي Emerald)",
+        name_en: "ASWAN (Emerald Green)",
+        description_ar: "ثيم أسوان الإنجليزي بلون أخضر زمردي فاخر.",
+        description_en: "ASWAN English theme with emerald green accent.",
+        preview_color: "#10b981",
     },
     {
-        id: "atyab-etoile",
-        name_ar: "أطياب إتوال (إيكومرس)",
-        name_en: "Atyab Etoile (E-commerce)",
-        description_ar: "تصميم أنيق بلمسات ذهبية، شريط أخبار متحرك، بانر سلايدر، بطاقات صور متجر، وشريط تنقل زجاجي.",
-        description_en: "Elegant gold-accented design with marquee bar, banner slider, e-commerce grid cards, and glass bottom nav.",
-        preview_color: "#B89038", // Gold
+        id: "aswan-red",
+        family: "aswan",
+        name_ar: "أسوان (ياقوتي Red)",
+        name_en: "ASWAN (Crimson Red)",
+        description_ar: "ثيم أسوان الإنجليزي بلون أحمر ياقوتي جذاب.",
+        description_en: "ASWAN English theme with crimson red accent.",
+        preview_color: "#ef4444",
     },
     {
-        id: "theme5",
-        name_ar: "ثيم 5 المتميز",
-        name_en: "Premium Theme 5",
-        description_ar: "تصميم مميز جديد بخاصية تقسيم العناصر وسلة تسوق متطورة.",
-        description_en: "New premium design with item categories and advanced shopping cart.",
-        preview_color: "#ea580c", // Orange
+        id: "aswan-purple",
+        family: "aswan",
+        name_ar: "أسوان (بنفسجي Purple)",
+        name_en: "ASWAN (Royal Purple)",
+        description_ar: "ثيم أسوان الإنجليزي بلون بنفسجي ملكي راقي.",
+        description_en: "ASWAN English theme with royal purple accent.",
+        preview_color: "#8b5cf6",
     },
     {
-        id: "theme6",
-        name_ar: "فراندة (لون تيل)",
-        name_en: "Veranda (Teal Theme)",
-        description_ar: "تصميم عصري باللون التيل، مع لوجو متوسط وأيقونات تواصل سريعة وشريط سلة عائم.",
-        description_en: "Modern teal design with centered logo, quick contact icons, and a floating cart bar.",
-        preview_color: "#40a798", // Teal
+        id: "aswan-gold",
+        family: "aswan",
+        name_ar: "أسوان (ذهبي Gold)",
+        name_en: "ASWAN (Royal Gold)",
+        description_ar: "ثيم أسوان الإنجليزي بلون ذهبي ملكي براق.",
+        description_en: "ASWAN English theme with royal gold accent.",
+        preview_color: "#d4af37",
     },
     {
-        id: "theme7",
-        name_ar: "حليم (ثيم داكن ذهبي)",
-        name_en: "Haleem (Dark Gold Theme)",
-        description_ar: "تصميم داكن فاخر بلمسات ذهبية، تنقل مزدوج بتابات نصية ودوائر صور، بطاقات أصناف بتصميم عصري.",
-        description_en: "Premium dark theme with gold accents, dual navigation (text tabs + circular images), and modern item cards.",
-        preview_color: "#c9a84c", // Gold
+        id: "aswan-dark",
+        family: "aswan",
+        name_ar: "أسوان (داكن عالي التباين)",
+        name_en: "ASWAN (Dark Amber)",
+        description_ar: "ثيم أسوان الإنجليزي بوضع داكن مع لمسات ذهبية برتقالية.",
+        description_en: "ASWAN English theme with dark background and gold-amber accents.",
+        preview_color: "#f59e0b",
     },
 
+    // ===== USA Theme Family (100% English) =====
     {
-        id: "theme9",
-        name_ar: "ديابلو (أحمر عصري)",
-        name_en: "Diablo (Red Modern)",
-        description_ar: "تصميم عصري باللون الأحمر وتأثيرات حيوية مع سلة منزلقة وقائمة متقدمة.",
-        description_en: "Modern red design with vibrant effects, slide-in cart, and advanced menu drawer.",
-        preview_color: "#e74c3c", // Diablo Red
+        id: "usa",
+        family: "usa",
+        name_ar: "USA الأمريكي (أحمر)",
+        name_en: "USA Original (Crimson Red)",
+        description_ar: "تصميم أمريكي فاخر باللغة الإنجليزية بالكامل شامل صفحة الهبوط والسلة بدون أي كلمة عربية.",
+        description_en: "Premium 100% English design including landing page, menu, cart, and checkout.",
+        preview_color: "#dc2626",
     },
     {
-        id: "theme10",
-        name_ar: "الوهج البرتقالي (ثيم 10)",
-        name_en: "Orange Glow (Theme 10)",
-        description_ar: "تصميم مشرق باللون البرتقالي مع تمرير أفقي للأقسام وسلة جانبية سلسة.",
-        description_en: "Bright orange design with scrollable categories and a smooth side-sliding cart.",
-        preview_color: "#ea580c", // Orange Glow
-    },
-    {
-        id: "theme11",
-        name_ar: "عصري أفقي (لوكس 11)",
-        name_en: "Horizontal Modern (Luxe 11)",
-        description_ar: "تصميم حديث (Luxe) يعتمد على عرض الأصناف والأحجام المختلفة بشكل أفقي أنيق ومريح للعين.",
-        description_en: "Modern Luxe design displaying multiple sizes and horizontal item layouts for high readability.",
-        preview_color: "#e54750", // Luxe Red
-    },
-    {
-        id: "theme12",
-        name_ar: "العام الجديد (ثيم 12)",
-        name_en: "New Year (Theme 12)",
-        description_ar: "تصميم عصري بأنيميشن RGB، سلايدر مميز، وأقسام دائرية قابلة للتمرير مع قائمة سلة فريدة.",
-        description_en: "Modern design with RGB animations, a unique slider, scrollable circular categories, and a distinct cart menu.",
-        preview_color: "#6c63ff", // Purple
-    },
-    {
-        id: "theme13",
-        name_ar: "لوكس الذهبي (ثيم 13)",
-        name_en: "Luxe Gold (Theme 13)",
-        description_ar: "تصميم فاخر بلمسات ذهبية، صور متحركة، وطريقة عرض جذابة للمنتجات.",
-        description_en: "Luxurious design with gold touches, animated images, and attractive product display.",
-        preview_color: "#d4af37", // Gold
-    },
-    {
-        id: "theme16",
-        name_ar: "كلاسيك أحمر (ثيم 16)",
-        name_en: "Classic Red (Theme 16)",
-        description_ar: "تصميم أنيق بلون أحمر جذاب، واجهة نظيفة مع دعم ممتاز لعرض الإضافات والسلال.",
-        description_en: "Elegant red design, clean interface with excellent support for extras and cart.",
-        preview_color: "#af0a13", // Crimson
-    },
-    {
-        id: "theme17",
-        name_ar: "لوشا (الأحمر المميز - ثيم 17)",
-        name_en: "Lusha (Premium Red - Theme 17)",
-        description_ar: "تصميم جذاب باللون الأحمر يعتمد على عرض الفئات بنظام التمرير (Coverflow) وشكل كروت المنتجات الجانبي الحديث.",
-        description_en: "Attractive red design featuring Coverflow categories swiper and modern side-layout product cards.",
-        preview_color: "#d32f2f", // Lusha Red
-    },
-    {
-        id: "theme18",
-        name_ar: "نكهة الشام (ثيم 18)",
-        name_en: "Sham Flavor (Theme 18)",
-        description_ar: "تصميم عصري سريع جداً",
-        description_en: "Very fast modern design",
-        preview_color: "#16a34a",
-    },
-    {
-        id: "theme19",
-        name_ar: "منيو مصر المطابق",
-        name_en: "MenuMasr Replica",
-        description_ar: "تصميم مستوحى من منيو مصر الشهير، سريع وعملي.",
-        description_en: "Design inspired by the famous MenuMasr, fast and practical.",
+        id: "usa-navy",
+        family: "usa",
+        name_ar: "USA (أزرق نيفي Navy)",
+        name_en: "USA (Navy Blue)",
+        description_ar: "ثيم USA الأمريكي باللون الأزرق النيفي الملوكي.",
+        description_en: "USA English theme with royal navy blue accent.",
         preview_color: "#2563eb",
     },
     {
+        id: "usa-emerald",
+        family: "usa",
+        name_ar: "USA (زمردي Emerald)",
+        name_en: "USA (Emerald Green)",
+        description_ar: "ثيم USA الأمريكي باللون الأخضر الزمردي.",
+        description_en: "USA English theme with emerald green accent.",
+        preview_color: "#059669",
+    },
+    {
+        id: "usa-gold",
+        family: "usa",
+        name_ar: "USA (ذهبي Gold)",
+        name_en: "USA (Luxe Gold)",
+        description_ar: "ثيم USA الأمريكي باللون الذهبي الدافئ.",
+        description_en: "USA English theme with luxe gold accent.",
+        preview_color: "#d97706",
+    },
+    {
+        id: "usa-dark",
+        family: "usa",
+        name_ar: "USA (داكن Midnight)",
+        name_en: "USA (Midnight Rose)",
+        description_ar: "ثيم USA الأمريكي بوضع داكن مع لمسات وردية ياقوتية.",
+        description_en: "USA English theme with dark midnight background.",
+        preview_color: "#e11d48",
+    },
+
+    // ===== Vicino Family =====
+    {
         id: "vicino",
+        family: "vicino",
         name_ar: "ثيم فيتشينو المذهل",
-        name_en: "Theme Vicino",
+        name_en: "Theme Vicino (Metallic Gold)",
         description_ar: "تصميم رائع بصفحة هبوط تحتوي على فيديو ونبذة عن المكان.",
         description_en: "Amazing design with a landing page containing video and about section.",
-        preview_color: "#B8860B", // Metallic Gold
+        preview_color: "#B8860B",
     },
-    {
-        id: "aswan",
-        name_ar: "ثيم أسوان (إنجليزي بالكامل مع خلفيات)",
-        name_en: "ASWAN Theme (100% English & Custom Backgrounds)",
-        description_ar: "تصميم أسوان الأنيق باللغة الإنجليزية بالكامل مع إمكانية وضع خلفية صورة للوضع الفاتح وأخرى للوضع الداكن والسلة بالكامل بالإنجليزية.",
-        description_en: "Luxury English design based on Vicino with light/dark custom background image support, 100% English menu & checkout.",
-        preview_color: "#B89B72", // Dark Beige
-    },
-    {
-        id: "usa",
-        name_ar: "ثيم USA الأمريكي (إنجليزي بالكامل)",
-        name_en: "USA Theme (100% English)",
-        description_ar: "تصميم أمريكي فاخر باللغة الإنجليزية بالكامل شامل صفحة الهبوط والسلة وإتمام الطلب بدون أي كلمة عربية.",
-        description_en: "Premium 100% English design including landing page, menu, cart, and checkout with zero Arabic text.",
-        preview_color: "#dc2626", // USA Crimson Red
-    },
-    {
-        id: "lamet-zaman",
-        name_ar: "ثيم لمة زمان",
-        name_en: "Lamet Zaman Theme",
-        description_ar: "تصميم عصري مميز بأقسام دائرية وشريط تنقل مثبت وعرض دبابيس وسلة ممتازة.",
-        description_en: "Modern design with circular category navigation, sticky header, and full order support.",
-        preview_color: "#f97316", // Orange
-    },
+
     // ===== PizzaPasta Color Variations =====
-    { id: "pizzapasta-cyan", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#0891b2" },
-{ id: "pizzapasta-red", name_ar: "بيتزا باستا (أحمر)", name_en: "Pizza Pasta (Red)", description_ar: "نفس التصميم PizzaPasta بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#dc2626" },
-    { id: "pizzapasta-emerald", name_ar: "PizzaPasta (Emerald)", name_en: "PizzaPasta (Emerald)", description_ar: "نفس التصميم PizzaPasta بلون Emerald", description_en: "PizzaPasta design with Emerald color", preview_color: "#059669" },
-    { id: "pizzapasta-sky", name_ar: "PizzaPasta (Sky)", name_en: "PizzaPasta (Sky)", description_ar: "نفس التصميم PizzaPasta بلون Sky", description_en: "PizzaPasta design with Sky color", preview_color: "#0284c7" },
-    // ===== AtyabOriental Color Variations =====
-    { id: "atyab-oriental-cyan", name_ar: "أطياب أورينتال (Cyan)", name_en: "AtyabOriental (Cyan)", description_ar: "نفس التصميم أطياب أورينتال بلون Cyan", description_en: "AtyabOriental design with Cyan color", preview_color: "#0891b2" },
-{ id: "atyab-oriental-red", name_ar: "أطياب أورينتال (أحمر)", name_en: "Atyab Oriental (Red)", description_ar: "نفس التصميم أطياب أورينتال بلون Cyan", description_en: "AtyabOriental design with Cyan color", preview_color: "#dc2626" },
-    { id: "atyab-oriental-emerald", name_ar: "أطياب أورينتال (Emerald)", name_en: "AtyabOriental (Emerald)", description_ar: "نفس التصميم أطياب أورينتال بلون Emerald", description_en: "AtyabOriental design with Emerald color", preview_color: "#059669" },
-    { id: "atyab-oriental-sky", name_ar: "أطياب أورينتال (Sky)", name_en: "AtyabOriental (Sky)", description_ar: "نفس التصميم أطياب أورينتال بلون Sky", description_en: "AtyabOriental design with Sky color", preview_color: "#0284c7" },
+    { id: "pizzapasta", family: "pizzapasta", name_ar: "بيتزا باستا (أزرق)", name_en: "Pizza Pasta (Blue)", description_ar: "تصميم عصري بخلفية داكنة.", description_en: "Modern dark design.", preview_color: "#3b82f6" },
+    { id: "pizzapasta-cyan", family: "pizzapasta", name_ar: "PizzaPasta (Cyan)", name_en: "PizzaPasta (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "PizzaPasta design with Cyan color", preview_color: "#0891b2" },
+    { id: "pizzapasta-red", family: "pizzapasta", name_ar: "PizzaPasta (Red)", name_en: "PizzaPasta (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "PizzaPasta design with Red color", preview_color: "#dc2626" },
+    { id: "pizzapasta-emerald", family: "pizzapasta", name_ar: "PizzaPasta (Emerald)", name_en: "PizzaPasta (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "PizzaPasta design with Emerald color", preview_color: "#059669" },
+    { id: "pizzapasta-sky", family: "pizzapasta", name_ar: "PizzaPasta (Sky)", name_en: "PizzaPasta (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "PizzaPasta design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Atyab Oriental Color Variations =====
+    { id: "atyab-oriental", family: "atyab-oriental", name_ar: "أطياب أورينتال (ذهبي)", name_en: "Atyab Oriental (Gold)", description_ar: "تصميم احترافي بلمسات ذهبية.", description_en: "High-contrast professional design.", preview_color: "#eab308" },
+    { id: "atyab-oriental-cyan", family: "atyab-oriental", name_ar: "أطياب أورينتال (Cyan)", name_en: "AtyabOriental (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "AtyabOriental design with Cyan color", preview_color: "#0891b2" },
+    { id: "atyab-oriental-red", family: "atyab-oriental", name_ar: "أطياب أورينتال (أحمر)", name_en: "Atyab Oriental (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "AtyabOriental design with Red color", preview_color: "#dc2626" },
+    { id: "atyab-oriental-emerald", family: "atyab-oriental", name_ar: "أطياب أورينتال (Emerald)", name_en: "AtyabOriental (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "AtyabOriental design with Emerald color", preview_color: "#059669" },
+    { id: "atyab-oriental-sky", family: "atyab-oriental", name_ar: "أطياب أورينتال (Sky)", name_en: "AtyabOriental (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "AtyabOriental design with Sky color", preview_color: "#0284c7" },
+
     // ===== BabAlHara Color Variations =====
-    { id: "bab-alhara-cyan", name_ar: "باب الحارة (Cyan)", name_en: "BabAlHara (Cyan)", description_ar: "نفس التصميم باب الحارة بلون Cyan", description_en: "BabAlHara design with Cyan color", preview_color: "#0891b2" },
-{ id: "bab-alhara-red", name_ar: "باب الحارة (أحمر)", name_en: "Bab Al Hara (Red)", description_ar: "نفس التصميم باب الحارة بلون Cyan", description_en: "BabAlHara design with Cyan color", preview_color: "#dc2626" },
-    { id: "bab-alhara-emerald", name_ar: "باب الحارة (Emerald)", name_en: "BabAlHara (Emerald)", description_ar: "نفس التصميم باب الحارة بلون Emerald", description_en: "BabAlHara design with Emerald color", preview_color: "#059669" },
-    { id: "bab-alhara-sky", name_ar: "باب الحارة (Sky)", name_en: "BabAlHara (Sky)", description_ar: "نفس التصميم باب الحارة بلون Sky", description_en: "BabAlHara design with Sky color", preview_color: "#0284c7" },
+    { id: "bab-alhara", family: "bab-alhara", name_ar: "باب الحارة (أحمر)", name_en: "Bab Al-Hara (Red)", description_ar: "تصميم كلاسيكي بطابع سوري.", description_en: "Classic Syrian-style design.", preview_color: "#e31e24" },
+    { id: "bab-alhara-cyan", family: "bab-alhara", name_ar: "باب الحارة (Cyan)", name_en: "BabAlHara (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "BabAlHara design with Cyan color", preview_color: "#0891b2" },
+    { id: "bab-alhara-red", family: "bab-alhara", name_ar: "باب الحارة (أحمر داكن)", name_en: "Bab Al Hara (Dark Red)", description_ar: "نفس التصميم بلون أحمر داكن", description_en: "BabAlHara design with Dark Red color", preview_color: "#dc2626" },
+    { id: "bab-alhara-emerald", family: "bab-alhara", name_ar: "باب الحارة (Emerald)", name_en: "BabAlHara (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "BabAlHara design with Emerald color", preview_color: "#059669" },
+    { id: "bab-alhara-sky", family: "bab-alhara", name_ar: "باب الحارة (Sky)", name_en: "BabAlHara (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "BabAlHara design with Sky color", preview_color: "#0284c7" },
+
     // ===== AtyabEtoile Color Variations =====
-    { id: "atyab-etoile-cyan", name_ar: "أطياب إتوال (Cyan)", name_en: "AtyabEtoile (Cyan)", description_ar: "نفس التصميم أطياب إتوال بلون Cyan", description_en: "AtyabEtoile design with Cyan color", preview_color: "#0891b2" },
-{ id: "atyab-etoile-red", name_ar: "أطياب ايتوال (أحمر)", name_en: "Atyab Etoile (Red)", description_ar: "نفس التصميم أطياب إتوال بلون Cyan", description_en: "AtyabEtoile design with Cyan color", preview_color: "#dc2626" },
-    { id: "atyab-etoile-emerald", name_ar: "أطياب إتوال (Emerald)", name_en: "AtyabEtoile (Emerald)", description_ar: "نفس التصميم أطياب إتوال بلون Emerald", description_en: "AtyabEtoile design with Emerald color", preview_color: "#059669" },
-    { id: "atyab-etoile-sky", name_ar: "أطياب إتوال (Sky)", name_en: "AtyabEtoile (Sky)", description_ar: "نفس التصميم أطياب إتوال بلون Sky", description_en: "AtyabEtoile design with Sky color", preview_color: "#0284c7" },
-    // ===== Theme 5-15 Color Variations =====
-    { id: "theme5-cyan", name_ar: "ثيم 5 (Cyan)", name_en: "Theme5 (Cyan)", description_ar: "نفس التصميم ثيم 5 بلون Cyan", description_en: "Theme5 design with Cyan color", preview_color: "#0891b2" },
-{ id: "theme5-red", name_ar: "ثيم 5 (أحمر)", name_en: "Theme 5 (Red)", description_ar: "نفس التصميم ثيم 5 بلون Cyan", description_en: "Theme5 design with Cyan color", preview_color: "#dc2626" },
-    { id: "theme5-emerald", name_ar: "ثيم 5 (Emerald)", name_en: "Theme5 (Emerald)", description_ar: "نفس التصميم ثيم 5 بلون Emerald", description_en: "Theme5 design with Emerald color", preview_color: "#059669" },
-    { id: "theme5-sky", name_ar: "ثيم 5 (Sky)", name_en: "Theme5 (Sky)", description_ar: "نفس التصميم ثيم 5 بلون Sky", description_en: "Theme5 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme6-cyan", name_ar: "ثيم 6 (Cyan)", name_en: "Theme6 (Cyan)", description_ar: "نفس التصميم ثيم 6 بلون Cyan", description_en: "Theme6 design with Cyan color", preview_color: "#0891b2" },
-{ id: "theme6-red", name_ar: "ثيم 6 (أحمر)", name_en: "Theme 6 (Red)", description_ar: "نفس التصميم ثيم 6 بلون Cyan", description_en: "Theme6 design with Cyan color", preview_color: "#dc2626" },
-    { id: "theme6-emerald", name_ar: "ثيم 6 (Emerald)", name_en: "Theme6 (Emerald)", description_ar: "نفس التصميم ثيم 6 بلون Emerald", description_en: "Theme6 design with Emerald color", preview_color: "#059669" },
-    { id: "theme6-sky", name_ar: "ثيم 6 (Sky)", name_en: "Theme6 (Sky)", description_ar: "نفس التصميم ثيم 6 بلون Sky", description_en: "Theme6 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme7-cyan", name_ar: "ثيم 7 (Cyan)", name_en: "Theme7 (Cyan)", description_ar: "نفس التصميم ثيم 7 بلون Cyan", description_en: "Theme7 design with Cyan color", preview_color: "#0891b2" },
-{ id: "theme7-red", name_ar: "ثيم 7 (أحمر)", name_en: "Theme 7 (Red)", description_ar: "نفس التصميم ثيم 7 بلون Cyan", description_en: "Theme7 design with Cyan color", preview_color: "#dc2626" },
-    { id: "theme7-emerald", name_ar: "ثيم 7 (Emerald)", name_en: "Theme7 (Emerald)", description_ar: "نفس التصميم ثيم 7 بلون Emerald", description_en: "Theme7 design with Emerald color", preview_color: "#059669" },
-    { id: "theme7-sky", name_ar: "ثيم 7 (Sky)", name_en: "Theme7 (Sky)", description_ar: "نفس التصميم ثيم 7 بلون Sky", description_en: "Theme7 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme9-cyan", name_ar: "ثيم 9 (Cyan)", name_en: "Theme9 (Cyan)", description_ar: "نفس التصميم ثيم 9 بلون Cyan", description_en: "Theme9 design with Cyan color", preview_color: "#0891b2" },
-{ id: "theme9-red", name_ar: "ثيم 9 (Red)", name_en: "Theme9 (Red)", description_ar: "نفس التصميم ثيم 9 بلون Red", description_en: "Theme9 design with Red color", preview_color: "#dc2626" },
-    { id: "theme9-emerald", name_ar: "ثيم 9 (Emerald)", name_en: "Theme9 (Emerald)", description_ar: "نفس التصميم ثيم 9 بلون Emerald", description_en: "Theme9 design with Emerald color", preview_color: "#059669" },
-    { id: "theme9-sky", name_ar: "ثيم 9 (Sky)", name_en: "Theme9 (Sky)", description_ar: "نفس التصميم ثيم 9 بلون Sky", description_en: "Theme9 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme9-pink", name_ar: "ثيم 9 (بمبى وردي)", name_en: "Theme9 (Pink)", description_ar: "نفس التصميم ثيم 9 بلون بمبى وردي", description_en: "Theme9 design with Pink color", preview_color: "#ec4899" },
-    { id: "theme9-gold", name_ar: "ثيم 9 (ذهبي)", name_en: "Theme9 (Gold)", description_ar: "نفس التصميم ثيم 9 بلون ذهبي مع إخفاء الحجم إذا لم يكن مكتوباً", description_en: "Theme9 design with Gold color, hides size if not labeled", preview_color: "#D4A017" },
-    { id: "theme10-cyan", name_ar: "ثيم 10 (Cyan)", name_en: "Theme10 (Cyan)", description_ar: "نفس التصميم ثيم 10 بلون Cyan", description_en: "Theme10 design with Cyan color", preview_color: "#0891b2" },
-{ id: "theme10-red", name_ar: "ثيم 10 (أحمر)", name_en: "Theme 10 (Red)", description_ar: "نفس التصميم ثيم 10 بلون Cyan", description_en: "Theme10 design with Cyan color", preview_color: "#dc2626" },
-    { id: "theme10-emerald", name_ar: "ثيم 10 (Emerald)", name_en: "Theme10 (Emerald)", description_ar: "نفس التصميم ثيم 10 بلون Emerald", description_en: "Theme10 design with Emerald color", preview_color: "#059669" },
-    { id: "theme10-sky", name_ar: "ثيم 10 (Sky)", name_en: "Theme10 (Sky)", description_ar: "نفس التصميم ثيم 10 بلون Sky", description_en: "Theme10 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme11-cyan", name_ar: "ثيم 11 (Cyan)", name_en: "Theme11 (Cyan)", description_ar: "نفس التصميم ثيم 11 بلون Cyan", description_en: "Theme11 design with Cyan color", preview_color: "#0891b2" },
-{ id: "theme11-red", name_ar: "ثيم 11 (أحمر)", name_en: "Theme 11 (Red)", description_ar: "نفس التصميم ثيم 11 بلون Cyan", description_en: "Theme11 design with Cyan color", preview_color: "#dc2626" },
-    { id: "theme11-emerald", name_ar: "ثيم 11 (Emerald)", name_en: "Theme11 (Emerald)", description_ar: "نفس التصميم ثيم 11 بلون Emerald", description_en: "Theme11 design with Emerald color", preview_color: "#059669" },
-    { id: "theme11-sky", name_ar: "ثيم 11 (Sky)", name_en: "Theme11 (Sky)", description_ar: "نفس التصميم ثيم 11 بلون Sky", description_en: "Theme11 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme13-cyan", name_ar: "ثيم 13 (Cyan)", name_en: "Theme13 (Cyan)", description_ar: "نفس التصميم ثيم 13 بلون Cyan", description_en: "Theme13 design with Cyan color", preview_color: "#0891b2" },
-{ id: "theme13-red", name_ar: "ثيم 13 (أحمر)", name_en: "Theme 13 (Red)", description_ar: "نفس التصميم ثيم 13 بلون Cyan", description_en: "Theme13 design with Cyan color", preview_color: "#dc2626" },
-    { id: "theme13-emerald", name_ar: "ثيم 13 (Emerald)", name_en: "Theme13 (Emerald)", description_ar: "نفس التصميم ثيم 13 بلون Emerald", description_en: "Theme13 design with Emerald color", preview_color: "#059669" },
-    { id: "theme13-sky", name_ar: "ثيم 13 (Sky)", name_en: "Theme13 (Sky)", description_ar: "نفس التصميم ثيم 13 بلون Sky", description_en: "Theme13 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme15-sky", name_ar: "ثيم 15 (Sky)", name_en: "Theme15 (Sky)", description_ar: "نفس التصميم ثيم 15 بلون Sky", description_en: "Theme15 design with Sky color", preview_color: "#0284c7" },
-    // ===== Theme 18 Color Variations =====
-    { id: "theme18-red", name_ar: "ثيم 18 (أحمر)", name_en: "Theme18 (Red)", description_ar: "نفس التصميم ثيم 18 بلون أحمر", description_en: "Theme18 design with Red color", preview_color: "#ef4444" },
-    { id: "theme19-red", name_ar: "ثيم 19 (أحمر)", name_en: "Theme19 (Red)", description_ar: "نفس التصميم ثيم 19 بلون أحمر", description_en: "Theme19 design with Red color", preview_color: "#ef4444" },
-    { id: "theme18-cyan", name_ar: "ثيم 18 (Cyan)", name_en: "Theme18 (Cyan)", description_ar: "نفس التصميم ثيم 18 بلون Cyan", description_en: "Theme18 design with Cyan color", preview_color: "#0891b2" },
-    { id: "theme19-cyan", name_ar: "ثيم 19 (Cyan)", name_en: "Theme19 (Cyan)", description_ar: "نفس التصميم ثيم 19 بلون Cyan", description_en: "Theme19 design with Cyan color", preview_color: "#0891b2" },
-    { id: "theme18-emerald", name_ar: "ثيم 18 (Emerald)", name_en: "Theme18 (Emerald)", description_ar: "نفس التصميم ثيم 18 بلون Emerald", description_en: "Theme18 design with Emerald color", preview_color: "#059669" },
-    { id: "theme19-emerald", name_ar: "ثيم 19 (Emerald)", name_en: "Theme19 (Emerald)", description_ar: "نفس التصميم ثيم 19 بلون Emerald", description_en: "Theme19 design with Emerald color", preview_color: "#059669" },
-    { id: "theme18-sky", name_ar: "ثيم 18 (Sky)", name_en: "Theme18 (Sky)", description_ar: "نفس التصميم ثيم 18 بلون Sky", description_en: "Theme18 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme19-sky", name_ar: "ثيم 19 (Sky)", name_en: "Theme19 (Sky)", description_ar: "نفس التصميم ثيم 19 بلون Sky", description_en: "Theme19 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme18-pink", name_ar: "ثيم 18 (وردي)", name_en: "Theme18 (Pink)", description_ar: "نفس التصميم ثيم 18 بلون وردي", description_en: "Theme18 design with Pink color", preview_color: "#ec4899" },
-    { id: "theme19-pink", name_ar: "ثيم 19 (وردي)", name_en: "Theme19 (Pink)", description_ar: "نفس التصميم ثيم 19 بلون وردي", description_en: "Theme19 design with Pink color", preview_color: "#ec4899" },
-    { id: "theme18-gold", name_ar: "ثيم 18 (ذهبي)", name_en: "Theme18 (Gold)", description_ar: "نفس التصميم ثيم 18 بلون ذهبي", description_en: "Theme18 design with Gold color", preview_color: "#D4A017" },
-    // ===== Theme 22 (Theme 19 with Add to Cart text button) =====
-    { id: "theme22", name_ar: "ثيم 22 (زر إضافة للسلة)", name_en: "Theme 22 (Add to Cart Button)", description_ar: "نفس ثيم 19 بزر إضافة إلى السلة صريح بدلاً من علامة +", description_en: "Same as Theme 19 with explicit Add to Cart button instead of + icon", preview_color: "#f97316" },
-    { id: "theme22-red", name_ar: "ثيم 22 (أحمر)", name_en: "Theme 22 (Red)", description_ar: "نفس ثيم 22 بلون أحمر", description_en: "Theme 22 design with Red color", preview_color: "#ef4444" },
-    { id: "theme22-cyan", name_ar: "ثيم 22 (Cyan)", name_en: "Theme 22 (Cyan)", description_ar: "نفس ثيم 22 بلون Cyan", description_en: "Theme 22 design with Cyan color", preview_color: "#0891b2" },
-    { id: "theme22-emerald", name_ar: "ثيم 22 (Emerald)", name_en: "Theme 22 (Emerald)", description_ar: "نفس ثيم 22 بلون Emerald", description_en: "Theme 22 design with Emerald color", preview_color: "#059669" },
-    { id: "theme22-sky", name_ar: "ثيم 22 (Sky)", name_en: "Theme 22 (Sky)", description_ar: "نفس ثيم 22 بلون Sky", description_en: "Theme 22 design with Sky color", preview_color: "#0284c7" },
-    { id: "theme22-pink", name_ar: "ثيم 22 (وردي)", name_en: "Theme 22 (Pink)", description_ar: "نفس ثيم 22 بلون وردي", description_en: "Theme 22 design with Pink color", preview_color: "#ec4899" },
-    { id: "theme22-gold", name_ar: "ثيم 22 (ذهبي)", name_en: "Theme 22 (Gold)", description_ar: "نفس ثيم 22 بلون ذهبي", description_en: "Theme 22 design with Gold color", preview_color: "#D4A017" },
+    { id: "atyab-etoile", family: "atyab-etoile", name_ar: "أطياب إتوال (ذهبي)", name_en: "Atyab Etoile (Gold)", description_ar: "تصميم أنيق بشريط متحرك والسلة.", description_en: "Elegant design with marquee bar.", preview_color: "#B89038" },
+    { id: "atyab-etoile-cyan", family: "atyab-etoile", name_ar: "أطياب إتوال (Cyan)", name_en: "AtyabEtoile (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "AtyabEtoile design with Cyan color", preview_color: "#0891b2" },
+    { id: "atyab-etoile-red", family: "atyab-etoile", name_ar: "أطياب إتوال (أحمر)", name_en: "Atyab Etoile (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "AtyabEtoile design with Red color", preview_color: "#dc2626" },
+    { id: "atyab-etoile-emerald", family: "atyab-etoile", name_ar: "أطياب إتوال (Emerald)", name_en: "AtyabEtoile (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "AtyabEtoile design with Emerald color", preview_color: "#059669" },
+    { id: "atyab-etoile-sky", family: "atyab-etoile", name_ar: "أطياب إتوال (Sky)", name_en: "AtyabEtoile (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "AtyabEtoile design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Theme 5 Color Variations =====
+    { id: "theme5", family: "theme5", name_ar: "ثيم 5 (برتقالي)", name_en: "Theme 5 (Orange)", description_ar: "تصميم مميز جديد بخاصية تقسيم العناصر.", description_en: "New premium design with item categories.", preview_color: "#ea580c" },
+    { id: "theme5-cyan", family: "theme5", name_ar: "ثيم 5 (Cyan)", name_en: "Theme5 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme5 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme5-red", family: "theme5", name_ar: "ثيم 5 (أحمر)", name_en: "Theme 5 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme5 design with Red color", preview_color: "#dc2626" },
+    { id: "theme5-emerald", family: "theme5", name_ar: "ثيم 5 (Emerald)", name_en: "Theme5 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme5 design with Emerald color", preview_color: "#059669" },
+    { id: "theme5-sky", family: "theme5", name_ar: "ثيم 5 (Sky)", name_en: "Theme5 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme5 design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Theme 6 Color Variations =====
+    { id: "theme6", family: "theme6", name_ar: "فراندة (تيل)", name_en: "Veranda (Teal)", description_ar: "تصميم عصري باللون التيل مع سلة عائمة.", description_en: "Modern teal design with floating cart.", preview_color: "#40a798" },
+    { id: "theme6-cyan", family: "theme6", name_ar: "ثيم 6 (Cyan)", name_en: "Theme6 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme6 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme6-red", family: "theme6", name_ar: "ثيم 6 (أحمر)", name_en: "Theme 6 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme6 design with Red color", preview_color: "#dc2626" },
+    { id: "theme6-emerald", family: "theme6", name_ar: "ثيم 6 (Emerald)", name_en: "Theme6 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme6 design with Emerald color", preview_color: "#059669" },
+    { id: "theme6-sky", family: "theme6", name_ar: "ثيم 6 (Sky)", name_en: "Theme6 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme6 design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Theme 7 Color Variations =====
+    { id: "theme7", family: "theme7", name_ar: "حليم (داكن ذهبي)", name_en: "Haleem (Dark Gold)", description_ar: "تصميم داكن فاخر بلمسات ذهبية.", description_en: "Premium dark theme with gold accents.", preview_color: "#c9a84c" },
+    { id: "theme7-cyan", family: "theme7", name_ar: "ثيم 7 (Cyan)", name_en: "Theme7 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme7 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme7-red", family: "theme7", name_ar: "ثيم 7 (أحمر)", name_en: "Theme 7 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme7 design with Red color", preview_color: "#dc2626" },
+    { id: "theme7-emerald", family: "theme7", name_ar: "ثيم 7 (Emerald)", name_en: "Theme7 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme7 design with Emerald color", preview_color: "#059669" },
+    { id: "theme7-sky", family: "theme7", name_ar: "ثيم 7 (Sky)", name_en: "Theme7 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme7 design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Theme 9 Color Variations =====
+    { id: "theme9", family: "theme9", name_ar: "ديابلو (أحمر)", name_en: "Diablo (Red)", description_ar: "تصميم عصري باللون الأحمر وتأثيرات حيوية.", description_en: "Modern red design with vibrant effects.", preview_color: "#e74c3c" },
+    { id: "theme9-cyan", family: "theme9", name_ar: "ثيم 9 (Cyan)", name_en: "Theme9 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme9 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme9-red", family: "theme9", name_ar: "ثيم 9 (أحمر داكن)", name_en: "Theme9 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme9 design with Red color", preview_color: "#dc2626" },
+    { id: "theme9-emerald", family: "theme9", name_ar: "ثيم 9 (Emerald)", name_en: "Theme9 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme9 design with Emerald color", preview_color: "#059669" },
+    { id: "theme9-sky", family: "theme9", name_ar: "ثيم 9 (Sky)", name_en: "Theme9 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme9 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme9-pink", family: "theme9", name_ar: "ثيم 9 (وردي)", name_en: "Theme9 (Pink)", description_ar: "نفس التصميم بلون وردي", description_en: "Theme9 design with Pink color", preview_color: "#ec4899" },
+    { id: "theme9-gold", family: "theme9", name_ar: "ثيم 9 (ذهبي)", name_en: "Theme9 (Gold)", description_ar: "نفس التصميم بلون ذهبي", description_en: "Theme9 design with Gold color", preview_color: "#D4A017" },
+
+    // ===== Theme 10 Color Variations =====
+    { id: "theme10", family: "theme10", name_ar: "الوهج البرتقالي", name_en: "Orange Glow", description_ar: "تصميم مشرق باللون البرتقالي.", description_en: "Bright orange design with scrollable categories.", preview_color: "#ea580c" },
+    { id: "theme10-cyan", family: "theme10", name_ar: "ثيم 10 (Cyan)", name_en: "Theme10 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme10 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme10-red", family: "theme10", name_ar: "ثيم 10 (أحمر)", name_en: "Theme 10 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme10 design with Red color", preview_color: "#dc2626" },
+    { id: "theme10-emerald", family: "theme10", name_ar: "ثيم 10 (Emerald)", name_en: "Theme10 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme10 design with Emerald color", preview_color: "#059669" },
+    { id: "theme10-sky", family: "theme10", name_ar: "ثيم 10 (Sky)", name_en: "Theme10 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme10 design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Theme 11 Color Variations =====
+    { id: "theme11", family: "theme11", name_ar: "عصري أفقي (أحمر)", name_en: "Luxe 11 (Red)", description_ar: "عرض الأصناف والأحجام بشكل أفقي أنيق.", description_en: "Modern Luxe design displaying multiple sizes.", preview_color: "#e54750" },
+    { id: "theme11-cyan", family: "theme11", name_ar: "ثيم 11 (Cyan)", name_en: "Theme11 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme11 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme11-red", family: "theme11", name_ar: "ثيم 11 (أحمر)", name_en: "Theme 11 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme11 design with Red color", preview_color: "#dc2626" },
+    { id: "theme11-emerald", family: "theme11", name_ar: "ثيم 11 (Emerald)", name_en: "Theme11 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme11 design with Emerald color", preview_color: "#059669" },
+    { id: "theme11-sky", family: "theme11", name_ar: "ثيم 11 (Sky)", name_en: "Theme11 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme11 design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Theme 13 Color Variations =====
+    { id: "theme13", family: "theme13", name_ar: "لوكس الذهبي (ذهبي)", name_en: "Luxe Gold (Gold)", description_ar: "تصميم فاخر بلمسات ذهبية.", description_en: "Luxurious design with gold touches.", preview_color: "#d4af37" },
+    { id: "theme13-cyan", family: "theme13", name_ar: "ثيم 13 (Cyan)", name_en: "Theme13 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme13 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme13-red", family: "theme13", name_ar: "ثيم 13 (أحمر)", name_en: "Theme 13 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme13 design with Red color", preview_color: "#dc2626" },
+    { id: "theme13-emerald", family: "theme13", name_ar: "ثيم 13 (Emerald)", name_en: "Theme13 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme13 design with Emerald color", preview_color: "#059669" },
+    { id: "theme13-sky", family: "theme13", name_ar: "ثيم 13 (Sky)", name_en: "Theme13 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme13 design with Sky color", preview_color: "#0284c7" },
+
+    // ===== Theme 18 & 19 & 22 Color Variations =====
+    { id: "theme18", family: "theme18", name_ar: "نكهة الشام (أخضر)", name_en: "Sham Flavor (Green)", description_ar: "تصميم عصري سريع جداً.", description_en: "Very fast modern design.", preview_color: "#16a34a" },
+    { id: "theme18-red", family: "theme18", name_ar: "ثيم 18 (أحمر)", name_en: "Theme18 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme18 design with Red color", preview_color: "#ef4444" },
+    { id: "theme18-cyan", family: "theme18", name_ar: "ثيم 18 (Cyan)", name_en: "Theme18 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme18 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme18-emerald", family: "theme18", name_ar: "ثيم 18 (Emerald)", name_en: "Theme18 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme18 design with Emerald color", preview_color: "#059669" },
+    { id: "theme18-sky", family: "theme18", name_ar: "ثيم 18 (Sky)", name_en: "Theme18 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme18 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme18-pink", family: "theme18", name_ar: "ثيم 18 (وردي)", name_en: "Theme18 (Pink)", description_ar: "نفس التصميم بلون وردي", description_en: "Theme18 design with Pink color", preview_color: "#ec4899" },
+    { id: "theme18-gold", family: "theme18", name_ar: "ثيم 18 (ذهبي)", name_en: "Theme18 (Gold)", description_ar: "نفس التصميم بلون ذهبي", description_en: "Theme18 design with Gold color", preview_color: "#D4A017" },
+
+    { id: "theme19", family: "theme19", name_ar: "منيو مصر (أزرق)", name_en: "MenuMasr (Blue)", description_ar: "تصميم مستوحى من منيو مصر الشهير.", description_en: "Design inspired by MenuMasr.", preview_color: "#2563eb" },
+    { id: "theme19-red", family: "theme19", name_ar: "ثيم 19 (أحمر)", name_en: "Theme19 (Red)", description_ar: "نفس التصميم بلون أحمر", description_en: "Theme19 design with Red color", preview_color: "#ef4444" },
+    { id: "theme19-cyan", family: "theme19", name_ar: "ثيم 19 (Cyan)", name_en: "Theme19 (Cyan)", description_ar: "نفس التصميم بلون Cyan", description_en: "Theme19 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme19-emerald", family: "theme19", name_ar: "ثيم 19 (Emerald)", name_en: "Theme19 (Emerald)", description_ar: "نفس التصميم بلون Emerald", description_en: "Theme19 design with Emerald color", preview_color: "#059669" },
+    { id: "theme19-sky", family: "theme19", name_ar: "ثيم 19 (Sky)", name_en: "Theme19 (Sky)", description_ar: "نفس التصميم بلون Sky", description_en: "Theme19 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme19-pink", family: "theme19", name_ar: "ثيم 19 (وردي)", name_en: "Theme19 (Pink)", description_ar: "نفس التصميم بلون وردي", description_en: "Theme19 design with Pink color", preview_color: "#ec4899" },
+
+    { id: "theme22", family: "theme22", name_ar: "ثيم 22 (برتقالي)", name_en: "Theme 22 (Orange)", description_ar: "نفس ثيم 19 بزر إضافة إلى السلة صريح.", description_en: "Explicit Add to Cart button layout.", preview_color: "#f97316" },
+    { id: "theme22-red", family: "theme22", name_ar: "ثيم 22 (أحمر)", name_en: "Theme 22 (Red)", description_ar: "نفس ثيم 22 بلون أحمر", description_en: "Theme 22 design with Red color", preview_color: "#ef4444" },
+    { id: "theme22-cyan", family: "theme22", name_ar: "ثيم 22 (Cyan)", name_en: "Theme 22 (Cyan)", description_ar: "نفس ثيم 22 بلون Cyan", description_en: "Theme 22 design with Cyan color", preview_color: "#0891b2" },
+    { id: "theme22-emerald", family: "theme22", name_ar: "ثيم 22 (Emerald)", name_en: "Theme 22 (Emerald)", description_ar: "نفس ثيم 22 بلون Emerald", description_en: "Theme 22 design with Emerald color", preview_color: "#059669" },
+    { id: "theme22-sky", family: "theme22", name_ar: "ثيم 22 (Sky)", name_en: "Theme 22 (Sky)", description_ar: "نفس ثيم 22 بلون Sky", description_en: "Theme 22 design with Sky color", preview_color: "#0284c7" },
+    { id: "theme22-pink", family: "theme22", name_ar: "ثيم 22 (وردي)", name_en: "Theme 22 (Pink)", description_ar: "نفس ثيم 22 بلون وردي", description_en: "Theme 22 design with Pink color", preview_color: "#ec4899" },
+    { id: "theme22-gold", family: "theme22", name_ar: "ثيم 22 (ذهبي)", name_en: "Theme 22 (Gold)", description_ar: "نفس ثيم 22 بلون ذهبي", description_en: "Theme 22 design with Gold color", preview_color: "#D4A017" },
+
+    // ===== Other Standalone Themes =====
+    { id: "theme12", family: "theme12", name_ar: "العام الجديد (ثيم 12)", name_en: "New Year (Theme 12)", description_ar: "أنيميشن RGB وسلايدر مميز.", description_en: "RGB animations and unique slider.", preview_color: "#6c63ff" },
+    { id: "theme16", family: "theme16", name_ar: "كلاسيك أحمر (ثيم 16)", name_en: "Classic Red (Theme 16)", description_ar: "واجهة نظيفة بلون أحمر جذاب.", description_en: "Clean interface with red accent.", preview_color: "#af0a13" },
+    { id: "theme17", family: "theme17", name_ar: "لوشا (ثيم 17)", name_en: "Lusha (Theme 17)", description_ar: "عرض الفئات بنظام التمرير Coverflow.", description_en: "Coverflow categories swiper.", preview_color: "#d32f2f" },
+    { id: "lamet-zaman", family: "lamet-zaman", name_ar: "ثيم لمة زمان", name_en: "Lamet Zaman", description_ar: "أقسام دائرية وشريط تنقل مثبت.", description_en: "Circular category nav with sticky header.", preview_color: "#f97316" },
+];
+
+const FAMILIES = [
+    { id: 'all', name_ar: 'الكل', name_en: 'All Themes' },
+    { id: 'aswan', name_ar: 'ثيم أسوان (إنجليزي 100%)', name_en: 'ASWAN (100% EN)' },
+    { id: 'usa', name_ar: 'ثيم USA (إنجليزي 100%)', name_en: 'USA (100% EN)' },
+    { id: 'vicino', name_ar: 'فيتشينو Vicino', name_en: 'Vicino' },
+    { id: 'pizzapasta', name_ar: 'بيتزا باستا', name_en: 'PizzaPasta' },
+    { id: 'atyab-oriental', name_ar: 'أطياب أورينتال', name_en: 'Atyab Oriental' },
+    { id: 'atyab-etoile', name_ar: 'أطياب إتوال', name_en: 'Atyab Etoile' },
+    { id: 'bab-alhara', name_ar: 'باب الحارة', name_en: 'Bab Al-Hara' },
+    { id: 'theme9', name_ar: 'ثيم ديابلو 9', name_en: 'Theme 9' },
+    { id: 'theme18', name_ar: 'ثيم الشام 18', name_en: 'Theme 18' },
+    { id: 'theme19', name_ar: 'منيو مصر 19', name_en: 'Theme 19' },
+    { id: 'theme22', name_ar: 'ثيم 22', name_en: 'Theme 22' },
 ];
 
 const DEFAULT_COLORS = {
@@ -257,7 +270,7 @@ export default function ThemePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [selectedTheme, setSelectedTheme] = useState("");
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [selectedFamily, setSelectedFamily] = useState("all");
     const [_themeColors, setThemeColors] = useState({ ...DEFAULT_COLORS });
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -269,7 +282,6 @@ export default function ThemePage() {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
-                // Fetch theme overrides from theme_settings
                 const { data: overridesData } = await supabase.from('theme_settings').select('*');
                 if (overridesData) {
                     const map: Record<string, any> = {};
@@ -283,7 +295,6 @@ export default function ThemePage() {
                     .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                     .single();
 
-                // If error (e.g. theme_colors column doesn't exist yet), try without it
                 if (error) {
                     const { data: restaurant2 } = await supabase
                         .from('restaurants')
@@ -313,9 +324,9 @@ export default function ThemePage() {
         fetchData();
     }, []);
 
-    // Apply overrides: filter hidden themes and apply custom names
     const visibleThemes = THEMES
         .filter(t => !themeOverrides[t.id]?.is_hidden)
+        .filter(t => selectedFamily === 'all' || t.family === selectedFamily)
         .map(t => {
             const ov = themeOverrides[t.id];
             if (!ov) return t;
@@ -328,7 +339,6 @@ export default function ThemePage() {
 
     const handleSave = async () => {
         if (!restaurantId) return;
-
         setSaving(true);
         setMessage(null);
 
@@ -341,7 +351,6 @@ export default function ThemePage() {
             if (error) throw error;
 
             try {
-                // Update local cache so that reload fetches the new theme immediately
                 const currentConfig = await posDb.settings.get('current_config');
                 if (currentConfig) {
                     await posDb.settings.put({
@@ -358,7 +367,6 @@ export default function ThemePage() {
                 text: isArabic ? "تم حفظ التغييرات بنجاح! سيتم تحديث الصفحة..." : "Changes saved successfully! Reloading..."
             });
 
-            // Clear message after 3 seconds
             setTimeout(() => {
                 setMessage(null);
                 window.location.reload();
@@ -395,7 +403,7 @@ export default function ThemePage() {
                             {isArabic ? "اختر مظهر المنيو" : "Choose Menu Theme"}
                         </h1>
                         <p className="text-silver text-sm">
-                            {isArabic ? "اختر التصميم الذي يظهر لعملائك عند فتح المنيو." : "Select the design your customers see when they open the menu."}
+                            {isArabic ? "اختر التصميم والألوان المناسبة لعلامتك التجارية." : "Select the design and color theme for your restaurant."}
                         </p>
                     </div>
                 </div>
@@ -420,53 +428,69 @@ export default function ThemePage() {
                 </motion.div>
             )}
 
+            {/* Theme Family Navigation Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-border">
+                <div className="flex items-center gap-1 text-xs font-bold text-slate-400 shrink-0 pl-1 pr-2">
+                    <Filter className="w-4 h-4" />
+                    <span>{isArabic ? "تصفية عائلات الثيمات:" : "Filter Family:"}</span>
+                </div>
+                {FAMILIES.map((f) => (
+                    <button
+                        key={f.id}
+                        onClick={() => setSelectedFamily(f.id)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                            selectedFamily === f.id
+                                ? 'bg-blue text-white border-blue shadow-md'
+                                : 'bg-card border-border hover:border-slate-400 text-foreground'
+                        }`}
+                    >
+                        {isArabic ? f.name_ar : f.name_en}
+                    </button>
+                ))}
+            </div>
+
             <div className="lg:grid lg:grid-cols-12 lg:gap-8 flex flex-col-reverse">
-
-                {/* Left Column (Settings and Themes) */}
+                {/* Left Column (Themes Grid) */}
                 <div className="col-span-12 lg:col-span-7 space-y-8">
-
-
-                    <div className="grid grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
                         {visibleThemes.map((theme) => (
                             <div
                                 key={theme.id}
                                 onClick={() => setSelectedTheme(theme.id)}
-                                className={`relative cursor-pointer group rounded-lg border transition-all p-2 overflow-hidden
+                                className={`relative cursor-pointer group rounded-2xl border transition-all p-3 overflow-hidden flex flex-col justify-between
                                     ${selectedTheme === theme.id
-                                        ? 'border-blue bg-blue/5'
-                                        : 'border-card bg-card hover:border-silver/30'}`}
+                                        ? 'border-blue bg-blue/5 shadow-md ring-2 ring-blue/30'
+                                        : 'border-border bg-card hover:border-blue/50'}`}
                             >
-                                <div className="flex items-start justify-between mb-1.5">
-                                    <div className="space-y-0 text-[10px]">
-                                        <h3 className="font-bold text-foreground line-clamp-1 scale-95 origin-left">
+                                <div>
+                                    <div className="flex items-start justify-between mb-2">
+                                        <h3 className="font-bold text-xs text-foreground line-clamp-1">
                                             {isArabic ? theme.name_ar : theme.name_en}
                                         </h3>
+                                        <div
+                                            className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 border border-white/20 shadow-sm"
+                                            style={{ backgroundColor: theme.preview_color }}
+                                        >
+                                            {selectedTheme === theme.id && <Check className="w-2.5 h-2.5 text-white" />}
+                                        </div>
                                     </div>
-                                    <div
-                                        className="w-4 h-4 rounded-full flex items-center justify-center transition-all shrink-0"
-                                        style={{ backgroundColor: theme.preview_color + '20' }}
-                                    >
-                                        {selectedTheme === theme.id ? (
-                                            <Check className="w-2.5 h-2.5 text-blue" />
-                                        ) : (
-                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.preview_color }} />
-                                        )}
-                                    </div>
+                                    <p className="text-[10px] text-silver line-clamp-2 leading-relaxed mb-3">
+                                        {isArabic ? theme.description_ar : theme.description_en}
+                                    </p>
                                 </div>
 
-                                {/* Visual Preview Placeholder */}
-                                <div className="w-full aspect-square rounded bg-background/50 border border-white/5 p-1.5 flex flex-col gap-0.5">
-                                    <div className="w-1/2 h-0.5 rounded-full opacity-20" style={{ backgroundColor: theme.preview_color }} />
-                                    <div className="w-full h-3 rounded opacity-10" style={{ backgroundColor: theme.preview_color }} />
-                                    <div className="grid grid-cols-2 gap-0.5 mt-auto">
-                                        <div className="h-8 rounded opacity-10" style={{ backgroundColor: theme.preview_color }} />
-                                        <div className="h-8 rounded opacity-10" style={{ backgroundColor: theme.preview_color }} />
+                                {/* Theme Color Accent Card Preview */}
+                                <div className="w-full h-12 rounded-xl bg-background border border-border p-2 flex flex-col justify-between relative overflow-hidden">
+                                    <div className="w-3/4 h-1.5 rounded-full" style={{ backgroundColor: theme.preview_color }} />
+                                    <div className="flex items-center gap-1">
+                                        <div className="w-3 h-3 rounded-md" style={{ backgroundColor: theme.preview_color }} />
+                                        <div className="w-full h-1.5 rounded-full bg-slate-400/20" />
                                     </div>
                                 </div>
 
                                 {selectedTheme === theme.id && (
-                                    <div className="absolute top-0 right-0 p-3">
-                                        <span className="bg-blue text-slate-900 dark:text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-sm">
+                                    <div className="absolute top-2 right-2">
+                                        <span className="bg-blue text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
                                             {isArabic ? "مفعل" : "Active"}
                                         </span>
                                     </div>
@@ -518,20 +542,20 @@ export default function ThemePage() {
 
                                 {restaurantId ? (
                                     <iframe
-                                        src={`/menu/${restaurantId}?preview_theme=${selectedTheme}`}
-                                        className="w-full h-full border-0 absolute inset-0"
-                                        sandbox="allow-scripts allow-same-origin"
+                                        key={selectedTheme}
+                                        src={`/menu/${restaurantId}?previewTheme=${selectedTheme}&t=${Date.now()}`}
+                                        className="w-full h-full border-none pt-4"
+                                        title="Live Menu Preview"
                                     />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center">
-                                        <Loader2 className="w-6 h-6 animate-spin text-silver" />
+                                    <div className="w-full h-full flex items-center justify-center text-silver text-xs">
+                                        {isArabic ? "جاري تحميل المعاينة..." : "Loading preview..."}
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     );
