@@ -14,6 +14,7 @@ import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from './CheckoutModal';
 import SharedMarquee from './SharedMarquee';
 import AswanLandingPage from './AswanLandingPage';
+import CustomerLeadPopup from './CustomerLeadPopup';
 import { FaWhatsapp } from 'react-icons/fa';
 
 type MenuItem = {
@@ -99,9 +100,17 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
 
     const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor, activeBgImage, hasBgImage } = getAswanColors(config, isDark);
 
-    // Landing Page state
+    // Landing Page & Lead Capture state
     const landingEnabled = config.aswan_landing_enabled ?? config.vicino_landing_enabled ?? false;
+    const leadCaptureEnabled = config.aswan_lead_capture_enabled ?? config.lead_capture_enabled ?? config.theme_colors?.aswan_lead_capture_enabled ?? config.theme_colors?.lead_capture_enabled ?? false;
     const [inMenu, setInMenu] = useState(!landingEnabled);
+    const [showLeadPopup, setShowLeadPopup] = useState(() => {
+        if (!leadCaptureEnabled) return false;
+        if (typeof window !== 'undefined') {
+            return !localStorage.getItem(`lead_captured_${config.id}`);
+        }
+        return false;
+    });
 
     // Filter, view & search state
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -1117,6 +1126,20 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
                 />
             </div>
+
+            {/* Customer Lead Capture Popup */}
+            {showLeadPopup && (
+                <CustomerLeadPopup 
+                    config={config} 
+                    isAr={false} 
+                    isDark={isDark} 
+                    primaryColor={primaryColor} 
+                    bgBody={bgBody} 
+                    textMain={textMain} 
+                    textMuted={textMuted} 
+                    onComplete={() => setShowLeadPopup(false)} 
+                />
+            )}
 
             {/* Footer */}
             <ASNFooter show={config.show_asn_branding !== false} />

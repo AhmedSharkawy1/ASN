@@ -10,6 +10,7 @@ import { posDb } from "@/lib/pos-db";
 
 interface AswanConfig {
     aswan_landing_enabled: boolean;
+    aswan_lead_capture_enabled: boolean;
     aswan_video_url: string;
     aswan_logo_url: string;
     aswan_about_en: string;
@@ -34,6 +35,7 @@ export default function ThemeAswanSettings() {
 
     const [config, setConfig] = useState<AswanConfig>({
         aswan_landing_enabled: false,
+        aswan_lead_capture_enabled: false,
         aswan_video_url: "",
         aswan_logo_url: "",
         aswan_about_en: "",
@@ -92,6 +94,7 @@ export default function ThemeAswanSettings() {
                     const tc = data.theme_colors || {};
                     setConfig({
                         aswan_landing_enabled: tc.aswan_landing_enabled ?? data.vicino_landing_enabled ?? false,
+                        aswan_lead_capture_enabled: tc.aswan_lead_capture_enabled ?? tc.lead_capture_enabled ?? false,
                         aswan_video_url: tc.aswan_video_url || data.vicino_video_url || "",
                         aswan_logo_url: tc.aswan_logo_url || data.vicino_logo_url || "",
                         aswan_about_en: tc.aswan_about_en || data.vicino_about_en || "",
@@ -120,6 +123,8 @@ export default function ThemeAswanSettings() {
             const updatedThemeColors = {
                 ...config.theme_colors,
                 aswan_landing_enabled: config.aswan_landing_enabled,
+                aswan_lead_capture_enabled: config.aswan_lead_capture_enabled,
+                lead_capture_enabled: config.aswan_lead_capture_enabled,
                 aswan_video_url: config.aswan_video_url,
                 aswan_logo_url: config.aswan_logo_url,
                 aswan_about_en: config.aswan_about_en,
@@ -321,9 +326,11 @@ export default function ThemeAswanSettings() {
             {/* Toggle Landing Page */}
             <div className="bg-card border border-border p-6 rounded-3xl shadow-sm flex items-center justify-between">
                 <div>
-                    <h3 className="font-bold text-lg">Enable ASWAN Landing Page</h3>
+                    <h3 className="font-bold text-lg">{isAr ? "تفعيل صفحة الهبوط ثيم أسوان" : "Enable ASWAN Landing Page"}</h3>
                     <p className="text-sm opacity-70">
-                        When enabled, customers see a luxury landing page with video and brand story before entering the menu.
+                        {isAr 
+                            ? "عند التفعيل، يظهر للعميل صفحة هبوط تحتوي على الفيديو ونبذة عن المكان قبل الدخول للمنيو." 
+                            : "When enabled, customers see a luxury landing page with video and brand story before entering the menu."}
                     </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -331,6 +338,27 @@ export default function ThemeAswanSettings() {
                         type="checkbox"
                         checked={config.aswan_landing_enabled}
                         onChange={(e) => setConfig({ ...config, aswan_landing_enabled: e.target.checked })}
+                        className="sr-only peer"
+                    />
+                    <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+
+            {/* Toggle Customer Lead Data Collection */}
+            <div className="bg-card border border-border p-6 rounded-3xl shadow-sm flex items-center justify-between">
+                <div>
+                    <h3 className="font-bold text-lg">{isAr ? "تفعيل تجميع بيانات العملاء (Lead Capture)" : "Enable Customer Data Collection (Lead Capture)"}</h3>
+                    <p className="text-sm opacity-70">
+                        {isAr 
+                            ? "إظهار نافذة منبثقة تطلب من الزائر إدخال اسمه ورقم هاتفه قبل تصفح المنيو." 
+                            : "Show a popup requesting customer name and phone number before browsing menu."}
+                    </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={config.aswan_lead_capture_enabled}
+                        onChange={(e) => setConfig({ ...config, aswan_lead_capture_enabled: e.target.checked })}
                         className="sr-only peer"
                     />
                     <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>

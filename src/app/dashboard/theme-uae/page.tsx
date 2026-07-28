@@ -1,7 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2, Sun, Moon } from "lucide-react";
+import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2, Sun, Moon, Users } from "lucide-react";
 import { uploadImageWithThumb } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -10,6 +10,7 @@ import { posDb } from "@/lib/pos-db";
 
 interface UaeConfig {
     uae_landing_enabled: boolean;
+    customer_lead_collection_enabled: boolean;
     uae_video_url: string;
     uae_logo_url: string;
     uae_about_ar: string;
@@ -34,6 +35,7 @@ export default function ThemeUaeSettings() {
 
     const [config, setConfig] = useState<UaeConfig>({
         uae_landing_enabled: false,
+        customer_lead_collection_enabled: false,
         uae_video_url: "",
         uae_logo_url: "",
         uae_about_ar: "",
@@ -92,6 +94,7 @@ export default function ThemeUaeSettings() {
                     const tc = data.theme_colors || {};
                     setConfig({
                         uae_landing_enabled: tc.uae_landing_enabled ?? data.vicino_landing_enabled ?? false,
+                        customer_lead_collection_enabled: tc.customer_lead_collection_enabled ?? tc.lead_popup_enabled ?? false,
                         uae_video_url: tc.uae_video_url || data.vicino_video_url || "",
                         uae_logo_url: tc.uae_logo_url || data.vicino_logo_url || "",
                         uae_about_ar: tc.uae_about_ar || data.vicino_about_ar || "",
@@ -120,6 +123,8 @@ export default function ThemeUaeSettings() {
             const updatedColors = {
                 ...config.theme_colors,
                 uae_landing_enabled: config.uae_landing_enabled,
+                customer_lead_collection_enabled: config.customer_lead_collection_enabled,
+                lead_popup_enabled: config.customer_lead_collection_enabled,
                 uae_video_url: config.uae_video_url,
                 uae_logo_url: config.uae_logo_url,
                 uae_about_ar: config.uae_about_ar,
@@ -377,6 +382,28 @@ export default function ThemeUaeSettings() {
                         type="checkbox"
                         checked={config.uae_landing_enabled}
                         onChange={(e) => setConfig({ ...config, uae_landing_enabled: e.target.checked })}
+                        className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+                </label>
+            </div>
+
+            {/* Customer Lead Collection Toggle */}
+            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                        <Users className="w-4 h-4 text-amber-500" />
+                        <span>تجميع بيانات العملاء (Customer Data Capture)</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                        إظهار نافذة منبثقة لتسجيل اسم العميل ورقم تليفونه قبل تصفح المنيو لحفظهم في قاعدة البيانات
+                    </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={config.customer_lead_collection_enabled}
+                        onChange={(e) => setConfig({ ...config, customer_lead_collection_enabled: e.target.checked })}
                         className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>

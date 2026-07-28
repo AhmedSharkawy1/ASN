@@ -1,7 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2, Sun, Moon } from "lucide-react";
+import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2, Sun, Moon, Users } from "lucide-react";
 import { uploadImageWithThumb } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -10,6 +10,7 @@ import { posDb } from "@/lib/pos-db";
 
 interface UsaConfig {
     usa_landing_enabled: boolean;
+    customer_lead_collection_enabled: boolean;
     usa_video_url: string;
     usa_logo_url: string;
     usa_about_en: string;
@@ -34,6 +35,7 @@ export default function ThemeUsaSettings() {
 
     const [config, setConfig] = useState<UsaConfig>({
         usa_landing_enabled: false,
+        customer_lead_collection_enabled: false,
         usa_video_url: "",
         usa_logo_url: "",
         usa_about_en: "",
@@ -92,6 +94,7 @@ export default function ThemeUsaSettings() {
                     const tc = data.theme_colors || {};
                     setConfig({
                         usa_landing_enabled: tc.usa_landing_enabled ?? data.vicino_landing_enabled ?? false,
+                        customer_lead_collection_enabled: tc.customer_lead_collection_enabled ?? tc.lead_popup_enabled ?? false,
                         usa_video_url: tc.usa_video_url || data.vicino_video_url || "",
                         usa_logo_url: tc.usa_logo_url || data.vicino_logo_url || "",
                         usa_about_en: tc.usa_about_en || data.vicino_about_en || "",
@@ -120,6 +123,10 @@ export default function ThemeUsaSettings() {
             const updatedColors = {
                 ...config.theme_colors,
                 usa_landing_enabled: config.usa_landing_enabled,
+                customer_lead_collection_enabled: config.customer_lead_collection_enabled,
+                lead_popup_enabled: config.customer_lead_collection_enabled,
+                usa_lead_capture_enabled: config.customer_lead_collection_enabled,
+                lead_capture_enabled: config.customer_lead_collection_enabled,
                 usa_video_url: config.usa_video_url,
                 usa_logo_url: config.usa_logo_url,
                 usa_about_en: config.usa_about_en,
@@ -377,6 +384,30 @@ export default function ThemeUsaSettings() {
                         type="checkbox"
                         checked={config.usa_landing_enabled}
                         onChange={(e) => setConfig({ ...config, usa_landing_enabled: e.target.checked })}
+                        className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>
+                </label>
+            </div>
+
+            {/* Customer Lead Collection Toggle */}
+            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                        <Users className="w-4 h-4 text-rose-500" />
+                        <span>{isAr ? "تجميع بيانات العملاء (Customer Data Capture)" : "Customer Data Capture Popup"}</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                        {isAr 
+                            ? "إظهار نافذة منبثقة لتسجيل اسم العميل ورقم تليفونه قبل التصفح لحفظهم في قاعدة البيانات" 
+                            : "Show a popup form to collect customer name & phone number before exploring menu"}
+                    </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={config.customer_lead_collection_enabled}
+                        onChange={(e) => setConfig({ ...config, customer_lead_collection_enabled: e.target.checked })}
                         className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-rose-600"></div>

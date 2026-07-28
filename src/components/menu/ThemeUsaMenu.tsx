@@ -11,6 +11,7 @@ import ASNFooter from '@/components/menu/ASNFooter';
 import UsaCheckoutModal from './UsaCheckoutModal';
 import UsaLandingPage from './UsaLandingPage';
 import SharedMarquee from './SharedMarquee';
+import CustomerLeadPopup from './CustomerLeadPopup';
 import { FaWhatsapp } from 'react-icons/fa';
 
 type MenuItem = {
@@ -106,6 +107,14 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     const finalLogoSrc = currentLogo || config.logo_url;
 
     // State for Landing Page vs Main Menu
+    const leadCaptureEnabled = config.usa_lead_capture_enabled ?? config.lead_capture_enabled ?? config.theme_colors?.usa_lead_capture_enabled ?? config.theme_colors?.lead_capture_enabled ?? false;
+    const [showLeadPopup, setShowLeadPopup] = useState(() => {
+        if (!leadCaptureEnabled) return false;
+        if (typeof window !== 'undefined') {
+            return !localStorage.getItem(`lead_captured_${config.id}`);
+        }
+        return false;
+    });
     const [showLanding, setShowLanding] = useState<boolean>(() => {
         return !!config.vicino_landing_enabled;
     });
@@ -137,6 +146,14 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     }[]>([]);
     
     const [showCheckout, setShowCheckout] = useState(false);
+
+    const [showLeadPopup, setShowLeadPopup] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return false;
+        const isEnabled = config?.theme_colors?.customer_lead_collection_enabled ?? config?.theme_colors?.lead_popup_enabled ?? config?.customer_lead_collection_enabled ?? config?.lead_popup_enabled ?? false;
+        if (!isEnabled) return false;
+        const isCaptured = localStorage.getItem(`lead_captured_${config.id}`);
+        return !isCaptured;
+    });
 
     const categoryBtnRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
     const isManualClickRef = useRef(false);
@@ -1084,6 +1101,20 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Customer Lead Capture Popup */}
+            {showLeadPopup && (
+                <CustomerLeadPopup 
+                    config={config} 
+                    isAr={false} 
+                    isDark={isDark} 
+                    primaryColor={primaryColor} 
+                    bgBody={bgBody} 
+                    textMain={textMain} 
+                    textMuted="#64748b" 
+                    onComplete={() => setShowLeadPopup(false)} 
+                />
+            )}
 
             {/* Footer */}
             {config.show_asn_branding !== false && (
