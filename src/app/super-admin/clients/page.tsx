@@ -130,6 +130,16 @@ export default function SuperAdminClientsPage() {
                 { key: 'qr', nameEn: 'QR Code Generator', nameAr: 'مولد QR' },
                 { key: 'settings_page', nameEn: 'Restaurant Settings', nameAr: 'الإعدادات' },
             ]
+        },
+        {
+            titleEn: 'Theme Settings Pages', titleAr: 'إعدادات الثيمات والصفحة الرئيسية',
+            pages: [
+                { key: 'theme_vicino', nameEn: 'Vicino Landing Page Settings', nameAr: 'تعديل الصفحة الرئيسية (Vicino)' },
+                { key: 'theme_aswan', nameEn: 'ASWAN Theme Settings', nameAr: 'إعدادات ثيم أسوان (ASWAN)' },
+                { key: 'theme_usa', nameEn: 'USA Theme Settings', nameAr: 'إعدادات ثيم USA (الأمريكي)' },
+                { key: 'theme_uae', nameEn: 'UAE Theme Settings', nameAr: 'إعدادات ثيم الإمارات (UAE)' },
+                { key: 'theme_usa_dual', nameEn: 'USA Dual Theme Settings', nameAr: 'إعدادات ثيم USA الثنائي (Bilingual)' },
+            ]
         }
     ];
 
