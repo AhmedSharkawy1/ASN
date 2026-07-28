@@ -91,7 +91,7 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
     const socialLinks = [
         { icon: FaWhatsapp, url: config.whatsapp_number ? `https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}` : null, color: '#25D366', name: 'WhatsApp' },
         { icon: Instagram, url: config.instagram_url, color: '#E1306C', name: 'Instagram' },
-        { icon: FaTiktok, url: config.tiktok_url, color: isDark ? '#ffffff' : '#000000', name: 'TikTok' },
+        { icon: FaTiktok, url: config.tiktok_url, color: '#000000', name: 'TikTok', textColor: '#ffffff' },
         { icon: Facebook, url: config.facebook_url, color: '#1877F2', name: 'Facebook' },
         { icon: FaSnapchatGhost, url: config.snapchat_url, color: '#FFFC00', name: 'Snapchat', textColor: isDark ? '#ffffff' : '#000000' },
         { icon: Youtube, url: config.youtube_url, color: '#FF0000', name: 'YouTube' },
