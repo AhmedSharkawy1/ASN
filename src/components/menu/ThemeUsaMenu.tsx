@@ -3,7 +3,7 @@
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import { getUsaColors } from '@/lib/usaVariants';
 import { parseCurrency } from '@/lib/currency';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight, CreditCard } from 'lucide-react';
@@ -138,6 +138,9 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     
     const [showCheckout, setShowCheckout] = useState(false);
 
+    const categoryBtnRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+    const isManualClickRef = useRef(false);
+
     // Helper functions for English text
     const itemName = (item: MenuItem) => item.title_en || item.title_ar || 'Item';
     const itemDesc = (item: MenuItem) => item.desc_en || item.description_en || item.desc_ar || item.description_ar || '';
@@ -146,18 +149,28 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
-    // Auto-scroll & Category Spy
+    // Auto-scroll & Category Spy with Horizontal Bar Synchronization
     useEffect(() => {
         const handleScroll = () => {
-            if (searchQuery || activeCategory === 'all') return;
-            const scrollPos = window.scrollY + 100;
+            if (searchQuery || isManualClickRef.current) return;
+            const scrollPos = window.scrollY + 140;
             for (const cat of categories) {
                 const el = document.getElementById(`category-${cat.id}`);
                 if (el) {
                     const top = el.offsetTop;
                     const height = el.offsetHeight;
                     if (scrollPos >= top && scrollPos < top + height) {
-                        setActiveCategory(String(cat.id));
+                        const catIdStr = String(cat.id);
+                        setActiveCategory(prev => {
+                            if (prev !== catIdStr) {
+                                const btn = categoryBtnRefs.current[catIdStr];
+                                if (btn) {
+                                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                                }
+                                return catIdStr;
+                            }
+                            return prev;
+                        });
                         break;
                     }
                 }
@@ -165,10 +178,12 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
         };
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [categories, searchQuery, activeCategory]);
+    }, [categories, searchQuery]);
 
     const scrollToCategory = (catId: string) => {
         setActiveCategory(catId);
+        isManualClickRef.current = true;
+        
         if (catId === 'all') {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else {
@@ -179,6 +194,15 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 window.scrollTo({ top: y, behavior: 'smooth' });
             }
         }
+
+        const btn = categoryBtnRefs.current[catId];
+        if (btn) {
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        setTimeout(() => {
+            isManualClickRef.current = false;
+        }, 800);
     };
 
     const openItemModal = (item: MenuItem, cName: string) => {
@@ -456,16 +480,17 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
             </div>
 
-            {/* ONLY Categories Bar is Sticky */}
+            {/* ONLY Categories Bar is Sticky with Auto-Scroll & Synchronized Highlight */}
             <div className={`sticky top-0 z-30 backdrop-blur-md border-b py-2.5 px-4 shadow-lg transition-colors ${
                 isDark ? 'bg-slate-950/95 border-slate-800/80' : 'bg-white/95 border-slate-200/90'
             }`}>
                 <div className="max-w-5xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
                     <button
+                        ref={el => { categoryBtnRefs.current['all'] = el; }}
                         onClick={() => scrollToCategory('all')}
                         className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                             activeCategory === 'all'
-                                ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                                ? 'bg-rose-600 text-white border-rose-500 shadow-md scale-[1.03]'
                                 : isDark 
                                     ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
@@ -477,10 +502,11 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     {categories.map(cat => (
                         <button
                             key={cat.id}
+                            ref={el => { categoryBtnRefs.current[String(cat.id)] = el; }}
                             onClick={() => scrollToCategory(String(cat.id))}
                             className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                                 activeCategory === String(cat.id)
-                                    ? 'bg-rose-600 text-white border-rose-500 shadow-md'
+                                    ? 'bg-rose-600 text-white border-rose-500 shadow-md scale-[1.03]'
                                     : isDark
                                         ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                         : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
@@ -507,16 +533,23 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     filteredCategories.map(category => (
                         <section key={category.id} id={`category-${category.id}`} className="space-y-4 scroll-mt-24">
                             
-                            {/* Left-Aligned Category Header */}
-                            <div className="flex items-center gap-3 border-b pb-3 border-slate-800/80 text-left">
+                            {/* Left-Aligned Luxury Category Header */}
+                            <div className="flex items-center justify-start gap-3 border-b pb-3 border-slate-800/60 text-left ltr">
+                                <div className="w-1.5 h-8 rounded-full bg-rose-600 flex-shrink-0 shadow-sm" />
+                                
                                 {category.image_url && (
-                                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 flex-shrink-0">
+                                    <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-700/60 bg-slate-900 flex-shrink-0 shadow-md">
                                         <OptimizedMenuImage src={category.image_url} alt={catName(category)} className="w-full h-full object-cover" />
                                     </div>
                                 )}
-                                <div className="text-left">
-                                    <h2 className="font-extrabold text-xl tracking-tight text-left">{catName(category)}</h2>
-                                    <p className="text-xs opacity-75 text-left">{category.items?.length || 0} delicious items available</p>
+
+                                <div className="text-left flex-1 min-w-0">
+                                    <h2 className="font-black text-xl md:text-2xl tracking-tight leading-tight text-left">
+                                        {catName(category)}
+                                    </h2>
+                                    <p className="text-xs font-medium opacity-75 text-left mt-0.5">
+                                        {category.items?.length || 0} delicious items available
+                                    </p>
                                 </div>
                             </div>
 
