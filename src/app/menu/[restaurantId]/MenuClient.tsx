@@ -38,6 +38,8 @@ const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
 const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
 const LametZamanMenu = dynamic(() => import("@/components/menu/LametZamanMenu"));
 const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
+const ThemeAswanMenu = dynamic(() => import("@/components/menu/ThemeAswanMenu"));
+const ThemeUsaMenu = dynamic(() => import("@/components/menu/ThemeUsaMenu"));
 const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
 const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
@@ -370,6 +372,12 @@ export default function MenuClient({
   }
   if (config?.theme?.startsWith("vicino")) {
     return <ThemeVicinoMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme?.startsWith("aswan")) {
+    return <ThemeAswanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme?.startsWith("usa")) {
+    return <ThemeUsaMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme === "theme19") {
     return <Theme19Menu config={config} categories={categories} restaurantId={config.id} />;

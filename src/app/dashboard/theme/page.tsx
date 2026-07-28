@@ -146,6 +146,22 @@ const THEMES = [
         preview_color: "#B8860B", // Metallic Gold
     },
     {
+        id: "aswan",
+        name_ar: "ثيم أسوان (إنجليزي بالكامل مع خلفيات)",
+        name_en: "ASWAN Theme (100% English & Custom Backgrounds)",
+        description_ar: "تصميم أسوان الأنيق باللغة الإنجليزية بالكامل مع إمكانية وضع خلفية صورة للوضع الفاتح وأخرى للوضع الداكن والسلة بالكامل بالإنجليزية.",
+        description_en: "Luxury English design based on Vicino with light/dark custom background image support, 100% English menu & checkout.",
+        preview_color: "#d4af37", // Royal Gold
+    },
+    {
+        id: "usa",
+        name_ar: "ثيم USA الأمريكي (إنجليزي بالكامل)",
+        name_en: "USA Theme (100% English)",
+        description_ar: "تصميم أمريكي فاخر باللغة الإنجليزية بالكامل شامل صفحة الهبوط والسلة وإتمام الطلب بدون أي كلمة عربية.",
+        description_en: "Premium 100% English design including landing page, menu, cart, and checkout with zero Arabic text.",
+        preview_color: "#dc2626", // USA Crimson Red
+    },
+    {
         id: "lamet-zaman",
         name_ar: "ثيم لمة زمان",
         name_en: "Lamet Zaman Theme",

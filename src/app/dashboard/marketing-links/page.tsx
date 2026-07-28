@@ -74,6 +74,8 @@ const MarketingThemes = [
         { key: "theme19", nameEn: "Theme 19", nameAr: "ثيم 19" },
     { key: "lamet-zaman", nameEn: "Lamet Zaman Theme", nameAr: "ثيم لمة زمان" },
     { key: "vicino", nameEn: "Theme 20 (Vicino)", nameAr: "ثيم 20 (فيتشينو)" },
+    { key: "aswan", nameEn: "ASWAN Theme (100% English & Custom BGs)", nameAr: "ثيم أسوان (إنجليزي بالكامل وخلفيات)" },
+    { key: "usa", nameEn: "USA Theme (100% English)", nameAr: "ثيم USA الأمريكي" },
     { key: "vicino-red", nameEn: "Theme 20 (Red)", nameAr: "ثيم 20 (أحمر)" },
     { key: "vicino-cyan", nameEn: "Theme 20 (Cyan)", nameAr: "ثيم 20 (سماوي)" },
     { key: "vicino-emerald", nameEn: "Theme 20 (Emerald)", nameAr: "ثيم 20 (زمردي)" },
