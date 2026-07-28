@@ -1,5 +1,6 @@
 'use client';
 
+import { getEmbedUrl } from '@/lib/videoUtils';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import { getAswanColors } from '@/lib/aswanVariants';
 import React, { useState } from 'react';
@@ -59,19 +60,6 @@ export default function AswanDualLandingPage({ config, onContinue }: AswanDualLa
         ? (config.theme_colors?.aswan_about_ar || config.aswan_about_ar || config.vicino_about_ar || config.slogan_ar)
         : (config.theme_colors?.aswan_about_en || config.aswan_about_en || config.vicino_about_en || config.slogan_en);
     const galleryImages = config.theme_colors?.aswan_images || config.aswan_images || config.vicino_images || config.cover_images || [];
-
-    const getEmbedUrl = (url: string) => {
-        if (!url) return null;
-        const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-        if (ytMatch && ytMatch[1]) {
-            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&loop=1&playlist=${ytMatch[1]}`;
-        }
-        const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
-        if (vimeoMatch && vimeoMatch[1]) {
-            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1`;
-        }
-        return null;
-    };
 
     const heroMedia = videoUrl 
         ? { type: 'video', src: videoUrl, embed: getEmbedUrl(videoUrl) } 
@@ -166,7 +154,7 @@ export default function AswanDualLandingPage({ config, onContinue }: AswanDualLa
                             {heroMedia.type === 'video' ? (
                                 <div className="w-full aspect-video relative">
                                     {heroMedia.embed ? (
-                                        <iframe src={heroMedia.embed} className="w-full h-full border-0" allow="autoplay; fullscreen" title="Hero Video" />
+                                        <iframe src={heroMedia.embed} className="w-full h-full min-h-[300px] sm:min-h-[420px] border-0" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen" allowFullScreen title="Hero Video" />
                                     ) : (
                                         <video src={heroMedia.src} autoPlay loop muted playsInline className="w-full h-full object-cover" />
                                     )}

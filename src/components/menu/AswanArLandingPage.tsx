@@ -1,6 +1,7 @@
 'use client';
 
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
+import { getEmbedUrl } from '@/lib/videoUtils';
 import { getAswanColors } from '@/lib/aswanVariants';
 import React from 'react';
 import { useTheme } from 'next-themes';
@@ -56,19 +57,6 @@ export default function AswanArLandingPage({ config, onContinue }: AswanArLandin
     const aboutText = config.theme_colors?.aswan_about_ar || config.aswan_about_ar || config.vicino_about_ar || config.slogan_ar;
     const historyText = config.theme_colors?.aswan_history_ar || config.aswan_history_ar || config.vicino_history_ar;
     const galleryImages = config.theme_colors?.aswan_images || config.aswan_images || config.vicino_images || config.cover_images || [];
-
-    const getEmbedUrl = (url: string) => {
-        if (!url) return null;
-        const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-        if (ytMatch && ytMatch[1]) {
-            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&loop=1&playlist=${ytMatch[1]}`;
-        }
-        const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
-        if (vimeoMatch && vimeoMatch[1]) {
-            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1`;
-        }
-        return null;
-    };
 
     const heroMedia = videoUrl 
         ? { type: 'video', src: videoUrl, embed: getEmbedUrl(videoUrl) } 
@@ -170,8 +158,9 @@ export default function AswanArLandingPage({ config, onContinue }: AswanArLandin
                                     {heroMedia.embed ? (
                                         <iframe 
                                             src={heroMedia.embed} 
-                                            className="w-full h-full border-0" 
-                                            allow="autoplay; fullscreen"
+                                            className="w-full h-full min-h-[300px] sm:min-h-[420px] border-0" 
+                                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
+                                            allowFullScreen
                                             title="فيديو المطعم"
                                         />
                                     ) : (

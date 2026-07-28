@@ -10,6 +10,7 @@ import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/pagination';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
+import { getEmbedUrl } from '@/lib/videoUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface VicinoLandingPageProps {
@@ -51,19 +52,6 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
             return () => clearTimeout(timer);
         }
     }, [showSplash]);
-
-    const getEmbedUrl = (url: string) => {
-        if (!url) return null;
-        const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-        if (ytMatch && ytMatch[1]) {
-            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&loop=1&playlist=${ytMatch[1]}`;
-        }
-        const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
-        if (vimeoMatch && vimeoMatch[1]) {
-            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1`;
-        }
-        return null;
-    };
 
     const heroMedia = config.vicino_video_url 
         ? { type: 'video', src: config.vicino_video_url, embed: getEmbedUrl(config.vicino_video_url) } 
@@ -142,8 +130,8 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                             heroMedia.embed ? (
                                 <iframe
                                     src={heroMedia.embed}
-                                    className="w-full aspect-video md:aspect-video block"
-                                    allow="autoplay; fullscreen; picture-in-picture"
+                                    className="w-full aspect-video min-h-[300px] sm:min-h-[420px] block"
+                                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
                                     allowFullScreen
                                     style={{ border: 'none', backgroundColor: '#000' }}
                                 ></iframe>

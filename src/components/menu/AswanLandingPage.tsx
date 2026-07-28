@@ -10,6 +10,7 @@ import { Autoplay, EffectFade, Pagination } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/pagination';
+import { getEmbedUrl } from '@/lib/videoUtils';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -58,18 +59,7 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
     const historyText = config.theme_colors?.aswan_history_en || config.aswan_history_en || config.vicino_history_en;
     const galleryImages = config.theme_colors?.aswan_images || config.aswan_images || config.vicino_images || config.cover_images || [];
 
-    const getEmbedUrl = (url: string) => {
-        if (!url) return null;
-        const ytMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-        if (ytMatch && ytMatch[1]) {
-            return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&loop=1&playlist=${ytMatch[1]}`;
-        }
-        const vimeoMatch = url.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
-        if (vimeoMatch && vimeoMatch[1]) {
-            return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1&loop=1`;
-        }
-        return null;
-    };
+
 
     const heroMedia = videoUrl 
         ? { type: 'video', src: videoUrl, embed: getEmbedUrl(videoUrl) } 
@@ -193,8 +183,8 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
                                 heroMedia.embed ? (
                                     <iframe
                                         src={heroMedia.embed}
-                                        className="w-full aspect-video block"
-                                        allow="autoplay; fullscreen; picture-in-picture"
+                                        className="w-full aspect-video min-h-[300px] sm:min-h-[420px] block"
+                                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share; fullscreen"
                                         allowFullScreen
                                         style={{ border: 'none' }}
                                     />
