@@ -118,6 +118,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
 
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
+    const itemDesc = (item: MenuItem) => isAr ? (item.description_ar || item.desc_ar || item.details_ar || item.description || item.desc || item.description_en || item.desc_en || '') : (item.description_en || item.desc_en || item.details_en || item.description || item.desc || item.description_ar || item.desc_ar || '');
 
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
@@ -460,10 +461,15 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                             {/* Content */}
                                             <div className={`flex flex-col flex-1 ${viewMode === 'list' ? 'py-1 pr-1' : 'p-3 pt-6'}`}>
                                                 <h3 className="font-bold text-[0.95rem] mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
-                                                {(item.description_ar || item.desc_ar) && (
-                                                    <p className="text-[11px] mb-2 line-clamp-2" style={{ color: textMuted }}>
-                                                        {isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}
+                                                {itemDesc(item) && (
+                                                    <p className="text-[11px] mb-2 line-clamp-2 leading-relaxed" style={{ color: textMuted }}>
+                                                        {itemDesc(item)}
                                                     </p>
+                                                )}
+                                                {item.sell_by_weight && item.weight_unit && (
+                                                    <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 mb-1.5 rounded-md border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                                                        ⚖️ {item.weight_unit}
+                                                    </span>
                                                 )}
                                                 <div className="mt-auto flex flex-col w-full gap-1 pt-2" dir="ltr">
                                                     {item.prices?.map((price, pIdx) => (

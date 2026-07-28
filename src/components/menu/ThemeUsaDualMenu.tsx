@@ -655,6 +655,32 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
+
+                                                    {item.size_labels && item.size_labels.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                                            {item.size_labels.map((lbl: string, idx: number) => {
+                                                                if (!lbl) return null;
+                                                                const p = item.prices?.[idx];
+                                                                return (
+                                                                    <span 
+                                                                        key={idx} 
+                                                                        className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md border"
+                                                                        style={{ borderColor, color: primaryColor, backgroundColor: `${primaryColor}12` }}
+                                                                    >
+                                                                        <span>{lbl}</span>
+                                                                        {p !== undefined && p > 0 && (
+                                                                            <span className="font-extrabold opacity-90">{p} {currency}</span>
+                                                                        )}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                    {item.sell_by_weight && item.weight_unit && (
+                                                        <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 mt-1 rounded-md border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                                                            ⚖️ {item.weight_unit}
+                                                        </span>
+                                                    )}
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-700/40">

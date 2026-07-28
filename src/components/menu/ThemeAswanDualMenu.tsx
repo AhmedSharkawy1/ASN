@@ -139,7 +139,7 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
 
     // Language getters
     const getItemName = (item: MenuItem) => isAr ? (item.title_ar || item.title_en || 'صنف') : (item.title_en || item.title_ar || 'Item');
-    const getItemDesc = (item: MenuItem) => isAr ? (item.description_ar || item.desc_ar || item.description_en || item.desc_en || '') : (item.description_en || item.desc_en || item.description_ar || item.desc_ar || '');
+    const getItemDesc = (item: MenuItem) => isAr ? (item.description_ar || item.desc_ar || item.details_ar || item.description || item.desc || item.description_en || item.desc_en || '') : (item.description_en || item.desc_en || item.details_en || item.description || item.desc || item.description_ar || item.desc_ar || '');
     const getCatName = (cat: CategoryWithItemsType) => isAr ? (cat.name_ar || cat.name_en || 'قسم') : (cat.name_en || cat.name_ar || 'Category');
 
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
@@ -610,15 +610,44 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                                             {getItemName(item)}
                                                         </h3>
                                                         {getItemDesc(item) && (
-                                                            <p className="text-xs opacity-70 line-clamp-2 mt-1 font-normal leading-relaxed" style={{ color: textMuted }}>
+                                                            <p className="text-xs opacity-75 line-clamp-2 mt-1 font-normal leading-relaxed" style={{ color: textMuted }}>
                                                                 {getItemDesc(item)}
                                                             </p>
+                                                        )}
+                                                        {item.size_labels && item.size_labels.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 mt-1.5">
+                                                                {item.size_labels.map((lbl: string, idx: number) => {
+                                                                    if (!lbl) return null;
+                                                                    const p = item.prices?.[idx];
+                                                                    return (
+                                                                        <span 
+                                                                            key={idx} 
+                                                                            className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md border"
+                                                                            style={{ borderColor: borderColor, color: primaryColor, backgroundColor: `${primaryColor}12` }}
+                                                                        >
+                                                                            <span>{lbl}</span>
+                                                                            {p !== undefined && p > 0 && (
+                                                                                <span className="font-extrabold opacity-90">{p} {cur}</span>
+                                                                            )}
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                        {item.sell_by_weight && item.weight_unit && (
+                                                            <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 mt-1 rounded-md border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                                                                ⚖️ {item.weight_unit}
+                                                            </span>
                                                         )}
                                                     </div>
 
                                                     <div className="mt-3 flex items-center justify-between">
                                                         <div className="font-extrabold text-sm md:text-base whitespace-nowrap" style={{ color: primaryColor }}>
-                                                            {item.prices?.[0] || 0} <span className="text-xs font-semibold">{cur}</span>
+                                                            {item.size_labels && item.size_labels.length > 1 ? (
+                                                                <span className="text-xs">{isAr ? 'من ' : 'From '}{item.prices?.[0] || 0} {cur}</span>
+                                                            ) : (
+                                                                <>{item.prices?.[0] || 0} <span className="text-xs font-semibold">{cur}</span></>
+                                                            )}
                                                         </div>
                                                         <button 
                                                             className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md transition-transform active:scale-95 shrink-0"
@@ -655,12 +684,41 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                                         {getItemName(item)}
                                                     </h3>
                                                     {getItemDesc(item) && (
-                                                        <p className="text-xs opacity-70 line-clamp-2 mt-0.5 font-normal" style={{ color: textMuted }}>
+                                                        <p className="text-xs opacity-75 line-clamp-2 mt-0.5 font-normal leading-relaxed" style={{ color: textMuted }}>
                                                             {getItemDesc(item)}
                                                         </p>
                                                     )}
+                                                    {item.size_labels && item.size_labels.length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-1.5">
+                                                            {item.size_labels.map((lbl: string, idx: number) => {
+                                                                if (!lbl) return null;
+                                                                const p = item.prices?.[idx];
+                                                                return (
+                                                                    <span 
+                                                                        key={idx} 
+                                                                        className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md border"
+                                                                        style={{ borderColor: borderColor, color: primaryColor, backgroundColor: `${primaryColor}12` }}
+                                                                    >
+                                                                        <span>{lbl}</span>
+                                                                        {p !== undefined && p > 0 && (
+                                                                            <span className="font-extrabold opacity-90">{p} {cur}</span>
+                                                                        )}
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                    {item.sell_by_weight && item.weight_unit && (
+                                                        <span className="inline-block text-[10px] font-bold px-1.5 py-0.5 mt-1 rounded-md border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                                                            ⚖️ {item.weight_unit}
+                                                        </span>
+                                                    )}
                                                     <div className="mt-2 font-extrabold text-base" style={{ color: primaryColor }}>
-                                                        {item.prices?.[0] || 0} {cur}
+                                                        {item.size_labels && item.size_labels.length > 1 ? (
+                                                            <span className="text-xs">{isAr ? 'من ' : 'From '}{item.prices?.[0] || 0} {cur}</span>
+                                                        ) : (
+                                                            <>{item.prices?.[0] || 0} {cur}</>
+                                                        )}
                                                     </div>
                                                 </div>
                                                 <button 
