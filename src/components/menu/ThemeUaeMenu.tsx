@@ -12,6 +12,7 @@ import ASNFooter from '@/components/menu/ASNFooter';
 import UaeCheckoutModal from './UaeCheckoutModal';
 import UaeLandingPage from './UaeLandingPage';
 import SharedMarquee from './SharedMarquee';
+import CustomerLeadPopup from './CustomerLeadPopup';
 import { FaWhatsapp } from 'react-icons/fa';
 
 type MenuItem = {
@@ -136,6 +137,14 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
     }[]>([]);
     
     const [showCheckout, setShowCheckout] = useState(false);
+
+    const [showLeadPopup, setShowLeadPopup] = useState<boolean>(() => {
+        if (typeof window === 'undefined') return false;
+        const isEnabled = config?.theme_colors?.customer_lead_collection_enabled ?? config?.theme_colors?.lead_popup_enabled ?? config?.customer_lead_collection_enabled ?? config?.lead_popup_enabled ?? false;
+        if (!isEnabled) return false;
+        const isCaptured = localStorage.getItem(`lead_captured_${config.id}`);
+        return !isCaptured;
+    });
 
     const categoryBtnRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
     const isManualClickRef = useRef(false);
@@ -1074,6 +1083,20 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                     </div>
                 )}
             </AnimatePresence>
+
+            {/* Customer Lead Capture Popup */}
+            {showLeadPopup && (
+                <CustomerLeadPopup 
+                    config={config} 
+                    isAr={true} 
+                    isDark={isDark} 
+                    primaryColor={primaryColor} 
+                    bgBody={bgBody} 
+                    textMain={textMain} 
+                    textMuted="#94a3b8" 
+                    onComplete={() => setShowLeadPopup(false)} 
+                />
+            )}
 
             {/* Footer */}
             {config.show_asn_branding !== false && (

@@ -126,13 +126,29 @@ type CartItem = {
 };
 
 export default function MenuClient({
-  config,
+  config: initialConfig,
   categories,
 }: {
   config: RestaurantConfig;
   categories: Category[];
 }) {
   const { language } = useLanguage();
+
+  const [effectiveTheme, setEffectiveTheme] = useState(initialConfig.theme);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const preview = urlParams.get("previewTheme") || urlParams.get("preview_theme");
+      if (preview) {
+        setEffectiveTheme(preview);
+      }
+    }
+  }, [initialConfig.theme]);
+
+  const activeTheme = effectiveTheme || initialConfig.theme;
+  const config = { ...initialConfig, theme: activeTheme };
+
   const isVicino = config.theme?.startsWith("vicino") ?? false;
 
   // These used to be flipped inside the fetch effect. The data now arrives as

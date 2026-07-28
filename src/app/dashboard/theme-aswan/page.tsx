@@ -125,6 +125,8 @@ export default function ThemeAswanSettings() {
                 aswan_landing_enabled: config.aswan_landing_enabled,
                 aswan_lead_capture_enabled: config.aswan_lead_capture_enabled,
                 lead_capture_enabled: config.aswan_lead_capture_enabled,
+                customer_lead_collection_enabled: config.aswan_lead_capture_enabled,
+                lead_popup_enabled: config.aswan_lead_capture_enabled,
                 aswan_video_url: config.aswan_video_url,
                 aswan_logo_url: config.aswan_logo_url,
                 aswan_about_en: config.aswan_about_en,

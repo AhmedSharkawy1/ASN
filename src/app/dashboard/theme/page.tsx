@@ -673,7 +673,7 @@ export default function ThemePage() {
                                 {restaurantId ? (
                                     <iframe
                                         key={selectedTheme}
-                                        src={`/menu/${restaurantId}?previewTheme=${selectedTheme}&t=${Date.now()}`}
+                                        src={`/menu/${restaurantId}?previewTheme=${selectedTheme}&preview_theme=${selectedTheme}&t=${Date.now()}`}
                                         className="w-full h-full border-none pt-4"
                                         title="Live Menu Preview"
                                     />

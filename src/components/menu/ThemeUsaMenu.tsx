@@ -147,14 +147,6 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     
     const [showCheckout, setShowCheckout] = useState(false);
 
-    const [showLeadPopup, setShowLeadPopup] = useState<boolean>(() => {
-        if (typeof window === 'undefined') return false;
-        const isEnabled = config?.theme_colors?.customer_lead_collection_enabled ?? config?.theme_colors?.lead_popup_enabled ?? config?.customer_lead_collection_enabled ?? config?.lead_popup_enabled ?? false;
-        if (!isEnabled) return false;
-        const isCaptured = localStorage.getItem(`lead_captured_${config.id}`);
-        return !isCaptured;
-    });
-
     const categoryBtnRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
     const isManualClickRef = useRef(false);
 
