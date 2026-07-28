@@ -91,7 +91,7 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
     const socialLinks = [
         { icon: FaWhatsapp, url: config.whatsapp_number ? `https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}` : null, color: '#25D366', name: 'WhatsApp' },
         { icon: Instagram, url: config.instagram_url, color: '#E1306C', name: 'Instagram' },
-        { icon: FaTiktok, url: config.tiktok_url, color: '#000000', name: 'TikTok', textColor: '#ffffff' },
+        { icon: FaTiktok, url: config.tiktok_url, color: isDark ? '#ffffff' : '#000000', name: 'TikTok', textColor: isDark ? '#ffffff' : '#000000' },
         { icon: Facebook, url: config.facebook_url, color: '#1877F2', name: 'Facebook' },
         { icon: FaSnapchatGhost, url: config.snapchat_url, color: '#FFFC00', name: 'Snapchat', textColor: isDark ? '#ffffff' : '#000000' },
         { icon: Youtube, url: config.youtube_url, color: '#FF0000', name: 'YouTube' },
@@ -124,28 +124,43 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
             }}
         >
             
-            {/* Header / Nav */}
-            <div className="w-full flex justify-between items-center px-6 pt-6 pb-4 max-w-4xl mx-auto">
-                <div className="flex items-center gap-3">
-                    {finalLogoSrc && (
-                        <div className="w-12 h-12 rounded-2xl overflow-hidden border border-slate-700/50 shadow-md bg-white p-1 flex-shrink-0">
-                            <OptimizedMenuImage src={finalLogoSrc} alt="Logo" className="w-full h-full object-contain" useOriginal={true} />
-                        </div>
-                    )}
-                    <div>
-                        <h1 className="font-extrabold text-lg tracking-tight leading-none">{config.name}</h1>
-                        <span className="text-[11px] font-semibold text-rose-500 tracking-wider uppercase">Authentic Taste</span>
-                    </div>
+            {/* Header & Prominent Centered Brand Logo (Like Theme Aswan) */}
+            <div className="w-full max-w-4xl mx-auto px-6 pt-6 pb-4 text-center flex flex-col items-center justify-center">
+                
+                {/* Top Utility Bar */}
+                <div className="w-full flex justify-between items-center mb-6">
+                    {displayNumbers.length > 0 ? (
+                        <button
+                            onClick={() => setShowPhoneModal(true)}
+                            className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-emerald-400 hover:text-emerald-300 transition-colors shadow-sm"
+                            title="Call Us"
+                        >
+                            <Phone className="w-4 h-4" />
+                        </button>
+                    ) : <div />}
+
+                    {/* Dark/Light Switcher */}
+                    <button
+                        onClick={toggleThemeMode}
+                        className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-slate-100 transition-colors shadow-sm"
+                        title="Toggle Light/Dark Mode"
+                    >
+                        {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
+                    </button>
                 </div>
 
-                {/* Dark/Light Switcher */}
-                <button
-                    onClick={toggleThemeMode}
-                    className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-slate-100 transition-colors shadow-sm"
-                    title="Toggle Light/Dark Mode"
-                >
-                    {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
-                </button>
+                {/* Prominent Logo */}
+                {finalLogoSrc && (
+                    <div className="relative mb-4 group">
+                        <div className="absolute inset-0 rounded-full blur-xl opacity-35" style={{ backgroundColor: primaryColor }} />
+                        <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-rose-500 shadow-2xl flex items-center justify-center p-2 bg-white">
+                            <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
+                        </div>
+                    </div>
+                )}
+
+                <h1 className="font-black text-2xl sm:text-3xl md:text-4xl tracking-tight leading-tight mb-1">{config.name}</h1>
+                <span className="text-xs sm:text-sm font-extrabold text-rose-500 tracking-widest uppercase">Authentic Taste</span>
             </div>
 
             {/* Hero Media Section */}

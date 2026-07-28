@@ -297,79 +297,85 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 />
             )}
 
-            {/* Static Top Header (Not Sticky) */}
+            {/* Static Top Header with Icons at Top & Centered Brand Logo (Like Aswan Theme) */}
             <header className={`w-full border-b transition-colors shadow-md ${
                 isDark ? 'bg-slate-950/95 border-slate-800/80 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
             }`}>
-                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+                <div className="max-w-5xl mx-auto px-4 py-3 space-y-4">
                     
-                    {/* Left: Back Arrow, Logo Image & Restaurant Title */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                        {config.vicino_landing_enabled && (
+                    {/* Top Row: Action & Utility Icons */}
+                    <div className="flex items-center justify-between w-full">
+                        {/* Left Icons (Back Home & Share) */}
+                        <div className="flex items-center gap-2">
+                            {config.vicino_landing_enabled && (
+                                <button
+                                    onClick={() => setShowLanding(true)}
+                                    className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-200 hover:text-white transition-colors flex-shrink-0 shadow-sm"
+                                    title="Back to Home"
+                                >
+                                    <ArrowLeft className="w-4 h-4" />
+                                </button>
+                            )}
+
                             <button
-                                onClick={() => setShowLanding(true)}
-                                className="p-2.5 rounded-2xl bg-slate-800/80 text-slate-200 hover:text-white transition-colors flex-shrink-0 border border-slate-700/60 shadow-sm"
-                                title="Back to Home"
+                                onClick={handleShare}
+                                className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm"
+                                title="Share"
                             >
-                                <ArrowLeft className="w-4 h-4" />
+                                <Share2 className="w-4 h-4" />
                             </button>
-                        )}
+                        </div>
 
-                        {/* Logo Image */}
-                        {finalLogoSrc && (
-                            <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl overflow-hidden border border-slate-700/60 bg-white p-1 flex-shrink-0 shadow-md">
-                                <OptimizedMenuImage src={finalLogoSrc} alt="Logo" className="w-full h-full object-contain" useOriginal={true} />
-                            </div>
-                        )}
+                        {/* Right Icons (Payment Options, Light/Dark Toggle, Cart Button) */}
+                        <div className="flex items-center gap-2">
+                            {config.payment_methods && config.payment_methods.length > 0 && (
+                                <button
+                                    onClick={() => setShowPaymentModal(true)}
+                                    className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-amber-400 hover:text-amber-300 transition-all shadow-sm"
+                                    title="Payment Options"
+                                >
+                                    <CreditCard className="w-4 h-4" />
+                                </button>
+                            )}
 
-                        <div className="min-w-0 flex-1">
-                            <h1 className="font-extrabold text-base md:text-xl tracking-tight leading-tight line-clamp-1">{config.name}</h1>
-                            <span className="text-[10px] md:text-xs font-black text-rose-500 uppercase tracking-widest block leading-none mt-0.5">USA Theme Menu</span>
+                            <button
+                                onClick={toggleThemeMode}
+                                className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm"
+                                title="Toggle Light/Dark Mode"
+                            >
+                                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
+                            </button>
+
+                            {/* Cart Button */}
+                            {config.orders_enabled !== false && (
+                                <button
+                                    onClick={() => setIsCartDrawerOpen(true)}
+                                    className="relative p-2.5 px-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+                                >
+                                    <ShoppingCart className="w-4 h-4" />
+                                    {cartCount > 0 && (
+                                        <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-white text-rose-600 font-black">
+                                            {cartCount}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </div>
 
-                    {/* Right: Action Buttons Group */}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {config.payment_methods && config.payment_methods.length > 0 && (
-                            <button
-                                onClick={() => setShowPaymentModal(true)}
-                                className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-amber-400 hover:text-amber-300 transition-all shadow-sm"
-                                title="Payment Options"
-                            >
-                                <CreditCard className="w-4 h-4" />
-                            </button>
+                    {/* Centered Brand Header (Prominent Logo & Title like Aswan Theme) */}
+                    <div className="flex flex-col items-center text-center max-w-xl mx-auto pt-1 pb-2">
+                        {finalLogoSrc && (
+                            <div className="relative mb-3 group">
+                                <div className="absolute inset-0 rounded-full blur-xl opacity-35" style={{ backgroundColor: primaryColor }} />
+                                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-rose-500 shadow-2xl flex items-center justify-center p-2 bg-white">
+                                    <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
+                                </div>
+                            </div>
                         )}
 
-                        <button
-                            onClick={handleShare}
-                            className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm"
-                            title="Share"
-                        >
-                            <Share2 className="w-4 h-4" />
-                        </button>
-
-                        <button
-                            onClick={toggleThemeMode}
-                            className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm"
-                            title="Toggle Light/Dark Mode"
-                        >
-                            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
-                        </button>
-
-                        {/* Cart Button */}
-                        {config.orders_enabled !== false && (
-                            <button
-                                onClick={() => setIsCartDrawerOpen(true)}
-                                className="relative p-2.5 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all shadow-md flex items-center gap-1.5"
-                            >
-                                <ShoppingCart className="w-4 h-4" />
-                                {cartCount > 0 && (
-                                    <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-white text-rose-600 font-black">
-                                        {cartCount}
-                                    </span>
-                                )}
-                            </button>
-                        )}
+                        <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-center">{config.name}</h1>
+                        <span className="text-xs font-extrabold text-rose-500 uppercase tracking-widest block leading-none mt-1">USA Theme Menu</span>
                     </div>
 
                 </div>
