@@ -217,7 +217,7 @@ export default function AswanArLandingPage({ config, onContinue }: AswanArLandin
                 )}
 
                 {/* --- ATMOSPHERE GALLERY SLIDER --- */}
-                {galleryImages.length > 0 && (
+                {!videoUrl && galleryImages.length > 0 && (
                     <div className="w-full px-4 max-w-4xl mx-auto mb-12">
                         <div className="text-center mb-4">
                             <h2 className="text-xl font-bold">معرض الصور والأجواء</h2>

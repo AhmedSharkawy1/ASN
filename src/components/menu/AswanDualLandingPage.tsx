@@ -198,7 +198,7 @@ export default function AswanDualLandingPage({ config, onContinue }: AswanDualLa
                 )}
 
                 {/* --- GALLERY SLIDER --- */}
-                {galleryImages.length > 0 && (
+                {!videoUrl && galleryImages.length > 0 && (
                     <div className="w-full px-4 max-w-4xl mx-auto mb-12">
                         <div className="text-center mb-4">
                             <h2 className="text-xl font-bold">{isAr ? 'معرض الصور والأجواء' : 'Atmosphere Gallery'}</h2>

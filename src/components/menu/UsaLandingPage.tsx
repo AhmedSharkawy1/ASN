@@ -259,7 +259,7 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                     )}
 
                     {/* Gallery Carousel */}
-                    {config.vicino_images && config.vicino_images.length > 0 && (
+                    {!config.vicino_video_url && config.vicino_images && config.vicino_images.length > 0 && (
                         <motion.div 
                             variants={fadeInUp}
                             initial="hidden"

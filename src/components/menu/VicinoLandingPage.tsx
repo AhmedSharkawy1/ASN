@@ -235,7 +235,7 @@ export default function VicinoLandingPage({ config, onContinue }: VicinoLandingP
                     )}
 
                     {/* Gallery Images */}
-                    {config.vicino_images && config.vicino_images.length > 0 && (
+                    {!config.vicino_video_url && config.vicino_images && config.vicino_images.length > 0 && (
                         <motion.div variants={fadeInUp} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-50px" }} className="w-full">
                             <Swiper 
                                 key={isAr ? 'rtl' : 'ltr'} 

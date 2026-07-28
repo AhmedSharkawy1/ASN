@@ -247,7 +247,7 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
                 </div>
 
                 {/* --- GALLERY SLIDER --- */}
-                {galleryImages.length > 0 && (
+                {!videoUrl && galleryImages.length > 0 && (
                     <div className="w-full max-w-4xl mx-auto mb-12 px-4">
                         <h2 className="text-xl font-bold mb-4 px-2 uppercase tracking-wide flex items-center gap-2">
                             <span>Experience Atmosphere</span>
