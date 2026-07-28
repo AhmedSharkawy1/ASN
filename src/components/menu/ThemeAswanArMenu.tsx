@@ -330,57 +330,57 @@ export default function ThemeAswanArMenu({ config, categories, restaurantId }: T
                 {/* --- HEADER & TOP ACTION BAR --- */}
                 <div className="px-5 pt-6 pb-4 max-w-4xl mx-auto">
                     {/* Top Action Utility Row */}
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-2">
+                    <div className="flex justify-between items-center gap-1.5 sm:gap-2 mb-6 max-w-full overflow-x-auto no-scrollbar py-0.5">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                             {landingEnabled && (
                                 <button 
                                     onClick={() => setInMenu(false)} 
-                                    className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95 flex-shrink-0"
                                     style={{ backgroundColor: bgCard, borderColor: borderColor, color: primaryColor }}
                                     title="الرئيسية"
                                 >
-                                    <Home className="w-5 h-5" />
+                                    <Home className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                             )}
                             <button 
                                 onClick={handleShare} 
-                                className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95"
+                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95 flex-shrink-0"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                 title="مشاركة المنيو"
                             >
-                                <Share2 className="w-5 h-5" />
+                                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
 
                             {displayNumbers.length > 0 && (
                                 <button
                                     onClick={() => setShowContactModal(true)}
-                                    className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm text-emerald-500 transition-transform active:scale-95"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border shadow-sm text-emerald-500 transition-transform active:scale-95 flex-shrink-0"
                                     style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                     title="اتصل بنا"
                                 >
-                                    <Phone className="w-5 h-5" />
+                                    <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                             )}
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                             <button 
                                 onClick={toggleTheme}
-                                className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95"
+                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95 flex-shrink-0"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                 title={isDark ? "الوضع الفاتح" : "الوضع الداكن"}
                             >
-                                {isDark ? <Sun className="w-5 h-5 text-amber-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
+                                {isDark ? <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />}
                             </button>
 
                             {config.payment_methods && config.payment_methods.length > 0 && (
                                 <button 
                                     onClick={() => setShowPaymentModal(true)} 
-                                    className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm text-amber-500 transition-transform active:scale-95"
+                                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border shadow-sm text-amber-500 transition-transform active:scale-95 flex-shrink-0"
                                     style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                     title="خيارات الدفع"
                                 >
-                                    <CreditCard className="w-5 h-5" />
+                                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                             )}
                         </div>
