@@ -6,7 +6,7 @@ import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, Home, Tag, Moon, Sun, LayoutGrid, LayoutList, CreditCard, ArrowRight, Check } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, Home, Tag, Moon, Sun, LayoutGrid, LayoutList, CreditCard, ArrowRight, Check, Phone, MapPin, Clock } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -14,6 +14,7 @@ import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from './CheckoutModal';
 import SharedMarquee from './SharedMarquee';
 import AswanLandingPage from './AswanLandingPage';
+import { FaWhatsapp } from 'react-icons/fa';
 
 type MenuItem = {
     id: string | number;
@@ -46,6 +47,7 @@ interface RestaurantType {
     name: string;
     theme?: string;
     slogan_en?: string;
+    slogan_ar?: string;
     logo_url?: string;
     cover_images?: string[];
     marquee_enabled?: boolean;
@@ -58,6 +60,12 @@ interface RestaurantType {
     default_theme_mode?: 'light' | 'dark' | 'system';
     aswan_landing_enabled?: boolean;
     vicino_landing_enabled?: boolean;
+    phone?: string;
+    phone_numbers?: { label?: string; number: string }[];
+    address?: string;
+    map_link?: string;
+    working_hours?: string;
+    whatsapp_number?: string;
     [key: string]: any;
 }
 
@@ -79,7 +87,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
     }, [config.default_theme_mode, setTheme]);
 
     const isDark = mounted && resolvedTheme === 'dark';
-    const cur = parseCurrency(config?.currency, false); // Force English currency string (e.g., EGP)
+    const cur = parseCurrency(config?.currency, false); // Force English currency string
 
     const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor, activeBgImage, hasBgImage } = getAswanColors(config, isDark);
 
@@ -103,6 +111,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
     const [cart, setCart] = useState<{ id: string; item: MenuItem; catName: string; price: number; sizeLabel: string; quantity: number; notes: string }[]>([]);
     const [showCheckout, setShowCheckout] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
 
     // Refs for Scroll Spy Category Navigation
     const categoryNavRef = useRef<HTMLDivElement>(null);
@@ -116,6 +125,10 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
 
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+
+    const displayNumbers = (config.phone_numbers && config.phone_numbers.length > 0)
+        ? config.phone_numbers
+        : (config.phone ? [{ label: 'Contact Number', number: config.phone }] : []);
 
     // Scroll Spy Effect: highlight active category and auto-scroll horizontal pill bar
     useEffect(() => {
@@ -144,7 +157,6 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
 
             if (currentCatId !== activeCategory) {
                 setActiveCategory(currentCatId);
-                // Scroll button into view inside category nav bar
                 const btn = categoryBtnRefs.current[currentCatId];
                 if (btn && categoryNavRef.current) {
                     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -294,10 +306,11 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     </div>
                 )}
 
-                {/* --- HEADER --- */}
-                <div className="px-5 pt-6 pb-4">
-                    <div className="flex justify-between items-start mb-4 max-w-4xl mx-auto">
-                        {/* Left action buttons */}
+                {/* --- HEADER & TOP ACTION BAR --- */}
+                <div className="px-5 pt-6 pb-4 max-w-4xl mx-auto">
+                    {/* Top Action Utility Row */}
+                    <div className="flex justify-between items-center mb-6">
+                        {/* Left Action Buttons (Home, Share, Direct Call Icon) */}
                         <div className="flex items-center gap-2">
                             {landingEnabled && (
                                 <button 
@@ -317,35 +330,21 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             >
                                 <Share2 className="w-5 h-5" />
                             </button>
-                        </div>
 
-                        {/* Brand Logo & Name */}
-                        <div className="flex flex-col items-center text-center max-w-[60%]">
-                            {(() => {
-                                let parsedLogos = { light: config.aswan_logo_url || config.vicino_logo_url, dark: config.aswan_logo_url || config.vicino_logo_url };
-                                const logoField = config.aswan_logo_url || config.vicino_logo_url;
-                                if (logoField && logoField.startsWith('{')) {
-                                    try { parsedLogos = JSON.parse(logoField); } catch {}
-                                }
-                                const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
-                                const finalLogoSrc = currentLogo || config.logo_url;
-                                if (!finalLogoSrc) return null;
-                                return (
-                                    <div className="relative mb-2">
-                                        <div className="absolute inset-0 rounded-2xl blur-lg opacity-30" style={{ backgroundColor: primaryColor }} />
-                                        <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="h-16 w-16 md:h-20 md:w-20 rounded-2xl object-contain shadow-md relative border p-1 bg-white" style={{ borderColor: primaryColor }} useOriginal={true} />
-                                    </div>
-                                );
-                            })()}
-                            <h1 className="text-xl md:text-2xl font-bold tracking-normal leading-tight">{config.name}</h1>
-                            {config.slogan_en && (
-                                <p className="text-xs md:text-sm font-medium opacity-80 mt-1 leading-normal" style={{ color: textMuted }}>
-                                    {config.slogan_en}
-                                </p>
+                            {/* Direct Phone Call Icon Button */}
+                            {displayNumbers.length > 0 && (
+                                <button
+                                    onClick={() => setShowContactModal(true)}
+                                    className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm text-emerald-500 transition-transform active:scale-95"
+                                    style={{ backgroundColor: bgCard, borderColor: borderColor }}
+                                    title="Call Us / Contact"
+                                >
+                                    <Phone className="w-5 h-5" />
+                                </button>
                             )}
                         </div>
 
-                        {/* Right Action buttons */}
+                        {/* Right Action Buttons (Theme Switcher & Payment Methods) */}
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -359,7 +358,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             {config.payment_methods && config.payment_methods.length > 0 && (
                                 <button 
                                     onClick={() => setShowPaymentModal(true)} 
-                                    className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm text-emerald-500 transition-transform active:scale-95"
+                                    className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm text-amber-500 transition-transform active:scale-95"
                                     style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                     title="Payment Methods"
                                 >
@@ -367,6 +366,41 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                 </button>
                             )}
                         </div>
+                    </div>
+
+                    {/* Centered Brand Header (Prominent Logo & Full Width Text) */}
+                    <div className="flex flex-col items-center text-center max-w-xl mx-auto mb-6">
+                        {(() => {
+                            let parsedLogos = { light: config.aswan_logo_url || config.vicino_logo_url, dark: config.aswan_logo_url || config.vicino_logo_url };
+                            const logoField = config.aswan_logo_url || config.vicino_logo_url;
+                            if (logoField && logoField.startsWith('{')) {
+                                try { parsedLogos = JSON.parse(logoField); } catch {}
+                            }
+                            const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
+                            const finalLogoSrc = currentLogo || config.logo_url;
+                            if (!finalLogoSrc) return null;
+                            return (
+                                <div className="relative mb-3 group">
+                                    <div className="absolute inset-0 rounded-full blur-xl opacity-35" style={{ backgroundColor: primaryColor }} />
+                                    <div 
+                                        className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 shadow-xl flex items-center justify-center p-2 bg-white" 
+                                        style={{ borderColor: primaryColor }}
+                                    >
+                                        <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-normal leading-tight text-center" style={{ color: textMain }}>
+                            {config.name}
+                        </h1>
+
+                        {(config.slogan_en || config.slogan_ar) && (
+                            <p className="text-xs md:text-sm font-medium opacity-80 mt-2 max-w-md mx-auto text-center leading-relaxed" style={{ color: textMuted }}>
+                                {config.slogan_en || config.slogan_ar}
+                            </p>
+                        )}
                     </div>
 
                     {/* Search Bar */}
@@ -616,7 +650,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     })}
                 </div>
 
-                {/* --- ITEM DETAIL MODAL (Centered Dead Center) --- */}
+                {/* --- ITEM DETAIL MODAL (Centered Dead Center & No Text Wrap) --- */}
                 <AnimatePresence>
                     {selectedItem && (
                         <motion.div 
@@ -742,31 +776,31 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     </div>
                                 </div>
 
-                                {/* Modal Footer (Quantity Stepper & Add to Cart on 1 clean row) */}
+                                {/* Modal Footer (Single row Add to Cart button - No line wrapping) */}
                                 <div className="p-4 border-t flex items-center gap-3 shrink-0" style={{ borderColor: borderColor }}>
                                     <div className="flex items-center border rounded-2xl p-1 shrink-0" style={{ borderColor: borderColor }}>
                                         <button 
                                             onClick={() => setQty(Math.max(1, qty - 1))}
-                                            className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95"
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center active:scale-95"
                                         >
-                                            <Minus className="w-4 h-4" />
+                                            <Minus className="w-3.5 h-3.5" />
                                         </button>
-                                        <span className="w-8 text-center font-bold text-sm">{qty}</span>
+                                        <span className="w-7 text-center font-bold text-xs">{qty}</span>
                                         <button 
                                             onClick={() => setQty(qty + 1)}
-                                            className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95"
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center active:scale-95"
                                         >
-                                            <Plus className="w-4 h-4" />
+                                            <Plus className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
 
                                     <button
                                         onClick={addToCart}
-                                        className="flex-1 py-3.5 px-4 rounded-2xl font-bold text-white shadow-xl flex items-center justify-between whitespace-nowrap text-sm md:text-base transition-transform active:scale-95"
+                                        className="flex-1 py-3.5 px-3 md:px-5 rounded-2xl font-bold text-white shadow-xl flex items-center justify-between whitespace-nowrap text-xs sm:text-sm md:text-base transition-transform active:scale-95 shrink-0"
                                         style={{ backgroundColor: primaryColor }}
                                     >
-                                        <span>Add to Cart</span>
-                                        <span className="font-extrabold text-base ml-2">
+                                        <span className="whitespace-nowrap">Add to Cart</span>
+                                        <span className="font-extrabold whitespace-nowrap ml-1.5">
                                             {((selectedItem.item.prices?.[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty} {cur}
                                         </span>
                                     </button>
@@ -863,6 +897,109 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                         <span>Checkout Order</span>
                                         <ArrowRight className="w-5 h-5" />
                                     </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* --- CONTACT & DIRECT CALL MODAL --- */}
+                <AnimatePresence>
+                    {showContactModal && (
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                            onClick={() => setShowContactModal(false)}
+                        >
+                            <motion.div 
+                                initial={{ scale: 0.92, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.92, opacity: 0 }}
+                                onClick={e => e.stopPropagation()}
+                                className="w-full max-w-md rounded-3xl p-5 shadow-2xl border relative max-h-[80vh] overflow-y-auto my-auto"
+                                style={{ backgroundColor: bgCard, borderColor: borderColor }}
+                            >
+                                <div className="flex justify-between items-center mb-4 border-b pb-3" style={{ borderColor: borderColor }}>
+                                    <h3 className="font-bold text-base flex items-center gap-2">
+                                        <Phone className="w-5 h-5" style={{ color: primaryColor }} />
+                                        <span>Contact Us & Direct Call</span>
+                                    </h3>
+                                    <button onClick={() => setShowContactModal(false)} className="p-1 rounded-full hover:bg-slate-500/10">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {/* Direct Phone Numbers */}
+                                    {displayNumbers.length > 0 && (
+                                        <div className="space-y-2">
+                                            <span className="text-xs font-bold uppercase tracking-wider block opacity-70">Direct Call Numbers</span>
+                                            <div className="space-y-2">
+                                                {displayNumbers.map((num: any, idx: number) => (
+                                                    <a
+                                                        key={idx}
+                                                        href={`tel:${num.number}`}
+                                                        className="flex items-center justify-between p-3.5 rounded-2xl border transition-colors hover:bg-slate-500/10"
+                                                        style={{ borderColor: borderColor, backgroundColor: bgBody }}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <Phone className="w-4 h-4" style={{ color: primaryColor }} />
+                                                            <div>
+                                                                <div className="font-bold text-xs">{num.label || 'Phone Number'}</div>
+                                                                <div className="text-xs font-semibold opacity-80" dir="ltr">{num.number}</div>
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-xs font-bold text-white px-3 py-1.5 rounded-xl shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                                            Call Now
+                                                        </span>
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* WhatsApp Direct */}
+                                    {config.whatsapp_number && (
+                                        <a
+                                            href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 text-white font-bold text-sm shadow-md"
+                                            style={{ backgroundColor: '#25D366' }}
+                                        >
+                                            <FaWhatsapp className="w-5 h-5" />
+                                            <span>Chat on WhatsApp ({config.whatsapp_number})</span>
+                                        </a>
+                                    )}
+
+                                    {/* Address & Google Maps */}
+                                    {config.address && (
+                                        <div className="p-3.5 rounded-2xl border flex items-start gap-3" style={{ borderColor: borderColor, backgroundColor: bgBody }}>
+                                            <MapPin className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primaryColor }} />
+                                            <div>
+                                                <h4 className="font-bold text-xs uppercase opacity-70">Location Address</h4>
+                                                <p className="text-xs font-semibold mt-0.5">{config.address}</p>
+                                                {config.map_link && (
+                                                    <a href={config.map_link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-sky-500 hover:underline mt-1 block">
+                                                        Open in Google Maps →
+                                                    </a>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Working Hours */}
+                                    {config.working_hours && (
+                                        <div className="p-3.5 rounded-2xl border flex items-start gap-3" style={{ borderColor: borderColor, backgroundColor: bgBody }}>
+                                            <Clock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primaryColor }} />
+                                            <div>
+                                                <h4 className="font-bold text-xs uppercase opacity-70">Opening Hours</h4>
+                                                <p className="text-xs font-semibold whitespace-pre-line mt-0.5">{config.working_hours}</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </motion.div>
                         </motion.div>
