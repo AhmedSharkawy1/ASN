@@ -76,6 +76,8 @@ const MarketingThemes = [
     { key: "vicino", nameEn: "Theme 20 (Vicino)", nameAr: "ثيم 20 (فيتشينو)" },
     { key: "aswan", nameEn: "ASWAN Theme (100% English & Custom BGs)", nameAr: "ثيم أسوان (إنجليزي بالكامل وخلفيات)" },
     { key: "usa", nameEn: "USA Theme (100% English)", nameAr: "ثيم USA الأمريكي" },
+    { key: "uae", nameEn: "UAE Theme (100% Arabic)", nameAr: "ثيم الإمارات 🇦🇪 (عربي بالكامل)" },
+    { key: "usa-dual", nameEn: "USA Dual Theme (Bilingual EN/AR)", nameAr: "ثيم USA الثنائي 🇺🇸 (عربي وإنجليزي)" },
     { key: "vicino-red", nameEn: "Theme 20 (Red)", nameAr: "ثيم 20 (أحمر)" },
     { key: "vicino-cyan", nameEn: "Theme 20 (Cyan)", nameAr: "ثيم 20 (سماوي)" },
     { key: "vicino-emerald", nameEn: "Theme 20 (Emerald)", nameAr: "ثيم 20 (زمردي)" },

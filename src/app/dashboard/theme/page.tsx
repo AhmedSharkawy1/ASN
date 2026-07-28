@@ -73,6 +73,40 @@ const THEMES = [
         preview_color: "#f59e0b",
     },
 
+    // ===== ASWAN Arabic Family (100% Arabic) =====
+    {
+        id: "aswan-ar",
+        family: "aswan-ar",
+        name_ar: "أسوان عربي (بيج غامق)",
+        name_en: "ASWAN Arabic (Dark Beige)",
+        description_ar: "تصميم أسوان العربي بالكامل باللون البيج الغامق مع دعم خلفيات الصور.",
+        description_en: "100% Arabic ASWAN design with dark beige accent.",
+        preview_color: "#B89B72",
+    },
+    { id: "aswan-ar-cyan", family: "aswan-ar", name_ar: "أسوان عربي (سماوي Cyan)", name_en: "ASWAN Arabic (Cyan)", description_ar: "ثيم أسوان العربي بلون أزرق سماوي.", description_en: "ASWAN Arabic theme with cyan accent.", preview_color: "#06b6d4" },
+    { id: "aswan-ar-emerald", family: "aswan-ar", name_ar: "أسوان عربي (زمردي Emerald)", name_en: "ASWAN Arabic (Emerald)", description_ar: "ثيم أسوان العربي بلون أخضر زمردي.", description_en: "ASWAN Arabic theme with emerald accent.", preview_color: "#10b981" },
+    { id: "aswan-ar-red", family: "aswan-ar", name_ar: "أسوان عربي (ياقوتي Red)", name_en: "ASWAN Arabic (Crimson)", description_ar: "ثيم أسوان العربي بلون أحمر ياقوتي.", description_en: "ASWAN Arabic theme with crimson accent.", preview_color: "#ef4444" },
+    { id: "aswan-ar-purple", family: "aswan-ar", name_ar: "أسوان عربي (بنفسجي Purple)", name_en: "ASWAN Arabic (Purple)", description_ar: "ثيم أسوان العربي بلون بنفسجي ملكي.", description_en: "ASWAN Arabic theme with purple accent.", preview_color: "#8b5cf6" },
+    { id: "aswan-ar-gold", family: "aswan-ar", name_ar: "أسوان عربي (ذهبي Gold)", name_en: "ASWAN Arabic (Gold)", description_ar: "ثيم أسوان العربي بلون ذهبي ملكي.", description_en: "ASWAN Arabic theme with gold accent.", preview_color: "#d4af37" },
+    { id: "aswan-ar-dark", family: "aswan-ar", name_ar: "أسوان عربي (داكن عالي التباين)", name_en: "ASWAN Arabic (Dark)", description_ar: "ثيم أسوان العربي بوضع داكن.", description_en: "ASWAN Arabic theme with dark mode accent.", preview_color: "#f59e0b" },
+
+    // ===== ASWAN Dual / Bilingual Family (Arabic & English) =====
+    {
+        id: "aswan-dual",
+        family: "aswan-dual",
+        name_ar: "أسوان عربي وإنجليزي (بيج غامق)",
+        name_en: "ASWAN Dual AR/EN (Dark Beige)",
+        description_ar: "تصميم أسوان مزدوج اللغة (عربي وإنجليزي) مع زر تبديل اللغة الفوري.",
+        description_en: "Bilingual AR/EN ASWAN theme with dynamic language switch.",
+        preview_color: "#B89B72",
+    },
+    { id: "aswan-dual-cyan", family: "aswan-dual", name_ar: "أسوان مزدوج (سماوي Cyan)", name_en: "ASWAN Dual (Cyan)", description_ar: "ثيم أسوان مزدوج اللغة بلون أزرق سماوي.", description_en: "Bilingual ASWAN theme with cyan accent.", preview_color: "#06b6d4" },
+    { id: "aswan-dual-emerald", family: "aswan-dual", name_ar: "أسوان مزدوج (زمردي Emerald)", name_en: "ASWAN Dual (Emerald)", description_ar: "ثيم أسوان مزدوج اللغة بلون أخضر زمردي.", description_en: "Bilingual ASWAN theme with emerald accent.", preview_color: "#10b981" },
+    { id: "aswan-dual-red", family: "aswan-dual", name_ar: "أسوان مزدوج (ياقوتي Red)", name_en: "ASWAN Dual (Crimson)", description_ar: "ثيم أسوان مزدوج اللغة بلون أحمر ياقوتي.", description_en: "Bilingual ASWAN theme with crimson accent.", preview_color: "#ef4444" },
+    { id: "aswan-dual-purple", family: "aswan-dual", name_ar: "أسوان مزدوج (بنفسجي Purple)", name_en: "ASWAN Dual (Purple)", description_ar: "ثيم أسوان مزدوج اللغة بلون بنفسجي ملكي.", description_en: "Bilingual ASWAN theme with purple accent.", preview_color: "#8b5cf6" },
+    { id: "aswan-dual-gold", family: "aswan-dual", name_ar: "أسوان مزدوج (ذهبي Gold)", name_en: "ASWAN Dual (Gold)", description_ar: "ثيم أسوان مزدوج اللغة بلون ذهبي ملكي.", description_en: "Bilingual ASWAN theme with gold accent.", preview_color: "#d4af37" },
+    { id: "aswan-dual-dark", family: "aswan-dual", name_ar: "أسوان مزدوج (داكن عالي التباين)", name_en: "ASWAN Dual (Dark)", description_ar: "ثيم أسوان مزدوج اللغة بوضع داكن.", description_en: "Bilingual ASWAN theme with dark mode accent.", preview_color: "#f59e0b" },
+
     // ===== USA Theme Family (100% English) =====
     {
         id: "usa",
@@ -118,6 +152,100 @@ const THEMES = [
         description_ar: "ثيم USA الأمريكي بوضع داكن مع لمسات وردية ياقوتية.",
         description_en: "USA English theme with dark midnight background.",
         preview_color: "#e11d48",
+    },
+
+    // ===== UAE Theme Family (100% Arabic) =====
+    {
+        id: "uae",
+        family: "uae",
+        name_ar: "الإمارات UAE (ذهبي ملكي Gold)",
+        name_en: "UAE Theme (Royal Gold)",
+        description_ar: "ثيم الإمارات الفاخر باللغة العربية بالكامل مع دعم خلفيات الصور وصفحة الهبوط التفاعلية.",
+        description_en: "100% Arabic UAE Luxury Theme with landing page & video support.",
+        preview_color: "#d97706",
+    },
+    {
+        id: "uae-red",
+        family: "uae",
+        name_ar: "الإمارات UAE (أحمر Red)",
+        name_en: "UAE Theme (Crimson Red)",
+        description_ar: "ثيم الإمارات باللون الأحمري القاني.",
+        description_en: "UAE Arabic theme with crimson red accent.",
+        preview_color: "#dc2626",
+    },
+    {
+        id: "uae-emerald",
+        family: "uae",
+        name_ar: "الإمارات UAE (زمردي Emerald)",
+        name_en: "UAE Theme (Emerald Green)",
+        description_ar: "ثيم الإمارات باللون الأخضر الزمردي.",
+        description_en: "UAE Arabic theme with emerald green accent.",
+        preview_color: "#059669",
+    },
+    {
+        id: "uae-navy",
+        family: "uae",
+        name_ar: "الإمارات UAE (أزرق نيفي Navy)",
+        name_en: "UAE Theme (Navy Blue)",
+        description_ar: "ثيم الإمارات باللون الأزرق الملوكي.",
+        description_en: "UAE Arabic theme with navy blue accent.",
+        preview_color: "#2563eb",
+    },
+    {
+        id: "uae-dark",
+        family: "uae",
+        name_ar: "الإمارات UAE (داكن عالي التباين)",
+        name_en: "UAE Theme (Dark Mode)",
+        description_ar: "ثيم الإمارات بوضع داكن فاخر.",
+        description_en: "UAE Arabic theme with dark mode background.",
+        preview_color: "#1e293b",
+    },
+
+    // ===== USA Dual / Bilingual Family (Arabic & English) =====
+    {
+        id: "usa-dual",
+        family: "usa-dual",
+        name_ar: "USA Dual الثنائي (عربي/إنجليزي - وردي)",
+        name_en: "USA Dual Theme (Bilingual - Crimson)",
+        description_ar: "ثيم USA الأمريكي الثنائي لدعم اللغتين العربية والإنجليزية بتبديل فوري.",
+        description_en: "Bilingual English & Arabic USA Theme with dynamic language switch button.",
+        preview_color: "#e11d48",
+    },
+    {
+        id: "usa-dual-navy",
+        family: "usa-dual",
+        name_ar: "USA Dual الثنائي (أزرق نيفي Navy)",
+        name_en: "USA Dual Theme (Navy Blue)",
+        description_ar: "ثيم USA الثنائي باللون الأزرق الملوكي.",
+        description_en: "Bilingual USA Theme with navy blue accent.",
+        preview_color: "#2563eb",
+    },
+    {
+        id: "usa-dual-emerald",
+        family: "usa-dual",
+        name_ar: "USA Dual الثنائي (زمردي Emerald)",
+        name_en: "USA Dual Theme (Emerald Green)",
+        description_ar: "ثيم USA الثنائي باللون الأخضر الزمردي.",
+        description_en: "Bilingual USA Theme with emerald green accent.",
+        preview_color: "#059669",
+    },
+    {
+        id: "usa-dual-gold",
+        family: "usa-dual",
+        name_ar: "USA Dual الثنائي (ذهبي Gold)",
+        name_en: "USA Dual Theme (Luxe Gold)",
+        description_ar: "ثيم USA الثنائي باللون الذهبي الدافئ.",
+        description_en: "Bilingual USA Theme with luxe gold accent.",
+        preview_color: "#d97706",
+    },
+    {
+        id: "usa-dual-dark",
+        family: "usa-dual",
+        name_ar: "USA Dual الثنائي (داكن عالي التباين)",
+        name_en: "USA Dual Theme (Dark Midnight)",
+        description_ar: "ثيم USA الثنائي بوضع داكن فاخر.",
+        description_en: "Bilingual USA Theme with dark mode background.",
+        preview_color: "#020617",
     },
 
     // ===== Vicino Family =====
@@ -243,6 +371,8 @@ const THEMES = [
 
 const FAMILIES = [
     { id: 'all', name_ar: 'الكل', name_en: 'All Themes' },
+    { id: 'aswan-ar', name_ar: 'ثيم أسوان (عربي 100%)', name_en: 'ASWAN (100% AR)' },
+    { id: 'aswan-dual', name_ar: 'ثيم أسوان (عربي وإنجليزي)', name_en: 'ASWAN (Dual AR/EN)' },
     { id: 'aswan', name_ar: 'ثيم أسوان (إنجليزي 100%)', name_en: 'ASWAN (100% EN)' },
     { id: 'usa', name_ar: 'ثيم USA (إنجليزي 100%)', name_en: 'USA (100% EN)' },
     { id: 'vicino', name_ar: 'فيتشينو Vicino', name_en: 'Vicino' },

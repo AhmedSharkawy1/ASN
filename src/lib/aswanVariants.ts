@@ -33,27 +33,27 @@ export function getAswanColors(config: any, isDark: boolean): AswanThemeColors {
 
     const t = (config?.theme || '').toLowerCase();
     
-    if (t === 'aswan-red') {
+    if (t.endsWith('-red') || t.includes('-red-')) {
         primaryColor = tc.primary || '#ef4444';
         bgBody = isDark ? '#1a0505' : '#fff1f2';
         bgCard = isDark ? '#2a0a0a' : '#ffffff';
-    } else if (t === 'aswan-cyan') {
+    } else if (t.endsWith('-cyan') || t.includes('-cyan-')) {
         primaryColor = tc.primary || '#06b6d4';
         bgBody = isDark ? '#081a20' : '#ecfeff';
         bgCard = isDark ? '#112a34' : '#ffffff';
-    } else if (t === 'aswan-emerald') {
+    } else if (t.endsWith('-emerald') || t.includes('-emerald-')) {
         primaryColor = tc.primary || '#10b981';
         bgBody = isDark ? '#051c14' : '#ecfdf5';
         bgCard = isDark ? '#0d2d22' : '#ffffff';
-    } else if (t === 'aswan-purple') {
+    } else if (t.endsWith('-purple') || t.includes('-purple-')) {
         primaryColor = tc.primary || '#8b5cf6';
         bgBody = isDark ? '#170b2e' : '#f5f3ff';
         bgCard = isDark ? '#261546' : '#ffffff';
-    } else if (t === 'aswan-gold') {
+    } else if (t.endsWith('-gold') || t.includes('-gold-')) {
         primaryColor = tc.primary || '#d4af37';
         bgBody = isDark ? '#1a1405' : '#fffdf0';
         bgCard = isDark ? '#2a200a' : '#ffffff';
-    } else if (t === 'aswan-dark') {
+    } else if (t.endsWith('-dark') || t.includes('-dark-')) {
         primaryColor = tc.primary || '#f59e0b';
         bgBody = '#05070a';
         bgCard = '#0f172a';

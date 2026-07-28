@@ -39,7 +39,11 @@ const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
 const LametZamanMenu = dynamic(() => import("@/components/menu/LametZamanMenu"));
 const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
 const ThemeAswanMenu = dynamic(() => import("@/components/menu/ThemeAswanMenu"));
+const ThemeAswanArMenu = dynamic(() => import("@/components/menu/ThemeAswanArMenu"));
+const ThemeAswanDualMenu = dynamic(() => import("@/components/menu/ThemeAswanDualMenu"));
 const ThemeUsaMenu = dynamic(() => import("@/components/menu/ThemeUsaMenu"));
+const ThemeUaeMenu = dynamic(() => import("@/components/menu/ThemeUaeMenu"));
+const ThemeUsaDualMenu = dynamic(() => import("@/components/menu/ThemeUsaDualMenu"));
 const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
 const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
@@ -373,8 +377,20 @@ export default function MenuClient({
   if (config?.theme?.startsWith("vicino")) {
     return <ThemeVicinoMenu config={config} categories={categories} restaurantId={config.id} />;
   }
+  if (config?.theme?.startsWith("aswan-ar")) {
+    return <ThemeAswanArMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme?.startsWith("aswan-dual")) {
+    return <ThemeAswanDualMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
   if (config?.theme?.startsWith("aswan")) {
     return <ThemeAswanMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme?.startsWith("uae")) {
+    return <ThemeUaeMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme?.startsWith("usa-dual")) {
+    return <ThemeUsaDualMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme?.startsWith("usa")) {
     return <ThemeUsaMenu config={config} categories={categories} restaurantId={config.id} />;
