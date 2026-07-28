@@ -6,11 +6,12 @@ import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight, CreditCard } from 'lucide-react';
 import ASNFooter from '@/components/menu/ASNFooter';
 import UsaCheckoutModal from './UsaCheckoutModal';
 import UsaLandingPage from './UsaLandingPage';
 import SharedMarquee from './SharedMarquee';
+import { FaWhatsapp } from 'react-icons/fa';
 
 type MenuItem = {
     id: string | number;
@@ -107,6 +108,8 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     const [showLanding, setShowLanding] = useState<boolean>(() => {
         return !!config.vicino_landing_enabled;
     });
+
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     // Menu States
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -290,6 +293,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 <SharedMarquee
                     text={config.marquee_text_en || config.marquee_text_ar || ''}
                     bgColor={primaryColor}
+                    direction="rtl"
                 />
             )}
 
@@ -324,6 +328,16 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
                     {/* Right: Action Buttons */}
                     <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {config.payment_methods && config.payment_methods.length > 0 && (
+                            <button
+                                onClick={() => setShowPaymentModal(true)}
+                                className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-amber-400 hover:text-amber-300 transition-colors"
+                                title="Payment Options"
+                            >
+                                <CreditCard className="w-4 h-4" />
+                            </button>
+                        )}
+
                         <button
                             onClick={handleShare}
                             className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-colors"
@@ -943,6 +957,76 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 }}
                 branches={config.branches || []}
             />
+
+            {/* Payment Options Modal */}
+            <AnimatePresence>
+                {showPaymentModal && (
+                    <div 
+                        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                        onClick={() => setShowPaymentModal(false)}
+                    >
+                        <motion.div 
+                            initial={{ scale: 0.92, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.92, opacity: 0 }}
+                            onClick={e => e.stopPropagation()}
+                            className="w-full max-w-md rounded-3xl p-5 shadow-2xl border border-slate-800 bg-slate-900 text-slate-100 relative max-h-[80vh] overflow-y-auto my-auto"
+                        >
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 className="font-bold text-base flex items-center gap-2 text-rose-500">
+                                    <CreditCard className="w-5 h-5" />
+                                    <span>Payment Options</span>
+                                </h3>
+                                <button onClick={() => setShowPaymentModal(false)} className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <p className="text-xs opacity-70 mb-3 font-normal text-slate-300">
+                                Please send a payment transfer receipt screenshot to our WhatsApp after payment.
+                            </p>
+
+                            {config.whatsapp_number && (
+                                <a
+                                    href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent('Hello, I have completed the payment transfer. Here is my payment receipt screenshot:')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-white font-bold text-xs sm:text-sm shadow-md mb-4 transition-transform active:scale-95 hover:opacity-90"
+                                    style={{ backgroundColor: '#25D366' }}
+                                >
+                                    <FaWhatsapp className="w-5 h-5" />
+                                    <span>Send Receipt via WhatsApp</span>
+                                </a>
+                            )}
+
+                            <div className="space-y-3">
+                                {config.payment_methods?.map((pm: any, idx: number) => (
+                                    <div key={idx} className="p-3.5 rounded-2xl border border-slate-800 bg-slate-950/60 space-y-2">
+                                        <h4 className="font-bold text-sm text-slate-200">{pm.name_en || pm.name_ar}</h4>
+                                        {(pm.desc_en || pm.desc_ar) && <p className="text-xs opacity-70 font-normal text-slate-400">{pm.desc_en || pm.desc_ar}</p>}
+                                        {pm.number && (
+                                            <div className="flex justify-between items-center p-2 rounded-xl border border-slate-800 bg-black/40">
+                                                <span className="font-mono text-xs font-bold text-slate-200" dir="ltr">{pm.number}</span>
+                                                <button 
+                                                    onClick={() => { navigator.clipboard.writeText(pm.number); alert('Number copied!'); }}
+                                                    className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-500"
+                                                >
+                                                    Copy
+                                                </button>
+                                            </div>
+                                        )}
+                                        {pm.link && (
+                                            <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-2 rounded-xl shadow-sm bg-rose-600 hover:bg-rose-500">
+                                                InstaPay / Payment Link
+                                            </a>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Footer */}
             {config.show_asn_branding !== false && (

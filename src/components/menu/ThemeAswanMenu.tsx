@@ -314,7 +314,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                 {/* --- MARQUEE OFFER BAR --- */}
                 {config.marquee_enabled && (
                     <div className="text-xs md:text-sm text-white py-1.5 font-semibold tracking-normal" style={{ backgroundColor: primaryColor }}>
-                        <SharedMarquee text={config.marquee_text_en || config.marquee_text_ar || 'Welcome to our restaurant! Enjoy our delicious menu.'} />
+                        <SharedMarquee text={config.marquee_text_en || config.marquee_text_ar || 'Welcome to our restaurant! Enjoy our delicious menu.'} direction="rtl" />
                     </div>
                 )}
 
@@ -1046,9 +1046,22 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     </button>
                                 </div>
 
-                                <p className="text-xs opacity-70 mb-4 font-normal">
+                                <p className="text-xs opacity-70 mb-3 font-normal">
                                     Please send a payment transfer receipt screenshot to our WhatsApp after payment.
                                 </p>
+
+                                {config.whatsapp_number && (
+                                    <a
+                                        href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent('Hello, I have completed the payment transfer. Here is my payment receipt screenshot:')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-full py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-white font-bold text-xs sm:text-sm shadow-md mb-4 transition-transform active:scale-95 hover:opacity-90"
+                                        style={{ backgroundColor: '#25D366' }}
+                                    >
+                                        <FaWhatsapp className="w-5 h-5" />
+                                        <span>Send Receipt via WhatsApp</span>
+                                    </a>
+                                )}
 
                                 <div className="space-y-3">
                                     {config.payment_methods?.map((pm: any, idx: number) => (
