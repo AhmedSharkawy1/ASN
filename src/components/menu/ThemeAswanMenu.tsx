@@ -78,6 +78,7 @@ interface ThemeAswanMenuProps {
 export default function ThemeAswanMenu({ config, categories, restaurantId }: ThemeAswanMenuProps) {
     const { theme, resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const [localMode, setLocalMode] = useState<'light' | 'dark' | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -86,7 +87,14 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
         }
     }, [config.default_theme_mode, setTheme]);
 
-    const isDark = mounted && resolvedTheme === 'dark';
+    const isDark = mounted && (localMode ? localMode === 'dark' : (resolvedTheme === 'dark' || theme === 'dark'));
+
+    const toggleTheme = () => {
+        const nextMode = isDark ? 'light' : 'dark';
+        setLocalMode(nextMode);
+        setTheme(nextMode);
+    };
+
     const cur = parseCurrency(config?.currency, false); // Force English currency string
 
     const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor, activeBgImage, hasBgImage } = getAswanColors(config, isDark);
@@ -279,7 +287,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
             style={{ 
                 backgroundColor: bgBody, 
                 color: textMain,
-                backgroundImage: hasBgImage ? `url(${activeBgImage})` : 'none',
+                backgroundImage: hasBgImage ? `url("${activeBgImage}")` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundAttachment: 'fixed',
@@ -347,7 +355,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                         {/* Right Action Buttons (Theme Switcher & Payment Methods) */}
                         <div className="flex items-center gap-2">
                             <button 
-                                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                                onClick={toggleTheme}
                                 className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                 title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}

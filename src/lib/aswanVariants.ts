@@ -14,7 +14,7 @@ export interface AswanThemeColors {
 export function getAswanColors(config: any, isDark: boolean): AswanThemeColors {
     const tc = config?.theme_colors || {};
     
-    // Primary color: default to a luxury dark beige (#B89B72 / #C4A47C)
+    // Primary color: default to luxury dark beige (#B89B72)
     let primaryColor = tc.primary || config?.primary_color || '#B89B72';
     
     // Default theme background & card colors
@@ -51,12 +51,15 @@ export function getAswanColors(config: any, isDark: boolean): AswanThemeColors {
         borderColor = '#1e293b';
     }
 
-    // Light & Dark mode background images
-    const bgImageLight = tc.aswan_bg_light || tc.bg_image_light || '';
-    const bgImageDark = tc.aswan_bg_dark || tc.bg_image_dark || '';
+    // Extract light and dark background images from theme_colors and root config
+    const bgImageLight = tc.aswan_bg_light || tc.bg_image_light || config?.aswan_bg_light || config?.bg_image_light || '';
+    const bgImageDark = tc.aswan_bg_dark || tc.bg_image_dark || config?.aswan_bg_dark || config?.bg_image_dark || '';
 
-    const activeBgImage = isDark ? bgImageDark : bgImageLight;
-    const hasBgImage = Boolean(activeBgImage && activeBgImage.trim() !== '');
+    // Determine active background image with fallback if only one mode image is provided
+    let activeBgImage = isDark ? (bgImageDark || bgImageLight) : (bgImageLight || bgImageDark);
+    activeBgImage = (activeBgImage || '').trim();
+
+    const hasBgImage = Boolean(activeBgImage && activeBgImage.length > 0);
 
     return {
         primaryColor,

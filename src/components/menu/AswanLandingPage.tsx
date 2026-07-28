@@ -19,9 +19,10 @@ interface AswanLandingPageProps {
 }
 
 export default function AswanLandingPage({ config, onContinue }: AswanLandingPageProps) {
-    const { resolvedTheme, setTheme } = useTheme();
+    const { theme, resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = React.useState(false);
     const [showPhoneModal, setShowPhoneModal] = React.useState(false);
+    const [localMode, setLocalMode] = React.useState<'light' | 'dark' | null>(null);
 
     React.useEffect(() => {
         setMounted(true);
@@ -30,7 +31,14 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
         }
     }, [config.default_theme_mode, setTheme]);
 
-    const isDark = mounted && resolvedTheme === 'dark';
+    const isDark = mounted && (localMode ? localMode === 'dark' : (resolvedTheme === 'dark' || theme === 'dark'));
+
+    const toggleTheme = () => {
+        const nextMode = isDark ? 'light' : 'dark';
+        setLocalMode(nextMode);
+        setTheme(nextMode);
+    };
+
     const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor, activeBgImage, hasBgImage } = getAswanColors(config, isDark);
 
     const displayNumbers = (config.phone_numbers && config.phone_numbers.length > 0)
@@ -89,7 +97,7 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
             style={{ 
                 backgroundColor: bgBody, 
                 color: textMain,
-                backgroundImage: hasBgImage ? `url(${activeBgImage})` : 'none',
+                backgroundImage: hasBgImage ? `url("${activeBgImage}")` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundAttachment: 'fixed',
@@ -113,7 +121,7 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
                 <div className="w-full flex justify-between items-center px-6 pt-6 pb-4 max-w-4xl mx-auto">
                     {/* Dark/Light mode switcher */}
                     <button 
-                        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                        onClick={toggleTheme}
                         className="w-11 h-11 rounded-2xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95 shadow-md border"
                         style={{ backgroundColor: bgCard, borderColor: borderColor }}
                         title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
