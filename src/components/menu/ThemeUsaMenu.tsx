@@ -151,7 +151,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
     // Helper functions for English text
     const itemName = (item: MenuItem) => item.title_en || item.title_ar || 'Item';
-    const itemDesc = (item: MenuItem) => item.desc_en || item.description_en || item.desc_ar || item.description_ar || '';
+    const itemDesc = (item: MenuItem) => item.desc_en || item.description_en || item.details_en || item.description || item.desc || item.desc_ar || item.description_ar || item.details_ar || '';
     const catName = (cat: CategoryWithItemsType) => cat.name_en || cat.name_ar || 'Category';
 
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
@@ -343,13 +343,13 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 <div className="max-w-5xl mx-auto px-4 py-3 space-y-4">
                     
                     {/* Top Row: Action & Utility Icons */}
-                    <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center justify-between w-full gap-1.5 sm:gap-2 max-w-full overflow-x-auto no-scrollbar py-0.5">
                         {/* Left Icons (Back Home & Share) */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                             {config.vicino_landing_enabled && (
                                 <button
                                     onClick={() => setShowLanding(true)}
-                                    className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-200 hover:text-white transition-colors flex-shrink-0 shadow-sm"
+                                    className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-200 hover:text-white transition-colors flex-shrink-0 shadow-sm"
                                     title="Back to Home"
                                 >
                                     <ArrowLeft className="w-4 h-4" />
@@ -358,7 +358,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
                             <button
                                 onClick={handleShare}
-                                className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm"
+                                className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm flex-shrink-0"
                                 title="Share"
                             >
                                 <Share2 className="w-4 h-4" />
@@ -366,11 +366,11 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                         </div>
 
                         {/* Right Icons (Payment Options, Light/Dark Toggle, Cart Button) */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                             {config.payment_methods && config.payment_methods.length > 0 && (
                                 <button
                                     onClick={() => setShowPaymentModal(true)}
-                                    className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-amber-400 hover:text-amber-300 transition-all shadow-sm"
+                                    className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-slate-800/80 border border-slate-700/60 text-amber-400 hover:text-amber-300 transition-all shadow-sm flex-shrink-0"
                                     title="Payment Options"
                                 >
                                     <CreditCard className="w-4 h-4" />
@@ -379,7 +379,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
                             <button
                                 onClick={toggleThemeMode}
-                                className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm"
+                                className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm flex-shrink-0"
                                 title="Toggle Light/Dark Mode"
                             >
                                 {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
@@ -389,7 +389,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             {config.orders_enabled !== false && (
                                 <button
                                     onClick={() => setIsCartDrawerOpen(true)}
-                                    className="relative p-2.5 px-3.5 rounded-2xl text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+                                    className="relative p-2 sm:p-2.5 px-3 sm:px-3.5 rounded-xl sm:rounded-2xl text-white font-bold transition-all shadow-md flex items-center gap-1.5 flex-shrink-0"
                                     style={{ backgroundColor: primaryColor }}
                                 >
                                     <ShoppingCart className="w-4 h-4" />

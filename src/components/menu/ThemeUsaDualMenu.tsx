@@ -160,8 +160,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
     };
 
     const itemDesc = (item: MenuItem) => {
-        if (isAr) return item.desc_ar || item.description_ar || item.desc_en || item.description_en || '';
-        return item.desc_en || item.description_en || item.desc_ar || item.description_ar || '';
+        if (isAr) return item.desc_ar || item.description_ar || item.details_ar || item.description || item.desc || item.desc_en || item.description_en || '';
+        return item.desc_en || item.description_en || item.details_en || item.description || item.desc || item.desc_ar || item.description_ar || '';
     };
 
     const catName = (cat: CategoryWithItemsType) => {
