@@ -409,11 +409,8 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                     <div className="flex flex-col items-center text-center max-w-xl mx-auto pt-1 pb-2">
                         {finalLogoSrc && (
                             <div className="relative mb-3 group">
-                                <div className="absolute inset-0 rounded-full blur-xl opacity-40" style={{ backgroundColor: primaryColor }} />
-                                <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 shadow-2xl flex items-center justify-center p-2 ${
-                                    isDark ? 'bg-slate-950/80 backdrop-blur-md' : 'bg-white/90 backdrop-blur-md'
-                                }`} style={{ borderColor: primaryColor }}>
-                                    <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
+                                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 shadow-2xl flex items-center justify-center p-1 bg-transparent" style={{ borderColor: primaryColor }}>
+                                    <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full bg-transparent" useOriginal={true} />
                                 </div>
                             </div>
                         )}
