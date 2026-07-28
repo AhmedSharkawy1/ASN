@@ -135,6 +135,8 @@ export default function ThemeAswanSettings() {
             const { data, error } = await supabase
                 .from("restaurants")
                 .update({
+                    vicino_video_url: config.aswan_video_url,
+                    vicino_logo_url: config.aswan_logo_url,
                     theme_colors: updatedThemeColors
                 })
                 .eq("id", restaurantId)
@@ -161,6 +163,34 @@ export default function ThemeAswanSettings() {
             toast.error(err.message || (isAr ? "حدث خطأ أثناء الحفظ" : "Error occurred while saving"));
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingVideo(true);
+        try {
+            const fileExt = file.name.split('.').pop() || 'mp4';
+            const fileName = `aswan/videos/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            
+            const { data, error } = await supabase.storage
+                .from('menu-images')
+                .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+            if (error) throw error;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('menu-images')
+                .getPublicUrl(fileName);
+
+            setConfig(prev => ({ ...prev, aswan_video_url: publicUrl }));
+            toast.success(isAr ? "تم رفع الفيديو بنجاح!" : "Video uploaded successfully!");
+        } catch (err: any) {
+            console.error("Video upload error:", err);
+            toast.error(isAr ? "فشل رفع الفيديو: " + err.message : "Video upload failed: " + err.message);
+        } finally {
+            setUploadingVideo(false);
         }
     };
 
@@ -274,7 +304,7 @@ export default function ThemeAswanSettings() {
                         <span>ASWAN Theme Settings (100% English)</span>
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">
-                        Customize background images for Light/Dark modes, landing page media, about story, and branding.
+                        Customize background images for Light/Dark modes, landing page video file or link, about story, and branding.
                     </p>
                 </div>
 
@@ -389,20 +419,49 @@ export default function ThemeAswanSettings() {
                 </div>
             </div>
 
-            {/* Video Banner URL */}
+            {/* Hero Video Upload or URL */}
             <div className="bg-card border border-border p-6 rounded-3xl shadow-sm space-y-4">
                 <h3 className="font-bold text-lg flex items-center gap-2">
                     <Video className="w-5 h-5 text-blue-500" />
-                    <span>Hero Video Link</span>
+                    <span>Hero Landing Video (Direct Upload or Link)</span>
                 </h3>
-                <p className="text-xs opacity-70">Support YouTube embed, Vimeo link, or direct MP4 URL.</p>
-                <input
-                    type="text"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    value={config.aswan_video_url}
-                    onChange={(e) => setConfig({ ...config, aswan_video_url: e.target.value })}
-                    className="w-full px-4 py-3 rounded-2xl border border-border bg-background text-sm font-semibold outline-none"
-                />
+                <p className="text-xs opacity-70">
+                    You can upload a video file directly (MP4/WebM/MOV) or paste a YouTube / Vimeo URL.
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <label className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer transition-all flex items-center justify-center gap-2 shadow-md">
+                        {uploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileVideo className="w-4 h-4" />}
+                        <span>{uploadingVideo ? "Uploading Video..." : "Upload Video File"}</span>
+                        <input type="file" accept="video/*" onChange={handleVideoUpload} disabled={uploadingVideo} className="hidden" />
+                    </label>
+
+                    <div className="flex-1 w-full">
+                        <input
+                            type="text"
+                            placeholder="Or paste YouTube / Vimeo / Direct Video Link..."
+                            value={config.aswan_video_url}
+                            onChange={(e) => setConfig({ ...config, aswan_video_url: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl border border-border bg-background text-sm font-semibold outline-none"
+                        />
+                    </div>
+                </div>
+
+                {config.aswan_video_url && (
+                    <div className="pt-2 relative">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold text-slate-500">Current Video Preview:</span>
+                            <button onClick={() => setConfig({ ...config, aswan_video_url: '' })} className="text-xs text-red-500 hover:underline">Remove Video</button>
+                        </div>
+                        <div className="rounded-2xl overflow-hidden border border-border max-w-md bg-black aspect-video">
+                            {config.aswan_video_url.includes('youtube.com') || config.aswan_video_url.includes('youtu.be') || config.aswan_video_url.includes('vimeo.com') ? (
+                                <iframe src={config.aswan_video_url} className="w-full h-full" allowFullScreen></iframe>
+                            ) : (
+                                <video src={config.aswan_video_url} controls className="w-full h-full object-cover"></video>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Brand Logos */}
@@ -443,60 +502,61 @@ export default function ThemeAswanSettings() {
                 </div>
             </div>
 
-            {/* About & History (English) */}
-            <div className="bg-card border border-border p-6 rounded-3xl shadow-sm space-y-6">
-                <h3 className="font-bold text-lg">About Us & Brand History (English)</h3>
-                
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-70">About Us (English)</label>
-                    <textarea
-                        rows={4}
-                        placeholder="Welcome to our restaurant! We craft authentic dishes with premium ingredients..."
-                        value={config.aswan_about_en}
-                        onChange={(e) => setConfig({ ...config, aswan_about_en: e.target.value })}
-                        className="w-full p-4 rounded-2xl border border-border bg-background text-sm font-medium outline-none"
-                    />
-                </div>
+            {/* English About & Story */}
+            <div className="bg-card border border-border p-6 rounded-3xl shadow-sm space-y-4">
+                <h3 className="font-bold text-lg">English Brand Story</h3>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold mb-1 opacity-70">About Us (English)</label>
+                        <textarea
+                            rows={3}
+                            value={config.aswan_about_en}
+                            onChange={(e) => setConfig({ ...config, aswan_about_en: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl border border-border bg-background text-sm font-medium outline-none resize-none"
+                            placeholder="Introduce your restaurant brand in English..."
+                        />
+                    </div>
 
-                <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider opacity-70">Our Story / Heritage (English)</label>
-                    <textarea
-                        rows={4}
-                        placeholder="Founded with passion, our culinary journey spans years of excellence..."
-                        value={config.aswan_history_en}
-                        onChange={(e) => setConfig({ ...config, aswan_history_en: e.target.value })}
-                        className="w-full p-4 rounded-2xl border border-border bg-background text-sm font-medium outline-none"
-                    />
+                    <div>
+                        <label className="block text-xs font-bold mb-1 opacity-70">Our History & Story (English)</label>
+                        <textarea
+                            rows={3}
+                            value={config.aswan_history_en}
+                            onChange={(e) => setConfig({ ...config, aswan_history_en: e.target.value })}
+                            className="w-full px-4 py-3 rounded-2xl border border-border bg-background text-sm font-medium outline-none resize-none"
+                            placeholder="Describe your heritage, master chefs, or signature recipes..."
+                        />
+                    </div>
                 </div>
             </div>
 
-            {/* Gallery Images Slider */}
+            {/* Photo Gallery */}
             <div className="bg-card border border-border p-6 rounded-3xl shadow-sm space-y-4">
-                <div className="flex items-center justify-between border-b pb-3 border-border">
-                    <h3 className="font-bold text-lg">Gallery & Atmosphere Images</h3>
-                    <label className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs cursor-pointer flex items-center gap-2">
-                        <ImagePlus className="w-4 h-4" />
-                        <span>Upload Images</span>
+                <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-lg">Photo Gallery</h3>
+                    <label className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer transition-colors">
+                        {uploadingImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+                        <span>Add Photos</span>
                         <input type="file" accept="image/*" multiple onChange={handleGalleryUpload} className="hidden" />
                     </label>
                 </div>
 
                 {config.aswan_images.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {config.aswan_images.map((img, idx) => (
-                            <div key={idx} className="relative h-32 rounded-2xl overflow-hidden border border-border group">
-                                <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                            <div key={idx} className="relative group h-32 rounded-2xl overflow-hidden border border-border">
+                                <img src={img} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                                 <button
                                     onClick={() => removeGalleryImage(idx)}
                                     className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                    <Trash2 className="w-4 h-4" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-xs opacity-60 italic text-center py-6">No gallery images uploaded yet.</p>
+                    <p className="text-xs opacity-50 italic text-center py-6">No gallery photos added yet.</p>
                 )}
             </div>
         </div>

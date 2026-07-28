@@ -203,12 +203,28 @@ export default function ThemeUsaSettings() {
         const file = e.target.files?.[0];
         if (!file) return;
         setUploadingVideo(true);
-        const url = await handleFileUpload(file, `theme-usa/video_${Date.now()}`);
-        if (url) {
-            setConfig(prev => ({ ...prev, usa_video_url: url }));
-            toast.success(isAr ? "تم رفع الفيديو بنجاح" : "Video uploaded");
+        try {
+            const fileExt = file.name.split('.').pop() || 'mp4';
+            const fileName = `theme-usa/videos/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            
+            const { data, error } = await supabase.storage
+                .from('menu-images')
+                .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+            if (error) throw error;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('menu-images')
+                .getPublicUrl(fileName);
+
+            setConfig(prev => ({ ...prev, usa_video_url: publicUrl }));
+            toast.success(isAr ? "تم رفع الفيديو بنجاح!" : "Video uploaded successfully!");
+        } catch (err: any) {
+            console.error("Video upload error:", err);
+            toast.error(isAr ? "فشل رفع الفيديو: " + err.message : "Video upload failed: " + err.message);
+        } finally {
+            setUploadingVideo(false);
         }
-        setUploadingVideo(false);
     };
 
     const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -371,31 +387,43 @@ export default function ThemeUsaSettings() {
             <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
                 <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
                     <Video className="w-4 h-4 text-rose-500" />
-                    <span>{isAr ? "فيديو صفحة الهبوط (Hero Video)" : "Hero Landing Video"}</span>
+                    <span>{isAr ? "فيديو صفحة الهبوط (رفع ملف أو رابط)" : "Hero Landing Video (Direct Upload or Link)"}</span>
                 </h3>
 
-                <div className="space-y-3">
-                    <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                            {isAr ? "رابط فيديو YouTube / Vimeo أو رابط مباشر" : "YouTube / Vimeo URL or Direct Video URL"}
-                        </label>
-                        <input
-                            type="text"
-                            value={config.usa_video_url}
-                            onChange={(e) => setConfig({ ...config, usa_video_url: e.target.value })}
-                            placeholder="https://www.youtube.com/watch?v=..."
-                            className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 text-sm"
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-400">{isAr ? "أو رفع ملف فيديو:" : "Or upload video file:"}</span>
-                        <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer transition-colors flex items-center gap-2">
-                            {uploadingVideo ? <Loader2 className="w-4 h-4 animate-spin text-rose-500" /> : <FileVideo className="w-4 h-4 text-rose-500" />}
-                            <span>{uploadingVideo ? (isAr ? "جاري الرفع..." : "Uploading...") : (isAr ? "اختيار فيديو" : "Choose Video")}</span>
+                <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <label className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs cursor-pointer transition-all flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20">
+                            {uploadingVideo ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileVideo className="w-4 h-4" />}
+                            <span>{uploadingVideo ? (isAr ? "جاري رفع الفيديو..." : "Uploading Video...") : (isAr ? "رفع ملف فيديو من الجهاز" : "Upload Video File")}</span>
                             <input type="file" accept="video/*" onChange={handleVideoUpload} disabled={uploadingVideo} className="hidden" />
                         </label>
+
+                        <div className="flex-1 w-full">
+                            <input
+                                type="text"
+                                value={config.usa_video_url}
+                                onChange={(e) => setConfig({ ...config, usa_video_url: e.target.value })}
+                                placeholder={isAr ? "أو ضع رابط YouTube / Vimeo..." : "Or paste YouTube / Vimeo / Direct Video Link..."}
+                                className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 text-sm"
+                            />
+                        </div>
                     </div>
+
+                    {config.usa_video_url && (
+                        <div className="pt-2 relative">
+                            <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs font-semibold text-slate-400">{isAr ? "معاينة الفيديو الحالي:" : "Current Video Preview:"}</span>
+                                <button onClick={() => setConfig({ ...config, usa_video_url: '' })} className="text-xs text-rose-400 hover:underline">{isAr ? "حذف الفيديو" : "Remove Video"}</button>
+                            </div>
+                            <div className="rounded-2xl overflow-hidden border border-slate-800 max-w-md bg-black aspect-video">
+                                {config.usa_video_url.includes('youtube.com') || config.usa_video_url.includes('youtu.be') || config.usa_video_url.includes('vimeo.com') ? (
+                                    <iframe src={config.usa_video_url} className="w-full h-full" allowFullScreen></iframe>
+                                ) : (
+                                    <video src={config.usa_video_url} controls className="w-full h-full object-cover"></video>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
