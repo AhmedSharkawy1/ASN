@@ -300,13 +300,12 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                 />
             )}
 
-            {/* Subtle Glassmorphic Overlay for Text Contrast */}
+            {/* Subtle Overlay for Text Contrast without blur */}
             {hasBgImage && (
                 <div 
                     className="fixed inset-0 pointer-events-none transition-opacity duration-300 z-0"
                     style={{
-                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.40)',
-                        backdropFilter: 'blur(3px)'
+                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.40)' : 'rgba(255, 255, 255, 0.25)'
                     }}
                 />
             )}
