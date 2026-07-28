@@ -3,10 +3,10 @@
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import { getAswanColors } from '@/lib/aswanVariants';
 import { parseCurrency } from '@/lib/currency';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, Home, Tag, Moon, Sun, LayoutGrid, LayoutList, CreditCard, MapPin, Phone, Clock, ArrowRight, Check } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, Home, Tag, Moon, Sun, LayoutGrid, LayoutList, CreditCard, ArrowRight, Check } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -14,7 +14,6 @@ import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from './CheckoutModal';
 import SharedMarquee from './SharedMarquee';
 import AswanLandingPage from './AswanLandingPage';
-import { FaWhatsapp } from 'react-icons/fa';
 
 type MenuItem = {
     id: string | number;
@@ -80,15 +79,15 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
     }, [config.default_theme_mode, setTheme]);
 
     const isDark = mounted && resolvedTheme === 'dark';
-    const cur = parseCurrency(config?.currency, false); // Force English currency formatting (e.g. EGP, USD, etc.)
+    const cur = parseCurrency(config?.currency, false); // Force English currency string (e.g., EGP)
 
     const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor, activeBgImage, hasBgImage } = getAswanColors(config, isDark);
 
-    // Landing Page view state
+    // Landing Page state
     const landingEnabled = config.aswan_landing_enabled ?? config.vicino_landing_enabled ?? false;
     const [inMenu, setInMenu] = useState(!landingEnabled);
 
-    // Filter & search state
+    // Filter, view & search state
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -103,17 +102,83 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
     
     const [cart, setCart] = useState<{ id: string; item: MenuItem; catName: string; price: number; sizeLabel: string; quantity: number; notes: string }[]>([]);
     const [showCheckout, setShowCheckout] = useState(false);
-    const [showContactModal, setShowContactModal] = useState(false);
-    const [showMenuCategories, setShowMenuCategories] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-    // Helpers for English item/category names
+    // Refs for Scroll Spy Category Navigation
+    const categoryNavRef = useRef<HTMLDivElement>(null);
+    const categoryBtnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const isManualClickRef = useRef(false);
+
+    // English name fallbacks
     const getItemName = (item: MenuItem) => item.title_en || item.title_ar || 'Unnamed Item';
     const getItemDesc = (item: MenuItem) => item.description_en || item.desc_en || item.description_ar || item.desc_ar || '';
     const getCatName = (cat: CategoryWithItemsType) => cat.name_en || cat.name_ar || 'Category';
 
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+
+    // Scroll Spy Effect: highlight active category and auto-scroll horizontal pill bar
+    useEffect(() => {
+        if (!inMenu || searchQuery) return;
+
+        const handleScroll = () => {
+            if (isManualClickRef.current) return;
+
+            const categoryElements = categories.map(c => document.getElementById(`cat-sec-${c.id}`)).filter(Boolean) as HTMLElement[];
+            if (categoryElements.length === 0) return;
+
+            const scrollPosition = window.scrollY + 140; // Navbar offset
+
+            let currentCatId = 'all';
+            for (let i = 0; i < categoryElements.length; i++) {
+                const el = categoryElements[i];
+                const top = el.offsetTop;
+                const height = el.offsetHeight;
+
+                if (scrollPosition >= top && scrollPosition < top + height) {
+                    const rawId = el.id.replace('cat-sec-', '');
+                    currentCatId = rawId;
+                    break;
+                }
+            }
+
+            if (currentCatId !== activeCategory) {
+                setActiveCategory(currentCatId);
+                // Scroll button into view inside category nav bar
+                const btn = categoryBtnRefs.current[currentCatId];
+                if (btn && categoryNavRef.current) {
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [inMenu, searchQuery, categories, activeCategory]);
+
+    const handleCategoryClick = (catId: string) => {
+        setActiveCategory(catId);
+        isManualClickRef.current = true;
+
+        if (catId === 'all') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            const el = document.getElementById(`cat-sec-${catId}`);
+            if (el) {
+                const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }
+
+        const btn = categoryBtnRefs.current[catId];
+        if (btn) {
+            btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        setTimeout(() => {
+            isManualClickRef.current = false;
+        }, 800);
+    };
 
     const openModal = (item: MenuItem, cName: string) => {
         if (config.orders_enabled === false) return;
@@ -180,7 +245,6 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
         }
     };
 
-    // Flatten all items for search & featured slider
     const allItems: (MenuItem & { catName: string })[] = categories.flatMap(c => (c.items || []).map(i => ({ ...i, catName: getCatName(c) })));
     const featuredItems = allItems.filter(item => item.is_popular);
 
@@ -193,14 +257,13 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
 
     if (!mounted) return <div className="min-h-screen" style={{ backgroundColor: bgBody }} />;
 
-    // Render Landing Page if active
     if (!inMenu && landingEnabled) {
         return <AswanLandingPage config={config} onContinue={() => setInMenu(true)} />;
     }
 
     return (
         <div 
-            className="min-h-screen font-sans pb-32 relative transition-colors duration-300"
+            className="min-h-screen font-sans pb-32 relative transition-colors duration-300 antialiased"
             style={{ 
                 backgroundColor: bgBody, 
                 color: textMain,
@@ -212,12 +275,12 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
             }} 
             dir="ltr"
         >
-            {/* Background Overlay for text contrast */}
+            {/* Background Overlay for text legibility */}
             {hasBgImage && (
                 <div 
                     className="fixed inset-0 pointer-events-none transition-opacity duration-300 z-0"
                     style={{
-                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.86)' : 'rgba(255, 255, 255, 0.88)',
+                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.90)',
                         backdropFilter: 'blur(8px)'
                     }}
                 />
@@ -226,8 +289,8 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
             <div className="relative z-10">
                 {/* --- MARQUEE OFFER BAR --- */}
                 {config.marquee_enabled && (
-                    <div className="text-xs md:text-sm text-white py-1 font-semibold" style={{ backgroundColor: primaryColor }}>
-                        <SharedMarquee text={config.marquee_text_en || config.marquee_text_ar || 'Welcome to our restaurant! Enjoy our delicious dishes.'} />
+                    <div className="text-xs md:text-sm text-white py-1.5 font-semibold tracking-normal" style={{ backgroundColor: primaryColor }}>
+                        <SharedMarquee text={config.marquee_text_en || config.marquee_text_ar || 'Welcome to our restaurant! Enjoy our delicious menu.'} />
                     </div>
                 )}
 
@@ -241,7 +304,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     onClick={() => setInMenu(false)} 
                                     className="w-10 h-10 rounded-2xl flex items-center justify-center border shadow-sm transition-transform active:scale-95"
                                     style={{ backgroundColor: bgCard, borderColor: borderColor, color: primaryColor }}
-                                    title="Back to Landing Page"
+                                    title="Back to Home Page"
                                 >
                                     <Home className="w-5 h-5" />
                                 </button>
@@ -256,7 +319,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             </button>
                         </div>
 
-                        {/* Middle Brand Logo & Name */}
+                        {/* Brand Logo & Name */}
                         <div className="flex flex-col items-center text-center max-w-[60%]">
                             {(() => {
                                 let parsedLogos = { light: config.aswan_logo_url || config.vicino_logo_url, dark: config.aswan_logo_url || config.vicino_logo_url };
@@ -274,13 +337,15 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     </div>
                                 );
                             })()}
-                            <h1 className="text-xl md:text-2xl font-black tracking-tight">{config.name}</h1>
+                            <h1 className="text-xl md:text-2xl font-bold tracking-normal leading-tight">{config.name}</h1>
                             {config.slogan_en && (
-                                <p className="text-xs font-semibold opacity-70 mt-0.5">{config.slogan_en}</p>
+                                <p className="text-xs md:text-sm font-medium opacity-80 mt-1 leading-normal" style={{ color: textMuted }}>
+                                    {config.slogan_en}
+                                </p>
                             )}
                         </div>
 
-                        {/* Right Theme mode & Payment modal buttons */}
+                        {/* Right Action buttons */}
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -314,7 +379,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             placeholder="Search in menu..." 
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
-                            className="w-full h-12 rounded-2xl pl-12 pr-4 outline-none font-semibold text-sm shadow-md border transition-all focus:ring-2"
+                            className="w-full h-12 rounded-2xl pl-12 pr-4 outline-none font-medium text-sm shadow-md border transition-all focus:ring-2"
                             style={{ backgroundColor: bgCard, color: textMain, borderColor: borderColor }}
                         />
                         {searchQuery && (
@@ -338,13 +403,13 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     </div>
                 )}
 
-                {/* --- FEATURED OFFERS --- */}
+                {/* --- FEATURED OFFERS SLIDER --- */}
                 {!searchQuery && featuredItems.length > 0 && (
                     <div className="mb-8 max-w-4xl mx-auto">
                         <div className="px-5 flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                                 <Tag className="w-5 h-5" style={{ color: primaryColor }} />
-                                <h2 className="text-lg md:text-xl font-bold uppercase tracking-wide">Featured Offers</h2>
+                                <h2 className="text-lg font-bold">Featured Offers</h2>
                             </div>
                         </div>
                         <div className="pl-5 pr-2">
@@ -356,7 +421,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                             style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                             onClick={() => openModal(item, item.catName)}
                                         >
-                                            <div className="relative h-[150px]">
+                                            <div className="relative h-[140px]">
                                                 <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={getItemName(item)} className="w-full h-full object-cover" />
                                                 <div className="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md">
                                                     Special Offer
@@ -364,11 +429,11 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                             </div>
                                             <div className="p-4 flex flex-col justify-between flex-1">
                                                 <h3 className="font-bold text-base mb-1 line-clamp-2">{getItemName(item)}</h3>
-                                                <div className="mt-2 flex items-center justify-between">
-                                                    <span className="font-black text-lg" style={{ color: primaryColor }}>
+                                                <div className="mt-3 flex items-center justify-between">
+                                                    <span className="font-extrabold text-base whitespace-nowrap" style={{ color: primaryColor }}>
                                                         {item.prices?.[0] || 0} {cur}
                                                     </span>
-                                                    <span className="text-xs font-bold px-3 py-1 rounded-xl text-white shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                                    <span className="text-xs font-bold px-3 py-1.5 rounded-xl text-white shadow-sm whitespace-nowrap" style={{ backgroundColor: primaryColor }}>
                                                         Add +
                                                     </span>
                                                 </div>
@@ -381,14 +446,15 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     </div>
                 )}
 
-                {/* --- CATEGORIES & VIEW MODE BAR --- */}
-                <div className="sticky top-0 z-30 px-5 py-3 backdrop-blur-xl border-y transition-colors shadow-sm" style={{ backgroundColor: `${bgCard}ee`, borderColor: borderColor }}>
+                {/* --- STICKY CATEGORIES & VIEW MODE BAR --- */}
+                <div className="sticky top-0 z-30 px-5 py-3 backdrop-blur-xl border-y transition-colors shadow-sm" style={{ backgroundColor: `${bgCard}f0`, borderColor: borderColor }}>
                     <div className="max-w-4xl mx-auto flex items-center gap-3">
                         {/* Horizontal Pill Bar */}
-                        <div className="flex-1 overflow-x-auto no-scrollbar flex items-center gap-2">
+                        <div ref={categoryNavRef} className="flex-1 overflow-x-auto no-scrollbar flex items-center gap-2 py-0.5">
                             <button
-                                onClick={() => setActiveCategory('all')}
-                                className="px-5 py-2.5 rounded-2xl font-bold text-xs md:text-sm whitespace-nowrap transition-all shadow-sm border shrink-0"
+                                ref={el => { categoryBtnRefs.current['all'] = el; }}
+                                onClick={() => handleCategoryClick('all')}
+                                className="px-4 py-2 rounded-2xl font-semibold text-xs md:text-sm whitespace-nowrap transition-all shadow-sm border shrink-0"
                                 style={{
                                     backgroundColor: activeCategory === 'all' ? primaryColor : 'transparent',
                                     color: activeCategory === 'all' ? '#ffffff' : textMain,
@@ -400,8 +466,9 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             {categories.map(cat => (
                                 <button
                                     key={cat.id}
-                                    onClick={() => setActiveCategory(cat.id.toString())}
-                                    className="px-5 py-2.5 rounded-2xl font-bold text-xs md:text-sm whitespace-nowrap transition-all shadow-sm border shrink-0"
+                                    ref={el => { categoryBtnRefs.current[cat.id.toString()] = el; }}
+                                    onClick={() => handleCategoryClick(cat.id.toString())}
+                                    className="px-4 py-2 rounded-2xl font-semibold text-xs md:text-sm whitespace-nowrap transition-all shadow-sm border shrink-0"
                                     style={{
                                         backgroundColor: activeCategory === cat.id.toString() ? primaryColor : 'transparent',
                                         color: activeCategory === cat.id.toString() ? '#ffffff' : textMain,
@@ -438,17 +505,16 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                 {/* --- MENU ITEMS CONTENT --- */}
                 <div className="px-5 py-6 max-w-4xl mx-auto space-y-10">
                     {displayCategories.map(cat => {
-                        if (activeCategory !== 'all' && activeCategory !== cat.id.toString()) return null;
                         const items = cat.items || [];
                         if (items.length === 0) return null;
 
                         return (
-                            <div key={cat.id} id={cat.id.toString()} className="space-y-4">
+                            <div key={cat.id} id={`cat-sec-${cat.id}`} className="space-y-4 pt-2">
                                 <div className="flex items-center gap-3">
-                                    <h2 className="text-xl md:text-2xl font-black tracking-tight" style={{ color: textMain }}>
+                                    <h2 className="text-xl font-bold tracking-normal" style={{ color: textMain }}>
                                         {getCatName(cat)}
                                     </h2>
-                                    <span className="text-xs font-bold px-2.5 py-1 rounded-full border opacity-70" style={{ borderColor: borderColor }}>
+                                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full border opacity-70" style={{ borderColor: borderColor }}>
                                         {items.length} items
                                     </span>
                                 </div>
@@ -471,29 +537,29 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                                         className="w-full h-full object-cover transition-transform duration-300 hover:scale-105" 
                                                     />
                                                     {item.is_popular && (
-                                                        <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
+                                                        <span className="absolute top-2 left-2 bg-amber-500 text-white text-[10px] font-bold uppercase px-2 py-0.5 rounded-full shadow-md">
                                                             Popular
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="p-4 flex flex-col justify-between flex-1">
+                                                <div className="p-3.5 flex flex-col justify-between flex-1">
                                                     <div>
                                                         <h3 className="font-bold text-sm md:text-base leading-snug line-clamp-2" style={{ color: textMain }}>
                                                             {getItemName(item)}
                                                         </h3>
                                                         {getItemDesc(item) && (
-                                                            <p className="text-xs opacity-70 line-clamp-2 mt-1 font-normal" style={{ color: textMuted }}>
+                                                            <p className="text-xs opacity-70 line-clamp-2 mt-1 font-normal leading-relaxed" style={{ color: textMuted }}>
                                                                 {getItemDesc(item)}
                                                             </p>
                                                         )}
                                                     </div>
 
-                                                    <div className="mt-4 flex items-center justify-between">
-                                                        <div className="font-black text-sm md:text-base" style={{ color: primaryColor }}>
-                                                            {item.prices?.[0] || 0} <span className="text-xs font-bold">{cur}</span>
+                                                    <div className="mt-3 flex items-center justify-between">
+                                                        <div className="font-extrabold text-sm md:text-base whitespace-nowrap" style={{ color: primaryColor }}>
+                                                            {item.prices?.[0] || 0} <span className="text-xs font-semibold">{cur}</span>
                                                         </div>
                                                         <button 
-                                                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md transition-transform active:scale-95"
+                                                            className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-md transition-transform active:scale-95 shrink-0"
                                                             style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <Plus className="w-4 h-4" />
@@ -531,7 +597,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                                             {getItemDesc(item)}
                                                         </p>
                                                     )}
-                                                    <div className="mt-2 font-black text-base" style={{ color: primaryColor }}>
+                                                    <div className="mt-2 font-extrabold text-base" style={{ color: primaryColor }}>
                                                         {item.prices?.[0] || 0} {cur}
                                                     </div>
                                                 </div>
@@ -550,27 +616,27 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     })}
                 </div>
 
-                {/* --- ITEM DETAIL MODAL --- */}
+                {/* --- ITEM DETAIL MODAL (Centered Dead Center) --- */}
                 <AnimatePresence>
                     {selectedItem && (
                         <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
                             onClick={closeModal}
                         >
                             <motion.div 
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                                initial={{ scale: 0.92, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.92, opacity: 0 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-lg rounded-t-3xl md:rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[90vh]"
+                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[85vh] my-auto"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
-                                {/* Modal Header Image */}
-                                <div className="relative h-56 md:h-64 w-full bg-slate-900">
+                                {/* Header Image */}
+                                <div className="relative h-48 md:h-56 w-full bg-slate-900 shrink-0">
                                     <OptimizedMenuImage 
                                         thumbnailSrc={selectedItem.item.thumbnail_url} 
                                         originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
@@ -579,23 +645,23 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     />
                                     <button 
                                         onClick={closeModal}
-                                        className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-md transition-transform active:scale-95"
+                                        className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 text-white flex items-center justify-center backdrop-blur-md transition-transform active:scale-95 shadow-md"
                                     >
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
 
-                                {/* Modal Content Body */}
-                                <div className="p-6 overflow-y-auto space-y-6 flex-1">
+                                {/* Body Info */}
+                                <div className="p-5 overflow-y-auto space-y-5 flex-1">
                                     <div>
-                                        <div className="text-xs font-bold uppercase tracking-wider opacity-60 mb-1" style={{ color: primaryColor }}>
+                                        <span className="text-xs font-bold uppercase tracking-wider text-sky-500 block mb-1">
                                             {selectedItem.catName}
-                                        </div>
-                                        <h2 className="text-2xl font-black" style={{ color: textMain }}>
+                                        </span>
+                                        <h2 className="text-xl font-bold tracking-normal" style={{ color: textMain }}>
                                             {getItemName(selectedItem.item)}
                                         </h2>
                                         {getItemDesc(selectedItem.item) && (
-                                            <p className="text-sm opacity-80 mt-2 leading-relaxed" style={{ color: textMuted }}>
+                                            <p className="text-xs md:text-sm opacity-80 mt-1.5 leading-relaxed font-normal" style={{ color: textMuted }}>
                                                 {getItemDesc(selectedItem.item)}
                                             </p>
                                         )}
@@ -603,14 +669,14 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
 
                                     {/* Size Options */}
                                     {selectedItem.item.prices && selectedItem.item.prices.length > 1 && (
-                                        <div className="space-y-3">
-                                            <label className="font-bold text-sm uppercase tracking-wider block">Choose Size</label>
+                                        <div className="space-y-2.5">
+                                            <label className="font-bold text-xs uppercase tracking-wider block opacity-70">Choose Size</label>
                                             <div className="grid grid-cols-2 gap-2">
                                                 {selectedItem.item.prices.map((p, idx) => (
                                                     <button
                                                         key={idx}
                                                         onClick={() => setSizeIdx(idx)}
-                                                        className="p-3 rounded-2xl border font-semibold text-sm flex justify-between items-center transition-all"
+                                                        className="p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
                                                         style={{
                                                             borderColor: sizeIdx === idx ? primaryColor : borderColor,
                                                             backgroundColor: sizeIdx === idx ? `${primaryColor}15` : 'transparent',
@@ -625,10 +691,10 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                         </div>
                                     )}
 
-                                    {/* Extras / Addons */}
+                                    {/* Extras */}
                                     {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
-                                        <div className="space-y-3">
-                                            <label className="font-bold text-sm uppercase tracking-wider block">Extras & Addons</label>
+                                        <div className="space-y-2.5">
+                                            <label className="font-bold text-xs uppercase tracking-wider block opacity-70">Extras & Addons</label>
                                             <div className="space-y-2">
                                                 {selectedItem.item.extras.map((ext, idx) => {
                                                     const extName = ext.name_en || ext.name_ar || 'Extra';
@@ -643,15 +709,15 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                                                     setSelectedExtras(prev => [...prev, { id: ext.id || idx, name: extName, price: ext.price }]);
                                                                 }
                                                             }}
-                                                            className="w-full p-3.5 rounded-2xl border font-semibold text-sm flex justify-between items-center transition-all"
+                                                            className="w-full p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
                                                             style={{
                                                                 borderColor: isChecked ? primaryColor : borderColor,
                                                                 backgroundColor: isChecked ? `${primaryColor}15` : 'transparent'
                                                             }}
                                                         >
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="w-5 h-5 rounded-md border flex items-center justify-center" style={{ borderColor: isChecked ? primaryColor : borderColor, backgroundColor: isChecked ? primaryColor : 'transparent' }}>
-                                                                    {isChecked && <Check className="w-3.5 h-3.5 text-white" />}
+                                                            <div className="flex items-center gap-2.5">
+                                                                <div className="w-4 h-4 rounded-md border flex items-center justify-center" style={{ borderColor: isChecked ? primaryColor : borderColor, backgroundColor: isChecked ? primaryColor : 'transparent' }}>
+                                                                    {isChecked && <Check className="w-3 h-3 text-white" />}
                                                                 </div>
                                                                 <span>{extName}</span>
                                                             </div>
@@ -663,29 +729,29 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                         </div>
                                     )}
 
-                                    {/* Notes Input */}
-                                    <div className="space-y-2">
-                                        <label className="font-bold text-sm uppercase tracking-wider block">Special Instructions</label>
+                                    {/* Instructions */}
+                                    <div className="space-y-1.5">
+                                        <label className="font-bold text-xs uppercase tracking-wider block opacity-70">Special Instructions</label>
                                         <textarea
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
                                             placeholder="Any specific requests or allergies?"
-                                            className="w-full p-3.5 rounded-2xl border outline-none font-medium text-sm resize-none h-20"
+                                            className="w-full p-3 rounded-2xl border outline-none font-normal text-xs resize-none h-16"
                                             style={{ backgroundColor: bgBody, borderColor: borderColor, color: textMain }}
                                         />
                                     </div>
                                 </div>
 
-                                {/* Modal Footer (Quantity & Add to Cart) */}
-                                <div className="p-4 md:p-6 border-t flex items-center gap-4" style={{ borderColor: borderColor }}>
-                                    <div className="flex items-center border rounded-2xl p-1" style={{ borderColor: borderColor }}>
+                                {/* Modal Footer (Quantity Stepper & Add to Cart on 1 clean row) */}
+                                <div className="p-4 border-t flex items-center gap-3 shrink-0" style={{ borderColor: borderColor }}>
+                                    <div className="flex items-center border rounded-2xl p-1 shrink-0" style={{ borderColor: borderColor }}>
                                         <button 
                                             onClick={() => setQty(Math.max(1, qty - 1))}
                                             className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95"
                                         >
                                             <Minus className="w-4 h-4" />
                                         </button>
-                                        <span className="w-8 text-center font-bold">{qty}</span>
+                                        <span className="w-8 text-center font-bold text-sm">{qty}</span>
                                         <button 
                                             onClick={() => setQty(qty + 1)}
                                             className="w-9 h-9 rounded-xl flex items-center justify-center active:scale-95"
@@ -696,11 +762,11 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
 
                                     <button
                                         onClick={addToCart}
-                                        className="flex-1 py-4 rounded-2xl font-bold text-white shadow-xl flex justify-between items-center px-6 transition-transform active:scale-95"
+                                        className="flex-1 py-3.5 px-4 rounded-2xl font-bold text-white shadow-xl flex items-center justify-between whitespace-nowrap text-sm md:text-base transition-transform active:scale-95"
                                         style={{ backgroundColor: primaryColor }}
                                     >
                                         <span>Add to Cart</span>
-                                        <span className="font-black">
+                                        <span className="font-extrabold text-base ml-2">
                                             {((selectedItem.item.prices?.[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty} {cur}
                                         </span>
                                     </button>
@@ -710,7 +776,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     )}
                 </AnimatePresence>
 
-                {/* --- FLOATING CART BUTTON & DRAWER --- */}
+                {/* --- FLOATING CART BUTTON --- */}
                 {cartCount > 0 && (
                     <div className="fixed bottom-6 inset-x-5 max-w-md mx-auto z-40">
                         <button
@@ -719,61 +785,61 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             style={{ backgroundColor: primaryColor }}
                         >
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center font-black">
+                                <div className="w-9 h-9 rounded-2xl bg-white/20 flex items-center justify-center font-extrabold">
                                     {cartCount}
                                 </div>
-                                <span className="font-black text-lg">View Cart</span>
+                                <span className="font-extrabold text-lg">View Cart</span>
                             </div>
-                            <span className="font-black text-lg">{cartTotal} {cur}</span>
+                            <span className="font-extrabold text-lg">{cartTotal} {cur}</span>
                         </button>
                     </div>
                 )}
 
-                {/* --- CART DRAWER MODAL --- */}
+                {/* --- YOUR ORDER CART MODAL (Centered Dead Center) --- */}
                 <AnimatePresence>
                     {isCartOpen && (
                         <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center p-0 md:p-4"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
                             onClick={() => setIsCartOpen(false)}
                         >
                             <motion.div 
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                                initial={{ scale: 0.92, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.92, opacity: 0 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-lg rounded-t-3xl md:rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[85vh]"
+                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[80vh] my-auto"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
-                                <div className="p-5 border-b flex justify-between items-center" style={{ borderColor: borderColor }}>
+                                <div className="p-4 border-b flex justify-between items-center shrink-0" style={{ borderColor: borderColor }}>
                                     <div className="flex items-center gap-2">
                                         <ShoppingCart className="w-5 h-5" style={{ color: primaryColor }} />
-                                        <h3 className="font-black text-lg">Your Order Cart ({cartCount})</h3>
+                                        <h3 className="font-bold text-lg">Your Order Cart ({cartCount})</h3>
                                     </div>
                                     <button onClick={() => setIsCartOpen(false)} className="p-1 rounded-full hover:bg-slate-500/10">
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
 
-                                <div className="p-5 overflow-y-auto space-y-4 flex-1">
+                                <div className="p-4 overflow-y-auto space-y-3 flex-1">
                                     {cart.map((cItem, i) => (
-                                        <div key={i} className="p-4 rounded-2xl border flex justify-between items-start gap-4" style={{ borderColor: borderColor }}>
-                                            <div className="flex-1">
-                                                <h4 className="font-bold text-base">{getItemName(cItem.item)}</h4>
+                                        <div key={i} className="p-3.5 rounded-2xl border flex justify-between items-start gap-3" style={{ borderColor: borderColor }}>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-sm truncate">{getItemName(cItem.item)}</h4>
                                                 {cItem.sizeLabel && <p className="text-xs font-semibold text-sky-500 mt-0.5">{cItem.sizeLabel}</p>}
-                                                {cItem.notes && <p className="text-xs opacity-70 italic mt-1">"{cItem.notes}"</p>}
-                                                <div className="font-black text-sm mt-2" style={{ color: primaryColor }}>
+                                                {cItem.notes && <p className="text-xs opacity-70 italic mt-0.5 font-normal">"{cItem.notes}"</p>}
+                                                <div className="font-extrabold text-sm mt-1.5" style={{ color: primaryColor }}>
                                                     {cItem.price * cItem.quantity} {cur}
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-2 shrink-0">
                                                 <div className="flex items-center border rounded-xl" style={{ borderColor: borderColor }}>
                                                     <button onClick={() => updateQty(cItem.id, cItem.notes, -1)} className="p-1.5"><Minus className="w-3.5 h-3.5" /></button>
-                                                    <span className="px-2 font-bold text-sm">{cItem.quantity}</span>
+                                                    <span className="px-2 font-bold text-xs">{cItem.quantity}</span>
                                                     <button onClick={() => updateQty(cItem.id, cItem.notes, 1)} className="p-1.5"><Plus className="w-3.5 h-3.5" /></button>
                                                 </div>
                                                 <button onClick={() => updateQty(cItem.id, cItem.notes, -cItem.quantity)} className="text-red-500 p-1">
@@ -784,14 +850,14 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     ))}
                                 </div>
 
-                                <div className="p-5 border-t space-y-4" style={{ borderColor: borderColor }}>
-                                    <div className="flex justify-between items-center font-black text-xl">
+                                <div className="p-4 border-t space-y-3 shrink-0" style={{ borderColor: borderColor }}>
+                                    <div className="flex justify-between items-center font-extrabold text-lg">
                                         <span>Total:</span>
                                         <span style={{ color: primaryColor }}>{cartTotal} {cur}</span>
                                     </div>
                                     <button
                                         onClick={() => { setIsCartOpen(false); setShowCheckout(true); }}
-                                        className="w-full py-4 rounded-2xl font-black text-white text-lg shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
+                                        className="w-full py-3.5 rounded-2xl font-bold text-white text-base shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
                                         style={{ backgroundColor: primaryColor }}
                                     >
                                         <span>Checkout Order</span>
@@ -803,26 +869,26 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     )}
                 </AnimatePresence>
 
-                {/* --- PAYMENT METHODS MODAL --- */}
+                {/* --- PAYMENT METHODS MODAL (Centered) --- */}
                 <AnimatePresence>
                     {showPaymentModal && (
                         <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
                             onClick={() => setShowPaymentModal(false)}
                         >
                             <motion.div 
-                                initial={{ scale: 0.9, opacity: 0 }}
+                                initial={{ scale: 0.92, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
+                                exit={{ scale: 0.92, opacity: 0 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl p-6 shadow-2xl border relative max-h-[80vh] overflow-y-auto"
+                                className="w-full max-w-md rounded-3xl p-5 shadow-2xl border relative max-h-[80vh] overflow-y-auto my-auto"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="font-black text-lg flex items-center gap-2">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className="font-bold text-base flex items-center gap-2">
                                         <CreditCard className="w-5 h-5" style={{ color: primaryColor }} />
                                         <span>Payment Options</span>
                                     </h3>
@@ -831,18 +897,18 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     </button>
                                 </div>
 
-                                <p className="text-xs opacity-70 mb-4 font-semibold">
+                                <p className="text-xs opacity-70 mb-4 font-normal">
                                     Please send a payment transfer receipt screenshot to our WhatsApp after payment.
                                 </p>
 
                                 <div className="space-y-3">
                                     {config.payment_methods?.map((pm: any, idx: number) => (
-                                        <div key={idx} className="p-4 rounded-2xl border space-y-2" style={{ borderColor: borderColor, backgroundColor: bgBody }}>
-                                            <h4 className="font-bold text-base">{pm.name_en || pm.name_ar}</h4>
-                                            {(pm.desc_en || pm.desc_ar) && <p className="text-xs opacity-70">{pm.desc_en || pm.desc_ar}</p>}
+                                        <div key={idx} className="p-3.5 rounded-2xl border space-y-2" style={{ borderColor: borderColor, backgroundColor: bgBody }}>
+                                            <h4 className="font-bold text-sm">{pm.name_en || pm.name_ar}</h4>
+                                            {(pm.desc_en || pm.desc_ar) && <p className="text-xs opacity-70 font-normal">{pm.desc_en || pm.desc_ar}</p>}
                                             {pm.number && (
                                                 <div className="flex justify-between items-center p-2 rounded-xl border bg-white dark:bg-black/40" style={{ borderColor: borderColor }}>
-                                                    <span className="font-mono text-sm font-bold" dir="ltr">{pm.number}</span>
+                                                    <span className="font-mono text-xs font-bold" dir="ltr">{pm.number}</span>
                                                     <button 
                                                         onClick={() => { navigator.clipboard.writeText(pm.number); alert('Number copied!'); }}
                                                         className="px-3 py-1 rounded-lg text-xs font-bold text-white"
@@ -853,7 +919,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                                 </div>
                                             )}
                                             {pm.link && (
-                                                <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-2.5 rounded-xl shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                                <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-2 rounded-xl shadow-sm" style={{ backgroundColor: primaryColor }}>
                                                     InstaPay / Payment Link
                                                 </a>
                                             )}
@@ -884,7 +950,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                     restaurantName={config.name}
                     whatsappNumber={config.whatsapp_number}
                     currency={cur} 
-                    language="en" // ALWAYS English!
+                    language="en"
                     orderChannel={config.order_channel}
                     onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
                 />

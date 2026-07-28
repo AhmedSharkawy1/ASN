@@ -157,7 +157,7 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
                     variants={fadeInUp}
                     className="text-center px-6 py-4 max-w-2xl mx-auto"
                 >
-                    <h1 className="text-3xl md:text-5xl font-black tracking-tight mb-2" style={{ color: textMain }}>
+                    <h1 className="text-3xl md:text-5xl font-bold tracking-normal mb-2" style={{ color: textMain }}>
                         {config.name}
                     </h1>
                     {config.slogan_en && (
