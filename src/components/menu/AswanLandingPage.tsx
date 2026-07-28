@@ -93,25 +93,30 @@ export default function AswanLandingPage({ config, onContinue }: AswanLandingPag
 
     return (
         <div 
-            className="min-h-screen font-sans flex flex-col relative transition-colors duration-300"
+            className="min-h-screen font-sans flex flex-col relative transition-colors duration-300 antialiased"
             style={{ 
-                backgroundColor: bgBody, 
-                color: textMain,
-                backgroundImage: hasBgImage ? `url("${activeBgImage}")` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-                backgroundRepeat: 'no-repeat'
+                backgroundColor: hasBgImage ? 'transparent' : bgBody, 
+                color: textMain
             }} 
             dir="ltr"
         >
-            {/* Background Overlay for image readability */}
+            {/* Fixed Background Image Layer */}
+            {hasBgImage && (
+                <div 
+                    className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+                    style={{
+                        backgroundImage: `url("${activeBgImage}")`
+                    }}
+                />
+            )}
+
+            {/* Subtle Glassmorphic Overlay for Text Contrast */}
             {hasBgImage && (
                 <div 
                     className="fixed inset-0 pointer-events-none transition-opacity duration-300 z-0"
                     style={{
-                        backgroundColor: isDark ? 'rgba(5, 10, 20, 0.85)' : 'rgba(255, 255, 255, 0.88)',
-                        backdropFilter: 'blur(8px)'
+                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.40)',
+                        backdropFilter: 'blur(3px)'
                     }}
                 />
             )}

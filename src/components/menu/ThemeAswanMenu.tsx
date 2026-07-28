@@ -285,23 +285,28 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
         <div 
             className="min-h-screen font-sans pb-32 relative transition-colors duration-300 antialiased"
             style={{ 
-                backgroundColor: bgBody, 
-                color: textMain,
-                backgroundImage: hasBgImage ? `url("${activeBgImage}")` : 'none',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-                backgroundRepeat: 'no-repeat'
+                backgroundColor: hasBgImage ? 'transparent' : bgBody, 
+                color: textMain
             }} 
             dir="ltr"
         >
-            {/* Background Overlay for text legibility */}
+            {/* Fixed Background Image Layer */}
+            {hasBgImage && (
+                <div 
+                    className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+                    style={{
+                        backgroundImage: `url("${activeBgImage}")`
+                    }}
+                />
+            )}
+
+            {/* Subtle Glassmorphic Overlay for Text Contrast */}
             {hasBgImage && (
                 <div 
                     className="fixed inset-0 pointer-events-none transition-opacity duration-300 z-0"
                     style={{
-                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.90)',
-                        backdropFilter: 'blur(8px)'
+                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(255, 255, 255, 0.40)',
+                        backdropFilter: 'blur(3px)'
                     }}
                 />
             )}
