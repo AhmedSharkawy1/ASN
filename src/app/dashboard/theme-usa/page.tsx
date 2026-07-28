@@ -1,7 +1,7 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2 } from "lucide-react";
+import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2, Sun, Moon } from "lucide-react";
 import { uploadImageWithThumb } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
@@ -15,6 +15,8 @@ interface UsaConfig {
     usa_about_en: string;
     usa_history_en: string;
     usa_images: string[];
+    usa_bg_light: string;
+    usa_bg_dark: string;
     theme_colors: any;
 }
 
@@ -24,6 +26,8 @@ export default function ThemeUsaSettings() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingBgLight, setUploadingBgLight] = useState(false);
+    const [uploadingBgDark, setUploadingBgDark] = useState(false);
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [uploadingImages, setUploadingImages] = useState(false);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
@@ -35,6 +39,8 @@ export default function ThemeUsaSettings() {
         usa_about_en: "",
         usa_history_en: "",
         usa_images: [],
+        usa_bg_light: "",
+        usa_bg_dark: "",
         theme_colors: {},
     });
 
@@ -91,6 +97,8 @@ export default function ThemeUsaSettings() {
                         usa_about_en: tc.usa_about_en || data.vicino_about_en || "",
                         usa_history_en: tc.usa_history_en || data.vicino_history_en || "",
                         usa_images: tc.usa_images || data.vicino_images || [],
+                        usa_bg_light: tc.usa_bg_light || tc.bg_image_light || "",
+                        usa_bg_dark: tc.usa_bg_dark || tc.bg_image_dark || "",
                         theme_colors: tc,
                     });
                 }
@@ -117,6 +125,8 @@ export default function ThemeUsaSettings() {
                 usa_about_en: config.usa_about_en,
                 usa_history_en: config.usa_history_en,
                 usa_images: config.usa_images,
+                usa_bg_light: config.usa_bg_light,
+                usa_bg_dark: config.usa_bg_dark,
             };
 
             const { error } = await supabase
@@ -163,6 +173,30 @@ export default function ThemeUsaSettings() {
             toast.success(isAr ? "تم رفع الشعار بنجاح" : "Logo uploaded");
         }
         setUploadingLogo(false);
+    };
+
+    const handleBgLightUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingBgLight(true);
+        const url = await handleFileUpload(file, `theme-usa/bg_light_${Date.now()}`);
+        if (url) {
+            setConfig(prev => ({ ...prev, usa_bg_light: url }));
+            toast.success(isAr ? "تم رفع خلفية الوضع الفاتح بنجاح" : "Light mode background uploaded");
+        }
+        setUploadingBgLight(false);
+    };
+
+    const handleBgDarkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingBgDark(true);
+        const url = await handleFileUpload(file, `theme-usa/bg_dark_${Date.now()}`);
+        if (url) {
+            setConfig(prev => ({ ...prev, usa_bg_dark: url }));
+            toast.success(isAr ? "تم رفع خلفية الوضع الداكن بنجاح" : "Dark mode background uploaded");
+        }
+        setUploadingBgDark(false);
     };
 
     const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,7 +253,7 @@ export default function ThemeUsaSettings() {
                         <span>{isAr ? "إعدادات ثيم USA (الأمريكي)" : "USA Theme Settings"}</span>
                     </h1>
                     <p className="text-xs text-slate-400 mt-1">
-                        {isAr ? "تخصيص صفحة الهبوط، الفيديو، قصة المكان بالإنجليزية والمعرض لثيم USA" : "Customize landing page, video, English bio, and gallery for USA Theme"}
+                        {isAr ? "تخصيص خلفيات المنيو، صفحة الهبوط، الفيديو، قصة المكان والمعرض" : "Customize light/dark background images, landing page, video, and bio"}
                     </p>
                 </div>
 
@@ -231,6 +265,85 @@ export default function ThemeUsaSettings() {
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                     <span>{isAr ? "حفظ التغييرات" : "Save Changes"}</span>
                 </button>
+            </div>
+
+            {/* Custom Background Images Section */}
+            <div className="p-5 rounded-3xl bg-slate-900 border border-slate-800 space-y-4">
+                <div>
+                    <h3 className="font-bold text-sm text-slate-100 flex items-center gap-2">
+                        <ImagePlus className="w-4 h-4 text-rose-500" />
+                        <span>{isAr ? "خلفية صور المنيو (Light & Dark Backgrounds)" : "Custom Background Images"}</span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                        {isAr ? "يمكنك رفع صورة خلفية مخصصة للوضع الفاتح وأخرى للوضع الداكن للمنيو" : "Upload custom background image for Light Mode and Dark Mode"}
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    
+                    {/* Light Mode Background */}
+                    <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+                            <Sun className="w-4 h-4 text-amber-400" />
+                            <span>{isAr ? "خلفية الوضع الفاتح (Light Mode)" : "Light Mode Background"}</span>
+                        </div>
+
+                        {config.usa_bg_light ? (
+                            <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={config.usa_bg_light} alt="Light BG" className="w-full h-full object-cover" />
+                                <button
+                                    onClick={() => setConfig({ ...config, usa_bg_light: "" })}
+                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-rose-600 text-white shadow-md hover:bg-rose-500"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="w-full h-32 rounded-xl border border-dashed border-slate-700 flex items-center justify-center text-slate-500 text-xs">
+                                {isAr ? "لا توجد خلفية مخصصة للوضع الفاتح" : "No custom light background"}
+                            </div>
+                        )}
+
+                        <label className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer transition-colors flex items-center justify-center gap-2">
+                            {uploadingBgLight ? <Loader2 className="w-4 h-4 animate-spin text-rose-500" /> : <UploadCloud className="w-4 h-4 text-rose-500" />}
+                            <span>{uploadingBgLight ? (isAr ? "جاري الرفع..." : "Uploading...") : (isAr ? "رفع صورة الوضع الفاتح" : "Upload Light BG")}</span>
+                            <input type="file" accept="image/*" onChange={handleBgLightUpload} disabled={uploadingBgLight} className="hidden" />
+                        </label>
+                    </div>
+
+                    {/* Dark Mode Background */}
+                    <div className="p-4 rounded-2xl bg-slate-800/50 border border-slate-700/60 space-y-3">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
+                            <Moon className="w-4 h-4 text-rose-400" />
+                            <span>{isAr ? "خلفية الوضع الداكن (Dark Mode)" : "Dark Mode Background"}</span>
+                        </div>
+
+                        {config.usa_bg_dark ? (
+                            <div className="relative w-full h-32 rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={config.usa_bg_dark} alt="Dark BG" className="w-full h-full object-cover" />
+                                <button
+                                    onClick={() => setConfig({ ...config, usa_bg_dark: "" })}
+                                    className="absolute top-2 right-2 p-1.5 rounded-full bg-rose-600 text-white shadow-md hover:bg-rose-500"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="w-full h-32 rounded-xl border border-dashed border-slate-700 flex items-center justify-center text-slate-500 text-xs">
+                                {isAr ? "لا توجد خلفية مخصصة للوضع الداكن" : "No custom dark background"}
+                            </div>
+                        )}
+
+                        <label className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer transition-colors flex items-center justify-center gap-2">
+                            {uploadingBgDark ? <Loader2 className="w-4 h-4 animate-spin text-rose-500" /> : <UploadCloud className="w-4 h-4 text-rose-500" />}
+                            <span>{uploadingBgDark ? (isAr ? "جاري الرفع..." : "Uploading...") : (isAr ? "رفع صورة الوضع الداكن" : "Upload Dark BG")}</span>
+                            <input type="file" accept="image/*" onChange={handleBgDarkUpload} disabled={uploadingBgDark} className="hidden" />
+                        </label>
+                    </div>
+
+                </div>
             </div>
 
             {/* Landing Page Toggle */}

@@ -1,7 +1,7 @@
 import { getUsaColors } from '@/lib/usaVariants';
 import React from 'react';
 import { useTheme } from 'next-themes';
-import { ArrowRight, MapPin, Phone, Clock, Instagram, Facebook, Youtube, Sun, Moon, Sparkles, ChefHat, Award, Navigation } from 'lucide-react';
+import { ArrowRight, Phone, Clock, Instagram, Facebook, Youtube, Sun, Moon, Sparkles, ChefHat, Award } from 'lucide-react';
 import { FaTiktok, FaSnapchatGhost, FaWhatsapp } from 'react-icons/fa';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Pagination } from 'swiper/modules';
@@ -18,7 +18,11 @@ interface UsaLandingPageProps {
 
 export default function UsaLandingPage({ config, onContinue }: UsaLandingPageProps) {
     const { theme, resolvedTheme, setTheme } = useTheme();
+    const [mounted, setMounted] = React.useState(false);
+    const [forcedMode, setForcedMode] = React.useState<'light' | 'dark' | null>(null);
     const [showPhoneModal, setShowPhoneModal] = React.useState(false);
+
+    React.useEffect(() => setMounted(true), []);
 
     React.useEffect(() => {
         if (config.default_theme_mode && config.default_theme_mode !== 'system') {
@@ -26,8 +30,17 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
         }
     }, [config.default_theme_mode, setTheme]);
 
-    const isDark = resolvedTheme === 'dark';
-    const { primaryColor, bgBody, textMain, textMuted, bgCard, borderColor } = getUsaColors(config, isDark);
+    const isDark = forcedMode !== null 
+        ? forcedMode === 'dark' 
+        : (mounted && (resolvedTheme === 'dark' || theme === 'dark'));
+
+    const toggleThemeMode = () => {
+        const nextMode = isDark ? 'light' : 'dark';
+        setForcedMode(nextMode);
+        setTheme(nextMode);
+    };
+
+    const { primaryColor, bgBody, textMain, textMuted, bgCard, borderColor, hasBgImage, activeBgImage } = getUsaColors(config, isDark);
 
     const displayNumbers = (config.phone_numbers && config.phone_numbers.length > 0) 
         ? config.phone_numbers 
@@ -96,7 +109,20 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
     }
 
     return (
-        <div className="min-h-screen font-sans flex flex-col ltr text-left selection:bg-rose-500/20" style={{ backgroundColor: bgBody, color: textMain }}>
+        <div 
+            className="min-h-screen font-sans flex flex-col ltr text-left selection:bg-rose-500/20 transition-colors duration-300" 
+            style={{ 
+                backgroundColor: bgBody, 
+                color: textMain,
+                ...(hasBgImage ? {
+                    backgroundImage: `url(${activeBgImage})`,
+                    backgroundSize: 'cover',
+                    backgroundAttachment: 'fixed',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                } : {})
+            }}
+        >
             
             {/* Header / Nav */}
             <div className="w-full flex justify-between items-center px-6 pt-6 pb-4 max-w-4xl mx-auto">
@@ -107,18 +133,18 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                         </div>
                     )}
                     <div>
-                        <h1 className="font-extrabold text-lg tracking-tight leading-none text-slate-100">{config.name}</h1>
+                        <h1 className="font-extrabold text-lg tracking-tight leading-none">{config.name}</h1>
                         <span className="text-[11px] font-semibold text-rose-500 tracking-wider uppercase">Authentic Taste</span>
                     </div>
                 </div>
 
                 {/* Dark/Light Switcher */}
                 <button
-                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                    onClick={toggleThemeMode}
                     className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-slate-100 transition-colors shadow-sm"
-                    title="Toggle Theme"
+                    title="Toggle Light/Dark Mode"
                 >
-                    {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+                    {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
                 </button>
             </div>
 
@@ -185,8 +211,12 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true }}
-                            className="p-6 md:p-8 rounded-3xl border shadow-lg space-y-3"
-                            style={{ backgroundColor: bgCard, borderColor }}
+                            className={`p-6 md:p-8 rounded-3xl border shadow-lg space-y-3 ${
+                                hasBgImage 
+                                    ? (isDark ? 'bg-slate-900/90 backdrop-blur-md' : 'bg-white/95 backdrop-blur-md')
+                                    : ''
+                            }`}
+                            style={{ backgroundColor: hasBgImage ? undefined : bgCard, borderColor }}
                         >
                             <div className="flex items-center gap-2 text-rose-500 font-bold text-xs uppercase tracking-widest">
                                 <ChefHat className="w-4 h-4" />
@@ -205,8 +235,12 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true }}
-                            className="p-6 md:p-8 rounded-3xl border shadow-lg space-y-3"
-                            style={{ backgroundColor: bgCard, borderColor }}
+                            className={`p-6 md:p-8 rounded-3xl border shadow-lg space-y-3 ${
+                                hasBgImage 
+                                    ? (isDark ? 'bg-slate-900/90 backdrop-blur-md' : 'bg-white/95 backdrop-blur-md')
+                                    : ''
+                            }`}
+                            style={{ backgroundColor: hasBgImage ? undefined : bgCard, borderColor }}
                         >
                             <div className="flex items-center gap-2 text-rose-500 font-bold text-xs uppercase tracking-widest">
                                 <Award className="w-4 h-4" />
@@ -261,13 +295,20 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                 
                 {/* Working Hours */}
                 {(config.work_hours_en || config.work_hours_ar || config.opening_hours) && (
-                    <div className="p-6 rounded-3xl border shadow-md flex items-start gap-4" style={{ backgroundColor: bgCard, borderColor }}>
+                    <div 
+                        className={`p-6 rounded-3xl border shadow-md flex items-start gap-4 ${
+                            hasBgImage 
+                                ? (isDark ? 'bg-slate-900/90 backdrop-blur-md' : 'bg-white/95 backdrop-blur-md')
+                                : ''
+                        }`}
+                        style={{ backgroundColor: hasBgImage ? undefined : bgCard, borderColor }}
+                    >
                         <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500 flex-shrink-0">
                             <Clock className="w-6 h-6" />
                         </div>
                         <div className="space-y-1">
                             <h3 className="font-bold text-base">Opening Hours</h3>
-                            <p className="text-xs text-slate-400 leading-relaxed">
+                            <p className="text-xs opacity-75 leading-relaxed">
                                 {config.work_hours_en || config.work_hours_ar || config.opening_hours}
                             </p>
                         </div>
@@ -278,15 +319,19 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                 {displayNumbers.length > 0 && (
                     <div 
                         onClick={() => setShowPhoneModal(true)}
-                        className="p-6 rounded-3xl border shadow-md flex items-start gap-4 cursor-pointer hover:border-rose-500/50 transition-all"
-                        style={{ backgroundColor: bgCard, borderColor }}
+                        className={`p-6 rounded-3xl border shadow-md flex items-start gap-4 cursor-pointer hover:border-rose-500/50 transition-all ${
+                            hasBgImage 
+                                ? (isDark ? 'bg-slate-900/90 backdrop-blur-md' : 'bg-white/95 backdrop-blur-md')
+                                : ''
+                        }`}
+                        style={{ backgroundColor: hasBgImage ? undefined : bgCard, borderColor }}
                     >
                         <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500 flex-shrink-0">
                             <Phone className="w-6 h-6" />
                         </div>
                         <div className="space-y-1">
                             <h3 className="font-bold text-base">Contact & Hotline</h3>
-                            <p className="text-xs text-slate-400">Click to call or view available phone numbers</p>
+                            <p className="text-xs opacity-75">Click to call or view available phone numbers</p>
                         </div>
                     </div>
                 )}
@@ -296,7 +341,7 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
             {/* Social Links Bar */}
             {socialLinks.length > 0 && (
                 <div className="w-full px-6 max-w-4xl mx-auto mb-12 text-center space-y-4">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Connect With Us</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider opacity-75">Connect With Us</span>
                     <div className="flex flex-wrap items-center justify-center gap-3">
                         {socialLinks.map((social, i) => {
                             const IconComponent = social.icon;
@@ -306,8 +351,12 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                                     href={social.url!}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex items-center gap-2 px-4 py-2.5 rounded-full border shadow-sm text-xs font-bold transition-all hover:scale-105"
-                                    style={{ backgroundColor: bgCard, borderColor, color: social.textColor || textMain }}
+                                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full border shadow-sm text-xs font-bold transition-all hover:scale-105 ${
+                                        hasBgImage 
+                                            ? (isDark ? 'bg-slate-900/90 backdrop-blur-md' : 'bg-white/95 backdrop-blur-md')
+                                            : ''
+                                    }`}
+                                    style={{ backgroundColor: hasBgImage ? undefined : bgCard, borderColor, color: social.textColor || textMain }}
                                 >
                                     <IconComponent className="w-4 h-4" style={{ color: social.color }} />
                                     <span>{social.name}</span>
@@ -319,7 +368,7 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
             )}
 
             {/* Footer */}
-            <div className="w-full py-8 text-center border-t text-xs text-slate-500" style={{ borderColor }}>
+            <div className="w-full py-8 text-center border-t text-xs opacity-60" style={{ borderColor }}>
                 <p>&copy; {new Date().getFullYear()} {config.name}. All Rights Reserved.</p>
             </div>
 
@@ -331,22 +380,24 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className="w-full max-w-sm rounded-3xl p-6 border shadow-2xl space-y-4 text-left"
-                            style={{ backgroundColor: bgCard, borderColor }}
+                            className={`w-full max-w-sm rounded-3xl p-6 border shadow-2xl space-y-4 text-left ${
+                                isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                            }`}
+                            style={{ borderColor }}
                         >
                             <div className="flex justify-between items-center border-b pb-3" style={{ borderColor }}>
                                 <h3 className="font-bold text-base">Call Us Directly</h3>
-                                <button onClick={() => setShowPhoneModal(false)} className="text-slate-400 hover:text-slate-100">✕</button>
+                                <button onClick={() => setShowPhoneModal(false)} className="opacity-70 hover:opacity-100">✕</button>
                             </div>
                             <div className="space-y-2">
                                 {displayNumbers.map((numObj: any, idx: number) => (
                                     <a
                                         key={idx}
                                         href={`tel:${numObj.number}`}
-                                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/50 hover:bg-slate-800 transition-colors text-sm font-semibold border border-slate-700/50"
+                                        className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/40 hover:bg-slate-800 transition-colors text-sm font-semibold border border-slate-700/50"
                                     >
                                         <span>{numObj.label || 'Phone'}</span>
-                                        <span className="text-rose-400">{numObj.number}</span>
+                                        <span className="text-rose-500 font-bold">{numObj.number}</span>
                                     </a>
                                 ))}
                             </div>

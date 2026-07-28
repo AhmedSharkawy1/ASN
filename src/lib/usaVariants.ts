@@ -1,5 +1,23 @@
-export function getUsaColors(config: any, isDark: boolean) {
-    let primaryColor = config.theme_colors?.primary || '#dc2626'; // Bold USA Crimson Red
+export interface UsaThemeColors {
+    primaryColor: string;
+    bgBody: string;
+    bgCard: string;
+    textMain: string;
+    textMuted: string;
+    borderColor: string;
+    bgImageLight?: string;
+    bgImageDark?: string;
+    activeBgImage?: string;
+    hasBgImage: boolean;
+}
+
+export function getUsaColors(config: any, isDark: boolean): UsaThemeColors {
+    let tc = config?.theme_colors || {};
+    if (typeof tc === 'string') {
+        try { tc = JSON.parse(tc); } catch { tc = {}; }
+    }
+
+    let primaryColor = tc.primary || config.primary_color || '#dc2626'; // Bold USA Crimson Red
     let bgBody = isDark ? '#0f172a' : '#f8fafc'; // Dark Slate / Clean Ice White
     let bgCard = isDark ? '#1e293b' : '#ffffff';
     let textMain = isDark ? '#f8fafc' : '#0f172a';
@@ -28,5 +46,26 @@ export function getUsaColors(config: any, isDark: boolean) {
         borderColor = '#334155';
     }
 
-    return { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor };
+    // Extract light and dark background images
+    const bgImageLight = tc.usa_bg_light || tc.aswan_bg_light || tc.bg_image_light || config?.usa_bg_light || config?.bg_image_light || '';
+    const bgImageDark = tc.usa_bg_dark || tc.aswan_bg_dark || tc.bg_image_dark || config?.usa_bg_dark || config?.bg_image_dark || '';
+
+    // Determine active background image with fallback
+    let activeBgImage = isDark ? (bgImageDark || bgImageLight) : (bgImageLight || bgImageDark);
+    activeBgImage = (activeBgImage || '').trim();
+
+    const hasBgImage = Boolean(activeBgImage && activeBgImage.length > 0);
+
+    return {
+        primaryColor,
+        bgBody,
+        bgCard,
+        textMain,
+        textMuted,
+        borderColor,
+        bgImageLight,
+        bgImageDark,
+        activeBgImage,
+        hasBgImage
+    };
 }

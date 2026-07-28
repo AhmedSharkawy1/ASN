@@ -71,6 +71,8 @@ interface ThemeUsaMenuProps {
 export default function ThemeUsaMenu({ config, categories, restaurantId }: ThemeUsaMenuProps) {
     const { theme, resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
+    const [forcedMode, setForcedMode] = useState<'light' | 'dark' | null>(null);
+
     useEffect(() => setMounted(true), []);
 
     // Theme mode init
@@ -80,9 +82,18 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
         }
     }, [config.default_theme_mode, setTheme]);
 
-    const isDark = mounted && resolvedTheme === 'dark';
+    const isDark = forcedMode !== null 
+        ? forcedMode === 'dark' 
+        : (mounted && (resolvedTheme === 'dark' || theme === 'dark'));
+
+    const toggleThemeMode = () => {
+        const nextMode = isDark ? 'light' : 'dark';
+        setForcedMode(nextMode);
+        setTheme(nextMode);
+    };
+
     const currency = parseCurrency(config?.currency, false);
-    const { primaryColor, bgBody, bgCard, textMain, borderColor } = getUsaColors(config, isDark);
+    const { primaryColor, bgBody, bgCard, textMain, borderColor, hasBgImage, activeBgImage } = getUsaColors(config, isDark);
 
     // Determine Logo
     let parsedLogos = { light: config.vicino_logo_url, dark: config.vicino_logo_url };
@@ -259,7 +270,20 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     }
 
     return (
-        <div className="min-h-screen font-sans flex flex-col ltr text-left selection:bg-rose-500/20" style={{ backgroundColor: bgBody, color: textMain }}>
+        <div 
+            className="min-h-screen font-sans flex flex-col ltr text-left selection:bg-rose-500/20 transition-colors duration-300" 
+            style={{ 
+                backgroundColor: bgBody, 
+                color: textMain,
+                ...(hasBgImage ? {
+                    backgroundImage: `url(${activeBgImage})`,
+                    backgroundSize: 'cover',
+                    backgroundAttachment: 'fixed',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat'
+                } : {})
+            }}
+        >
             
             {/* Announcement Marquee */}
             {config.marquee_enabled && (config.marquee_text_en || config.marquee_text_ar) && (
@@ -270,7 +294,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
             )}
 
             {/* Static Top Header (Not Sticky) */}
-            <header className="w-full bg-slate-950/90 border-b border-slate-800/80">
+            <header className="w-full bg-slate-950/90 dark:bg-slate-950/90 border-b border-slate-800/80 backdrop-blur-md">
                 <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
                     
                     {/* Left: Back, Logo & Title */}
@@ -309,11 +333,11 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                         </button>
 
                         <button
-                            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                            onClick={toggleThemeMode}
                             className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-colors"
-                            title="Toggle Mode"
+                            title="Toggle Light/Dark Mode"
                         >
-                            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
+                            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
                         </button>
 
                         {/* Cart Button */}
@@ -346,7 +370,11 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search menu items..."
-                            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-rose-500 text-xs md:text-sm"
+                            className={`w-full pl-10 pr-4 py-2.5 rounded-2xl border text-xs md:text-sm focus:outline-none focus:border-rose-500 transition-colors ${
+                                isDark
+                                    ? 'bg-slate-900/90 border-slate-700/80 text-slate-100 placeholder-slate-400'
+                                    : 'bg-white/90 border-slate-300 text-slate-900 placeholder-slate-500 shadow-sm'
+                            }`}
                         />
                         {searchQuery && (
                             <button
@@ -359,7 +387,9 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     </div>
 
                     {/* View Switcher: 2-Cols, 1-Col, List */}
-                    <div className="flex items-center bg-slate-800/70 border border-slate-700/60 rounded-2xl p-1 gap-0.5">
+                    <div className={`flex items-center border rounded-2xl p-1 gap-0.5 ${
+                        isDark ? 'bg-slate-900/90 border-slate-700/80' : 'bg-white/90 border-slate-300 shadow-sm'
+                    }`}>
                         <button
                             onClick={() => setViewMode('grid-2')}
                             className={`p-2 rounded-xl transition-all ${viewMode === 'grid-2' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
@@ -389,14 +419,18 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
             </div>
 
             {/* ONLY Categories Bar is Sticky */}
-            <div className="sticky top-0 z-30 backdrop-blur-md bg-slate-950/95 border-b border-slate-800 py-2.5 px-4 shadow-lg">
+            <div className={`sticky top-0 z-30 backdrop-blur-md border-b py-2.5 px-4 shadow-lg transition-colors ${
+                isDark ? 'bg-slate-950/95 border-slate-800/80' : 'bg-white/95 border-slate-200/90'
+            }`}>
                 <div className="max-w-5xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
                     <button
                         onClick={() => scrollToCategory('all')}
                         className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                             activeCategory === 'all'
                                 ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                                : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
+                                : isDark 
+                                    ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
+                                    : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                         }`}
                     >
                         All Categories ({allItems.length})
@@ -409,7 +443,9 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                                 activeCategory === String(cat.id)
                                     ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                                    : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
+                                    : isDark
+                                        ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
+                                        : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                             }`}
                         >
                             {catName(cat)} ({cat.items?.length || 0})
@@ -441,8 +477,8 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                     </div>
                                 )}
                                 <div className="text-left">
-                                    <h2 className="font-extrabold text-xl text-slate-100 tracking-tight text-left">{catName(category)}</h2>
-                                    <p className="text-xs text-slate-400 text-left">{category.items?.length || 0} delicious items available</p>
+                                    <h2 className="font-extrabold text-xl tracking-tight text-left">{catName(category)}</h2>
+                                    <p className="text-xs opacity-75 text-left">{category.items?.length || 0} delicious items available</p>
                                 </div>
                             </div>
 
@@ -464,11 +500,18 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                             key={item.id}
                                             onClick={() => openItemModal(item, catName(category))}
                                             className={`group rounded-3xl border transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden flex ${
+                                                hasBgImage 
+                                                    ? (isDark ? 'bg-slate-900/90 backdrop-blur-md' : 'bg-white/95 backdrop-blur-md shadow-md')
+                                                    : ''
+                                            } ${
                                                 viewMode === 'list'
                                                     ? 'flex-row items-center p-3 gap-3'
                                                     : 'flex-col justify-between'
                                             }`}
-                                            style={{ backgroundColor: bgCard, borderColor }}
+                                            style={{ 
+                                                backgroundColor: hasBgImage ? undefined : bgCard, 
+                                                borderColor 
+                                            }}
                                         >
                                             {/* Item Image */}
                                             {item.image_url && (
@@ -495,19 +538,19 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                             {/* Item Info */}
                                             <div className={`p-3.5 md:p-4 flex-1 flex flex-col justify-between ${viewMode === 'list' ? 'p-0' : ''}`}>
                                                 <div className="space-y-1 text-left">
-                                                    <h3 className="font-bold text-sm md:text-base text-slate-100 group-hover:text-rose-400 transition-colors line-clamp-1 text-left">
+                                                    <h3 className="font-bold text-sm md:text-base group-hover:text-rose-500 transition-colors line-clamp-1 text-left">
                                                         {itemName(item)}
                                                     </h3>
 
                                                     {itemDesc(item) && (
-                                                        <p className="text-[11px] md:text-xs text-slate-400 line-clamp-2 leading-relaxed text-left">
+                                                        <p className="text-[11px] md:text-xs opacity-80 line-clamp-2 leading-relaxed text-left">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
                                                 </div>
 
-                                                <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-800/60">
-                                                    <div className="font-black text-rose-400 text-sm md:text-base">
+                                                <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-700/40">
+                                                    <div className="font-black text-rose-500 text-sm md:text-base">
                                                         {hasMultiplePrices ? (
                                                             <span>{minPrice} - {maxPrice} {currency}</span>
                                                         ) : (
@@ -549,7 +592,9 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 text-slate-100 shadow-2xl overflow-hidden my-8"
+                            className={`relative w-full max-w-lg rounded-3xl border shadow-2xl overflow-hidden my-8 ${
+                                isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                            }`}
                         >
                             {/* Modal Image */}
                             {selectedItem.item.image_url && (
@@ -565,9 +610,9 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             )}
 
                             {!selectedItem.item.image_url && (
-                                <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800">
-                                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Item Customization</span>
-                                    <button onClick={closeItemModal} className="text-slate-400 hover:text-white">
+                                <div className="flex justify-between items-center px-6 py-4 border-b border-slate-700/40">
+                                    <span className="text-xs font-semibold uppercase tracking-wider opacity-70">Item Customization</span>
+                                    <button onClick={closeItemModal} className="opacity-70 hover:opacity-100">
                                         <X className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -577,16 +622,16 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                 
                                 {/* Centered Item Title & Description */}
                                 <div className="text-center space-y-1.5 px-2">
-                                    <h3 className="text-xl md:text-2xl font-extrabold text-slate-100 text-center">{itemName(selectedItem.item)}</h3>
+                                    <h3 className="text-xl md:text-2xl font-extrabold text-center">{itemName(selectedItem.item)}</h3>
                                     {itemDesc(selectedItem.item) && (
-                                        <p className="text-xs md:text-sm text-slate-400 leading-relaxed text-center">{itemDesc(selectedItem.item)}</p>
+                                        <p className="text-xs md:text-sm opacity-80 leading-relaxed text-center">{itemDesc(selectedItem.item)}</p>
                                     )}
                                 </div>
 
                                 {/* Sizes Selector */}
                                 {selectedItem.item.prices && selectedItem.item.prices.length > 0 && (
                                     <div className="space-y-2 text-center">
-                                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block text-center">
+                                        <label className="text-xs font-semibold uppercase tracking-wider block text-center opacity-70">
                                             {selectedItem.item.prices.length > 1 ? "Select Size" : "Price"}
                                         </label>
 
@@ -612,11 +657,13 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                                         className={`p-3 rounded-2xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
                                                             sizeIdx === idx
                                                                 ? 'bg-rose-600 text-white border-rose-500 shadow-md scale-[1.02]'
-                                                                : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
+                                                                : isDark
+                                                                    ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
+                                                                    : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                                                         }`}
                                                     >
                                                         <span>{lbl}</span>
-                                                        <span className="text-rose-300 font-extrabold">{selectedItem.item.prices[idx]} {currency}</span>
+                                                        <span className="text-rose-400 font-extrabold">{selectedItem.item.prices[idx]} {currency}</span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -627,7 +674,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                 {/* Extras / Addons Selector */}
                                 {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
                                     <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block text-center">
+                                        <label className="text-xs font-semibold uppercase tracking-wider block text-center opacity-70">
                                             Optional Addons
                                         </label>
                                         <div className="space-y-2">
@@ -648,8 +695,10 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                                         }}
                                                         className={`w-full p-3.5 rounded-2xl text-xs font-semibold border flex items-center justify-between transition-all ${
                                                             isSelected
-                                                                ? 'bg-rose-600/10 border-rose-500 text-rose-300'
-                                                                : 'bg-slate-800/40 border-slate-800 text-slate-300 hover:bg-slate-800'
+                                                                ? 'bg-rose-600/10 border-rose-500 text-rose-500'
+                                                                : isDark
+                                                                    ? 'bg-slate-800/40 border-slate-800 text-slate-300 hover:bg-slate-800'
+                                                                    : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                                                         }`}
                                                     >
                                                         <span>{extName}</span>
@@ -663,7 +712,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
                                 {/* Special Instructions */}
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                                    <label className="text-xs font-semibold uppercase tracking-wider block opacity-70">
                                         Special Instructions
                                     </label>
                                     <input
@@ -671,31 +720,37 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                         value={itemNotes}
                                         onChange={(e) => setItemNotes(e.target.value)}
                                         placeholder="e.g. No sauce, extra crispy..."
-                                        className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-rose-500 text-sm"
+                                        className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none focus:border-rose-500 ${
+                                            isDark 
+                                                ? 'bg-slate-800/80 border-slate-700 text-slate-100 placeholder-slate-500'
+                                                : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
+                                        }`}
                                     />
                                 </div>
 
                                 {/* Quantity Adjuster & Total Price */}
-                                <div className="flex items-center justify-between pt-4 border-t border-slate-800">
-                                    <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 rounded-2xl p-1.5">
+                                <div className="flex items-center justify-between pt-4 border-t border-slate-700/40">
+                                    <div className={`flex items-center gap-3 border rounded-2xl p-1.5 ${
+                                        isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+                                    }`}>
                                         <button
                                             onClick={() => setQty(Math.max(1, qty - 1))}
-                                            className="w-8 h-8 rounded-xl bg-slate-700 flex items-center justify-center text-slate-200 hover:bg-slate-600"
+                                            className="w-8 h-8 rounded-xl bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
                                         >
                                             <Minus className="w-4 h-4" />
                                         </button>
-                                        <span className="font-bold text-sm px-2 text-slate-100">{qty}</span>
+                                        <span className="font-bold text-sm px-2">{qty}</span>
                                         <button
                                             onClick={() => setQty(qty + 1)}
-                                            className="w-8 h-8 rounded-xl bg-slate-700 flex items-center justify-center text-slate-200 hover:bg-slate-600"
+                                            className="w-8 h-8 rounded-xl bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
                                         >
                                             <Plus className="w-4 h-4" />
                                         </button>
                                     </div>
 
                                     <div className="text-right">
-                                        <span className="text-[10px] uppercase text-slate-400 block font-semibold">Total Price</span>
-                                        <span className="text-lg font-black text-rose-400">
+                                        <span className="text-[10px] uppercase block font-semibold opacity-70">Total Price</span>
+                                        <span className="text-lg font-black text-rose-500">
                                             {(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed(2)} {currency}
                                         </span>
                                     </div>
@@ -704,7 +759,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             </div>
 
                             {/* Add to Cart Footer */}
-                            <div className="p-5 border-t border-slate-800 bg-slate-950/80">
+                            <div className="p-5 border-t border-slate-700/40 bg-slate-950/20">
                                 <button
                                     onClick={addToCart}
                                     className="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center gap-2"
@@ -728,20 +783,22 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="w-full max-w-md bg-slate-900 border-l border-slate-800 h-full flex flex-col justify-between text-slate-100 shadow-2xl"
+                            className={`w-full max-w-md border-l h-full flex flex-col justify-between shadow-2xl ${
+                                isDark ? 'bg-slate-900 border-slate-800 text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+                            }`}
                         >
                             {/* Drawer Header */}
-                            <div className="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+                            <div className="p-5 border-b border-slate-700/40 flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
                                     <ShoppingCart className="w-5 h-5 text-rose-500" />
                                     <h3 className="font-bold text-lg">Your Order Cart</h3>
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold">
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">
                                         {cartCount}
                                     </span>
                                 </div>
                                 <button
                                     onClick={() => setIsCartDrawerOpen(false)}
-                                    className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                                    className="p-2 rounded-xl opacity-70 hover:opacity-100 transition-colors"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -750,49 +807,51 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             {/* Drawer Items List */}
                             <div className="p-5 flex-1 overflow-y-auto space-y-4">
                                 {cart.length === 0 ? (
-                                    <div className="text-center py-20 space-y-3 text-slate-400">
-                                        <ShoppingCart className="w-12 h-12 mx-auto text-slate-600 stroke-[1.5]" />
+                                    <div className="text-center py-20 space-y-3 opacity-60">
+                                        <ShoppingCart className="w-12 h-12 mx-auto stroke-[1.5]" />
                                         <p className="text-sm font-semibold">Your cart is currently empty.</p>
-                                        <p className="text-xs text-slate-500">Explore our delicious menu items and add them here!</p>
+                                        <p className="text-xs opacity-75">Explore our delicious menu items and add them here!</p>
                                     </div>
                                 ) : (
                                     cart.map(c => (
-                                        <div key={c.id + c.notes} className="p-4 rounded-2xl bg-slate-800/50 border border-slate-800 space-y-3">
+                                        <div key={c.id + c.notes} className={`p-4 rounded-2xl border space-y-3 ${
+                                            isDark ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50 border-slate-200'
+                                        }`}>
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <h4 className="font-bold text-sm text-slate-100">{itemName(c.item)}</h4>
+                                                    <h4 className="font-bold text-sm">{itemName(c.item)}</h4>
                                                     {c.sizeLabel && (
-                                                        <span className="text-xs text-slate-400 block">{c.sizeLabel}</span>
+                                                        <span className="text-xs opacity-75 block">{c.sizeLabel}</span>
                                                     )}
                                                     {c.notes && (
-                                                        <span className="text-xs text-rose-300 italic block mt-1">Note: "{c.notes}"</span>
+                                                        <span className="text-xs text-rose-500 italic block mt-1">Note: "{c.notes}"</span>
                                                     )}
                                                 </div>
                                                 <button
                                                     onClick={() => updateCartQty(c.id, c.notes, -c.quantity)}
-                                                    className="text-slate-500 hover:text-rose-400 p-1"
+                                                    className="opacity-60 hover:text-rose-500 p-1"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
 
-                                            <div className="flex items-center justify-between pt-2 border-t border-slate-700/50">
-                                                <div className="flex items-center gap-2 bg-slate-800 rounded-xl p-1 border border-slate-700">
+                                            <div className="flex items-center justify-between pt-2 border-t border-slate-700/40">
+                                                <div className="flex items-center gap-2 rounded-xl p-1 border">
                                                     <button
                                                         onClick={() => updateCartQty(c.id, c.notes, -1)}
-                                                        className="w-6 h-6 rounded-lg bg-slate-700 flex items-center justify-center text-slate-200"
+                                                        className="w-6 h-6 rounded-lg bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
                                                     >
                                                         <Minus className="w-3.5 h-3.5" />
                                                     </button>
                                                     <span className="font-bold text-xs px-2">{c.quantity}</span>
                                                     <button
                                                         onClick={() => updateCartQty(c.id, c.notes, 1)}
-                                                        className="w-6 h-6 rounded-lg bg-slate-700 flex items-center justify-center text-slate-200"
+                                                        className="w-6 h-6 rounded-lg bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
                                                     >
                                                         <Plus className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
-                                                <span className="font-black text-rose-400 text-sm">
+                                                <span className="font-black text-rose-500 text-sm">
                                                     {(c.price * c.quantity).toFixed(2)} {currency}
                                                 </span>
                                             </div>
@@ -803,16 +862,16 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
                             {/* Drawer Footer */}
                             {cart.length > 0 && (
-                                <div className="p-5 border-t border-slate-800 bg-slate-950/80 space-y-4">
+                                <div className="p-5 border-t border-slate-700/40 space-y-4">
                                     <div className="flex justify-between items-center text-base font-extrabold">
                                         <span>Subtotal</span>
-                                        <span className="text-rose-400">{cartTotal.toFixed(2)} {currency}</span>
+                                        <span className="text-rose-500">{cartTotal.toFixed(2)} {currency}</span>
                                     </div>
                                     
                                     <div className="flex gap-3">
                                         <button
                                             onClick={clearCart}
-                                            className="py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors"
+                                            className="py-3 px-4 rounded-2xl border font-semibold text-xs transition-colors"
                                         >
                                             Clear
                                         </button>
