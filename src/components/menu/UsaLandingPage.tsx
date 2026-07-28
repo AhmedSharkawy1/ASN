@@ -153,7 +153,9 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
                 {finalLogoSrc && (
                     <div className="relative mb-4 group">
                         <div className="absolute inset-0 rounded-full blur-xl opacity-35" style={{ backgroundColor: primaryColor }} />
-                        <div className="relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-rose-500 shadow-2xl flex items-center justify-center p-2 bg-white">
+                        <div className={`relative w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full overflow-hidden border-4 border-rose-500 shadow-2xl flex items-center justify-center p-2 backdrop-blur-md ${
+                            isDark ? 'bg-slate-950/80' : 'bg-white/90'
+                        }`}>
                             <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
                         </div>
                     </div>

@@ -60,6 +60,7 @@ interface RestaurantType {
     vicino_landing_enabled?: boolean;
     vicino_logo_url?: string;
     logo_url?: string;
+    payment_methods?: any[];
     [key: string]: any;
 }
 
@@ -272,11 +273,13 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
         return <UsaLandingPage config={config} onContinue={() => setShowLanding(false)} />;
     }
 
+    const subtitleText = config.theme_colors?.usa_subtitle || config.usa_subtitle || "Authentic Taste";
+
     return (
         <div 
-            className="min-h-screen font-sans flex flex-col ltr text-left selection:bg-rose-500/20 transition-colors duration-300" 
+            className="min-h-screen font-sans flex flex-col ltr text-left selection:bg-rose-500/20 transition-colors duration-300 relative" 
             style={{ 
-                backgroundColor: bgBody, 
+                backgroundColor: hasBgImage ? 'transparent' : bgBody, 
                 color: textMain,
                 ...(hasBgImage ? {
                     backgroundImage: `url(${activeBgImage})`,
@@ -297,9 +300,13 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 />
             )}
 
-            {/* Static Top Header with Icons at Top & Centered Brand Logo (Like Aswan Theme) */}
+            {/* Static Top Header with Icons at Top & Seamless Translucent Background */}
             <header className={`w-full border-b transition-colors shadow-md ${
-                isDark ? 'bg-slate-950/95 border-slate-800/80 text-white' : 'bg-white/95 border-slate-200 text-slate-900'
+                hasBgImage
+                    ? 'bg-slate-950/40 backdrop-blur-md border-slate-800/40 text-white'
+                    : isDark
+                        ? 'bg-slate-950/95 border-slate-800/80 text-white'
+                        : 'bg-white/95 border-slate-200 text-slate-900'
             }`}>
                 <div className="max-w-5xl mx-auto px-4 py-3 space-y-4">
                     
@@ -363,19 +370,28 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                         </div>
                     </div>
 
-                    {/* Centered Brand Header (Prominent Logo & Title like Aswan Theme) */}
+                    {/* Centered Brand Header (Prominent Logo & Title with Page BG integration) */}
                     <div className="flex flex-col items-center text-center max-w-xl mx-auto pt-1 pb-2">
                         {finalLogoSrc && (
                             <div className="relative mb-3 group">
-                                <div className="absolute inset-0 rounded-full blur-xl opacity-35" style={{ backgroundColor: primaryColor }} />
-                                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-rose-500 shadow-2xl flex items-center justify-center p-2 bg-white">
+                                <div className="absolute inset-0 rounded-full blur-xl opacity-40" style={{ backgroundColor: primaryColor }} />
+                                <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-rose-500 shadow-2xl flex items-center justify-center p-2 ${
+                                    isDark ? 'bg-slate-950/80 backdrop-blur-md' : 'bg-white/90 backdrop-blur-md'
+                                }`}>
                                     <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
                                 </div>
                             </div>
                         )}
 
                         <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-center">{config.name}</h1>
-                        <span className="text-xs font-extrabold text-rose-500 uppercase tracking-widest block leading-none mt-1">USA Theme Menu</span>
+                        <div className="flex items-center justify-center gap-2 mt-1">
+                            <span className="text-xs font-extrabold text-rose-500 uppercase tracking-widest block leading-none">
+                                {subtitleText}
+                            </span>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/30 uppercase tracking-wider">
+                                USA Theme Menu
+                            </span>
+                        </div>
                     </div>
 
                 </div>
