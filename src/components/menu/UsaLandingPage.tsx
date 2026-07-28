@@ -93,7 +93,7 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
         { icon: Instagram, url: config.instagram_url, color: '#E1306C', name: 'Instagram' },
         { icon: FaTiktok, url: config.tiktok_url, color: isDark ? '#ffffff' : '#000000', name: 'TikTok' },
         { icon: Facebook, url: config.facebook_url, color: '#1877F2', name: 'Facebook' },
-        { icon: FaSnapchatGhost, url: config.snapchat_url, color: '#FFFC00', name: 'Snapchat', textColor: '#000000' },
+        { icon: FaSnapchatGhost, url: config.snapchat_url, color: '#FFFC00', name: 'Snapchat', textColor: isDark ? '#ffffff' : '#000000' },
         { icon: Youtube, url: config.youtube_url, color: '#FF0000', name: 'YouTube' },
     ].filter(link => link.url);
 
