@@ -3,17 +3,14 @@
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import { getUsaColors } from '@/lib/usaVariants';
 import { parseCurrency } from '@/lib/currency';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutGrid, LayoutList, Sun, Moon, Info, Tag, CheckCircle2, ChevronRight } from 'lucide-react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import 'swiper/css';
+import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutGrid, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight } from 'lucide-react';
 import ASNFooter from '@/components/menu/ASNFooter';
 import UsaCheckoutModal from './UsaCheckoutModal';
 import UsaLandingPage from './UsaLandingPage';
 import SharedMarquee from './SharedMarquee';
-import { FaWhatsapp, FaFacebookF, FaSnapchatGhost, FaInstagram, FaTiktok, FaPhoneAlt, FaYoutube } from 'react-icons/fa';
 
 type MenuItem = {
     id: string | number;
@@ -60,6 +57,8 @@ interface RestaurantType {
     order_channel?: 'whatsapp' | 'website' | 'both';
     show_asn_branding?: boolean;
     vicino_landing_enabled?: boolean;
+    vicino_logo_url?: string;
+    logo_url?: string;
     [key: string]: any;
 }
 
@@ -83,7 +82,15 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
     const isDark = mounted && resolvedTheme === 'dark';
     const currency = parseCurrency(config?.currency, false);
-    const { primaryColor, bgBody, bgCard, textMain, textMuted, borderColor } = getUsaColors(config, isDark);
+    const { primaryColor, bgBody, bgCard, textMain, borderColor } = getUsaColors(config, isDark);
+
+    // Determine Logo
+    let parsedLogos = { light: config.vicino_logo_url, dark: config.vicino_logo_url };
+    if (config.vicino_logo_url?.startsWith('{')) {
+        try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch {}
+    }
+    const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
+    const finalLogoSrc = currentLogo || config.logo_url;
 
     // State for Landing Page vs Main Menu
     const [showLanding, setShowLanding] = useState<boolean>(() => {
@@ -93,7 +100,8 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
     // Menu States
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    // viewMode: 'grid-2' (2 items per row), 'grid-1' (1 item full width), 'list' (compact row)
+    const [viewMode, setViewMode] = useState<'grid-2' | 'grid-1' | 'list'>('grid-2');
 
     // Modals & Cart State
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
@@ -122,6 +130,41 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+
+    // Auto-scroll & Category Spy
+    useEffect(() => {
+        const handleScroll = () => {
+            if (searchQuery || activeCategory === 'all') return;
+            const scrollPos = window.scrollY + 180;
+            for (const cat of categories) {
+                const el = document.getElementById(`category-${cat.id}`);
+                if (el) {
+                    const top = el.offsetTop;
+                    const height = el.offsetHeight;
+                    if (scrollPos >= top && scrollPos < top + height) {
+                        setActiveCategory(String(cat.id));
+                        break;
+                    }
+                }
+            }
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [categories, searchQuery, activeCategory]);
+
+    const scrollToCategory = (catId: string) => {
+        setActiveCategory(catId);
+        if (catId === 'all') {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            const el = document.getElementById(`category-${catId}`);
+            if (el) {
+                const yOffset = -130;
+                const y = el.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }
+    };
 
     const openItemModal = (item: MenuItem, cName: string) => {
         if (config.orders_enabled === false) return;
@@ -202,9 +245,8 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
         }
     };
 
-    // Flatten all items for search & popular items
+    // Flatten all items for count
     const allItems: (MenuItem & { catName: string })[] = categories.flatMap(c => (c.items || []).map(i => ({ ...i, catName: catName(c) })));
-    const featuredItems = allItems.filter(item => item.is_popular);
 
     const filteredCategories = categories.map(cat => ({
         ...cat,
@@ -228,26 +270,34 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
             )}
 
             {/* Header */}
-            <header className="sticky top-0 z-40 backdrop-blur-md border-b bg-slate-950/80 border-slate-800">
-                <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <header className="sticky top-0 z-40 backdrop-blur-md border-b bg-slate-950/85 border-slate-800/80 shadow-md">
+                <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                         {config.vicino_landing_enabled && (
                             <button
                                 onClick={() => setShowLanding(true)}
-                                className="p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white transition-colors"
+                                className="p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white transition-colors flex-shrink-0"
                                 title="Back to Home"
                             >
                                 <ArrowLeft className="w-4 h-4" />
                             </button>
                         )}
-                        <div>
-                            <h1 className="font-extrabold text-base md:text-lg text-slate-100 leading-none">{config.name}</h1>
-                            <span className="text-[11px] font-semibold text-rose-500 uppercase tracking-wider">USA Theme Menu</span>
+
+                        {/* Restaurant Logo Image */}
+                        {finalLogoSrc && (
+                            <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-700/60 bg-white p-0.5 flex-shrink-0 shadow-sm">
+                                <OptimizedMenuImage src={finalLogoSrc} alt="Logo" className="w-full h-full object-contain" useOriginal={true} />
+                            </div>
+                        )}
+
+                        <div className="min-w-0">
+                            <h1 className="font-extrabold text-base md:text-lg text-slate-100 leading-tight truncate">{config.name}</h1>
+                            <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest block leading-none">USA Theme Menu</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button
                             onClick={handleShare}
                             className="p-2.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-colors"
@@ -264,7 +314,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-700" />}
                         </button>
 
-                        {/* Cart Icon in Header */}
+                        {/* Header Cart Button */}
                         {config.orders_enabled !== false && (
                             <button
                                 onClick={() => setIsCartDrawerOpen(true)}
@@ -272,7 +322,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             >
                                 <ShoppingCart className="w-4 h-4" />
                                 {cartCount > 0 && (
-                                    <span className="text-xs px-1.5 py-0.5 rounded-full bg-white text-rose-600 font-extrabold">
+                                    <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-white text-rose-600 font-black">
                                         {cartCount}
                                     </span>
                                 )}
@@ -283,10 +333,10 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 </div>
             </header>
 
-            {/* Search & Layout Filter Bar */}
-            <div className="max-w-5xl mx-auto w-full px-4 pt-6 pb-2 space-y-4">
+            {/* Search & Layout Selector */}
+            <div className="max-w-5xl mx-auto w-full px-4 pt-4 pb-2 space-y-3">
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
@@ -294,7 +344,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="Search menu items..."
-                            className="w-full pl-10 pr-4 py-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-rose-500 text-sm"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-rose-500 text-xs md:text-sm"
                         />
                         {searchQuery && (
                             <button
@@ -306,17 +356,27 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                         )}
                     </div>
 
-                    <div className="flex items-center bg-slate-800/60 border border-slate-700/60 rounded-2xl p-1">
+                    {/* View Switcher: 2-Cols, 1-Col, List */}
+                    <div className="flex items-center bg-slate-800/70 border border-slate-700/60 rounded-2xl p-1 gap-0.5">
                         <button
-                            onClick={() => setViewMode('grid')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
-                            title="Grid View"
+                            onClick={() => setViewMode('grid-2')}
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-2' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            title="2-Column Grid (Compact)"
                         >
-                            <LayoutGrid className="w-4 h-4" />
+                            <Grid2X2 className="w-4 h-4" />
                         </button>
+
+                        <button
+                            onClick={() => setViewMode('grid-1')}
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-1' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            title="1-Column Cards (Full)"
+                        >
+                            <Square className="w-4 h-4" />
+                        </button>
+
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-rose-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
                             title="List View"
                         >
                             <LayoutList className="w-4 h-4" />
@@ -324,11 +384,14 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     </div>
                 </div>
 
-                {/* Category Navigation Bar */}
-                <div className="overflow-x-auto no-scrollbar py-2 flex items-center gap-2">
+            </div>
+
+            {/* Sticky Category Bar */}
+            <div className="sticky top-[57px] z-30 backdrop-blur-md bg-slate-950/90 border-b border-slate-800/80 py-2.5 px-4 shadow-sm">
+                <div className="max-w-5xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar">
                     <button
-                        onClick={() => setActiveCategory('all')}
-                        className={`px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                        onClick={() => scrollToCategory('all')}
+                        className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                             activeCategory === 'all'
                                 ? 'bg-rose-600 text-white border-rose-500 shadow-md'
                                 : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
@@ -340,8 +403,8 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     {categories.map(cat => (
                         <button
                             key={cat.id}
-                            onClick={() => setActiveCategory(String(cat.id))}
-                            className={`px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                            onClick={() => scrollToCategory(String(cat.id))}
+                            className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                                 activeCategory === String(cat.id)
                                     ? 'bg-rose-600 text-white border-rose-500 shadow-md'
                                     : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
@@ -351,11 +414,10 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                         </button>
                     ))}
                 </div>
-
             </div>
 
             {/* Menu Items Container */}
-            <main className="max-w-5xl mx-auto w-full px-4 py-6 flex-1 space-y-10">
+            <main className="max-w-5xl mx-auto w-full px-4 py-6 flex-1 space-y-12">
 
                 {filteredCategories.length === 0 ? (
                     <div className="text-center py-16 space-y-3">
@@ -367,10 +429,10 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                     </div>
                 ) : (
                     filteredCategories.map(category => (
-                        <section key={category.id} className="space-y-4">
+                        <section key={category.id} id={`category-${category.id}`} className="space-y-4 scroll-mt-36">
                             
                             {/* Category Header */}
-                            <div className="flex items-center gap-3 border-b pb-3 border-slate-800">
+                            <div className="flex items-center gap-3 border-b pb-3 border-slate-800/80">
                                 {category.image_url && (
                                     <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-800 flex-shrink-0">
                                         <OptimizedMenuImage src={category.image_url} alt={catName(category)} className="w-full h-full object-cover" />
@@ -382,8 +444,14 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                 </div>
                             </div>
 
-                            {/* Items Grid/List */}
-                            <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4' : 'space-y-3'}>
+                            {/* Items Grid/List Renderer */}
+                            <div className={
+                                viewMode === 'grid-2'
+                                    ? 'grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4'
+                                    : viewMode === 'grid-1'
+                                        ? 'grid grid-cols-1 md:grid-cols-2 gap-4'
+                                        : 'space-y-3'
+                            }>
                                 {category.items?.map(item => {
                                     const minPrice = Math.min(...(item.prices || [0]));
                                     const maxPrice = Math.max(...(item.prices || [0]));
@@ -394,14 +462,20 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                             key={item.id}
                                             onClick={() => openItemModal(item, catName(category))}
                                             className={`group rounded-3xl border transition-all duration-300 hover:shadow-xl cursor-pointer overflow-hidden flex ${
-                                                viewMode === 'grid' ? 'flex-col justify-between' : 'flex-row items-center p-3 gap-4'
+                                                viewMode === 'list'
+                                                    ? 'flex-row items-center p-3 gap-3'
+                                                    : 'flex-col justify-between'
                                             }`}
                                             style={{ backgroundColor: bgCard, borderColor }}
                                         >
                                             {/* Item Image */}
                                             {item.image_url && (
                                                 <div className={`relative overflow-hidden bg-slate-800 ${
-                                                    viewMode === 'grid' ? 'w-full h-48' : 'w-24 h-24 rounded-2xl flex-shrink-0'
+                                                    viewMode === 'list'
+                                                        ? 'w-20 h-20 rounded-2xl flex-shrink-0'
+                                                        : viewMode === 'grid-2'
+                                                            ? 'w-full h-36 md:h-48'
+                                                            : 'w-full h-52'
                                                 }`}>
                                                     <OptimizedMenuImage
                                                         src={item.image_url}
@@ -409,7 +483,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                     />
                                                     {item.is_popular && (
-                                                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-rose-600 text-white font-extrabold text-[10px] uppercase tracking-wider shadow-md">
+                                                        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-rose-600 text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md">
                                                             Popular
                                                         </span>
                                                     )}
@@ -417,23 +491,21 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                             )}
 
                                             {/* Item Info */}
-                                            <div className={`p-4 flex-1 flex flex-col justify-between ${viewMode === 'list' ? 'p-0' : ''}`}>
-                                                <div className="space-y-1.5">
-                                                    <div className="flex items-start justify-between gap-2">
-                                                        <h3 className="font-bold text-base text-slate-100 group-hover:text-rose-500 transition-colors">
-                                                            {itemName(item)}
-                                                        </h3>
-                                                    </div>
+                                            <div className={`p-3.5 md:p-4 flex-1 flex flex-col justify-between ${viewMode === 'list' ? 'p-0' : ''}`}>
+                                                <div className="space-y-1">
+                                                    <h3 className="font-bold text-sm md:text-base text-slate-100 group-hover:text-rose-400 transition-colors line-clamp-1">
+                                                        {itemName(item)}
+                                                    </h3>
 
                                                     {itemDesc(item) && (
-                                                        <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                                                        <p className="text-[11px] md:text-xs text-slate-400 line-clamp-2 leading-relaxed">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
                                                 </div>
 
-                                                <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-800/60">
-                                                    <div className="font-black text-rose-400 text-base">
+                                                <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-800/60">
+                                                    <div className="font-black text-rose-400 text-sm md:text-base">
                                                         {hasMultiplePrices ? (
                                                             <span>{minPrice} - {maxPrice} {currency}</span>
                                                         ) : (
@@ -447,9 +519,9 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                                                                 e.stopPropagation();
                                                                 openItemModal(item, catName(category));
                                                             }}
-                                                            className="p-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all"
+                                                            className="p-2 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition-all"
                                                         >
-                                                            <Plus className="w-4 h-4" />
+                                                            <Plus className="w-3.5 h-3.5" />
                                                             <span className="hidden sm:inline">Add</span>
                                                         </button>
                                                     )}
@@ -477,7 +549,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 text-slate-100 shadow-2xl overflow-hidden my-8"
                         >
-                            {/* Modal Header & Image */}
+                            {/* Modal Image */}
                             {selectedItem.item.image_url && (
                                 <div className="relative w-full h-56 bg-slate-950">
                                     <OptimizedMenuImage src={selectedItem.item.image_url} alt={itemName(selectedItem.item)} className="w-full h-full object-cover" />
@@ -492,7 +564,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
 
                             {!selectedItem.item.image_url && (
                                 <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800">
-                                    <h3 className="font-bold text-lg">{itemName(selectedItem.item)}</h3>
+                                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Item Customization</span>
                                     <button onClick={closeItemModal} className="text-slate-400 hover:text-white">
                                         <X className="w-5 h-5" />
                                     </button>
@@ -500,43 +572,60 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                             )}
 
                             <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
-                                <div className="space-y-1">
-                                    <h3 className="text-xl font-extrabold text-slate-100">{itemName(selectedItem.item)}</h3>
+                                
+                                {/* Centered Item Title & Description */}
+                                <div className="text-center space-y-1.5 px-2">
+                                    <h3 className="text-xl md:text-2xl font-extrabold text-slate-100 text-center">{itemName(selectedItem.item)}</h3>
                                     {itemDesc(selectedItem.item) && (
-                                        <p className="text-xs text-slate-400 leading-relaxed">{itemDesc(selectedItem.item)}</p>
+                                        <p className="text-xs md:text-sm text-slate-400 leading-relaxed text-center">{itemDesc(selectedItem.item)}</p>
                                     )}
                                 </div>
 
-                                {/* Sizes Selector */}
-                                {selectedItem.item.size_labels && selectedItem.item.size_labels.length > 0 && (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-                                            Select Size
+                                {/* Sizes Selector (Centered for 1 size, beautiful grid for multiple) */}
+                                {selectedItem.item.prices && selectedItem.item.prices.length > 0 && (
+                                    <div className="space-y-2 text-center">
+                                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block text-center">
+                                            {selectedItem.item.prices.length > 1 ? "Select Size" : "Price"}
                                         </label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {selectedItem.item.size_labels.map((lbl, idx) => (
+
+                                        {selectedItem.item.prices.length === 1 ? (
+                                            /* Single Size / Price Centered */
+                                            <div className="flex justify-center">
                                                 <button
-                                                    key={idx}
                                                     type="button"
-                                                    onClick={() => setSizeIdx(idx)}
-                                                    className={`p-3 rounded-2xl text-xs font-bold border flex items-center justify-between transition-all ${
-                                                        sizeIdx === idx
-                                                            ? 'bg-rose-600 text-white border-rose-500 shadow-md'
-                                                            : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
-                                                    }`}
+                                                    className="px-6 py-3 rounded-2xl bg-rose-600 text-white font-black text-sm shadow-md border border-rose-500 flex items-center justify-center gap-2"
                                                 >
-                                                    <span>{lbl}</span>
-                                                    <span>{selectedItem.item.prices[idx]} {currency}</span>
+                                                    {selectedItem.item.size_labels?.[0] && <span>{selectedItem.item.size_labels[0]}</span>}
+                                                    <span>{selectedItem.item.prices[0]} {currency}</span>
                                                 </button>
-                                            ))}
-                                        </div>
+                                            </div>
+                                        ) : (
+                                            /* Multiple Sizes Grid */
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                                                {selectedItem.item.size_labels?.map((lbl, idx) => (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => setSizeIdx(idx)}
+                                                        className={`p-3 rounded-2xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
+                                                            sizeIdx === idx
+                                                                ? 'bg-rose-600 text-white border-rose-500 shadow-md scale-[1.02]'
+                                                                : 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
+                                                        }`}
+                                                    >
+                                                        <span>{lbl}</span>
+                                                        <span className="text-rose-300 font-extrabold">{selectedItem.item.prices[idx]} {currency}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
                                 {/* Extras / Addons Selector */}
                                 {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
                                     <div className="space-y-2">
-                                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+                                        <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block text-center">
                                             Optional Addons
                                         </label>
                                         <div className="space-y-2">
@@ -744,27 +833,27 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 )}
             </AnimatePresence>
 
-            {/* Bottom Floating Cart Bar */}
+            {/* Clean Bottom Floating Cart Bar */}
             {config.orders_enabled !== false && cartCount > 0 && !isCartDrawerOpen && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 w-full max-w-lg px-4">
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md">
                     <motion.div
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         onClick={() => setIsCartDrawerOpen(true)}
-                        className="bg-rose-600 text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between cursor-pointer border border-rose-400/30 hover:bg-rose-500 transition-all"
+                        className="bg-rose-600 hover:bg-rose-500 text-white p-3.5 px-5 rounded-2xl shadow-2xl flex items-center justify-between cursor-pointer border border-rose-400/30 transition-all"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center font-black">
+                            <div className="w-9 h-9 rounded-xl bg-white text-rose-600 flex items-center justify-center font-black text-sm shadow-sm">
                                 {cartCount}
                             </div>
-                            <div>
-                                <span className="text-xs uppercase font-bold tracking-wider block opacity-90">View Your Order</span>
-                                <span className="text-sm font-extrabold">{cartTotal.toFixed(2)} {currency}</span>
+                            <div className="flex flex-col text-left">
+                                <span className="text-[11px] uppercase font-extrabold tracking-wider opacity-90 leading-tight">View Your Cart</span>
+                                <span className="text-sm font-black leading-tight">{cartTotal.toFixed(2)} {currency}</span>
                             </div>
                         </div>
-                        <div className="flex items-center gap-1 font-bold text-sm">
+                        <div className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3.5 py-1.5 rounded-xl font-bold text-xs transition-colors">
                             <span>Checkout</span>
-                            <ChevronRight className="w-5 h-5" />
+                            <ChevronRight className="w-4 h-4" />
                         </div>
                     </motion.div>
                 </div>
