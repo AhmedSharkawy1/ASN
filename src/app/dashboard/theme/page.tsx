@@ -151,7 +151,7 @@ const THEMES = [
         name_en: "ASWAN Theme (100% English & Custom Backgrounds)",
         description_ar: "تصميم أسوان الأنيق باللغة الإنجليزية بالكامل مع إمكانية وضع خلفية صورة للوضع الفاتح وأخرى للوضع الداكن والسلة بالكامل بالإنجليزية.",
         description_en: "Luxury English design based on Vicino with light/dark custom background image support, 100% English menu & checkout.",
-        preview_color: "#d4af37", // Royal Gold
+        preview_color: "#B89B72", // Dark Beige
     },
     {
         id: "usa",

@@ -14,15 +14,15 @@ export interface AswanThemeColors {
 export function getAswanColors(config: any, isDark: boolean): AswanThemeColors {
     const tc = config?.theme_colors || {};
     
-    // Primary color: default to a luxury royal gold / deep cyan accent (#0ea5e9 or #d4af37 or #3b82f6)
-    let primaryColor = tc.primary || config?.primary_color || '#d4af37';
+    // Primary color: default to a luxury dark beige (#B89B72 / #C4A47C)
+    let primaryColor = tc.primary || config?.primary_color || '#B89B72';
     
     // Default theme background & card colors
-    let bgBody = isDark ? '#0f172a' : '#f8fafc';
+    let bgBody = isDark ? '#0f172a' : '#faf7f2';
     let bgCard = isDark ? '#1e293b' : '#ffffff';
     let textMain = isDark ? '#f8fafc' : '#0f172a';
     let textMuted = isDark ? '#94a3b8' : '#64748b';
-    let borderColor = isDark ? '#334155' : '#e2e8f0';
+    let borderColor = isDark ? '#334155' : '#e7e2d8';
 
     const t = (config?.theme || '').toLowerCase();
     
