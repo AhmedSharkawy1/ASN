@@ -79,6 +79,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
 
     useEffect(() => setMounted(true), []);
 
+    // Theme mode init
     useEffect(() => {
         if (config.default_theme_mode && config.default_theme_mode !== 'system') {
             setTheme(config.default_theme_mode);
@@ -277,7 +278,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
     const handleShare = async () => {
         const shareData = {
             title: config.name,
-            text: `استعرض قائمة طعام ${config.name}`,
+            text: `تصفح قائمة طعام ${config.name}`,
             url: window.location.href,
         };
         if (navigator.share) {
@@ -288,10 +289,11 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
             }
         } else {
             navigator.clipboard.writeText(window.location.href);
-            alert('تم نسخ رابط المنيو إلى الحافظة!');
+            alert('تم نسخ الرابط للحافظة!');
         }
     };
 
+    // Flatten all items for count
     const allItems: (MenuItem & { catName: string })[] = categories.flatMap(c => (c.items || []).map(i => ({ ...i, catName: catName(c) })));
 
     const filteredCategories = categories.map(cat => ({
@@ -299,15 +301,17 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
         items: (cat.items || []).filter(item => itemName(item).toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => (activeCategory === 'all' || String(cat.id) === activeCategory) && (cat.items && cat.items.length > 0));
 
+    // Render Landing Page if toggled
     if (showLanding) {
         return <UaeLandingPage config={config} onContinue={() => setShowLanding(false)} />;
     }
 
-    const subtitleText = config.theme_colors?.uae_subtitle || config.uae_subtitle || "ثيم الإمارات 🇦🇪 - المنيو الرسمي";
+    const subtitleText = config.theme_colors?.uae_subtitle_ar || config.uae_subtitle_ar || "طعم أصيل ومذاق رفيع";
 
     return (
         <div 
             className="min-h-screen font-sans flex flex-col rtl text-right selection:bg-amber-500/20 transition-colors duration-300 relative" 
+            dir="rtl"
             style={{ 
                 backgroundColor: hasBgImage ? 'transparent' : bgBody, 
                 color: textMain,
@@ -330,7 +334,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                 />
             )}
 
-            {/* Static Top Header */}
+            {/* Static Top Header with Utility Icons */}
             <header className={`w-full border-b transition-colors shadow-md ${
                 hasBgImage
                     ? 'bg-slate-950/40 backdrop-blur-md border-slate-800/40 text-white'
@@ -340,9 +344,9 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
             }`}>
                 <div className="max-w-5xl mx-auto px-4 py-3 space-y-4">
                     
-                    {/* Top Row: Action Icons */}
+                    {/* Top Row: Action & Utility Icons */}
                     <div className="flex items-center justify-between w-full">
-                        {/* Right Icons (Back & Share) */}
+                        {/* Right Icons (Back Home & Share) */}
                         <div className="flex items-center gap-2">
                             {config.vicino_landing_enabled && (
                                 <button
@@ -363,7 +367,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             </button>
                         </div>
 
-                        {/* Left Icons (Payment, Theme Switcher, Cart) */}
+                        {/* Left Icons (Payment Options, Light/Dark Toggle, Cart Button) */}
                         <div className="flex items-center gap-2">
                             {config.payment_methods && config.payment_methods.length > 0 && (
                                 <button
@@ -378,20 +382,21 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             <button
                                 onClick={toggleThemeMode}
                                 className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-slate-300 hover:text-white transition-all shadow-sm"
-                                title="تبديل الوضع الداكن/الفاتح"
+                                title="تغيير الوضع الليلي/النهاري"
                             >
                                 {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
                             </button>
 
-                            {/* Cart Button */}
+                            {/* Dynamic Cart Button */}
                             {config.orders_enabled !== false && (
                                 <button
                                     onClick={() => setIsCartDrawerOpen(true)}
-                                    className="relative p-2.5 px-3.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+                                    className="relative p-2.5 px-3.5 rounded-2xl text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+                                    style={{ backgroundColor: primaryColor }}
                                 >
                                     <ShoppingCart className="w-4 h-4" />
                                     {cartCount > 0 && (
-                                        <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-white text-amber-600 font-black">
+                                        <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-white font-black" style={{ color: primaryColor }}>
                                             {cartCount}
                                         </span>
                                     )}
@@ -405,9 +410,9 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                         {finalLogoSrc && (
                             <div className="relative mb-3 group">
                                 <div className="absolute inset-0 rounded-full blur-xl opacity-40" style={{ backgroundColor: primaryColor }} />
-                                <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-amber-500 shadow-2xl flex items-center justify-center p-2 ${
+                                <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 shadow-2xl flex items-center justify-center p-2 ${
                                     isDark ? 'bg-slate-950/80 backdrop-blur-md' : 'bg-white/90 backdrop-blur-md'
-                                }`}>
+                                }`} style={{ borderColor: primaryColor }}>
                                     <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
                                 </div>
                             </div>
@@ -415,7 +420,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
 
                         <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-center">{config.name}</h1>
                         <div className="flex items-center justify-center gap-2 mt-1">
-                            <span className="text-xs font-extrabold text-amber-500 uppercase tracking-widest block leading-none">
+                            <span className="text-xs font-extrabold uppercase tracking-widest block leading-none" style={{ color: primaryColor }}>
                                 {subtitleText}
                             </span>
                         </div>
@@ -433,8 +438,8 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="ابحث عن أصناف المنيو..."
-                            className={`w-full pr-10 pl-4 py-2.5 rounded-2xl border text-xs md:text-sm focus:outline-none focus:border-amber-500 transition-colors ${
+                            placeholder="ابحث عن أصناف الطعام..."
+                            className={`w-full pr-10 pl-4 py-2.5 rounded-2xl border text-xs md:text-sm focus:outline-none transition-colors ${
                                 isDark
                                     ? 'bg-slate-900/90 border-slate-700/80 text-slate-100 placeholder-slate-400'
                                     : 'bg-white/90 border-slate-300 text-slate-900 placeholder-slate-500 shadow-sm'
@@ -456,7 +461,8 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                     }`}>
                         <button
                             onClick={() => setViewMode('grid-2')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-2' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-2' ? 'text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            style={viewMode === 'grid-2' ? { backgroundColor: primaryColor } : {}}
                             title="عرض صنفين"
                         >
                             <Grid2X2 className="w-4 h-4" />
@@ -464,15 +470,17 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
 
                         <button
                             onClick={() => setViewMode('grid-1')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-1' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                            title="عرض صنف واحد"
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-1' ? 'text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            style={viewMode === 'grid-1' ? { backgroundColor: primaryColor } : {}}
+                            title="عرض صنف كامل"
                         >
                             <Square className="w-4 h-4" />
                         </button>
 
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            style={viewMode === 'list' ? { backgroundColor: primaryColor } : {}}
                             title="عرض قائمة"
                         >
                             <LayoutList className="w-4 h-4" />
@@ -481,7 +489,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                 </div>
             </div>
 
-            {/* Sticky Category Bar */}
+            {/* Sticky Categories Bar */}
             <div className={`sticky top-0 z-30 backdrop-blur-md border-b py-2.5 px-4 shadow-lg transition-colors ${
                 isDark ? 'bg-slate-950/95 border-slate-800/80' : 'bg-white/95 border-slate-200/90'
             }`}>
@@ -491,13 +499,14 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                         onClick={() => scrollToCategory('all')}
                         className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                             activeCategory === 'all'
-                                ? 'bg-amber-600 text-white border-amber-500 shadow-md scale-[1.03]'
+                                ? 'text-white shadow-md scale-[1.03]'
                                 : isDark 
                                     ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                         }`}
+                        style={activeCategory === 'all' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                     >
-                        جميع الأقسام ({allItems.length})
+                        كل الأقسام ({allItems.length})
                     </button>
 
                     {categories.map(cat => (
@@ -507,11 +516,12 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             onClick={() => scrollToCategory(String(cat.id))}
                             className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                                 activeCategory === String(cat.id)
-                                    ? 'bg-amber-600 text-white border-amber-500 shadow-md scale-[1.03]'
+                                    ? 'text-white shadow-md scale-[1.03]'
                                     : isDark
                                         ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                         : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                             }`}
+                            style={activeCategory === String(cat.id) ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                         >
                             {catName(cat)} ({cat.items?.length || 0})
                         </button>
@@ -528,15 +538,15 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             <Search className="w-6 h-6" />
                         </div>
                         <h3 className="font-bold text-lg text-slate-200">لم يتم العثور على أصناف</h3>
-                        <p className="text-xs text-slate-400">جرب البحث بكلمة أخرى أو تصفح الأقسام اعلاه.</p>
+                        <p className="text-xs text-slate-400">جرب البحث بكلمات أخرى أو اختر قسماً آخر من الأعلى.</p>
                     </div>
                 ) : (
                     filteredCategories.map(category => (
                         <section key={category.id} id={`category-${category.id}`} className="space-y-4 scroll-mt-24">
                             
-                            {/* Right-Aligned Arabic Category Header */}
+                            {/* Category Header */}
                             <div className="flex items-center justify-start gap-3 border-b pb-3 border-slate-800/60 text-right rtl">
-                                <div className="w-1.5 h-8 rounded-full bg-amber-500 flex-shrink-0 shadow-sm" />
+                                <div className="w-1.5 h-8 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: primaryColor }} />
                                 
                                 {category.image_url && (
                                     <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-700/60 bg-slate-900 flex-shrink-0 shadow-md">
@@ -549,7 +559,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                         {catName(category)}
                                     </h2>
                                     <p className="text-xs font-medium opacity-75 text-right mt-0.5">
-                                        متوفر {category.items?.length || 0} صنف لذيذ
+                                        {category.items?.length || 0} أصناف شهية متوفرة
                                     </p>
                                 </div>
                             </div>
@@ -600,7 +610,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                     />
                                                     {item.is_popular && (
-                                                        <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-amber-600 text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md">
+                                                        <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md" style={{ backgroundColor: primaryColor }}>
                                                             الأكثر طلباً
                                                         </span>
                                                     )}
@@ -610,7 +620,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                             {/* Item Info */}
                                             <div className={`p-3.5 md:p-4 flex-1 flex flex-col justify-between ${viewMode === 'list' ? 'p-0' : ''}`}>
                                                 <div className="space-y-1 text-right">
-                                                    <h3 className="font-bold text-sm md:text-base group-hover:text-amber-500 transition-colors line-clamp-1 text-right">
+                                                    <h3 className="font-bold text-sm md:text-base transition-colors line-clamp-1 text-right">
                                                         {itemName(item)}
                                                     </h3>
 
@@ -622,7 +632,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-700/40">
-                                                    <div className="font-black text-amber-500 text-sm md:text-base">
+                                                    <div className="font-black text-sm md:text-base" style={{ color: primaryColor }}>
                                                         {hasMultiplePrices ? (
                                                             <span>{minPrice} - {maxPrice} {currency}</span>
                                                         ) : (
@@ -636,7 +646,8 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                                 e.stopPropagation();
                                                                 openItemModal(item, catName(category));
                                                             }}
-                                                            className="p-2 px-3 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition-all"
+                                                            className="p-2 px-3 rounded-2xl text-white font-bold text-xs flex items-center gap-1 shadow-md transition-all hover:opacity-90"
+                                                            style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
                                                             <span className="hidden sm:inline">إضافة</span>
@@ -711,7 +722,8 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                             <div className="flex justify-center">
                                                 <button
                                                     type="button"
-                                                    className="px-6 py-3 rounded-2xl bg-amber-600 text-white font-black text-sm shadow-md border border-amber-500 flex items-center justify-center gap-2"
+                                                    className="px-6 py-3 rounded-2xl text-white font-black text-sm shadow-md border flex items-center justify-center gap-2"
+                                                    style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                                 >
                                                     {selectedItem.item.size_labels?.[0] && <span>{selectedItem.item.size_labels[0]}</span>}
                                                     <span>{selectedItem.item.prices[0]} {currency}</span>
@@ -726,14 +738,15 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                         onClick={() => setSizeIdx(idx)}
                                                         className={`p-3 rounded-2xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
                                                             sizeIdx === idx
-                                                                ? 'bg-amber-600 text-white border-amber-500 shadow-md scale-[1.02]'
+                                                                ? 'text-white shadow-md scale-[1.02]'
                                                                 : isDark
                                                                     ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                                                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                                                         }`}
+                                                        style={sizeIdx === idx ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                                                     >
                                                         <span>{lbl}</span>
-                                                        <span className="text-amber-400 font-extrabold">{selectedItem.item.prices[idx]} {currency}</span>
+                                                        <span className="font-extrabold" style={{ color: sizeIdx === idx ? '#fff' : primaryColor }}>{selectedItem.item.prices[idx]} {currency}</span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -741,15 +754,15 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                     </div>
                                 )}
 
-                                {/* Extras / Addons Selector */}
+                                {/* Extras Selector */}
                                 {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
                                     <div className="space-y-2">
                                         <label className="text-xs font-semibold uppercase tracking-wider block text-center opacity-70">
-                                            إضافات اختيارية
+                                            الإضافات المتاحة
                                         </label>
                                         <div className="space-y-2">
                                             {selectedItem.item.extras.map((ext, idx) => {
-                                                const extName = ext.name_ar || ext.name_en;
+                                                const extName = ext.name_ar || ext.name_en || '';
                                                 const isSelected = selectedExtras.some(e => e.id === (ext.id || idx));
 
                                                 return (
@@ -760,16 +773,17 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                             if (isSelected) {
                                                                 setSelectedExtras(prev => prev.filter(e => e.id !== (ext.id || idx)));
                                                             } else {
-                                                                setSelectedExtras(prev => [...prev, { id: ext.id || idx, name: extName || 'إضافة', price: ext.price }]);
+                                                                setSelectedExtras(prev => [...prev, { id: ext.id || idx, name: extName, price: ext.price }]);
                                                             }
                                                         }}
                                                         className={`w-full p-3.5 rounded-2xl text-xs font-semibold border flex items-center justify-between transition-all ${
                                                             isSelected
-                                                                ? 'bg-amber-600/10 border-amber-500 text-amber-500'
+                                                                ? 'bg-slate-800/80 shadow-sm'
                                                                 : isDark
                                                                     ? 'bg-slate-800/40 border-slate-800 text-slate-300 hover:bg-slate-800'
                                                                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                                                         }`}
+                                                        style={isSelected ? { borderColor: primaryColor, color: primaryColor } : {}}
                                                     >
                                                         <span>{extName}</span>
                                                         <span className="font-bold">+{ext.price} {currency}</span>
@@ -789,8 +803,8 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                         type="text"
                                         value={itemNotes}
                                         onChange={(e) => setItemNotes(e.target.value)}
-                                        placeholder="مثال: بدون صوص، مقرمش زيادة..."
-                                        className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none focus:border-amber-500 ${
+                                        placeholder="مثال: بدون صوص، تسوية خاصة..."
+                                        className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none ${
                                             isDark 
                                                 ? 'bg-slate-800/80 border-slate-700 text-slate-100 placeholder-slate-500'
                                                 : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
@@ -805,22 +819,24 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                     }`}>
                                         <button
                                             onClick={() => setQty(Math.max(1, qty - 1))}
-                                            className="w-8 h-8 rounded-xl bg-amber-600/20 text-amber-500 flex items-center justify-center font-bold"
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center font-bold"
+                                            style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                         >
                                             <Minus className="w-4 h-4" />
                                         </button>
                                         <span className="font-bold text-sm px-2">{qty}</span>
                                         <button
                                             onClick={() => setQty(qty + 1)}
-                                            className="w-8 h-8 rounded-xl bg-amber-600/20 text-amber-500 flex items-center justify-center font-bold"
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center font-bold"
+                                            style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                         >
                                             <Plus className="w-4 h-4" />
                                         </button>
                                     </div>
 
                                     <div className="text-left">
-                                        <span className="text-[10px] uppercase block font-semibold opacity-70">السعر الإجمالي</span>
-                                        <span className="text-lg font-black text-amber-500">
+                                        <span className="text-[10px] uppercase block font-semibold opacity-70">الإجمالي</span>
+                                        <span className="text-lg font-black" style={{ color: primaryColor }}>
                                             {(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed(2)} {currency}
                                         </span>
                                     </div>
@@ -832,10 +848,11 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             <div className="p-5 border-t border-slate-700/40 bg-slate-950/20">
                                 <button
                                     onClick={addToCart}
-                                    className="w-full py-4 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-4 rounded-2xl text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 hover:opacity-90"
+                                    style={{ backgroundColor: primaryColor }}
                                 >
                                     <ShoppingCart className="w-4 h-4" />
-                                    <span>إضافة لسلة الطلبات</span>
+                                    <span>إضافة إلى سلة الطلبات</span>
                                 </button>
                             </div>
 
@@ -860,9 +877,9 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             {/* Drawer Header */}
                             <div className="p-5 border-b border-slate-700/40 flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
-                                    <ShoppingCart className="w-5 h-5 text-amber-500" />
+                                    <ShoppingCart className="w-5 h-5" style={{ color: primaryColor }} />
                                     <h3 className="font-bold text-lg">سلة الطلبات</h3>
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-600 text-white font-bold">
+                                    <span className="text-xs px-2 py-0.5 rounded-full text-white font-bold" style={{ backgroundColor: primaryColor }}>
                                         {cartCount}
                                     </span>
                                 </div>
@@ -879,7 +896,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                 {cart.length === 0 ? (
                                     <div className="text-center py-20 space-y-3 opacity-60">
                                         <ShoppingCart className="w-12 h-12 mx-auto stroke-[1.5]" />
-                                        <p className="text-sm font-semibold">سلة الطلبات فارغة حالياً.</p>
+                                        <p className="text-sm font-semibold">السلة فارغة حالياً</p>
                                         <p className="text-xs opacity-75">تصفح المنيو وأضف أصنافك المفضلة هنا!</p>
                                     </div>
                                 ) : (
@@ -894,12 +911,12 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                         <span className="text-xs opacity-75 block">{c.sizeLabel}</span>
                                                     )}
                                                     {c.notes && (
-                                                        <span className="text-xs text-amber-500 italic block mt-1">ملاحظة: "{c.notes}"</span>
+                                                        <span className="text-xs italic block mt-1" style={{ color: primaryColor }}>ملاحظة: "{c.notes}"</span>
                                                     )}
                                                 </div>
                                                 <button
                                                     onClick={() => updateCartQty(c.id, c.notes, -c.quantity)}
-                                                    className="opacity-60 hover:text-amber-500 p-1"
+                                                    className="opacity-60 hover:opacity-100 p-1"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -909,19 +926,21 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                 <div className="flex items-center gap-2 rounded-xl p-1 border">
                                                     <button
                                                         onClick={() => updateCartQty(c.id, c.notes, -1)}
-                                                        className="w-6 h-6 rounded-lg bg-amber-600/20 text-amber-500 flex items-center justify-center font-bold"
+                                                        className="w-6 h-6 rounded-lg flex items-center justify-center font-bold"
+                                                        style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                                     >
                                                         <Minus className="w-3.5 h-3.5" />
                                                     </button>
                                                     <span className="font-bold text-xs px-2">{c.quantity}</span>
                                                     <button
                                                         onClick={() => updateCartQty(c.id, c.notes, 1)}
-                                                        className="w-6 h-6 rounded-lg bg-amber-600/20 text-amber-500 flex items-center justify-center font-bold"
+                                                        className="w-6 h-6 rounded-lg flex items-center justify-center font-bold"
+                                                        style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                                     >
                                                         <Plus className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
-                                                <span className="font-black text-amber-500 text-sm">
+                                                <span className="font-black text-sm" style={{ color: primaryColor }}>
                                                     {(c.price * c.quantity).toFixed(2)} {currency}
                                                 </span>
                                             </div>
@@ -934,8 +953,8 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             {cart.length > 0 && (
                                 <div className="p-5 border-t border-slate-700/40 space-y-4">
                                     <div className="flex justify-between items-center text-base font-extrabold">
-                                        <span>المجموع الفرعي</span>
-                                        <span className="text-amber-500">{cartTotal.toFixed(2)} {currency}</span>
+                                        <span>الإجمالي</span>
+                                        <span style={{ color: primaryColor }}>{cartTotal.toFixed(2)} {currency}</span>
                                     </div>
                                     
                                     <div className="flex gap-3">
@@ -943,16 +962,17 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                             onClick={clearCart}
                                             className="py-3 px-4 rounded-2xl border font-semibold text-xs transition-colors"
                                         >
-                                            تفريغ
+                                            محي السلة
                                         </button>
                                         <button
                                             onClick={() => {
                                                 setIsCartDrawerOpen(false);
                                                 setShowCheckout(true);
                                             }}
-                                            className="flex-1 py-3.5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center gap-2"
+                                            className="flex-1 py-3.5 rounded-2xl text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 hover:opacity-90"
+                                            style={{ backgroundColor: primaryColor }}
                                         >
-                                            <span>متابعة الشراء</span>
+                                            <span>متابعة لإتمام الطلب</span>
                                             <ChevronLeft className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -964,21 +984,22 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                 )}
             </AnimatePresence>
 
-            {/* Clean Bottom Floating Cart Bar */}
+            {/* Bottom Floating Cart Bar */}
             {config.orders_enabled !== false && cartCount > 0 && !isCartDrawerOpen && (
                 <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md">
                     <motion.div
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         onClick={() => setIsCartDrawerOpen(true)}
-                        className="bg-amber-600 hover:bg-amber-500 text-white p-3.5 px-5 rounded-2xl shadow-2xl flex items-center justify-between cursor-pointer border border-amber-400/30 transition-all"
+                        className="text-white p-3.5 px-5 rounded-2xl shadow-2xl flex items-center justify-between cursor-pointer border border-white/20 transition-all hover:opacity-95"
+                        style={{ backgroundColor: primaryColor }}
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-white text-amber-600 flex items-center justify-center font-black text-sm shadow-sm">
+                            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center font-black text-sm shadow-sm" style={{ color: primaryColor }}>
                                 {cartCount}
                             </div>
                             <div className="flex flex-col text-right">
-                                <span className="text-[11px] font-extrabold tracking-wider opacity-90 leading-tight">عرض السلة</span>
+                                <span className="text-[11px] uppercase font-extrabold tracking-wider opacity-90 leading-tight">عرض سلة الطلبات</span>
                                 <span className="text-sm font-black leading-tight">{cartTotal.toFixed(2)} {currency}</span>
                             </div>
                         </div>
@@ -990,7 +1011,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                 </div>
             )}
 
-            {/* Dedicated UAE Checkout Modal */}
+            {/* 100% Arabic Checkout Modal */}
             <UaeCheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}
@@ -1018,7 +1039,7 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
             <AnimatePresence>
                 {showPaymentModal && (
                     <div 
-                        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen rtl text-right"
+                        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
                         onClick={() => setShowPaymentModal(false)}
                     >
                         <motion.div 
@@ -1029,9 +1050,9 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             className="w-full max-w-md rounded-3xl p-5 shadow-2xl border border-slate-800 bg-slate-900 text-slate-100 relative max-h-[80vh] overflow-y-auto my-auto"
                         >
                             <div className="flex justify-between items-center mb-3">
-                                <h3 className="font-bold text-base flex items-center gap-2 text-amber-400">
+                                <h3 className="font-bold text-base flex items-center gap-2" style={{ color: primaryColor }}>
                                     <CreditCard className="w-5 h-5" />
-                                    <span>خيارات وطرق الدفع</span>
+                                    <span>خيارات وطرق الدفع المتاحة</span>
                                 </h3>
                                 <button onClick={() => setShowPaymentModal(false)} className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white">
                                     <X className="w-5 h-5" />
@@ -1039,12 +1060,12 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                             </div>
 
                             <p className="text-xs opacity-70 mb-3 font-normal text-slate-300">
-                                يُرجى إرسال إيصال التحويل عبر الواتساب بعد إتمام عملية الدفع.
+                                يرجى إرسال صورة إيصال التحويل على الواتساب بعد إتمام عملية الدفع.
                             </p>
 
                             {config.whatsapp_number && (
                                 <a
-                                    href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent('مرحباً، لقد قمت بإتمام التحويل المالي، إليكم إيصال التحويل:')}`}
+                                    href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent('مرحباً، لقد قمت بإتمام التحويل. إليكم صورة الإيصال:')}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-white font-bold text-xs sm:text-sm shadow-md mb-4 transition-transform active:scale-95 hover:opacity-90"
@@ -1065,14 +1086,15 @@ export default function ThemeUaeMenu({ config, categories, restaurantId }: Theme
                                                 <span className="font-mono text-xs font-bold text-slate-200" dir="ltr">{pm.number}</span>
                                                 <button 
                                                     onClick={() => { navigator.clipboard.writeText(pm.number); alert('تم نسخ الرقم!'); }}
-                                                    className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-amber-600 hover:bg-amber-500"
+                                                    className="px-3 py-1 rounded-lg text-xs font-bold text-white shadow-sm hover:opacity-90"
+                                                    style={{ backgroundColor: primaryColor }}
                                                 >
                                                     نسخ
                                                 </button>
                                             </div>
                                         )}
                                         {pm.link && (
-                                            <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-2 rounded-xl shadow-sm bg-amber-600 hover:bg-amber-500">
+                                            <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-2 rounded-xl shadow-sm hover:opacity-90" style={{ backgroundColor: primaryColor }}>
                                                 رابط الدفع المباشر / InstaPay
                                             </a>
                                         )}

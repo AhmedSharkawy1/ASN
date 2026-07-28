@@ -76,11 +76,13 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
     const [mounted, setMounted] = useState(false);
     const [forcedMode, setForcedMode] = useState<'light' | 'dark' | null>(null);
 
-    // Language state: 'en' (default English) or 'ar' (Arabic)
+    // Language switch state (EN / AR)
     const [lang, setLang] = useState<'en' | 'ar'>('en');
+    const isAr = lang === 'ar';
 
     useEffect(() => setMounted(true), []);
 
+    // Theme mode init
     useEffect(() => {
         if (config.default_theme_mode && config.default_theme_mode !== 'system') {
             setTheme(config.default_theme_mode);
@@ -97,7 +99,6 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
         setTheme(nextMode);
     };
 
-    const isAr = lang === 'ar';
     const currency = parseCurrency(config?.currency, isAr);
     const { primaryColor, bgBody, bgCard, textMain, borderColor, hasBgImage, activeBgImage } = getUsaDualColors(config, isDark);
 
@@ -171,7 +172,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
-    // Auto-scroll & Category Spy
+    // Auto-scroll & Category Spy with Horizontal Bar Synchronization
     useEffect(() => {
         const handleScroll = () => {
             if (searchQuery || isManualClickRef.current) return;
@@ -291,7 +292,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
     const handleShare = async () => {
         const shareData = {
             title: config.name,
-            text: isAr ? `استعرض المنيو الرسمي لـ ${config.name}` : `Check out ${config.name}'s menu`,
+            text: isAr ? `تصفح قائمة طعام ${config.name}` : `Check out ${config.name}'s menu`,
             url: window.location.href,
         };
         if (navigator.share) {
@@ -302,10 +303,11 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
             }
         } else {
             navigator.clipboard.writeText(window.location.href);
-            alert(isAr ? 'تم نسخ الرابط إلى الحافظة!' : 'Link copied to clipboard!');
+            alert(isAr ? 'تم نسخ الرابط للحافظة!' : 'Link copied to clipboard!');
         }
     };
 
+    // Flatten all items for count
     const allItems: (MenuItem & { catName: string })[] = categories.flatMap(c => (c.items || []).map(i => ({ ...i, catName: catName(c) })));
 
     const filteredCategories = categories.map(cat => ({
@@ -313,26 +315,19 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
         items: (cat.items || []).filter(item => itemName(item).toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => (activeCategory === 'all' || String(cat.id) === activeCategory) && (cat.items && cat.items.length > 0));
 
+    // Render Landing Page if toggled
     if (showLanding) {
-        return (
-            <UsaDualLandingPage 
-                config={config} 
-                onContinue={() => setShowLanding(false)} 
-                lang={lang}
-                onLangToggle={() => setLang(prev => prev === 'en' ? 'ar' : 'en')}
-            />
-        );
+        return <UsaDualLandingPage config={config} onContinue={() => setShowLanding(false)} />;
     }
 
     const subtitleText = isAr 
-        ? (config.theme_colors?.usa_dual_subtitle || config.usa_dual_subtitle || "ثيم USA الثنائي 🇺🇸 - المنيو")
-        : (config.theme_colors?.usa_dual_subtitle || config.usa_dual_subtitle || "Authentic Taste");
+        ? (config.theme_colors?.usa_dual_subtitle_ar || config.usa_dual_subtitle_ar || "طعم أصيل ومذاق رفيع")
+        : (config.theme_colors?.usa_dual_subtitle_en || config.usa_dual_subtitle_en || "Authentic Taste");
 
     return (
         <div 
-            className={`min-h-screen font-sans flex flex-col selection:bg-rose-500/20 transition-colors duration-300 relative ${
-                isAr ? 'rtl text-right' : 'ltr text-left'
-            }`} 
+            className="min-h-screen font-sans flex flex-col selection:bg-rose-500/20 transition-colors duration-300 relative" 
+            dir={isAr ? 'rtl' : 'ltr'}
             style={{ 
                 backgroundColor: hasBgImage ? 'transparent' : bgBody, 
                 color: textMain,
@@ -351,11 +346,11 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                 <SharedMarquee
                     text={isAr ? (config.marquee_text_ar || config.marquee_text_en || '') : (config.marquee_text_en || config.marquee_text_ar || '')}
                     bgColor={primaryColor}
-                    direction={isAr ? 'rtl' : 'ltr'}
+                    direction={isAr ? "rtl" : "ltr"}
                 />
             )}
 
-            {/* Static Top Header */}
+            {/* Static Top Header with Utility Icons */}
             <header className={`w-full border-b transition-colors shadow-md ${
                 hasBgImage
                     ? 'bg-slate-950/40 backdrop-blur-md border-slate-800/40 text-white'
@@ -365,10 +360,21 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
             }`}>
                 <div className="max-w-5xl mx-auto px-4 py-3 space-y-4">
                     
-                    {/* Top Row: Utility Icons & Language Toggle */}
+                    {/* Top Row: Action & Utility Icons */}
                     <div className="flex items-center justify-between w-full">
-                        {/* Left Icons */}
+                        
+                        {/* Language Switcher & Home Icons */}
                         <div className="flex items-center gap-2">
+                            {/* Language Switch Toggle */}
+                            <button
+                                onClick={() => setLang(l => l === 'en' ? 'ar' : 'en')}
+                                className="px-3 py-2 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-white font-extrabold text-xs transition-all shadow-sm flex items-center gap-1.5 hover:bg-slate-700"
+                                title="Switch Language"
+                            >
+                                <Globe className="w-4 h-4" style={{ color: primaryColor }} />
+                                <span>{lang === 'en' ? 'عربي' : 'EN'}</span>
+                            </button>
+
                             {config.vicino_landing_enabled && (
                                 <button
                                     onClick={() => setShowLanding(true)}
@@ -388,24 +394,13 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             </button>
                         </div>
 
-                        {/* Right Icons: Language Switcher, Payment, Theme Toggle, Cart */}
+                        {/* Right Icons (Payment Options, Light/Dark Toggle, Cart Button) */}
                         <div className="flex items-center gap-2">
-                            
-                            {/* Language Switcher */}
-                            <button
-                                onClick={() => setLang(prev => prev === 'en' ? 'ar' : 'en')}
-                                className="p-2 px-3 rounded-2xl bg-rose-600/20 border border-rose-500/40 text-rose-400 font-extrabold text-xs flex items-center gap-1.5 hover:bg-rose-600/30 transition-all shadow-sm"
-                                title="Switch Language"
-                            >
-                                <Globe className="w-3.5 h-3.5" />
-                                <span>{lang === 'en' ? 'عربي' : 'EN'}</span>
-                            </button>
-
                             {config.payment_methods && config.payment_methods.length > 0 && (
                                 <button
                                     onClick={() => setShowPaymentModal(true)}
                                     className="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/60 text-amber-400 hover:text-amber-300 transition-all shadow-sm"
-                                    title={isAr ? "خيارات الدفع" : "Payment Options"}
+                                    title="Payment Methods"
                                 >
                                     <CreditCard className="w-4 h-4" />
                                 </button>
@@ -419,15 +414,16 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                 {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
                             </button>
 
-                            {/* Cart Button */}
+                            {/* Dynamic Cart Button */}
                             {config.orders_enabled !== false && (
                                 <button
                                     onClick={() => setIsCartDrawerOpen(true)}
-                                    className="relative p-2.5 px-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+                                    className="relative p-2.5 px-3.5 rounded-2xl text-white font-bold transition-all shadow-md flex items-center gap-1.5"
+                                    style={{ backgroundColor: primaryColor }}
                                 >
                                     <ShoppingCart className="w-4 h-4" />
                                     {cartCount > 0 && (
-                                        <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-white text-rose-600 font-black">
+                                        <span className="text-[11px] px-1.5 py-0.2 rounded-full bg-white font-black" style={{ color: primaryColor }}>
                                             {cartCount}
                                         </span>
                                     )}
@@ -441,9 +437,9 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                         {finalLogoSrc && (
                             <div className="relative mb-3 group">
                                 <div className="absolute inset-0 rounded-full blur-xl opacity-40" style={{ backgroundColor: primaryColor }} />
-                                <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 border-rose-500 shadow-2xl flex items-center justify-center p-2 ${
+                                <div className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full overflow-hidden border-4 shadow-2xl flex items-center justify-center p-2 ${
                                     isDark ? 'bg-slate-950/80 backdrop-blur-md' : 'bg-white/90 backdrop-blur-md'
-                                }`}>
+                                }`} style={{ borderColor: primaryColor }}>
                                     <OptimizedMenuImage src={finalLogoSrc} alt={config.name} className="w-full h-full object-contain rounded-full" useOriginal={true} />
                                 </div>
                             </div>
@@ -451,11 +447,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
 
                         <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-center">{config.name}</h1>
                         <div className="flex items-center justify-center gap-2 mt-1">
-                            <span className="text-xs font-extrabold text-rose-500 uppercase tracking-widest block leading-none">
+                            <span className="text-xs font-extrabold uppercase tracking-widest block leading-none" style={{ color: primaryColor }}>
                                 {subtitleText}
-                            </span>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-600/20 text-rose-400 border border-rose-500/30 uppercase tracking-wider">
-                                USA DUAL MENU 🇺🇸
                             </span>
                         </div>
                     </div>
@@ -465,17 +458,16 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
 
             {/* Search Bar & View Mode Switcher */}
             <div className="max-w-5xl mx-auto w-full px-4 pt-4 pb-2 space-y-3">
+                
                 <div className="flex items-center gap-2">
                     <div className="relative flex-1">
-                        <Search className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 ${isAr ? 'right-3.5' : 'left-3.5'}`} />
+                        <Search className={`absolute ${isAr ? 'right-3.5' : 'left-3.5'} top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400`} />
                         <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={isAr ? "ابحث عن أصناف المنيو..." : "Search menu items..."}
-                            className={`w-full py-2.5 rounded-2xl border text-xs md:text-sm focus:outline-none focus:border-rose-500 transition-colors ${
-                                isAr ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left'
-                            } ${
+                            placeholder={isAr ? 'ابحث عن أصناف الطعام...' : 'Search menu items...'}
+                            className={`w-full ${isAr ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2.5 rounded-2xl border text-xs md:text-sm focus:outline-none transition-colors ${
                                 isDark
                                     ? 'bg-slate-900/90 border-slate-700/80 text-slate-100 placeholder-slate-400'
                                     : 'bg-white/90 border-slate-300 text-slate-900 placeholder-slate-500 shadow-sm'
@@ -484,7 +476,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className={`absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 ${isAr ? 'left-3' : 'right-3'}`}
+                                className={`absolute ${isAr ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200`}
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -497,32 +489,36 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                     }`}>
                         <button
                             onClick={() => setViewMode('grid-2')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-2' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                            title="2 Columns"
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-2' ? 'text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            style={viewMode === 'grid-2' ? { backgroundColor: primaryColor } : {}}
+                            title="2-Column Grid"
                         >
                             <Grid2X2 className="w-4 h-4" />
                         </button>
 
                         <button
                             onClick={() => setViewMode('grid-1')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-1' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
-                            title="1 Column"
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'grid-1' ? 'text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            style={viewMode === 'grid-1' ? { backgroundColor: primaryColor } : {}}
+                            title="1-Column Full"
                         >
                             <Square className="w-4 h-4" />
                         </button>
 
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'}`}
+                            style={viewMode === 'list' ? { backgroundColor: primaryColor } : {}}
                             title="List View"
                         >
                             <LayoutList className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
+
             </div>
 
-            {/* Sticky Category Bar */}
+            {/* Sticky Categories Bar */}
             <div className={`sticky top-0 z-30 backdrop-blur-md border-b py-2.5 px-4 shadow-lg transition-colors ${
                 isDark ? 'bg-slate-950/95 border-slate-800/80' : 'bg-white/95 border-slate-200/90'
             }`}>
@@ -532,13 +528,14 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                         onClick={() => scrollToCategory('all')}
                         className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                             activeCategory === 'all'
-                                ? 'bg-rose-600 text-white border-rose-500 shadow-md scale-[1.03]'
+                                ? 'text-white shadow-md scale-[1.03]'
                                 : isDark 
                                     ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                         }`}
+                        style={activeCategory === 'all' ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                     >
-                        {isAr ? `جميع الأقسام (${allItems.length})` : `All Categories (${allItems.length})`}
+                        {isAr ? `كل الأقسام (${allItems.length})` : `All Categories (${allItems.length})`}
                     </button>
 
                     {categories.map(cat => (
@@ -548,11 +545,12 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             onClick={() => scrollToCategory(String(cat.id))}
                             className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                                 activeCategory === String(cat.id)
-                                    ? 'bg-rose-600 text-white border-rose-500 shadow-md scale-[1.03]'
+                                    ? 'text-white shadow-md scale-[1.03]'
                                     : isDark
                                         ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                         : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                             }`}
+                            style={activeCategory === String(cat.id) ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                         >
                             {catName(cat)} ({cat.items?.length || 0})
                         </button>
@@ -569,15 +567,15 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             <Search className="w-6 h-6" />
                         </div>
                         <h3 className="font-bold text-lg text-slate-200">{isAr ? 'لم يتم العثور على أصناف' : 'No items found'}</h3>
-                        <p className="text-xs text-slate-400">{isAr ? 'جرب البحث بكلمة أخرى' : 'Try searching for something else'}</p>
+                        <p className="text-xs text-slate-400">{isAr ? 'جرب البحث بكلمات أخرى أو اختر قسماً آخر' : 'Try searching for something else or browse categories above.'}</p>
                     </div>
                 ) : (
                     filteredCategories.map(category => (
                         <section key={category.id} id={`category-${category.id}`} className="space-y-4 scroll-mt-24">
                             
-                            {/* Dynamic Direction Category Header */}
-                            <div className={`flex items-center justify-start gap-3 border-b pb-3 border-slate-800/60 ${isAr ? 'rtl text-right' : 'ltr text-left'}`}>
-                                <div className="w-1.5 h-8 rounded-full bg-rose-600 flex-shrink-0 shadow-sm" />
+                            {/* Category Header */}
+                            <div className="flex items-center justify-start gap-3 border-b pb-3 border-slate-800/60">
+                                <div className="w-1.5 h-8 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: primaryColor }} />
                                 
                                 {category.image_url && (
                                     <div className="w-11 h-11 rounded-2xl overflow-hidden border border-slate-700/60 bg-slate-900 flex-shrink-0 shadow-md">
@@ -585,12 +583,12 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                     </div>
                                 )}
 
-                                <div className="flex-1 min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <h2 className="font-black text-xl md:text-2xl tracking-tight leading-tight">
                                         {catName(category)}
                                     </h2>
                                     <p className="text-xs font-medium opacity-75 mt-0.5">
-                                        {isAr ? `متوفر ${category.items?.length || 0} صنف` : `${category.items?.length || 0} items available`}
+                                        {isAr ? `${category.items?.length || 0} صنف متوفر` : `${category.items?.length || 0} items available`}
                                     </p>
                                 </div>
                             </div>
@@ -641,10 +639,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                     />
                                                     {item.is_popular && (
-                                                        <span className={`absolute top-2.5 px-2 py-0.5 rounded-full bg-rose-600 text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md ${
-                                                            isAr ? 'right-2.5' : 'left-2.5'
-                                                        }`}>
-                                                            {isAr ? 'مُميز' : 'Popular'}
+                                                        <span className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full text-white font-extrabold text-[9px] uppercase tracking-wider shadow-md" style={{ backgroundColor: primaryColor }}>
+                                                            {isAr ? 'الأكثر طلباً' : 'Popular'}
                                                         </span>
                                                     )}
                                                 </div>
@@ -652,8 +648,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
 
                                             {/* Item Info */}
                                             <div className={`p-3.5 md:p-4 flex-1 flex flex-col justify-between ${viewMode === 'list' ? 'p-0' : ''}`}>
-                                                <div className={`space-y-1 ${isAr ? 'text-right' : 'text-left'}`}>
-                                                    <h3 className="font-bold text-sm md:text-base group-hover:text-rose-500 transition-colors line-clamp-1">
+                                                <div className="space-y-1">
+                                                    <h3 className="font-bold text-sm md:text-base transition-colors line-clamp-1">
                                                         {itemName(item)}
                                                     </h3>
 
@@ -665,7 +661,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-700/40">
-                                                    <div className="font-black text-rose-500 text-sm md:text-base">
+                                                    <div className="font-black text-sm md:text-base" style={{ color: primaryColor }}>
                                                         {hasMultiplePrices ? (
                                                             <span>{minPrice} - {maxPrice} {currency}</span>
                                                         ) : (
@@ -679,7 +675,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                                 e.stopPropagation();
                                                                 openItemModal(item, catName(category));
                                                             }}
-                                                            className="p-2 px-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1 shadow-md transition-all"
+                                                            className="p-2 px-3 rounded-2xl text-white font-bold text-xs flex items-center gap-1 shadow-md transition-all hover:opacity-90"
+                                                            style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
                                                             <span className="hidden sm:inline">{isAr ? 'إضافة' : 'Add'}</span>
@@ -702,7 +699,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
             {/* Item Customization Modal */}
             <AnimatePresence>
                 {selectedItem && (
-                    <div className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto ${isAr ? 'rtl text-right' : 'ltr text-left'}`}>
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 overflow-y-auto">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -717,7 +714,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                     <OptimizedMenuImage src={selectedItem.item.image_url} alt={itemName(selectedItem.item)} className="w-full h-full object-cover" />
                                     <button
                                         onClick={closeItemModal}
-                                        className={`absolute top-4 p-2 rounded-full bg-black/60 text-white hover:bg-black transition-colors ${isAr ? 'left-4' : 'right-4'}`}
+                                        className="absolute top-4 left-4 p-2 rounded-full bg-black/60 text-white hover:bg-black transition-colors"
                                     >
                                         <X className="w-5 h-5" />
                                     </button>
@@ -747,14 +744,15 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                 {selectedItem.item.prices && selectedItem.item.prices.length > 0 && (
                                     <div className="space-y-2 text-center">
                                         <label className="text-xs font-semibold uppercase tracking-wider block text-center opacity-70">
-                                            {selectedItem.item.prices.length > 1 ? (isAr ? 'اختر الحجم' : 'Select Size') : (isAr ? 'السعر' : 'Price')}
+                                            {selectedItem.item.prices.length > 1 ? (isAr ? "اختر الحجم" : "Select Size") : (isAr ? "السعر" : "Price")}
                                         </label>
 
                                         {selectedItem.item.prices.length === 1 ? (
                                             <div className="flex justify-center">
                                                 <button
                                                     type="button"
-                                                    className="px-6 py-3 rounded-2xl bg-rose-600 text-white font-black text-sm shadow-md border border-rose-500 flex items-center justify-center gap-2"
+                                                    className="px-6 py-3 rounded-2xl text-white font-black text-sm shadow-md border flex items-center justify-center gap-2"
+                                                    style={{ backgroundColor: primaryColor, borderColor: primaryColor }}
                                                 >
                                                     {selectedItem.item.size_labels?.[0] && <span>{selectedItem.item.size_labels[0]}</span>}
                                                     <span>{selectedItem.item.prices[0]} {currency}</span>
@@ -769,14 +767,15 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                         onClick={() => setSizeIdx(idx)}
                                                         className={`p-3 rounded-2xl text-xs font-bold border flex flex-col items-center justify-center gap-1 transition-all ${
                                                             sizeIdx === idx
-                                                                ? 'bg-rose-600 text-white border-rose-500 shadow-md scale-[1.02]'
+                                                                ? 'text-white shadow-md scale-[1.02]'
                                                                 : isDark
                                                                     ? 'bg-slate-800/60 text-slate-300 border-slate-700/60 hover:bg-slate-800'
                                                                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                                                         }`}
+                                                        style={sizeIdx === idx ? { backgroundColor: primaryColor, borderColor: primaryColor } : {}}
                                                     >
                                                         <span>{lbl}</span>
-                                                        <span className="text-rose-400 font-extrabold">{selectedItem.item.prices[idx]} {currency}</span>
+                                                        <span className="font-extrabold" style={{ color: sizeIdx === idx ? '#fff' : primaryColor }}>{selectedItem.item.prices[idx]} {currency}</span>
                                                     </button>
                                                 ))}
                                             </div>
@@ -784,15 +783,15 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                     </div>
                                 )}
 
-                                {/* Extras / Addons Selector */}
+                                {/* Extras Selector */}
                                 {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
                                     <div className="space-y-2">
                                         <label className="text-xs font-semibold uppercase tracking-wider block text-center opacity-70">
-                                            {isAr ? 'إضافات اختيارية' : 'Optional Addons'}
+                                            {isAr ? 'الإضافات المتاحة' : 'Optional Addons'}
                                         </label>
                                         <div className="space-y-2">
                                             {selectedItem.item.extras.map((ext, idx) => {
-                                                const extName = isAr ? (ext.name_ar || ext.name_en) : (ext.name_en || ext.name_ar);
+                                                const extName = isAr ? (ext.name_ar || ext.name_en || '') : (ext.name_en || ext.name_ar || '');
                                                 const isSelected = selectedExtras.some(e => e.id === (ext.id || idx));
 
                                                 return (
@@ -803,16 +802,17 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                             if (isSelected) {
                                                                 setSelectedExtras(prev => prev.filter(e => e.id !== (ext.id || idx)));
                                                             } else {
-                                                                setSelectedExtras(prev => [...prev, { id: ext.id || idx, name: extName || 'Extra', price: ext.price }]);
+                                                                setSelectedExtras(prev => [...prev, { id: ext.id || idx, name: extName, price: ext.price }]);
                                                             }
                                                         }}
                                                         className={`w-full p-3.5 rounded-2xl text-xs font-semibold border flex items-center justify-between transition-all ${
                                                             isSelected
-                                                                ? 'bg-rose-600/10 border-rose-500 text-rose-500'
+                                                                ? 'bg-slate-800/80 shadow-sm'
                                                                 : isDark
                                                                     ? 'bg-slate-800/40 border-slate-800 text-slate-300 hover:bg-slate-800'
                                                                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                                                         }`}
+                                                        style={isSelected ? { borderColor: primaryColor, color: primaryColor } : {}}
                                                     >
                                                         <span>{extName}</span>
                                                         <span className="font-bold">+{ext.price} {currency}</span>
@@ -832,8 +832,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                         type="text"
                                         value={itemNotes}
                                         onChange={(e) => setItemNotes(e.target.value)}
-                                        placeholder={isAr ? "مثال: بدون صوص..." : "e.g. No sauce, extra crispy..."}
-                                        className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none focus:border-rose-500 ${
+                                        placeholder={isAr ? 'مثال: بدون صوص، تسوية خاصة...' : 'e.g. No sauce, extra crispy...'}
+                                        className={`w-full px-4 py-3 rounded-2xl border text-sm focus:outline-none ${
                                             isDark 
                                                 ? 'bg-slate-800/80 border-slate-700 text-slate-100 placeholder-slate-500'
                                                 : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
@@ -848,22 +848,24 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                     }`}>
                                         <button
                                             onClick={() => setQty(Math.max(1, qty - 1))}
-                                            className="w-8 h-8 rounded-xl bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center font-bold"
+                                            style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                         >
                                             <Minus className="w-4 h-4" />
                                         </button>
                                         <span className="font-bold text-sm px-2">{qty}</span>
                                         <button
                                             onClick={() => setQty(qty + 1)}
-                                            className="w-8 h-8 rounded-xl bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center font-bold"
+                                            style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                         >
                                             <Plus className="w-4 h-4" />
                                         </button>
                                     </div>
 
-                                    <div>
-                                        <span className="text-[10px] uppercase block font-semibold opacity-70">{isAr ? 'السعر الكلي' : 'Total Price'}</span>
-                                        <span className="text-lg font-black text-rose-500">
+                                    <div className="text-right">
+                                        <span className="text-[10px] uppercase block font-semibold opacity-70">{isAr ? 'الإجمالي' : 'Total Price'}</span>
+                                        <span className="text-lg font-black" style={{ color: primaryColor }}>
                                             {(((selectedItem.item.prices[sizeIdx] || 0) + selectedExtras.reduce((s, e) => s + e.price, 0)) * qty).toFixed(2)} {currency}
                                         </span>
                                     </div>
@@ -875,10 +877,11 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             <div className="p-5 border-t border-slate-700/40 bg-slate-950/20">
                                 <button
                                     onClick={addToCart}
-                                    className="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center gap-2"
+                                    className="w-full py-4 rounded-2xl text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 hover:opacity-90"
+                                    style={{ backgroundColor: primaryColor }}
                                 >
                                     <ShoppingCart className="w-4 h-4" />
-                                    <span>{isAr ? 'إضافة لسلة الطلبات' : 'Add to Order Cart'}</span>
+                                    <span>{isAr ? 'إضافة إلى سلة الطلبات' : 'Add to Order Cart'}</span>
                                 </button>
                             </div>
 
@@ -890,7 +893,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
             {/* Cart Drawer */}
             <AnimatePresence>
                 {isCartDrawerOpen && (
-                    <div className={`fixed inset-0 z-[9999] flex ${isAr ? 'justify-start rtl text-right' : 'justify-end ltr text-left'} bg-black/70 backdrop-blur-sm`}>
+                    <div className="fixed inset-0 z-[9999] flex justify-end bg-black/70 backdrop-blur-sm">
                         <motion.div
                             initial={{ x: isAr ? '-100%' : '100%' }}
                             animate={{ x: 0 }}
@@ -903,9 +906,9 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             {/* Drawer Header */}
                             <div className="p-5 border-b border-slate-700/40 flex items-center justify-between">
                                 <div className="flex items-center gap-2.5">
-                                    <ShoppingCart className="w-5 h-5 text-rose-500" />
+                                    <ShoppingCart className="w-5 h-5" style={{ color: primaryColor }} />
                                     <h3 className="font-bold text-lg">{isAr ? 'سلة الطلبات' : 'Your Order Cart'}</h3>
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold">
+                                    <span className="text-xs px-2 py-0.5 rounded-full text-white font-bold" style={{ backgroundColor: primaryColor }}>
                                         {cartCount}
                                     </span>
                                 </div>
@@ -922,7 +925,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                 {cart.length === 0 ? (
                                     <div className="text-center py-20 space-y-3 opacity-60">
                                         <ShoppingCart className="w-12 h-12 mx-auto stroke-[1.5]" />
-                                        <p className="text-sm font-semibold">{isAr ? 'سلة الطلبات فارغة.' : 'Your cart is empty.'}</p>
+                                        <p className="text-sm font-semibold">{isAr ? 'السلة فارغة حالياً' : 'Your cart is currently empty.'}</p>
+                                        <p className="text-xs opacity-75">{isAr ? 'تصفح المنيو وأضف أصنافك المفضلة هنا!' : 'Explore our menu items and add them here!'}</p>
                                     </div>
                                 ) : (
                                     cart.map(c => (
@@ -936,12 +940,12 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                         <span className="text-xs opacity-75 block">{c.sizeLabel}</span>
                                                     )}
                                                     {c.notes && (
-                                                        <span className="text-xs text-rose-500 italic block mt-1">Note: "{c.notes}"</span>
+                                                        <span className="text-xs italic block mt-1" style={{ color: primaryColor }}>{isAr ? `ملاحظة: "${c.notes}"` : `Note: "${c.notes}"`}</span>
                                                     )}
                                                 </div>
                                                 <button
                                                     onClick={() => updateCartQty(c.id, c.notes, -c.quantity)}
-                                                    className="opacity-60 hover:text-rose-500 p-1"
+                                                    className="opacity-60 hover:opacity-100 p-1"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -951,19 +955,21 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                                 <div className="flex items-center gap-2 rounded-xl p-1 border">
                                                     <button
                                                         onClick={() => updateCartQty(c.id, c.notes, -1)}
-                                                        className="w-6 h-6 rounded-lg bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
+                                                        className="w-6 h-6 rounded-lg flex items-center justify-center font-bold"
+                                                        style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                                     >
                                                         <Minus className="w-3.5 h-3.5" />
                                                     </button>
                                                     <span className="font-bold text-xs px-2">{c.quantity}</span>
                                                     <button
                                                         onClick={() => updateCartQty(c.id, c.notes, 1)}
-                                                        className="w-6 h-6 rounded-lg bg-rose-600/20 text-rose-500 flex items-center justify-center font-bold"
+                                                        className="w-6 h-6 rounded-lg flex items-center justify-center font-bold"
+                                                        style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
                                                     >
                                                         <Plus className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
-                                                <span className="font-black text-rose-500 text-sm">
+                                                <span className="font-black text-sm" style={{ color: primaryColor }}>
                                                     {(c.price * c.quantity).toFixed(2)} {currency}
                                                 </span>
                                             </div>
@@ -976,8 +982,8 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             {cart.length > 0 && (
                                 <div className="p-5 border-t border-slate-700/40 space-y-4">
                                     <div className="flex justify-between items-center text-base font-extrabold">
-                                        <span>{isAr ? 'المجموع الفرعي' : 'Subtotal'}</span>
-                                        <span className="text-rose-500">{cartTotal.toFixed(2)} {currency}</span>
+                                        <span>{isAr ? 'الإجمالي' : 'Subtotal'}</span>
+                                        <span style={{ color: primaryColor }}>{cartTotal.toFixed(2)} {currency}</span>
                                     </div>
                                     
                                     <div className="flex gap-3">
@@ -985,16 +991,17 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                             onClick={clearCart}
                                             className="py-3 px-4 rounded-2xl border font-semibold text-xs transition-colors"
                                         >
-                                            {isAr ? 'تفريغ' : 'Clear'}
+                                            {isAr ? 'محي السلة' : 'Clear'}
                                         </button>
                                         <button
                                             onClick={() => {
                                                 setIsCartDrawerOpen(false);
                                                 setShowCheckout(true);
                                             }}
-                                            className="flex-1 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm shadow-lg shadow-rose-600/20 transition-all flex items-center justify-center gap-2"
+                                            className="flex-1 py-3.5 rounded-2xl text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 hover:opacity-90"
+                                            style={{ backgroundColor: primaryColor }}
                                         >
-                                            <span>{isAr ? 'متابعة الشراء' : 'Proceed to Checkout'}</span>
+                                            <span>{isAr ? 'متابعة لإتمام الطلب' : 'Proceed to Checkout'}</span>
                                             {isAr ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                         </button>
                                     </div>
@@ -1006,21 +1013,22 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                 )}
             </AnimatePresence>
 
-            {/* Clean Bottom Floating Cart Bar */}
+            {/* Bottom Floating Cart Bar */}
             {config.orders_enabled !== false && cartCount > 0 && !isCartDrawerOpen && (
                 <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md">
                     <motion.div
                         initial={{ y: 50, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         onClick={() => setIsCartDrawerOpen(true)}
-                        className="bg-rose-600 hover:bg-rose-500 text-white p-3.5 px-5 rounded-2xl shadow-2xl flex items-center justify-between cursor-pointer border border-rose-400/30 transition-all"
+                        className="text-white p-3.5 px-5 rounded-2xl shadow-2xl flex items-center justify-between cursor-pointer border border-white/20 transition-all hover:opacity-95"
+                        style={{ backgroundColor: primaryColor }}
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-white text-rose-600 flex items-center justify-center font-black text-sm shadow-sm">
+                            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center font-black text-sm shadow-sm" style={{ color: primaryColor }}>
                                 {cartCount}
                             </div>
-                            <div className="flex flex-col">
-                                <span className="text-[11px] uppercase font-extrabold tracking-wider opacity-90 leading-tight">{isAr ? 'عرض السلة' : 'View Cart'}</span>
+                            <div className="flex flex-col text-right">
+                                <span className="text-[11px] uppercase font-extrabold tracking-wider opacity-90 leading-tight">{isAr ? 'عرض سلة الطلبات' : 'View Your Cart'}</span>
                                 <span className="text-sm font-black leading-tight">{cartTotal.toFixed(2)} {currency}</span>
                             </div>
                         </div>
@@ -1032,7 +1040,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                 </div>
             )}
 
-            {/* Dedicated USA Dual Checkout Modal */}
+            {/* Bilingual Checkout Modal */}
             <UsaDualCheckoutModal
                 isOpen={showCheckout}
                 onClose={() => setShowCheckout(false)}
@@ -1054,14 +1062,13 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                     setCart([]);
                 }}
                 branches={config.branches || []}
-                lang={lang}
             />
 
             {/* Payment Options Modal */}
             <AnimatePresence>
                 {showPaymentModal && (
                     <div 
-                        className={`fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen ${isAr ? 'rtl text-right' : 'ltr text-left'}`}
+                        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
                         onClick={() => setShowPaymentModal(false)}
                     >
                         <motion.div 
@@ -1072,9 +1079,9 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             className="w-full max-w-md rounded-3xl p-5 shadow-2xl border border-slate-800 bg-slate-900 text-slate-100 relative max-h-[80vh] overflow-y-auto my-auto"
                         >
                             <div className="flex justify-between items-center mb-3">
-                                <h3 className="font-bold text-base flex items-center gap-2 text-rose-500">
+                                <h3 className="font-bold text-base flex items-center gap-2" style={{ color: primaryColor }}>
                                     <CreditCard className="w-5 h-5" />
-                                    <span>{isAr ? 'خيارات الدفع' : 'Payment Options'}</span>
+                                    <span>{isAr ? 'خيارات وطرق الدفع المتاحة' : 'Payment Options'}</span>
                                 </h3>
                                 <button onClick={() => setShowPaymentModal(false)} className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white">
                                     <X className="w-5 h-5" />
@@ -1082,12 +1089,12 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                             </div>
 
                             <p className="text-xs opacity-70 mb-3 font-normal text-slate-300">
-                                {isAr ? 'يُرجى إرسال إيصال التحويل عبر الواتساب بعد إتمام عملية الدفع.' : 'Please send payment receipt via WhatsApp after completion.'}
+                                {isAr ? 'يرجى إرسال صورة إيصال التحويل على الواتساب بعد إتمام عملية الدفع.' : 'Please send a payment transfer receipt screenshot to our WhatsApp after payment.'}
                             </p>
 
                             {config.whatsapp_number && (
                                 <a
-                                    href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(isAr ? 'مرحباً، تم إتمام التحويل المالي:' : 'Hello, I completed payment transfer:')}`}
+                                    href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}?text=${encodeURIComponent(isAr ? 'مرحباً، لقد قمت بإتمام التحويل. إليكم صورة الإيصال:' : 'Hello, I have completed the payment transfer. Here is my payment receipt screenshot:')}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="w-full py-3 px-4 rounded-2xl flex items-center justify-center gap-2 text-white font-bold text-xs sm:text-sm shadow-md mb-4 transition-transform active:scale-95 hover:opacity-90"
@@ -1102,21 +1109,22 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                                 {config.payment_methods?.map((pm: any, idx: number) => (
                                     <div key={idx} className="p-3.5 rounded-2xl border border-slate-800 bg-slate-950/60 space-y-2">
                                         <h4 className="font-bold text-sm text-slate-200">{isAr ? (pm.name_ar || pm.name_en) : (pm.name_en || pm.name_ar)}</h4>
-                                        {(pm.desc_en || pm.desc_ar) && <p className="text-xs opacity-70 font-normal text-slate-400">{isAr ? (pm.desc_ar || pm.desc_en) : (pm.desc_en || pm.desc_ar)}</p>}
+                                        {(pm.desc_ar || pm.desc_en) && <p className="text-xs opacity-70 font-normal text-slate-400">{isAr ? (pm.desc_ar || pm.desc_en) : (pm.desc_en || pm.desc_ar)}</p>}
                                         {pm.number && (
                                             <div className="flex justify-between items-center p-2 rounded-xl border border-slate-800 bg-black/40">
                                                 <span className="font-mono text-xs font-bold text-slate-200" dir="ltr">{pm.number}</span>
                                                 <button 
                                                     onClick={() => { navigator.clipboard.writeText(pm.number); alert(isAr ? 'تم نسخ الرقم!' : 'Number copied!'); }}
-                                                    className="px-3 py-1 rounded-lg text-xs font-bold text-white bg-rose-600 hover:bg-rose-500"
+                                                    className="px-3 py-1 rounded-lg text-xs font-bold text-white shadow-sm hover:opacity-90"
+                                                    style={{ backgroundColor: primaryColor }}
                                                 >
                                                     {isAr ? 'نسخ' : 'Copy'}
                                                 </button>
                                             </div>
                                         )}
                                         {pm.link && (
-                                            <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-2 rounded-xl shadow-sm bg-rose-600 hover:bg-rose-500">
-                                                Payment Link / InstaPay
+                                            <a href={pm.link} target="_blank" rel="noopener noreferrer" className="block text-center w-full text-white font-bold text-xs py-2 rounded-xl shadow-sm hover:opacity-90" style={{ backgroundColor: primaryColor }}>
+                                                {isAr ? 'رابط الدفع المباشر / InstaPay' : 'InstaPay / Payment Link'}
                                             </a>
                                         )}
                                     </div>
