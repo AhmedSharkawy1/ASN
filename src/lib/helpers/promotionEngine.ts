@@ -11,6 +11,17 @@ export type RequiredItem = {
     qty: number;
 };
 
+/**
+ * Marks a promotion as applying to the whole cart rather than to a list of
+ * items. Stored as a normal entry inside `required_items`, so no schema change
+ * is needed and older clients simply never match it — they fall back to "does
+ * not apply", never to an unintended blanket discount.
+ */
+export const ALL_ITEMS_ID = '__all_items__';
+
+export const isAllItemsPromotion = (promotion: Pick<Promotion, 'required_items'>): boolean =>
+    (promotion.required_items || []).some(ri => ri.item_id === ALL_ITEMS_ID);
+
 export type Promotion = {
     id: string;
     restaurant_id: string;
@@ -120,6 +131,11 @@ function isPromotionApplicable(
     if (requiredItems.length === 0) {
         // No items specified — promotion doesn't apply
         return false;
+    }
+
+    // A cart-wide promotion needs no particular item, just a non-empty cart.
+    if (isAllItemsPromotion(promotion)) {
+        return cartItems.some(ci => ci.qty > 0);
     }
 
     // Check if ANY of the required items exist in the cart

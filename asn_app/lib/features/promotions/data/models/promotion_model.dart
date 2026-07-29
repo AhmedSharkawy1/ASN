@@ -1,4 +1,46 @@
+/// One item a promotion is tied to, stored inside the `required_items` jsonb.
+/// Mirrors the web's RequiredItem so both dashboards read each other's data.
+class PromotionItem {
+  final String itemId;
+  final String titleAr;
+  final String? titleEn;
+  final int qty;
+
+  const PromotionItem({
+    required this.itemId,
+    required this.titleAr,
+    this.titleEn,
+    this.qty = 1,
+  });
+
+  factory PromotionItem.fromJson(Map<String, dynamic> json) => PromotionItem(
+        itemId: json['item_id']?.toString() ?? '',
+        titleAr: json['item_title_ar']?.toString() ?? '',
+        titleEn: json['item_title_en']?.toString(),
+        qty: (json['qty'] as num? ?? 1).toInt(),
+      );
+
+  Map<String, dynamic> toJson() => {
+        'item_id': itemId,
+        'item_title_ar': titleAr,
+        'item_title_en': titleEn,
+        'qty': qty,
+      };
+}
+
 class PromotionModel {
+  /// Marks a promotion as covering the whole menu instead of a fixed list.
+  ///
+  /// Kept inside `required_items` rather than as a new column so nothing about
+  /// the table changes: an older client that does not know the marker simply
+  /// fails to match it, which means "no discount" — never a surprise blanket
+  /// discount. The web engine understands the same marker.
+  static const String allItemsId = '__all_items__';
+
+  static const String typeFixed = 'fixed_amount';
+  static const String typePercentage = 'percentage';
+  static const String typeFreeShipping = 'free_shipping';
+
   final String id;
   final String nameAr;
   final String? nameEn;
@@ -33,6 +75,22 @@ class PromotionModel {
       isArabic ? nameAr : (nameEn?.isNotEmpty == true ? nameEn! : nameAr);
 
   bool get isExpired => endsAt != null && endsAt!.isBefore(DateTime.now());
+
+  /// Applies to the whole menu, including items added after it was created.
+  bool get appliesToAllItems =>
+      requiredItems.any((i) => i['item_id']?.toString() == allItemsId);
+
+  /// The real items this promotion is tied to, with the all-items marker
+  /// filtered out so the UI never lists it as a product.
+  List<PromotionItem> get items => requiredItems
+      .where((i) => i['item_id']?.toString() != allItemsId)
+      .map(PromotionItem.fromJson)
+      .toList();
+
+  /// A promotion with no target never fires — the engine skips it. Surfaced so
+  /// the list can warn instead of leaving the user wondering why nothing
+  /// happens at checkout.
+  bool get hasNoTarget => !appliesToAllItems && items.isEmpty;
 
   factory PromotionModel.fromJson(Map<String, dynamic> json) {
     return PromotionModel(

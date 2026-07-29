@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import 'package:asn_app/core/localization/l10n/app_localizations.dart';
 import 'package:asn_app/core/theme/app_colors.dart';
 import 'package:asn_app/core/theme/app_spacing.dart';
@@ -9,6 +10,7 @@ import 'package:asn_app/shared/presentation/widgets/app_snackbar.dart';
 import 'package:asn_app/shared/presentation/widgets/state_widgets.dart';
 import 'package:asn_app/features/promotions/data/models/promotion_model.dart';
 import 'package:asn_app/features/promotions/presentation/providers/promotions_provider.dart';
+import 'package:asn_app/features/promotions/presentation/widgets/promotion_editor_sheet.dart';
 
 class PromotionsScreen extends ConsumerWidget {
   const PromotionsScreen({super.key});
@@ -41,7 +43,8 @@ class PromotionsScreen extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () => ref.read(promotionsNotifierProvider.notifier).refresh(),
             child: ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.xxl),
               itemCount: promos.length,
               separatorBuilder: (context, index) => AppSpacing.heightXs,
               itemBuilder: (context, index) => _PromotionCard(promo: promos[index]),
@@ -54,13 +57,10 @@ class PromotionsScreen extends ConsumerWidget {
           onRetry: () => ref.read(promotionsNotifierProvider.notifier).refresh(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showDialog<void>(
-          context: context,
-          builder: (ctx) => const PromotionDialog(),
-        ),
-        backgroundColor: AppColors.tealPrimary,
-        child: const Icon(Icons.add, color: Colors.white),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => showPromotionEditor(context),
+        icon: const Icon(Icons.add),
+        label: const Text('عرض جديد'),
       ),
     );
   }
@@ -71,324 +71,226 @@ class _PromotionCard extends ConsumerWidget {
 
   const _PromotionCard({required this.promo});
 
-  String _discountLabel(AppLocalizations l10n) {
+  ({String label, IconData icon, Color color}) get _type {
     switch (promo.discountType) {
-      case 'percentage':
-        return '${promo.discountValue.toStringAsFixed(0)}%';
-      case 'free_shipping':
-        return l10n.freeShipping;
+      case PromotionModel.typePercentage:
+        return (
+          label: 'خصم ${_trimZeros(promo.discountValue)}%',
+          icon: Icons.percent,
+          color: AppColors.steelBlue,
+        );
+      case PromotionModel.typeFreeShipping:
+        return (
+          label: 'شحن مجاني',
+          icon: Icons.local_shipping_outlined,
+          color: AppColors.success,
+        );
       default:
-        return promo.discountValue.toStringAsFixed(0);
+        return (
+          label: 'خصم ${_trimZeros(promo.discountValue)} ج',
+          icon: Icons.payments_outlined,
+          color: AppColors.oceanBlue,
+        );
+    }
+  }
+
+  static String _trimZeros(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  String get _targetLabel {
+    if (promo.appliesToAllItems) return 'كل الأصناف';
+    final items = promo.items;
+    if (items.isEmpty) return 'بدون أصناف';
+    if (items.length == 1) return items.first.titleAr;
+    return '${items.length} أصناف';
+  }
+
+  String? get _periodLabel {
+    final f = DateFormat('yyyy/MM/dd');
+    if (promo.startsAt == null && promo.endsAt == null) return null;
+    if (promo.startsAt != null && promo.endsAt != null) {
+      return '${f.format(promo.startsAt!)} — ${f.format(promo.endsAt!)}';
+    }
+    return promo.startsAt != null
+        ? 'من ${f.format(promo.startsAt!)}'
+        : 'حتى ${f.format(promo.endsAt!)}';
+  }
+
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف العرض'),
+        content: Text('سيتم حذف "${promo.nameAr}" نهائياً.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(promotionsNotifierProvider.notifier).deletePromotion(promo.id);
+    } catch (e) {
+      if (context.mounted) showAppSnackBar(context, '$e', type: AppSnackBarType.error);
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final theme = Theme.of(context);
     final notifier = ref.read(promotionsNotifierProvider.notifier);
     final expired = promo.isExpired;
+    final dimmed = expired || !promo.isActive;
+    final type = _type;
 
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor:
-                (promo.isActive && !expired ? AppColors.warning : Colors.grey).withValues(alpha: 0.12),
-            child: Icon(
-              Icons.local_offer,
-              color: promo.isActive && !expired ? AppColors.warning : Colors.grey,
-              size: 20,
-            ),
-          ),
-          AppSpacing.widthSm,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Opacity(
+      opacity: dimmed ? 0.6 : 1,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  promo.localizedName(isArabic),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: type.color.withValues(alpha: 0.12),
+                  child: Icon(type.icon, color: type.color, size: 20),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${l10n.discount}: ${_discountLabel(l10n)}'
-                  '${promo.minOrderAmount > 0 ? ' • ${l10n.minOrder}: ${promo.minOrderAmount.toStringAsFixed(0)}' : ''}'
-                  '${expired ? ' • ${l10n.expired}' : ''}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: expired ? AppColors.error : Colors.grey,
+                AppSpacing.widthSm,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        promo.nameAr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        type.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: type.color,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-          Switch(
-            value: promo.isActive,
-            activeThumbColor: AppColors.tealPrimary,
-            onChanged: (_) async {
-              try {
-                await notifier.toggleActive(promo.id, promo.isActive);
-              } catch (e) {
-                if (context.mounted) {
-                  showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-                }
-              }
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'edit') {
-                await showDialog<void>(
-                  context: context,
-                  builder: (ctx) => PromotionDialog(promo: promo),
-                );
-              } else if (value == 'delete') {
-                try {
-                  await notifier.deletePromotion(promo.id);
-                } catch (e) {
-                  if (context.mounted) {
-                    showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-                  }
-                }
-              }
-            },
-            itemBuilder: (ctx) => [
-              PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
-              PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class PromotionDialog extends ConsumerStatefulWidget {
-  final PromotionModel? promo;
-
-  const PromotionDialog({super.key, this.promo});
-
-  @override
-  ConsumerState<PromotionDialog> createState() => _PromotionDialogState();
-}
-
-class _PromotionDialogState extends ConsumerState<PromotionDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameArController;
-  late final TextEditingController _nameEnController;
-  late final TextEditingController _descArController;
-  late final TextEditingController _valueController;
-  late final TextEditingController _minOrderController;
-  late String _discountType;
-  DateTime? _startsAt;
-  DateTime? _endsAt;
-  bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final promo = widget.promo;
-    _nameArController = TextEditingController(text: promo?.nameAr ?? '');
-    _nameEnController = TextEditingController(text: promo?.nameEn ?? '');
-    _descArController = TextEditingController(text: promo?.descriptionAr ?? '');
-    _valueController = TextEditingController(text: promo != null ? promo.discountValue.toStringAsFixed(0) : '');
-    _minOrderController = TextEditingController(text: promo != null ? promo.minOrderAmount.toStringAsFixed(0) : '0');
-    _discountType = promo?.discountType ?? 'fixed_amount';
-    _startsAt = promo?.startsAt;
-    _endsAt = promo?.endsAt;
-  }
-
-  @override
-  void dispose() {
-    _nameArController.dispose();
-    _nameEnController.dispose();
-    _descArController.dispose();
-    _valueController.dispose();
-    _minOrderController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickDate(bool isStart) async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: (isStart ? _startsAt : _endsAt) ?? now,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 3),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startsAt = picked;
-        } else {
-          _endsAt = picked;
-        }
-      });
-    }
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
-
-    final notifier = ref.read(promotionsNotifierProvider.notifier);
-    final nameAr = _nameArController.text.trim();
-    final nameEn = _nameEnController.text.trim().isEmpty ? null : _nameEnController.text.trim();
-    final descAr = _descArController.text.trim().isEmpty ? null : _descArController.text.trim();
-    final value = _discountType == 'free_shipping' ? 0.0 : (double.tryParse(_valueController.text.trim()) ?? 0);
-    final minOrder = double.tryParse(_minOrderController.text.trim()) ?? 0;
-
-    try {
-      if (widget.promo == null) {
-        await notifier.addPromotion(
-          nameAr: nameAr,
-          nameEn: nameEn,
-          descriptionAr: descAr,
-          discountType: _discountType,
-          discountValue: value,
-          minOrderAmount: minOrder,
-          startsAt: _startsAt,
-          endsAt: _endsAt,
-        );
-      } else {
-        await notifier.updatePromotion(
-          promoId: widget.promo!.id,
-          nameAr: nameAr,
-          nameEn: nameEn,
-          descriptionAr: descAr,
-          discountType: _discountType,
-          discountValue: value,
-          minOrderAmount: minOrder,
-          startsAt: _startsAt,
-          endsAt: _endsAt,
-        );
-      }
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        setState(() => _saving = false);
-        showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final dateFormat = DateFormat('yyyy-MM-dd');
-
-    return AlertDialog(
-      title: Text(widget.promo == null ? l10n.addPromotion : l10n.edit),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: _nameArController,
-                decoration: InputDecoration(labelText: l10n.nameArabic),
-                validator: (v) => (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
-              ),
-              AppSpacing.heightSm,
-              TextFormField(
-                controller: _nameEnController,
-                decoration: InputDecoration(labelText: l10n.nameEnglish),
-              ),
-              AppSpacing.heightSm,
-              TextFormField(
-                controller: _descArController,
-                decoration: InputDecoration(labelText: l10n.description),
-                maxLines: 2,
-              ),
-              AppSpacing.heightSm,
-              DropdownButtonFormField<String>(
-                initialValue: _discountType,
-                decoration: InputDecoration(labelText: l10n.discountType),
-                items: [
-                  DropdownMenuItem(value: 'fixed_amount', child: Text(l10n.fixedAmount)),
-                  DropdownMenuItem(value: 'percentage', child: Text(l10n.percentage)),
-                  DropdownMenuItem(value: 'free_shipping', child: Text(l10n.freeShipping)),
-                ],
-                onChanged: (v) => setState(() => _discountType = v ?? 'fixed_amount'),
-              ),
-              if (_discountType != 'free_shipping') ...[
-                AppSpacing.heightSm,
-                TextFormField(
-                  controller: _valueController,
-                  decoration: InputDecoration(labelText: l10n.discountValue),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  validator: (v) {
-                    if (_discountType == 'free_shipping') return null;
-                    return (v == null || double.tryParse(v.trim()) == null) ? l10n.fieldRequired : null;
+                Switch(
+                  value: promo.isActive,
+                  onChanged: (_) async {
+                    try {
+                      await notifier.toggleActive(promo.id, promo.isActive);
+                    } catch (e) {
+                      if (context.mounted) {
+                        showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                      }
+                    }
                   },
                 ),
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'edit') {
+                      await showPromotionEditor(context, promo: promo);
+                    } else if (value == 'delete') {
+                      await _confirmDelete(context, ref);
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
+                    PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
+                  ],
+                ),
               ],
-              AppSpacing.heightSm,
-              TextFormField(
-                controller: _minOrderController,
-                decoration: InputDecoration(labelText: l10n.minOrder),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              ),
-              AppSpacing.heightSm,
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(
-                        _startsAt != null ? dateFormat.format(_startsAt!) : l10n.startDate,
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      onPressed: () => _pickDate(true),
-                    ),
+            ),
+            AppSpacing.heightXs,
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: 4,
+              children: [
+                _chip(
+                  context,
+                  icon: promo.appliesToAllItems ? Icons.select_all : Icons.checklist,
+                  label: _targetLabel,
+                ),
+                if (promo.minOrderAmount > 0)
+                  _chip(
+                    context,
+                    icon: Icons.shopping_bag_outlined,
+                    label: 'أقل طلب ${_trimZeros(promo.minOrderAmount)} ج',
                   ),
-                  AppSpacing.widthXs,
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      icon: const Icon(Icons.event, size: 16),
-                      label: Text(
-                        _endsAt != null ? dateFormat.format(_endsAt!) : l10n.endDate,
-                        style: const TextStyle(fontSize: 12),
+                if (_periodLabel != null)
+                  _chip(context, icon: Icons.event_outlined, label: _periodLabel!),
+                if (expired)
+                  _chip(context,
+                      icon: Icons.timer_off_outlined,
+                      label: l10n.expired,
+                      color: AppColors.error),
+              ],
+            ),
+            // The checkout engine skips a promotion with no items, so it would
+            // look active while never discounting anything.
+            if (promo.hasNoTarget) ...[
+              AppSpacing.heightXs,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSpacing.xs),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'هذا العرض بدون أصناف فلن يُطبَّق — عدّله واختر الأصناف.',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
                       ),
-                      onPressed: () => _pickDate(false),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
-          ),
+          ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.pop(context),
-          child: Text(l10n.cancel),
-        ),
-        ElevatedButton(
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-              : Text(l10n.save),
-        ),
-      ],
+    );
+  }
+
+  Widget _chip(BuildContext context,
+      {required IconData icon, required String label, Color? color}) {
+    final c = color ?? Theme.of(context).colorScheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusRound),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: c),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 11.5, color: c, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 }

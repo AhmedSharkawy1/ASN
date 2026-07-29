@@ -63,6 +63,27 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     }
   }
 
+  /// Builds the `required_items` payload the checkout engine reads.
+  ///
+  /// The engine ignores any promotion whose list is empty, so a promotion
+  /// saved without a target would silently never fire. Callers must pick
+  /// either the whole menu or at least one item.
+  static List<Map<String, dynamic>> _buildTarget({
+    required bool allItems,
+    required List<PromotionItem> items,
+  }) {
+    if (allItems) {
+      return [
+        const PromotionItem(
+          itemId: PromotionModel.allItemsId,
+          titleAr: 'كل الأصناف',
+          titleEn: 'All items',
+        ).toJson(),
+      ];
+    }
+    return items.map((i) => i.toJson()).toList();
+  }
+
   Future<void> addPromotion({
     required String nameAr,
     String? nameEn,
@@ -70,11 +91,16 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     required String discountType,
     required double discountValue,
     required double minOrderAmount,
+    required bool appliesToAllItems,
+    List<PromotionItem> items = const [],
     DateTime? startsAt,
     DateTime? endsAt,
   }) async {
     final restaurantId = _restaurantId;
     if (restaurantId == null) throw Exception('User not authenticated or missing restaurant ID');
+
+    final target = _buildTarget(allItems: appliesToAllItems, items: items);
+    if (target.isEmpty) throw Exception('اختر كل الأصناف أو صنفاً واحداً على الأقل');
 
     try {
       await SupabaseClientManager.client.from('promotions').insert({
@@ -84,7 +110,7 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
         'description_ar': descriptionAr,
         'discount_type': discountType,
         'discount_value': discountValue,
-        'required_items': <Map<String, dynamic>>[],
+        'required_items': target,
         'min_order_amount': minOrderAmount,
         'starts_at': startsAt?.toIso8601String(),
         'ends_at': endsAt?.toIso8601String(),
@@ -104,9 +130,14 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     required String discountType,
     required double discountValue,
     required double minOrderAmount,
+    required bool appliesToAllItems,
+    List<PromotionItem> items = const [],
     DateTime? startsAt,
     DateTime? endsAt,
   }) async {
+    final target = _buildTarget(allItems: appliesToAllItems, items: items);
+    if (target.isEmpty) throw Exception('اختر كل الأصناف أو صنفاً واحداً على الأقل');
+
     try {
       await SupabaseClientManager.client
           .from('promotions')
@@ -116,6 +147,7 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
             'description_ar': descriptionAr,
             'discount_type': discountType,
             'discount_value': discountValue,
+            'required_items': target,
             'min_order_amount': minOrderAmount,
             'starts_at': startsAt?.toIso8601String(),
             'ends_at': endsAt?.toIso8601String(),
