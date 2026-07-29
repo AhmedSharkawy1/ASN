@@ -140,14 +140,8 @@ class _NotificationDiagnosticsScreenState
 
       final android =
           plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      await android?.createNotificationChannel(const AndroidNotificationChannel(
-        OrderAlert.channelId,
-        OrderAlert.channelName,
-        description: 'Notifications for new incoming orders',
-        importance: Importance.max,
-        playSound: true,
-        enableVibration: true,
-      ));
+      // The shared definition, so a test alert sounds exactly like a real one.
+      await android?.createNotificationChannel(OrderAlert.channel());
       final enabled = await android?.areNotificationsEnabled();
 
       if (rich) {

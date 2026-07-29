@@ -8,7 +8,9 @@ import 'package:asn_app/core/theme/app_colors.dart';
 import 'package:asn_app/core/theme/app_spacing.dart';
 import 'package:asn_app/core/theme/theme_provider.dart';
 import 'package:asn_app/shared/presentation/widgets/app_navigation_drawer.dart';
+import 'package:asn_app/shared/presentation/widgets/app_snackbar.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:asn_app/features/settings/presentation/providers/order_settings_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -202,6 +204,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
           AppSpacing.heightLg,
 
+          // Orders
+          const _SectionLabel(text: 'الطلبات'),
+          const _SettingsGroup(children: [_AutoApproveTile()]),
+          AppSpacing.heightLg,
+
           // Account
           _SectionLabel(text: l10n.account),
           _SettingsGroup(
@@ -285,6 +292,69 @@ class SettingsScreen extends ConsumerWidget {
       title: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.w800 : FontWeight.w500)),
       trailing: selected ? const Icon(Icons.check_circle, color: AppColors.tealPrimary) : null,
       onTap: onTap,
+    );
+  }
+}
+
+/// Auto-approve incoming website orders.
+///
+/// The setting lives on the restaurant, so flipping it here changes the web
+/// dashboard too — the two must never disagree about how an order is booked.
+class _AutoApproveTile extends ConsumerWidget {
+  const _AutoApproveTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncSettings = ref.watch(orderSettingsProvider);
+    final settings = asyncSettings.value;
+    final on = settings?.autoApproveWebsiteOrders ?? false;
+
+    return SwitchListTile(
+      value: on,
+      // No value yet (loading, or the read failed): flipping it would write a
+      // guess over the real setting.
+      onChanged: settings == null
+          ? null
+          : (value) async {
+              try {
+                await ref.read(orderSettingsProvider.notifier).setAutoApprove(value);
+                if (context.mounted) {
+                  showAppSnackBar(
+                    context,
+                    value
+                        ? 'الطلبات الجديدة ستُسجَّل مكتملة تلقائياً'
+                        : 'الطلبات الجديدة ستحتاج تأكيدك',
+                    type: AppSnackBarType.success,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                }
+              }
+            },
+      secondary: CircleAvatar(
+        radius: 16,
+        backgroundColor: AppColors.success.withValues(alpha: 0.12),
+        child: const Icon(Icons.task_alt, size: 18, color: AppColors.success),
+      ),
+      title: const Text(
+        'تأكيد الطلبات تلقائياً',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        asyncSettings.hasError
+            ? 'تعذّر قراءة الإعداد — اسحب لأسفل للمحاولة مرة أخرى'
+            : on
+                ? 'الطلب الجديد يُسجَّل مكتملاً ويُحسب في التقارير فوراً'
+                : 'الطلب الجديد يبدأ قيد الانتظار، ثم تحت التنفيذ، ثم مكتمل',
+        style: TextStyle(
+          fontSize: 11.5,
+          color: asyncSettings.hasError
+              ? AppColors.error
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
     );
   }
 }

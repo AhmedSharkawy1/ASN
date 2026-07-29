@@ -37,18 +37,20 @@ class OrderNotificationService {
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
 
-    // Explicit max-importance channel so alerts heads-up + sound.
-    const channel = AndroidNotificationChannel(
-      'orders_channel',
-      'New Orders',
-      description: 'Notifications for new incoming orders',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-    );
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+    final android = _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+
+    // Max importance so alerts heads-up, with the order chime and vibration.
+    await android?.createNotificationChannel(OrderAlert.channel());
+
+    // The pre-chime channel would otherwise linger in the system settings as a
+    // second, silent "New Orders" entry the user could switch on by mistake.
+    try {
+      await android?.deleteNotificationChannel(channelId: OrderAlert.legacyChannelId);
+    } catch (e) {
+      AppLogger.warning('Could not remove the old orders channel: $e',
+          name: 'OrderNotification');
+    }
   }
 
   /// Android 13+ drops notifications silently unless the runtime

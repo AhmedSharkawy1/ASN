@@ -7,6 +7,7 @@ import 'package:asn_app/core/theme/app_theme.dart';
 import 'package:asn_app/core/theme/theme_provider.dart';
 import 'package:asn_app/core/localization/locale_provider.dart';
 import 'package:asn_app/core/router/app_router.dart';
+import 'package:asn_app/core/services/background_order_service.dart';
 import 'package:asn_app/core/services/order_notification_service.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:asn_app/features/superadmin/presentation/providers/impersonation_provider.dart';
@@ -18,15 +19,32 @@ class AsnApp extends ConsumerStatefulWidget {
   ConsumerState<AsnApp> createState() => _AsnAppState();
 }
 
-class _AsnAppState extends ConsumerState<AsnApp> {
+class _AsnAppState extends ConsumerState<AsnApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // The background service must know the UI is up, or it will chime for an
+    // order the in-app listener is already alerting.
+    BackgroundOrderService.setAppForeground(true);
     // If the app was cold-launched by tapping an order notification (or its
     // "call customer" action), replay that action once everything is ready.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(orderNotificationServiceProvider).handleLaunchAction();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // `resumed` is the only state where the in-app listener is guaranteed to be
+    // running and visible; anything else hands the alert back to the service.
+    BackgroundOrderService.setAppForeground(state == AppLifecycleState.resumed);
   }
 
   bool _impersonationRestored = false;

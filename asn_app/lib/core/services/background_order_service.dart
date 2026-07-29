@@ -38,6 +38,24 @@ class BackgroundOrderService {
   /// Realtime state (subscribed / error), readable by the UI for diagnostics.
   static const String realtimeStatusKey = 'bg_realtime_status';
 
+  /// Whether the UI is on screen right now.
+  ///
+  /// Both this service and the in-app listener raise the same alert for a new
+  /// order. Sharing one notification id keeps it to a single card, but the
+  /// chime would still play twice. While the app is in front the in-app
+  /// listener owns the alert and this service stays quiet; the moment the app
+  /// is backgrounded or killed, this service takes over again.
+  static const String appForegroundKey = 'bg_app_foreground';
+
+  /// Called from the UI isolate on every lifecycle change.
+  static Future<void> setAppForeground(bool inForeground) async {
+    try {
+      await FlutterForegroundTask.saveData(key: appForegroundKey, value: inForeground);
+    } catch (e) {
+      AppLogger.warning('Could not publish foreground state: $e', name: 'BgOrders');
+    }
+  }
+
   /// Realtime is the instant path; this poll is the guarantee behind it.
   /// 45s keeps alerts prompt while roughly halving the wake-ups a 20s cycle
   /// cost the battery over a long shift.
@@ -192,17 +210,10 @@ class _OrderListenerHandler extends TaskHandler {
     const androidSettings = AndroidInitializationSettings('ic_notification');
     const initSettings = InitializationSettings(android: androidSettings);
     await _notifications.initialize(settings: initSettings);
-    const channel = AndroidNotificationChannel(
-      OrderAlert.channelId,
-      OrderAlert.channelName,
-      description: 'Notifications for new incoming orders',
-      importance: Importance.max,
-      playSound: true,
-      enableVibration: true,
-    );
+    // Shared definition, so the chime is identical whichever path alerts.
     await _notifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
+        ?.createNotificationChannel(OrderAlert.channel());
   }
 
   @override
@@ -264,6 +275,14 @@ class _OrderListenerHandler extends TaskHandler {
     if (orderId.isEmpty || _notified.contains(orderId)) return;
     final alert = OrderAlert.fromOrder(order);
     if (alert == null) return; // draft / invalid
+
+    // The in-app listener already alerted this one; a second show() would
+    // replay the chime on a card the user is looking at.
+    if (await _appIsInForeground()) {
+      _notified.add(orderId);
+      return;
+    }
+
     _notified.add(orderId);
     // Bounded: a long shift must not grow this set without limit.
     if (_notified.length > 500) {
@@ -278,6 +297,19 @@ class _OrderListenerHandler extends TaskHandler {
     } catch (e) {
       await _saveLastNotified('فشل عرض الإشعار: $e');
       AppLogger.warning('BgOrders notify failed: $e', name: 'BgOrders');
+    }
+  }
+
+  /// Defaults to false: if the flag can't be read, alerting is the safer
+  /// failure — a duplicate chime beats a missed order.
+  Future<bool> _appIsInForeground() async {
+    try {
+      return await FlutterForegroundTask.getData<bool>(
+              key: BackgroundOrderService.appForegroundKey) ??
+          false;
+    } catch (e) {
+      AppLogger.warning('Could not read foreground state: $e', name: 'BgOrders');
+      return false;
     }
   }
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:asn_app/core/services/order_alert_builder.dart';
 
@@ -100,6 +101,38 @@ void main() {
       final first = OrderAlert.fromOrder(order({'id': 'same'}))!;
       final second = OrderAlert.fromOrder(order({'id': 'same', 'total': 999}))!;
       expect(first.id, second.id);
+    });
+  });
+
+  group('the order chime', () {
+    test('lives on its own channel — Android freezes a channel\'s sound', () {
+      // Reusing the old id would leave existing installs on the default tone,
+      // because createNotificationChannel cannot change one already created.
+      expect(OrderAlert.channelId, isNot(OrderAlert.legacyChannelId));
+    });
+
+    test('the channel carries the bundled sound and a vibration pattern', () {
+      final channel = OrderAlert.channel();
+      expect(channel.playSound, isTrue);
+      expect(channel.sound, OrderAlert.sound);
+      expect(channel.enableVibration, isTrue);
+      expect(channel.vibrationPattern, isNotNull);
+      expect(channel.importance, Importance.max);
+    });
+
+    test('the sound names the raw resource the build keeps', () {
+      // keep.xml protects @raw/order_alert from the resource shrinker; a
+      // rename here without updating that file ships a silent release.
+      expect(
+        (OrderAlert.sound as RawResourceAndroidNotificationSound).sound,
+        'order_alert',
+      );
+    });
+
+    test('every alert uses that channel, not an ad-hoc one', () {
+      final alert = OrderAlert.fromOrder(order({}))!;
+      expect(alert.details.android!.channelId, OrderAlert.channelId);
+      expect(alert.details.android!.sound, OrderAlert.sound);
     });
   });
 

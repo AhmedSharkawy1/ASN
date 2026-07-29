@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -7,10 +8,38 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 /// exact same rich order alert: number, items, customer name + phone, total,
 /// and a "call the customer" action button.
 class OrderAlert {
-  static const String channelId = 'orders_channel';
-  static const String channelName = 'New Orders';
+  /// Android freezes a channel's sound and vibration the first time it is
+  /// created and ignores later edits, so giving orders their own chime needs a
+  /// new channel id. [legacyChannelId] is deleted on startup to keep one entry
+  /// in the system notification settings.
+  static const String channelId = 'orders_channel_v2';
+  static const String legacyChannelId = 'orders_channel';
+  static const String channelName = 'طلبات جديدة';
+  static const String channelDescription = 'نغمة واهتزاز مميزان لكل طلب جديد';
   static const String callActionId = 'call_customer';
   static const String openActionId = 'open_order';
+
+  /// Bundled chime, distinct from the phone's normal notification tone so
+  /// staff recognise an order without looking at the screen.
+  static const AndroidNotificationSound sound =
+      RawResourceAndroidNotificationSound('order_alert');
+
+  /// Long-short-long: reads as urgent through an apron pocket.
+  static final Int64List vibrationPattern =
+      Int64List.fromList([0, 400, 180, 400, 180, 700]);
+
+  /// The one definition of the orders channel, shared by the in-app listener,
+  /// the background isolate and the diagnostics screen so they cannot drift.
+  static AndroidNotificationChannel channel() => AndroidNotificationChannel(
+        channelId,
+        channelName,
+        description: channelDescription,
+        importance: Importance.max,
+        playSound: true,
+        sound: sound,
+        enableVibration: true,
+        vibrationPattern: vibrationPattern,
+      );
 
   final int id;
   final String title;
@@ -63,11 +92,13 @@ class OrderAlert {
     final android = AndroidNotificationDetails(
       channelId,
       channelName,
-      channelDescription: 'Notifications for new incoming orders',
+      channelDescription: channelDescription,
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
+      sound: sound,
       enableVibration: true,
+      vibrationPattern: vibrationPattern,
       color: const Color(0xFF0D9488),
       colorized: true,
       ticker: 'طلب جديد #$orderNumber',
