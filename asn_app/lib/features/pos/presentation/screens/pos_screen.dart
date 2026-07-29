@@ -11,6 +11,7 @@ import 'package:asn_app/features/products/presentation/providers/products_provid
 import 'package:asn_app/features/products/presentation/providers/categories_provider.dart';
 import 'package:asn_app/features/products/data/models/product_model.dart';
 import 'package:asn_app/features/pos/presentation/providers/pos_provider.dart';
+import 'package:asn_app/features/promotions/presentation/providers/promotions_provider.dart';
 
 String _fmt(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
 
@@ -396,6 +397,7 @@ class PosCartPanel extends ConsumerWidget {
 
                       // Discount
                       _DiscountTile(cartState: cartState),
+                      _PromoCodeTile(cartState: cartState),
 
                       // Payment method
                       _PaymentTile(cartState: cartState),
@@ -648,6 +650,80 @@ class _CustomerInfoTile extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Keys in a customer's coupon at the register.
+///
+/// Only shown when the restaurant actually has a coded offer, so the till stays
+/// uncluttered for shops that don't run coupons.
+class _PromoCodeTile extends ConsumerWidget {
+  final CartState cartState;
+
+  const _PromoCodeTile({required this.cartState});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final promotions = ref.watch(promotionsNotifierProvider).value ?? const [];
+    final hasCodedOffers = promotions.any((p) => p.isActive && p.requiresPromoCode);
+    if (!hasCodedOffers) return const SizedBox.shrink();
+
+    final applied = cartState.promoCode;
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      dense: true,
+      leading: AppIconBadgeSmall(
+        icon: Icons.local_activity_outlined,
+        color: applied != null ? AppColors.success : AppColors.steelBlue,
+      ),
+      title: const Text('كود الخصم',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+      subtitle: applied != null
+          ? Text(applied.toUpperCase(),
+              style: const TextStyle(
+                  fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w700))
+          : null,
+      trailing: applied != null
+          ? IconButton(
+              icon: const Icon(Icons.clear, size: 18),
+              tooltip: 'إزالة الكود',
+              onPressed: () => ref.read(cartNotifierProvider.notifier).applyPromoCode(null),
+            )
+          : const Icon(Icons.chevron_right, size: 18),
+      onTap: () async {
+        final controller = TextEditingController(text: applied ?? '');
+        final entered = await showDialog<String>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('كود الخصم'),
+            content: TextField(
+              controller: controller,
+              autofocus: true,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(hintText: 'اكتب الكود'),
+              onSubmitted: (v) => Navigator.pop(ctx, v),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, controller.text),
+                child: const Text('تطبيق'),
+              ),
+            ],
+          ),
+        );
+        if (entered == null || !context.mounted) return;
+
+        final ok = ref.read(cartNotifierProvider.notifier).applyPromoCode(entered);
+        if (!context.mounted) return;
+        showAppSnackBar(
+          context,
+          ok ? 'تم تطبيق الكود' : 'الكود غير صحيح أو لا ينطبق على هذا الطلب',
+          type: ok ? AppSnackBarType.success : AppSnackBarType.error,
+        );
+      },
     );
   }
 }

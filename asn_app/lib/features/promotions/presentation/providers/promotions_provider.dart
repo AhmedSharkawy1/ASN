@@ -93,6 +93,7 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     required double minOrderAmount,
     required bool appliesToAllItems,
     List<PromotionItem> items = const [],
+    String? promoCode,
     DateTime? startsAt,
     DateTime? endsAt,
   }) async {
@@ -111,6 +112,9 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
         'discount_type': discountType,
         'discount_value': discountValue,
         'required_items': target,
+        // Blank means no coupon, so normalise it to null rather than an empty
+        // string the engine would treat as a code.
+        'promo_code': (promoCode?.trim().isNotEmpty == true) ? promoCode!.trim() : null,
         'min_order_amount': minOrderAmount,
         'starts_at': startsAt?.toIso8601String(),
         'ends_at': endsAt?.toIso8601String(),
@@ -132,6 +136,7 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     required double minOrderAmount,
     required bool appliesToAllItems,
     List<PromotionItem> items = const [],
+    String? promoCode,
     DateTime? startsAt,
     DateTime? endsAt,
   }) async {
@@ -148,6 +153,7 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
             'discount_type': discountType,
             'discount_value': discountValue,
             'required_items': target,
+            'promo_code': (promoCode?.trim().isNotEmpty == true) ? promoCode!.trim() : null,
             'min_order_amount': minOrderAmount,
             'starts_at': startsAt?.toIso8601String(),
             'ends_at': endsAt?.toIso8601String(),

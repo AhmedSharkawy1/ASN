@@ -12,6 +12,7 @@ PromotionModel _promo({
   bool active = true,
   bool allItems = false,
   List<String> itemIds = const [],
+  String? promoCode,
   DateTime? startsAt,
   DateTime? endsAt,
 }) {
@@ -22,6 +23,7 @@ PromotionModel _promo({
     'discount_value': value,
     'min_order_amount': minOrder,
     'is_active': active,
+    'promo_code': promoCode,
     'required_items': [
       if (allItems)
         {'item_id': PromotionModel.allItemsId, 'item_title_ar': 'كل الأصناف', 'qty': 1},
@@ -182,6 +184,115 @@ void main() {
             .promotion
             .id,
         'cash',
+      );
+    });
+  });
+
+  group('promo codes', () {
+    final coded = _promo(allItems: true, promoCode: 'SAVE10', value: 10);
+
+    test('a coded offer never fires on its own', () {
+      // The whole point of a coupon: no code, no discount, even though the
+      // offer is active and matches the cart.
+      expect(
+        PromotionEngine.evaluate(
+            cartItems: _cart({'a': 1}), promotions: [coded], subtotal: 200),
+        isNull,
+      );
+    });
+
+    test('the right code unlocks it', () {
+      final result = PromotionEngine.evaluate(
+        cartItems: _cart({'a': 1}),
+        promotions: [coded],
+        subtotal: 200,
+        enteredCode: 'SAVE10',
+      );
+      expect(result, isNotNull);
+      expect(result!.discountAmount, 20);
+    });
+
+    test('matching ignores case and surrounding spaces', () {
+      for (final entered in ['save10', ' SAVE10 ', 'Save10']) {
+        expect(
+          PromotionEngine.evaluate(
+              cartItems: _cart({'a': 1}),
+              promotions: [coded],
+              subtotal: 200,
+              enteredCode: entered),
+          isNotNull,
+          reason: 'entered: "$entered"',
+        );
+      }
+    });
+
+    test('a wrong code leaves the offer locked', () {
+      expect(
+        PromotionEngine.evaluate(
+            cartItems: _cart({'a': 1}),
+            promotions: [coded],
+            subtotal: 200,
+            enteredCode: 'SAVE20'),
+        isNull,
+      );
+    });
+
+    test('a code does not unlock an offer that has none', () {
+      // An automatic offer must not be "double dipped" by typing something,
+      // nor blocked by it.
+      final automatic = _promo(allItems: true, value: 10);
+      final result = PromotionEngine.evaluate(
+        cartItems: _cart({'a': 1}),
+        promotions: [automatic],
+        subtotal: 200,
+        enteredCode: 'ANYTHING',
+      );
+      expect(result, isNotNull);
+      expect(result!.promotion.requiresPromoCode, isFalse);
+    });
+
+    test('a coded offer still has to satisfy its other conditions', () {
+      final result = PromotionEngine.evaluate(
+        cartItems: _cart({'juice': 1}),
+        promotions: [_promo(itemIds: ['burger'], promoCode: 'SAVE10')],
+        subtotal: 200,
+        enteredCode: 'SAVE10',
+      );
+      expect(result, isNull, reason: 'the required item is not in the cart');
+    });
+
+    test('an automatic offer wins over a coupon that saves less', () {
+      final result = PromotionEngine.evaluate(
+        cartItems: _cart({'a': 1}),
+        promotions: [
+          _promo(id: 'auto', allItems: true, type: PromotionModel.typeFixed, value: 50),
+          _promo(id: 'coupon', allItems: true, type: PromotionModel.typeFixed, value: 20, promoCode: 'SAVE'),
+        ],
+        subtotal: 200,
+        enteredCode: 'SAVE',
+      );
+      expect(result!.promotion.id, 'auto');
+    });
+
+    test('a blank code column reads as no coupon, not an empty one', () {
+      // The provider writes null for a blank field, but a stray empty string
+      // from elsewhere must not lock an offer behind an unenterable code.
+      final blank = PromotionModel.fromJson({
+        'id': 'b1',
+        'name_ar': 'عرض',
+        'discount_type': PromotionModel.typeFixed,
+        'discount_value': 10,
+        'min_order_amount': 0,
+        'promo_code': '   ',
+        'required_items': [
+          {'item_id': PromotionModel.allItemsId, 'item_title_ar': 'كل', 'qty': 1},
+        ],
+      });
+      expect(blank.requiresPromoCode, isFalse);
+      expect(
+        PromotionEngine.evaluate(
+            cartItems: _cart({'a': 1}), promotions: [blank], subtotal: 100),
+        isNotNull,
       );
     });
   });

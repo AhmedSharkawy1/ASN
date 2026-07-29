@@ -481,6 +481,11 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 source: 'website',
                 promotion_id: promotionId || null,
                 promotion_name: promotionName || null,
+                // `discount` is the column the dashboard, the reports and the
+                // mobile app all read; `discount_amount` was write-only, so a
+                // website offer showed as zero discount everywhere. Both are
+                // written to keep anything still reading the old name working.
+                discount: discountAmount || 0,
                 discount_amount: discountAmount || 0,
                 discount_type: discountType || null,
                 branch_name: branchName || null,

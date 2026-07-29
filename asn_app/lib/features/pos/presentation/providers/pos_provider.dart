@@ -62,6 +62,11 @@ class CartState {
   /// Best matching offer for the current cart, recalculated on every change.
   final AppliedPromotion? promotion;
 
+  /// Coupon the cashier keyed in. Offers locked behind a code stay locked
+  /// until it is entered — the register must not hand out a coupon discount
+  /// the customer never presented.
+  final String? promoCode;
+
   const CartState({
     this.items = const [],
     this.discountValue = 0,
@@ -76,6 +81,7 @@ class CartState {
     this.depositAmount = 0,
     this.isCheckingOut = false,
     this.promotion,
+    this.promoCode,
   });
 
   double get subtotal => items.fold(0, (sum, item) => sum + item.totalPrice);
@@ -131,6 +137,8 @@ class CartState {
     // A null `promotion` means "unchanged", as for every other field, so
     // dropping the offer needs its own flag.
     bool clearPromotion = false,
+    String? promoCode,
+    bool clearPromoCode = false,
   }) {
     return CartState(
       items: items ?? this.items,
@@ -146,8 +154,70 @@ class CartState {
       depositAmount: depositAmount ?? this.depositAmount,
       isCheckingOut: isCheckingOut ?? this.isCheckingOut,
       promotion: clearPromotion ? null : (promotion ?? this.promotion),
+      promoCode: clearPromoCode ? null : (promoCode ?? this.promoCode),
     );
   }
+}
+
+/// The `orders` row a checkout writes.
+///
+/// Pure and top-level so the column names can be tested: the dashboard, the
+/// reports and the web menu all read this table, and a wrong or missing column
+/// here shows up as an order that looks fine but is counted wrong.
+Map<String, dynamic> buildOrderRow(
+  CartState state, {
+  required String orderId,
+  required String? restaurantId,
+  required String cashierName,
+  required String createdBy,
+}) {
+  // Items in the web platform's jsonb shape.
+  final items = state.items
+      .map((item) => {
+            'id': item.product.id,
+            'title': item.product.titleAr,
+            'qty': item.quantity,
+            'price': item.size.price,
+            if (item.size.label.isNotEmpty) 'size': item.size.label,
+            if (item.categoryName != null) 'category': item.categoryName,
+          })
+      .toList();
+
+  return {
+    'id': orderId,
+    'restaurant_id': restaurantId,
+    // order_number is a serial column — the DB assigns the next number.
+    'status': 'pending',
+    // Without this the web dashboard treats a till order as a website one: it
+    // lands under the wrong source filter, offers the website status flow
+    // instead of the register's, and pops a "new order" alert for an order the
+    // cashier just rang up in front of the customer.
+    'source': 'pos',
+    'is_draft': false,
+    'order_type': state.orderType.dbValue,
+    'items': items,
+    'subtotal': state.subtotal,
+    'discount': state.discount,
+    // Mirrors the website column so both sources agree.
+    'discount_amount': state.discount,
+    'discount_type': state.discountIsPercent ? 'percent' : 'fixed',
+    // Which offer produced the discount, so reports can attribute it the same
+    // way they do for website orders.
+    'promotion_id': state.promotion?.promotion.id,
+    'promotion_name': state.promotion?.promotion.nameAr,
+    // Already zero when an offer covers shipping, so the stored total adds up.
+    'delivery_fee': state.effectiveDeliveryFee,
+    'total': state.total,
+    'payment_method': state.paymentMethod,
+    'deposit_amount': state.paymentMethod == 'deposit' ? state.depositAmount : 0,
+    'customer_name': state.customerName,
+    'customer_phone': state.customerPhone,
+    'customer_address':
+        state.orderType == PosOrderType.delivery ? state.customerAddress : null,
+    'notes': state.notes,
+    'cashier_name': cashierName,
+    'created_by': createdBy,
+  };
 }
 
 class CartNotifier extends Notifier<CartState> {
@@ -185,6 +255,7 @@ class CartNotifier extends Notifier<CartState> {
       promotions: promotions,
       subtotal: state.subtotal,
       deliveryFee: state.orderType == PosOrderType.delivery ? state.deliveryFee : 0,
+      enteredCode: state.promoCode,
     );
 
     if (best == null) {
@@ -192,6 +263,31 @@ class CartNotifier extends Notifier<CartState> {
     } else {
       state = state.copyWith(promotion: best);
     }
+  }
+
+  /// Keys in a customer's coupon.
+  ///
+  /// Returns false when nothing matches, so the till can say so instead of
+  /// looking like it accepted a code that changed no price. Clearing the code
+  /// re-prices the cart without it.
+  bool applyPromoCode(String? code) {
+    final trimmed = code?.trim();
+    if (trimmed == null || trimmed.isEmpty) {
+      state = state.copyWith(clearPromoCode: true);
+      _applyBestPromotion();
+      return true;
+    }
+
+    state = state.copyWith(promoCode: trimmed);
+    _applyBestPromotion();
+
+    final matched = state.promotion?.promotion.matchesCode(trimmed) ?? false;
+    if (!matched) {
+      // Leave the cart exactly as it was before the bad code.
+      state = state.copyWith(clearPromoCode: true);
+      _applyBestPromotion();
+    }
+    return matched;
   }
 
   void addItem(ProductModel product, {ProductSize? size, String? categoryName}) {
@@ -280,41 +376,13 @@ class CartNotifier extends Notifier<CartState> {
 
       final orderId = const Uuid().v4();
 
-      // Items in the web platform's jsonb shape.
-      final orderItemsData = state.items.map((item) {
-        return {
-          'id': item.product.id,
-          'title': item.product.titleAr,
-          'qty': item.quantity,
-          'price': item.size.price,
-          if (item.size.label.isNotEmpty) 'size': item.size.label,
-          if (item.categoryName != null) 'category': item.categoryName,
-        };
-      }).toList();
-
-      final orderData = {
-        'id': orderId,
-        'restaurant_id': user.restaurantId,
-        // order_number is a serial column — the DB assigns the next number.
-        'status': 'pending',
-        'order_type': state.orderType.dbValue,
-        'items': orderItemsData,
-        'subtotal': state.subtotal,
-        'discount': state.discount,
-        'discount_type': state.discountIsPercent ? 'percent' : 'fixed',
-        // Already zero when an offer covers shipping, so the stored total adds up.
-        'delivery_fee': state.effectiveDeliveryFee,
-        'total': state.total,
-        'payment_method': state.paymentMethod,
-        'deposit_amount': state.paymentMethod == 'deposit' ? state.depositAmount : 0,
-        'customer_name': state.customerName,
-        'customer_phone': state.customerPhone,
-        'customer_address':
-            state.orderType == PosOrderType.delivery ? state.customerAddress : null,
-        'notes': state.notes,
-        'cashier_name': user.name,
-        'created_by': user.id,
-      };
+      final orderData = buildOrderRow(
+        state,
+        orderId: orderId,
+        restaurantId: user.restaurantId,
+        cashierName: user.name,
+        createdBy: user.id,
+      );
 
       await SupabaseClientManager.client.from('orders').insert(orderData);
 

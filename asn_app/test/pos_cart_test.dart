@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:asn_app/features/pos/presentation/providers/pos_provider.dart';
 import 'package:asn_app/features/products/data/models/product_model.dart';
+import 'package:asn_app/features/promotions/data/models/promotion_model.dart';
+import 'package:asn_app/features/promotions/domain/promotion_engine.dart';
 
 /// Money maths in the POS decides what a customer is actually charged, so the
 /// totals are covered directly rather than only through the UI.
@@ -95,6 +97,105 @@ void main() {
       expect(PosOrderType.dineIn.dbValue, 'dine_in');
       expect(PosOrderType.takeaway.dbValue, 'takeaway');
       expect(PosOrderType.delivery.dbValue, 'delivery');
+    });
+  });
+
+  _orderRowTests();
+}
+
+/// The `orders` row a till checkout writes. The dashboard, the reports and the
+/// web menu all read this table, so a missing or renamed column here is an
+/// order that looks fine on screen and is counted wrong.
+void _orderRowTests() {
+  CartItem line({double price = 100, int qty = 1}) => CartItem(
+        product: ProductModel(id: 'p1', titleAr: 'صنف', price: price),
+        size: const ProductSize(label: '', price: 100),
+        quantity: qty,
+      );
+
+  Map<String, dynamic> row(CartState state) => buildOrderRow(
+        state,
+        orderId: 'o1',
+        restaurantId: 'r1',
+        cashierName: 'كاشير',
+        createdBy: 'u1',
+      );
+
+  group('order row', () {
+    test('is tagged as a till order', () {
+      // Without source=pos the web dashboard files it under "website", offers
+      // the wrong status flow, and alerts staff for an order they just rang up.
+      final r = row(CartState(items: [line()]));
+      expect(r['source'], 'pos');
+      expect(r['is_draft'], false);
+      expect(r['status'], 'pending');
+    });
+
+    test('writes the discount to both column names', () {
+      // Reports read `discount`; the website used to write only
+      // `discount_amount`, which is why website offers showed as no discount.
+      final r = row(CartState(items: [line(price: 200)], discountValue: 50));
+      expect(r['discount'], 50);
+      expect(r['discount_amount'], 50);
+    });
+
+    test('records which offer produced the discount', () {
+      final promo = PromotionModel.fromJson({
+        'id': 'promo-1',
+        'name_ar': 'خصم الويك إند',
+        'discount_type': PromotionModel.typeFixed,
+        'discount_value': 30,
+        'min_order_amount': 0,
+        'required_items': [
+          {'item_id': PromotionModel.allItemsId, 'item_title_ar': 'كل', 'qty': 1},
+        ],
+      });
+      final r = row(CartState(
+        items: [line(price: 200)],
+        promotion: AppliedPromotion(
+          promotion: promo,
+          discountAmount: 30,
+          freeShipping: false,
+        ),
+      ));
+      expect(r['promotion_id'], 'promo-1');
+      expect(r['promotion_name'], 'خصم الويك إند');
+      expect(r['discount'], 30);
+    });
+
+    test('no offer leaves the attribution columns null', () {
+      final r = row(CartState(items: [line()]));
+      expect(r['promotion_id'], isNull);
+      expect(r['promotion_name'], isNull);
+    });
+
+    test('the stored numbers add up', () {
+      final state = CartState(
+        items: [line(price: 200)],
+        discountValue: 20,
+        orderType: PosOrderType.delivery,
+        deliveryFee: 15,
+      );
+      final r = row(state);
+      expect(
+        (r['subtotal'] as double) - (r['discount'] as double) + (r['delivery_fee'] as double),
+        r['total'],
+      );
+    });
+
+    test('an address is only stored for delivery', () {
+      expect(
+        row(CartState(items: [line()], customerAddress: 'شارع ١'))['customer_address'],
+        isNull,
+      );
+      expect(
+        row(CartState(
+          items: [line()],
+          orderType: PosOrderType.delivery,
+          customerAddress: 'شارع ١',
+        ))['customer_address'],
+        'شارع ١',
+      );
     });
   });
 }

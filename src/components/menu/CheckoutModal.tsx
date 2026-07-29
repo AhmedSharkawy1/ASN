@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { submitOrder, buildWhatsAppMessage, OrderItem, OrderItemExtra } from "@/lib/helpers/submitOrder";
-import { fetchActivePromotions, evaluatePromotions, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
+import { fetchActivePromotions, evaluatePromotions, hasPromoCodeOffers, requiresPromoCode, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
 import { parseCurrency } from "@/lib/currency";
 import { FaWhatsapp } from "react-icons/fa";
 import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag } from "lucide-react";
@@ -97,6 +97,11 @@ export default function CheckoutModal({
     // Promotions state
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [appliedPromo, setAppliedPromo] = useState<AppliedPromotion | null>(null);
+    // Coupon: what the customer is typing, and the code actually accepted.
+    // Separate, so editing the box does not silently drop an applied discount.
+    const [codeInput, setCodeInput] = useState("");
+    const [appliedCode, setAppliedCode] = useState<string | null>(null);
+    const [codeError, setCodeError] = useState("");
 
     // Branch state
     const [localBranches, setLocalBranches] = useState<string[]>(propBranches);
@@ -198,6 +203,9 @@ export default function CheckoutModal({
             setItemExtras({});
             setFinalizedOrderDetails(null);
             setSelectedBranch("");
+            setCodeInput("");
+            setAppliedCode(null);
+            setCodeError("");
         }
     }, [isOpen]);
 
@@ -267,30 +275,64 @@ export default function CheckoutModal({
     const extrasTotal = getExtrasTotal();
     const deliveryFee = orderType === 'delivery' && selectedZone ? selectedZone.fee : 0;
 
+    // Extract original item ID from cart items (handles all theme formats).
+    // Shared so the coupon check validates against the very same cart the
+    // automatic evaluation sees.
+    const cartForPromo = useMemo(() => cartItems.map(ci => {
+        // 1) If theme spreads the full item object, use item.id directly
+        const itemObj = (ci as any).item;
+        if (itemObj?.id) {
+            return { id: String(itemObj.id), title: ci.title, qty: ci.qty, price: ci.price };
+        }
+        // 2) Try to extract UUID pattern from composite cart ID
+        const uuidMatch = ci.id.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+        if (uuidMatch) {
+            return { id: uuidMatch[1], title: ci.title, qty: ci.qty, price: ci.price };
+        }
+        // 3) Fallback: use raw id
+        return { id: ci.id, title: ci.title, qty: ci.qty, price: ci.price };
+    }), [cartItems]);
+
     // Evaluate promotions against current cart
     useEffect(() => {
         if (promotions.length === 0) { setAppliedPromo(null); return; }
-        // Extract original item ID from cart items (handles all theme formats)
-        const cartForPromo = cartItems.map(ci => {
-            // 1) If theme spreads the full item object, use item.id directly
-            const itemObj = (ci as any).item;
-            if (itemObj?.id) {
-                return { id: String(itemObj.id), title: ci.title, qty: ci.qty, price: ci.price };
-            }
-            // 2) Try to extract UUID pattern from composite cart ID
-            const uuidMatch = ci.id.match(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-            if (uuidMatch) {
-                return { id: uuidMatch[1], title: ci.title, qty: ci.qty, price: ci.price };
-            }
-            // 3) Fallback: use raw id
-            return { id: ci.id, title: ci.title, qty: ci.qty, price: ci.price };
-        });
         console.log('[PROMO DEBUG] Cart items for promo:', cartForPromo.map(c => ({ id: c.id, title: c.title })));
         console.log('[PROMO DEBUG] Subtotal+extras:', subtotal + extrasTotal, 'deliveryFee:', deliveryFee);
-        const result = evaluatePromotions(cartForPromo, promotions, subtotal + extrasTotal, deliveryFee);
+        const result = evaluatePromotions(cartForPromo, promotions, subtotal + extrasTotal, deliveryFee, appliedCode);
         console.log('[PROMO DEBUG] Result:', result ? { name: result.promotion.name_ar, discount: result.discountAmount, freeShipping: result.freeShipping } : 'NO MATCH');
         setAppliedPromo(result);
-    }, [cartItems, promotions, subtotal, extrasTotal, deliveryFee]);
+    }, [cartForPromo, promotions, subtotal, extrasTotal, deliveryFee, appliedCode]);
+
+    // Only offer a coupon box when a coded offer actually exists, so customers
+    // are never prompted for a code that cannot work.
+    const showPromoCodeField = hasPromoCodeOffers(promotions);
+
+    const applyPromoCode = () => {
+        const entered = codeInput.trim();
+        if (!entered) return;
+        // Validate against the cart as it stands: a code for items the customer
+        // has not added must say so rather than appear accepted.
+        const match = evaluatePromotions(
+            cartForPromo,
+            promotions.filter(requiresPromoCode),
+            subtotal + extrasTotal,
+            deliveryFee,
+            entered,
+        );
+        if (match) {
+            setAppliedCode(entered);
+            setCodeError("");
+        } else {
+            setAppliedCode(null);
+            setCodeError(isAr ? 'الكود غير صحيح أو لا ينطبق على طلبك' : 'Invalid code, or it does not apply to your order');
+        }
+    };
+
+    const clearPromoCode = () => {
+        setAppliedCode(null);
+        setCodeInput("");
+        setCodeError("");
+    };
 
     const promoDiscount = appliedPromo ? appliedPromo.discountAmount : 0;
     const total = subtotal + extrasTotal + deliveryFee - promoDiscount;
@@ -704,6 +746,53 @@ export default function CheckoutModal({
                                     {isAr ? "برجاء الضغط على زر الواتساب بالأسفل لارسال الطلب." : "Please click the WhatsApp button below to send the order."}
                                 </p>
                             </div>
+
+                            {/* Coupon box — only when this restaurant has a coded offer */}
+                            {showPromoCodeField && (
+                                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-start">
+                                    <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-2">
+                                        <Tag className="w-3.5 h-3.5" />
+                                        {isAr ? "كود الخصم" : "Promo code"}
+                                    </label>
+                                    {appliedCode ? (
+                                        <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl p-2.5">
+                                            <span className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-bold text-xs">
+                                                <CheckCircle className="w-3.5 h-3.5" />
+                                                {appliedCode.toUpperCase()}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={clearPromoCode}
+                                                className="text-[11px] font-bold text-red-500 hover:underline"
+                                            >
+                                                {isAr ? "إزالة" : "Remove"}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={codeInput}
+                                                onChange={e => { setCodeInput(e.target.value); setCodeError(""); }}
+                                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyPromoCode(); } }}
+                                                placeholder={isAr ? "اكتب الكود" : "Enter code"}
+                                                className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm font-bold uppercase outline-none focus:border-amber-400"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={applyPromoCode}
+                                                disabled={!codeInput.trim()}
+                                                className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-bold disabled:opacity-40"
+                                            >
+                                                {isAr ? "تطبيق" : "Apply"}
+                                            </button>
+                                        </div>
+                                    )}
+                                    {codeError && (
+                                        <p className="text-[11px] font-bold text-red-500 mt-1.5">{codeError}</p>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Order Summary with Discount */}
                             <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-sm space-y-2 text-start">

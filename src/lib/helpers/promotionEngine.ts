@@ -22,6 +22,23 @@ export const ALL_ITEMS_ID = '__all_items__';
 export const isAllItemsPromotion = (promotion: Pick<Promotion, 'required_items'>): boolean =>
     (promotion.required_items || []).some(ri => ri.item_id === ALL_ITEMS_ID);
 
+/** An offer locked behind a coupon code. */
+export const requiresPromoCode = (promotion: Pick<Promotion, 'promo_code'>): boolean =>
+    typeof promotion.promo_code === 'string' && promotion.promo_code.trim().length > 0;
+
+/**
+ * Whether to show the coupon field at checkout at all. Hidden unless this
+ * restaurant actually has an active coded offer, so customers are never
+ * prompted for a code that cannot exist.
+ */
+export const hasPromoCodeOffers = (promotions: Promotion[]): boolean =>
+    promotions.some(requiresPromoCode);
+
+/** Codes are matched case-insensitively and ignoring surrounding spaces. */
+const codeMatches = (promotion: Promotion, enteredCode?: string | null): boolean =>
+    !!enteredCode &&
+    promotion.promo_code!.trim().toLowerCase() === enteredCode.trim().toLowerCase();
+
 export type Promotion = {
     id: string;
     restaurant_id: string;
@@ -31,6 +48,8 @@ export type Promotion = {
     description_en?: string;
     discount_type: 'fixed_amount' | 'percentage' | 'free_shipping';
     discount_value: number;
+    /** Coupon code required to unlock this offer. Null/empty = applies automatically. */
+    promo_code?: string | null;
     required_items: RequiredItem[];
     bundle_price?: number;
     min_order_amount: number;
@@ -119,8 +138,15 @@ export async function fetchActivePromotions(restaurantId: string): Promise<Promo
 function isPromotionApplicable(
     promotion: Promotion,
     cartItems: CartItemForPromo[],
-    subtotal: number
+    subtotal: number,
+    enteredCode?: string | null
 ): boolean {
+    // A coded offer stays locked until the customer types its code, and an
+    // automatic offer is never unlocked by typing something.
+    if (requiresPromoCode(promotion) && !codeMatches(promotion, enteredCode)) {
+        return false;
+    }
+
     // Check minimum order amount
     if (promotion.min_order_amount > 0 && subtotal < promotion.min_order_amount) {
         return false;
@@ -189,12 +215,13 @@ export function evaluatePromotions(
     cartItems: CartItemForPromo[],
     promotions: Promotion[],
     subtotal: number,
-    deliveryFee: number = 0
+    deliveryFee: number = 0,
+    enteredCode?: string | null
 ): AppliedPromotion | null {
     let bestPromo: AppliedPromotion | null = null;
 
     for (const promo of promotions) {
-        if (!isPromotionApplicable(promo, cartItems, subtotal)) continue;
+        if (!isPromotionApplicable(promo, cartItems, subtotal, enteredCode)) continue;
 
         const { discountAmount, freeShipping } = calculatePromotionDiscount(
             promo,

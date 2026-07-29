@@ -48,6 +48,9 @@ class PromotionModel {
   final String? descriptionEn;
   final String discountType; // fixed_amount | percentage | free_shipping
   final double discountValue;
+
+  /// Coupon code that unlocks this offer. Null means it applies automatically.
+  final String? promoCode;
   final List<Map<String, dynamic>> requiredItems;
   final double? bundlePrice;
   final double minOrderAmount;
@@ -63,6 +66,7 @@ class PromotionModel {
     this.descriptionEn,
     required this.discountType,
     required this.discountValue,
+    this.promoCode,
     this.requiredItems = const [],
     this.bundlePrice,
     required this.minOrderAmount,
@@ -92,6 +96,17 @@ class PromotionModel {
   /// happens at checkout.
   bool get hasNoTarget => !appliesToAllItems && items.isEmpty;
 
+  /// Locked behind a coupon: it must never fire on its own, at the register or
+  /// on the menu, until the code is entered.
+  bool get requiresPromoCode => promoCode != null && promoCode!.trim().isNotEmpty;
+
+  /// Codes match ignoring case and surrounding spaces, so a customer typing
+  /// "save10" gets the offer created as "SAVE10".
+  bool matchesCode(String? entered) =>
+      requiresPromoCode &&
+      entered != null &&
+      entered.trim().toLowerCase() == promoCode!.trim().toLowerCase();
+
   factory PromotionModel.fromJson(Map<String, dynamic> json) {
     return PromotionModel(
       id: json['id'] as String,
@@ -101,6 +116,9 @@ class PromotionModel {
       descriptionEn: json['description_en'] as String?,
       discountType: json['discount_type'] as String? ?? 'fixed_amount',
       discountValue: (json['discount_value'] as num? ?? 0).toDouble(),
+      promoCode: (json['promo_code'] as String?)?.trim().isNotEmpty == true
+          ? (json['promo_code'] as String).trim()
+          : null,
       requiredItems: (json['required_items'] as List?)
               ?.whereType<Map<String, dynamic>>()
               .toList() ??

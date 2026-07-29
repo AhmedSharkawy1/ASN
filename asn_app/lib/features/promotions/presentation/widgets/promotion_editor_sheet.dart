@@ -41,7 +41,10 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
   late final TextEditingController _value;
   late final TextEditingController _minOrder;
 
+  late final TextEditingController _promoCode;
+
   late String _type;
+  late bool _requiresCode;
   late bool _allItems;
   late Map<String, PromotionItem> _selected;
   DateTime? _startsAt;
@@ -63,7 +66,9 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
     _minOrder = TextEditingController(
       text: p == null || p.minOrderAmount == 0 ? '' : _trimZeros(p.minOrderAmount),
     );
+    _promoCode = TextEditingController(text: p?.promoCode ?? '');
     _type = p?.discountType ?? PromotionModel.typePercentage;
+    _requiresCode = p?.requiresPromoCode ?? false;
     _allItems = p?.appliesToAllItems ?? true;
     _selected = {for (final i in p?.items ?? const <PromotionItem>[]) i.itemId: i};
     _startsAt = p?.startsAt;
@@ -80,6 +85,7 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
     _description.dispose();
     _value.dispose();
     _minOrder.dispose();
+    _promoCode.dispose();
     super.dispose();
   }
 
@@ -135,6 +141,7 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
           minOrderAmount: minOrder,
           appliesToAllItems: _allItems,
           items: items,
+          promoCode: _requiresCode ? _promoCode.text.trim() : null,
           startsAt: _startsAt,
           endsAt: _endsAt,
         );
@@ -148,6 +155,7 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
           minOrderAmount: minOrder,
           appliesToAllItems: _allItems,
           items: items,
+          promoCode: _requiresCode ? _promoCode.text.trim() : null,
           startsAt: _startsAt,
           endsAt: _endsAt,
         );
@@ -261,6 +269,46 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
                       AppSpacing.heightXs,
                       _itemPicker(),
                     ],
+                    AppSpacing.heightMd,
+
+                    _sectionTitle('كود الخصم'),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      value: _requiresCode,
+                      onChanged: (v) => setState(() => _requiresCode = v),
+                      title: const Text('يتطلب كود',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      subtitle: Text(
+                        _requiresCode
+                            ? 'العرض لا يُطبَّق إلا لو كتب العميل الكود'
+                            : 'العرض يُطبَّق تلقائياً بدون كود',
+                        style: const TextStyle(fontSize: 11.5),
+                      ),
+                    ),
+                    if (_requiresCode)
+                      TextFormField(
+                        controller: _promoCode,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: [
+                          // A code the customer has to type: no spaces to get
+                          // wrong, and matching is case-insensitive anyway.
+                          FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                          LengthLimitingTextInputFormatter(24),
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'الكود *',
+                          hintText: 'SAVE10',
+                          helperText: 'حروف وأرقام بدون مسافات — الكبتال مش فارق',
+                        ),
+                        validator: (v) {
+                          if (!_requiresCode) return null;
+                          final code = (v ?? '').trim();
+                          if (code.isEmpty) return 'اكتب الكود أو أوقف الخيار';
+                          if (code.length < 3) return 'الكود قصير جداً';
+                          return null;
+                        },
+                      ),
                     AppSpacing.heightMd,
 
                     _sectionTitle('المدة (اختياري)'),

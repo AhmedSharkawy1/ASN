@@ -228,6 +228,13 @@ class _PromotionCard extends ConsumerWidget {
                   icon: promo.appliesToAllItems ? Icons.select_all : Icons.checklist,
                   label: _targetLabel,
                 ),
+                if (promo.requiresPromoCode)
+                  _chip(
+                    context,
+                    icon: Icons.local_activity_outlined,
+                    label: promo.promoCode!.toUpperCase(),
+                    color: AppColors.steelBlue,
+                  ),
                 if (promo.minOrderAmount > 0)
                   _chip(
                     context,

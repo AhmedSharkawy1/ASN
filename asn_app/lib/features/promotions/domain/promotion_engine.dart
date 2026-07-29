@@ -71,8 +71,15 @@ class PromotionEngine {
   static bool isApplicable(
     PromotionModel promotion,
     List<PromotionCartItem> cartItems,
-    double subtotal,
-  ) {
+    double subtotal, {
+    String? enteredCode,
+  }) {
+    // A coded offer stays locked until the code is entered, and an automatic
+    // offer is never unlocked by typing something.
+    if (promotion.requiresPromoCode && !promotion.matchesCode(enteredCode)) {
+      return false;
+    }
+
     if (promotion.minOrderAmount > 0 && subtotal < promotion.minOrderAmount) {
       return false;
     }
@@ -122,12 +129,13 @@ class PromotionEngine {
     required List<PromotionModel> promotions,
     required double subtotal,
     double deliveryFee = 0,
+    String? enteredCode,
     DateTime? now,
   }) {
     AppliedPromotion? best;
 
     for (final promo in active(promotions, now: now)) {
-      if (!isApplicable(promo, cartItems, subtotal)) continue;
+      if (!isApplicable(promo, cartItems, subtotal, enteredCode: enteredCode)) continue;
 
       final result = discountFor(promo, subtotal, deliveryFee);
       final candidate = AppliedPromotion(
