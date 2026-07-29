@@ -419,10 +419,17 @@ class PosCartPanel extends ConsumerWidget {
             child: Column(
               children: [
                 _SummaryRow(title: l10n.subtotal, value: cartState.subtotal),
-                if (cartState.discount > 0)
-                  _SummaryRow(title: l10n.discount, value: -cartState.discount),
+                // Separate lines: the cashier needs to see which part of the
+                // discount they entered and which part the offer applied.
+                if (cartState.manualDiscount > 0)
+                  _SummaryRow(title: l10n.discount, value: -cartState.manualDiscount),
+                if (cartState.promotion != null) _PromotionRow(cart: cartState),
                 if (cartState.orderType == PosOrderType.delivery && cartState.deliveryFee > 0)
-                  _SummaryRow(title: l10n.deliveryFee, value: cartState.deliveryFee),
+                  _SummaryRow(
+                    title: l10n.deliveryFee,
+                    value: cartState.effectiveDeliveryFee,
+                    strikethrough: cartState.shippingSaving > 0,
+                  ),
                 const Divider(height: AppSpacing.md),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -777,7 +784,15 @@ class _SummaryRow extends StatelessWidget {
   final String title;
   final double value;
 
-  const _SummaryRow({required this.title, required this.value});
+  /// Shows the fee as waived rather than hiding it, so the customer can see
+  /// what the offer saved them.
+  final bool strikethrough;
+
+  const _SummaryRow({
+    required this.title,
+    required this.value,
+    this.strikethrough = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -787,7 +802,58 @@ class _SummaryRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          Text(_fmt(value), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          Text(
+            _fmt(value),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              decoration: strikethrough ? TextDecoration.lineThrough : null,
+              color: strikethrough ? Colors.grey : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The offer the engine picked, named so the cashier can explain it.
+class _PromotionRow extends StatelessWidget {
+  final CartState cart;
+
+  const _PromotionRow({required this.cart});
+
+  @override
+  Widget build(BuildContext context) {
+    final promo = cart.promotion!;
+    final saving = promo.freeShipping ? cart.shippingSaving : cart.promotionDiscount;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6.0),
+      child: Row(
+        children: [
+          const Icon(Icons.local_offer, size: 14, color: AppColors.success),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              promo.promotion.nameAr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.success,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            promo.freeShipping && saving == 0 ? 'شحن مجاني' : _fmt(-saving),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: AppColors.success,
+            ),
+          ),
         ],
       ),
     );

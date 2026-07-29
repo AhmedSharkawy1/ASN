@@ -4,6 +4,8 @@ import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/shared/data/supabase_client.dart';
 import 'package:asn_app/features/products/data/models/product_model.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:asn_app/features/promotions/domain/promotion_engine.dart';
+import 'package:asn_app/features/promotions/presentation/providers/promotions_provider.dart';
 
 enum PosOrderType { dineIn, takeaway, delivery }
 
@@ -57,6 +59,9 @@ class CartState {
   final double depositAmount;
   final bool isCheckingOut;
 
+  /// Best matching offer for the current cart, recalculated on every change.
+  final AppliedPromotion? promotion;
+
   const CartState({
     this.items = const [],
     this.discountValue = 0,
@@ -70,17 +75,40 @@ class CartState {
     this.paymentMethod = 'cash',
     this.depositAmount = 0,
     this.isCheckingOut = false,
+    this.promotion,
   });
 
   double get subtotal => items.fold(0, (sum, item) => sum + item.totalPrice);
 
-  double get discount {
+  /// The discount the cashier typed in by hand.
+  double get manualDiscount {
     final d = discountIsPercent ? subtotal * (discountValue / 100) : discountValue;
     return d.clamp(0, subtotal);
   }
 
+  /// The offer's share, which is zero for free shipping — that one waives the
+  /// delivery fee instead of taking money off the items.
+  double get promotionDiscount =>
+      promotion != null && !promotion!.freeShipping ? promotion!.discountAmount : 0;
+
+  /// What the order row stores: both discounts together, never more than the
+  /// order is worth.
+  double get discount => (manualDiscount + promotionDiscount).clamp(0, subtotal);
+
+  /// Delivery is only charged on delivery orders, and not at all when an offer
+  /// covers it.
+  double get effectiveDeliveryFee {
+    if (orderType != PosOrderType.delivery) return 0;
+    return promotion?.freeShipping == true ? 0 : deliveryFee;
+  }
+
+  /// What the free-shipping offer saved, for display only — it is already
+  /// reflected in [effectiveDeliveryFee].
+  double get shippingSaving =>
+      promotion?.freeShipping == true && orderType == PosOrderType.delivery ? deliveryFee : 0;
+
   double get total {
-    final t = subtotal - discount + (orderType == PosOrderType.delivery ? deliveryFee : 0);
+    final t = subtotal - discount + effectiveDeliveryFee;
     return t < 0 ? 0 : t;
   }
 
@@ -99,6 +127,10 @@ class CartState {
     String? paymentMethod,
     double? depositAmount,
     bool? isCheckingOut,
+    AppliedPromotion? promotion,
+    // A null `promotion` means "unchanged", as for every other field, so
+    // dropping the offer needs its own flag.
+    bool clearPromotion = false,
   }) {
     return CartState(
       items: items ?? this.items,
@@ -113,6 +145,7 @@ class CartState {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       depositAmount: depositAmount ?? this.depositAmount,
       isCheckingOut: isCheckingOut ?? this.isCheckingOut,
+      promotion: clearPromotion ? null : (promotion ?? this.promotion),
     );
   }
 }
@@ -122,7 +155,43 @@ class CartNotifier extends Notifier<CartState> {
   CartState build() {
     // Switching restaurants must not carry a half-built order across.
     ref.watch(activeRestaurantIdProvider);
+    // Offers loading in (or being edited) must re-price the open cart.
+    ref.listen(promotionsNotifierProvider, (_, _) => _applyBestPromotion());
     return const CartState();
+  }
+
+  /// Re-runs the offer rules against the cart as it stands.
+  ///
+  /// Called after every change that can affect the outcome — items, order
+  /// type, delivery fee — so the cashier sees the same discount the customer
+  /// would get ordering the identical basket from the web menu.
+  void _applyBestPromotion() {
+    if (state.items.isEmpty) {
+      if (state.promotion != null) state = state.copyWith(clearPromotion: true);
+      return;
+    }
+
+    final promotions = ref.read(promotionsNotifierProvider).value ?? const [];
+    if (promotions.isEmpty) {
+      if (state.promotion != null) state = state.copyWith(clearPromotion: true);
+      return;
+    }
+
+    final best = PromotionEngine.evaluate(
+      cartItems: [
+        for (final i in state.items)
+          PromotionCartItem(itemId: i.product.id, qty: i.quantity),
+      ],
+      promotions: promotions,
+      subtotal: state.subtotal,
+      deliveryFee: state.orderType == PosOrderType.delivery ? state.deliveryFee : 0,
+    );
+
+    if (best == null) {
+      if (state.promotion != null) state = state.copyWith(clearPromotion: true);
+    } else {
+      state = state.copyWith(promotion: best);
+    }
   }
 
   void addItem(ProductModel product, {ProductSize? size, String? categoryName}) {
@@ -138,6 +207,7 @@ class CartNotifier extends Notifier<CartState> {
     } else {
       state = state.copyWith(items: [...state.items, newItem]);
     }
+    _applyBestPromotion();
   }
 
   void updateQuantity(String cartKey, int newQuantity) {
@@ -154,12 +224,14 @@ class CartNotifier extends Notifier<CartState> {
     }).toList();
 
     state = state.copyWith(items: updatedItems);
+    _applyBestPromotion();
   }
 
   void removeItem(String cartKey) {
     state = state.copyWith(
       items: state.items.where((i) => i.key != cartKey).toList(),
     );
+    _applyBestPromotion();
   }
 
   void setDiscount(double value, {required bool isPercent}) {
@@ -168,10 +240,13 @@ class CartNotifier extends Notifier<CartState> {
 
   void setOrderType(PosOrderType type) {
     state = state.copyWith(orderType: type);
+    // Free shipping only pays off on delivery, so the best offer can change.
+    _applyBestPromotion();
   }
 
   void setDeliveryFee(double fee) {
     state = state.copyWith(deliveryFee: fee);
+    _applyBestPromotion();
   }
 
   void setCustomer({String? name, String? phone, String? address, String? notes}) {
@@ -227,7 +302,8 @@ class CartNotifier extends Notifier<CartState> {
         'subtotal': state.subtotal,
         'discount': state.discount,
         'discount_type': state.discountIsPercent ? 'percent' : 'fixed',
-        'delivery_fee': state.orderType == PosOrderType.delivery ? state.deliveryFee : 0,
+        // Already zero when an offer covers shipping, so the stored total adds up.
+        'delivery_fee': state.effectiveDeliveryFee,
         'total': state.total,
         'payment_method': state.paymentMethod,
         'deposit_amount': state.paymentMethod == 'deposit' ? state.depositAmount : 0,
