@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:asn_app/core/notifications/notifications_service.dart';
 import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:asn_app/features/orders/domain/entities/order_entity.dart';
@@ -34,12 +33,6 @@ final updateOrderStatusUseCaseProvider = Provider<UpdateOrderStatusUseCase>((ref
 final subscribeNewOrdersUseCaseProvider = Provider<SubscribeNewOrdersUseCase>((ref) {
   final repo = ref.watch(ordersRepositoryProvider);
   return SubscribeNewOrdersUseCase(repo);
-});
-
-final notificationsServiceProvider = Provider<NotificationsService>((ref) {
-  final service = NotificationsService();
-  service.initialize();
-  return service;
 });
 
 // State provider for active branch ID filtering using modern Notifier
