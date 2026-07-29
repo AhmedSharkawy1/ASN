@@ -2,7 +2,10 @@
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Plus, Trash2, Edit2, Tag, X, Save, Loader2, ToggleLeft, ToggleRight, Search, Layers, CheckSquare } from "lucide-react";
+import { Plus, Trash2, Edit2, Tag, X, Save, Loader2, ToggleLeft, ToggleRight, Search, Layers, CheckSquare, Ticket } from "lucide-react";
+// The marker and the coupon rule come from the engine that evaluates offers at
+// checkout, so this page cannot drift from what actually applies.
+import { ALL_ITEMS_ID, requiresPromoCode } from "@/lib/helpers/promotionEngine";
 
 type RequiredItem = { item_id: string; item_title_ar: string; item_title_en?: string; qty: number };
 type Promotion = {
@@ -10,6 +13,7 @@ type Promotion = {
   description_ar?: string; description_en?: string;
   discount_type: 'fixed_amount' | 'percentage' | 'free_shipping';
   discount_value: number; required_items: RequiredItem[];
+  promo_code?: string | null;
   bundle_price?: number; min_order_amount: number;
   is_active: boolean; starts_at?: string; ends_at?: string; created_at: string;
 };
@@ -35,6 +39,12 @@ export default function PromotionsPage() {
   const [minOrder, setMinOrder] = useState(0);
   const [startsAt, setStartsAt] = useState(""); const [endsAt, setEndsAt] = useState("");
   const [selectedItems, setSelectedItems] = useState<RequiredItem[]>([]);
+  // Coupon: an offer with a code only applies when the customer types it.
+  const [requiresCode, setRequiresCode] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  // Whole-menu offer, stored as a marker row inside required_items so the app
+  // and this page read each other's offers.
+  const [allItems, setAllItems] = useState(false);
   const [saving, setSaving] = useState(false);
   const [itemSearch, setItemSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string|null>(null);
@@ -68,6 +78,7 @@ export default function PromotionsPage() {
     setNameAr(""); setNameEn(""); setDescAr(""); setDescEn("");
     setDiscountType('fixed_amount'); setDiscountValue(0); setBundlePrice(undefined);
     setMinOrder(0); setStartsAt(""); setEndsAt(""); setSelectedItems([]); setEditingId(null);
+    setRequiresCode(false); setPromoCode(""); setAllItems(false);
   };
 
   const openEdit = (p: Promotion) => {
@@ -77,17 +88,40 @@ export default function PromotionsPage() {
     setBundlePrice(p.bundle_price); setMinOrder(p.min_order_amount);
     setStartsAt(p.starts_at ? p.starts_at.slice(0,16) : "");
     setEndsAt(p.ends_at ? p.ends_at.slice(0,16) : "");
-    setSelectedItems(p.required_items || []); setShowForm(true);
+    // The all-items marker is not a real menu item, so it drives the toggle
+    // instead of appearing in the picked list.
+    const items = p.required_items || [];
+    setAllItems(items.some(ri => ri.item_id === ALL_ITEMS_ID));
+    setSelectedItems(items.filter(ri => ri.item_id !== ALL_ITEMS_ID));
+    setRequiresCode(requiresPromoCode(p));
+    setPromoCode(p.promo_code || "");
+    setShowForm(true);
   };
 
   const handleSave = async () => {
     if (!restaurantId || !nameAr.trim()) return;
+    // The engine skips an offer with no target, so it would look active and
+    // never discount anything.
+    if (!allItems && selectedItems.length === 0) {
+      alert(isAr ? 'اختر كل الأصناف أو صنفاً واحداً على الأقل' : 'Pick all items, or at least one item');
+      return;
+    }
+    if (requiresCode && promoCode.trim().length < 3) {
+      alert(isAr ? 'اكتب كود الخصم أو أوقف الخيار' : 'Enter a promo code, or turn the option off');
+      return;
+    }
     setSaving(true);
+    const requiredItems: RequiredItem[] = allItems
+      ? [{ item_id: ALL_ITEMS_ID, item_title_ar: 'كل الأصناف', item_title_en: 'All items', qty: 1 }]
+      : selectedItems;
     const payload = {
       restaurant_id: restaurantId, name_ar: nameAr, name_en: nameEn || null,
       description_ar: descAr || null, description_en: descEn || null,
       discount_type: discountType, discount_value: discountValue,
-      required_items: selectedItems, bundle_price: bundlePrice || null,
+      required_items: requiredItems, bundle_price: bundlePrice || null,
+      // Blank means no coupon, so store null rather than an empty string the
+      // engine would treat as a code nobody can type.
+      promo_code: requiresCode && promoCode.trim() ? promoCode.trim() : null,
       min_order_amount: minOrder, starts_at: startsAt || null, ends_at: endsAt || null,
     };
     if (editingId) {
@@ -240,7 +274,51 @@ export default function PromotionsPage() {
                     className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-amber-500 outline-none font-bold" />
                 </div>
               </div>
+              {/* Promo code */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
+                  <div>
+                    <span className="text-sm font-bold text-silver">{isAr?'يتطلب كود خصم':'Requires a promo code'}</span>
+                    <p className="text-[11px] text-slate-400 font-bold">
+                      {requiresCode
+                        ? (isAr?'لن يُطبَّق العرض إلا لو كتب العميل الكود':'The offer only applies when the customer enters the code')
+                        : (isAr?'العرض يُطبَّق تلقائياً بدون كود':'The offer applies automatically, with no code')}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" className="sr-only peer" checked={requiresCode}
+                      onChange={e => setRequiresCode(e.target.checked)} />
+                    <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  </label>
+                </div>
+                {requiresCode && (
+                  <input type="text" value={promoCode} dir="ltr"
+                    // No spaces to mistype; matching is case-insensitive anyway.
+                    onChange={e => setPromoCode(e.target.value.replace(/\s/g, '').toUpperCase().slice(0, 24))}
+                    placeholder="SAVE10"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-amber-500 outline-none font-bold tracking-widest uppercase" />
+                )}
+              </div>
+
+              {/* Applies to */}
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
+                <div>
+                  <span className="text-sm font-bold text-silver">{isAr?'يطبّق على كل الأصناف':'Applies to the whole menu'}</span>
+                  <p className="text-[11px] text-slate-400 font-bold">
+                    {allItems
+                      ? (isAr?'يشمل أي صنف تضيفه لاحقاً':'Includes items added later')
+                      : (isAr?'اختر الأصناف من الأسفل':'Pick the items below')}
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" className="sr-only peer" checked={allItems}
+                    onChange={e => setAllItems(e.target.checked)} />
+                  <div className="w-11 h-6 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
               {/* Required Items */}
+              {!allItems && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-bold text-silver">{isAr?'الأصناف المطلوبة للعرض':'Required Items for Offer'}</label>
@@ -342,6 +420,7 @@ export default function PromotionsPage() {
                   </div>
                 )}
               </div>
+              )}
               <div className="flex items-center gap-3 pt-3 border-t border-glass-border">
                 <button onClick={handleSave} disabled={saving || !nameAr.trim()}
                   className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
@@ -394,6 +473,18 @@ export default function PromotionsPage() {
                     </span>
                   </div>
                   {p.description_ar && <p className="text-sm text-silver">{p.description_ar}</p>}
+                  {requiresPromoCode(p) && (
+                    <span className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 text-xs font-bold px-2 py-1 rounded-lg tracking-widest">
+                      <Ticket className="w-3.5 h-3.5" /> {p.promo_code}
+                    </span>
+                  )}
+                  {/* An offer with no target never fires, so say so rather than
+                      letting it look active. */}
+                  {(!p.required_items || p.required_items.length === 0) && (
+                    <span className="inline-flex items-center gap-1.5 bg-red-50 dark:bg-red-500/10 text-red-600 text-xs font-bold px-2 py-1 rounded-lg">
+                      {isAr ? '⚠️ بدون أصناف — لن يُطبَّق' : '⚠️ No items — will not apply'}
+                    </span>
+                  )}
                   {p.required_items && p.required_items.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {p.required_items.map((ri, i) => (
