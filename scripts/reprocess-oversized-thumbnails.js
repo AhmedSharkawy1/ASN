@@ -72,6 +72,19 @@ async function listAll(prefix) {
   return out;
 }
 
+/**
+ * Does original/<name> exist? The rewrite replaces the thumbnail in place, so
+ * the full-resolution copy has to survive somewhere or the downscale is
+ * irreversible. Anything without a counterpart is left alone.
+ */
+async function hasOriginal(name) {
+  const { data, error } = await supabaseAdmin.storage
+    .from(BUCKET_NAME)
+    .list('original', { limit: 1, search: name });
+  if (error) return false;
+  return (data || []).some((o) => o.name === name);
+}
+
 /** Returns a result object; never throws, so one bad object cannot end the run. */
 async function processOne(obj) {
   const path = `thumbs/${obj.name}`;
@@ -95,6 +108,11 @@ async function processOne(obj) {
     // Never make an object bigger than it already was.
     if (output.length >= input.length) {
       return { path, status: 'skipped-no-gain', before: input.length, after: input.length };
+    }
+
+    // Refuse to downscale the only full-resolution copy that exists.
+    if (!(await hasOriginal(obj.name))) {
+      return { path, status: 'skipped-no-original', before: input.length, after: input.length };
     }
 
     if (APPLY) {
