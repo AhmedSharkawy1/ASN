@@ -21,7 +21,16 @@ const THUMB_MAX_HEIGHT = 1200;
 /** Refuse absurd inputs before handing them to the encoder, not after. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
-type Rendered = { original: Buffer; thumb: Buffer; contentType: string; mode: string };
+type Rendered = {
+  original: Buffer;
+  thumb: Buffer;
+  contentType: string;
+  mode: string;
+  /** Why sharp was skipped, when it was. Returned so a silent regression to
+   *  unresized uploads can be diagnosed from the response rather than by
+   *  digging through platform logs. */
+  reason?: string;
+};
 
 /**
  * Resize into a full-size copy and a 400px thumbnail.
@@ -45,7 +54,14 @@ async function renderVariants(input: Buffer, fallbackType: string): Promise<Rend
   };
 
   try {
-    const sharp = (await import('sharp')).default;
+    // Interop-safe: under a bundler a CJS native module can arrive either as
+    // the namespace itself or under .default.
+    const mod = await import('sharp');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sharp = ((mod as any).default ?? mod) as typeof import('sharp').default;
+    if (typeof sharp !== 'function') {
+      throw new Error(`sharp did not resolve to a function (got ${typeof sharp})`);
+    }
     const opts = { limitInputPixels: 100_000_000, sequentialRead: true } as const;
 
     const meta = await sharp(input, opts).metadata();
@@ -78,7 +94,8 @@ async function renderVariants(input: Buffer, fallbackType: string): Promise<Rend
     return { original, thumb, contentType: 'image/webp', mode: 'sharp' };
   } catch (err) {
     console.error('[UPLOAD_IMAGE] sharp failed, storing the upload unprocessed:', err);
-    return unprocessed;
+    const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    return { ...unprocessed, reason: reason.split('\n')[0].slice(0, 300) };
   }
 }
 
@@ -170,7 +187,8 @@ export async function POST(req: NextRequest) {
       thumbSize: thumbBuffer.byteLength,
       // "passthrough" means sharp failed and this upload was stored unresized.
       // Worth watching: a run of these is how the bypass went unnoticed before.
-      diagnostic: rendered.mode
+      diagnostic: rendered.mode,
+      ...(rendered.reason ? { sharpError: rendered.reason } : {})
     });
 
   } catch (error: any) {
