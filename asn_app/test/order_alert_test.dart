@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:asn_app/core/services/order_alert_builder.dart';
 
@@ -57,6 +59,48 @@ void main() {
     final a = OrderAlert.fromOrder(order({'id': 'o1'}))!;
     final b = OrderAlert.fromOrder(order({'id': 'o2'}))!;
     expect(a.id, isNot(b.id));
+  });
+
+  group('tapping the alert', () {
+    test('the route carries the order id so its details open directly', () {
+      final alert = OrderAlert.fromOrder(order({'id': 'abc-123'}))!;
+      final payload = jsonDecode(alert.payload) as Map<String, dynamic>;
+
+      expect(payload['orderId'], 'abc-123');
+      expect(
+        payload['route'],
+        '${OrderAlert.routeBase()}?${OrderAlert.orderIdQueryParam}=abc-123',
+      );
+    });
+
+    test('an id needing encoding stays readable as a query parameter', () {
+      final alert = OrderAlert.fromOrder(order({'id': 'a b&c'}))!;
+      final payload = jsonDecode(alert.payload) as Map<String, dynamic>;
+      final uri = Uri.parse(payload['route'] as String);
+
+      // Round-trips: the screen must recover the id exactly as stored.
+      expect(uri.queryParameters[OrderAlert.orderIdQueryParam], 'a b&c');
+    });
+
+    test('the phone travels separately for the call action', () {
+      final alert = OrderAlert.fromOrder(order({'customer_phone': '01000000000'}))!;
+      final payload = jsonDecode(alert.payload) as Map<String, dynamic>;
+      expect(payload['phone'], '01000000000');
+    });
+  });
+
+  group('one card per order', () {
+    test('ids are positive — some launchers mishandle negative ones', () {
+      for (final id in ['o1', 'o2', 'zzz', 'a-very-long-uuid-like-value-0000']) {
+        expect(OrderAlert.fromOrder(order({'id': id}))!.id, greaterThanOrEqualTo(0));
+      }
+    });
+
+    test('the same order always maps to the same id, so it cannot alert twice', () {
+      final first = OrderAlert.fromOrder(order({'id': 'same'}))!;
+      final second = OrderAlert.fromOrder(order({'id': 'same', 'total': 999}))!;
+      expect(first.id, second.id);
+    });
   });
 
   group('label mapping', () {

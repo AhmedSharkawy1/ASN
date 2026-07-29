@@ -73,6 +73,17 @@ class OrderAlert {
       ticker: 'طلب جديد #$orderNumber',
       category: AndroidNotificationCategory.call,
       visibility: NotificationVisibility.public,
+      // Android bundles several notifications from one app into a single
+      // stack. Giving every order its own group leaves each group holding one
+      // notification, so orders stay as separate cards the staff can read and
+      // act on without expanding anything.
+      groupKey: 'asn_order_$orderId',
+      setAsGroupSummary: false,
+      groupAlertBehavior: GroupAlertBehavior.all,
+      // Each order is its own event; a new one must not quietly replace the
+      // card of one nobody has dealt with yet.
+      onlyAlertOnce: false,
+      autoCancel: true,
       styleInformation: InboxStyleInformation(
         lines,
         contentTitle: title,
@@ -102,13 +113,27 @@ class OrderAlert {
     );
 
     return OrderAlert(
-      id: orderId.hashCode,
+      // Stable per order, so the same order never alerts twice, and positive
+      // because a few OEM launchers mishandle negative notification ids.
+      id: orderId.hashCode & 0x7FFFFFFF,
       title: title,
       body: lines.join(' • '),
       details: NotificationDetails(android: android, iOS: ios),
-      payload: jsonEncode({'route': '/orders', 'phone': phone, 'orderId': orderId}),
+      payload: jsonEncode({
+        // Tapping opens this order's details, not just the list.
+        'route': '${routeBase()}?orderId=${Uri.encodeQueryComponent(orderId)}',
+        'phone': phone,
+        'orderId': orderId,
+      }),
     );
   }
+
+  /// Where a tapped order alert lands. Kept here so the notification and the
+  /// screen that answers it cannot drift apart.
+  static String routeBase() => '/orders';
+
+  /// Query parameter the orders screen reads to auto-open a single order.
+  static const String orderIdQueryParam = 'orderId';
 
   Future<void> show(FlutterLocalNotificationsPlugin plugin) {
     return plugin.show(

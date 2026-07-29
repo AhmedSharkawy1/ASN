@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -68,6 +69,28 @@ class OrdersListScreen extends ConsumerStatefulWidget {
 class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   String _filter = 'all';
 
+  /// Set once per deep link so re-builds (or a refresh) don't reopen the sheet
+  /// behind the user's back.
+  String? _openedForOrderId;
+
+  /// Opens one order's details when the screen was reached by tapping its
+  /// notification. The order may not be loaded yet on a cold start, so this
+  /// runs on every build until the row shows up.
+  void _maybeOpenDeepLinkedOrder(List<OrderEntity> orders) {
+    final requested =
+        GoRouterState.of(context).uri.queryParameters[OrderAlert.orderIdQueryParam];
+    if (requested == null || requested.isEmpty || requested == _openedForOrderId) return;
+
+    final order = orders.where((o) => o.id == requested).firstOrNull;
+    if (order == null) return;
+
+    _openedForOrderId = requested;
+    // The frame is still building; opening a sheet has to wait for it.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showOrderDetailsSheet(context, order);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -93,6 +116,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
           Expanded(
             child: ordersAsync.when(
               data: (orders) {
+                _maybeOpenDeepLinkedOrder(orders);
+
                 final filtered = _filter == 'all'
                     ? orders
                     : orders.where((o) {
