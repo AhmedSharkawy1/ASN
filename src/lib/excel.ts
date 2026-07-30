@@ -387,6 +387,13 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                     // a corrected menu — the sheet has no image columns, so
                     // including them would blank every photo.
                     const itemFields = {
+                        // Dropped by accident when this object was extracted from
+                        // the insert call to be shared with the update path. The
+                        // row then failed its NOT NULL constraint — and, before
+                        // that surfaced, failed the RLS check too, because the
+                        // items policy resolves the tenant through category_id
+                        // and a null one can match no category.
+                        category_id: catId,
                         // Same fallback as the category: an English-only sheet
                         // still yields a usable title_ar, and every theme reads
                         // `title_en || title_ar`, so an English-only menu shows
