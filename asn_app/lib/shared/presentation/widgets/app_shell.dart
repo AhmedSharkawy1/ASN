@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:asn_app/core/theme/app_spacing.dart';
+import 'package:asn_app/shared/presentation/widgets/update_banner.dart';
 import 'package:asn_app/core/theme/app_theme_ext.dart';
 import 'package:asn_app/core/localization/l10n/app_localizations.dart';
 import 'package:asn_app/features/permissions/presentation/providers/permissions_provider.dart';
@@ -118,7 +119,13 @@ class AppShell extends ConsumerWidget {
               ),
             ),
             const VerticalDivider(width: 1, thickness: 1),
-            Expanded(child: child),
+            // Sits above the page so the offer is visible wherever the
+            // user is, without covering anything.
+            Expanded(
+              child: Column(
+                children: [const UpdateBanner(), Expanded(child: child)],
+              ),
+            ),
           ],
         ),
       );
@@ -129,7 +136,9 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       // Deliberately not extendBody: letting content slide under the floating
       // bar looks nice but permanently hides the last row of long lists.
-      body: child,
+      body: Column(
+        children: [const UpdateBanner(), Expanded(child: child)],
+      ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(
             AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),

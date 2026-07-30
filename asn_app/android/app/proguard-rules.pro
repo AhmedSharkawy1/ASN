@@ -27,6 +27,15 @@
 -keepattributes EnclosingMethod
 -dontwarn com.google.gson.**
 
+# --- Google Play in-app updates ---
+# The update check runs through Play Core, which R8 would otherwise strip. The
+# failure would be invisible: the check throws, the app treats that as "cannot
+# tell", and users are simply never offered an update.
+-keep class com.google.android.play.core.** { *; }
+-keep class com.google.android.play.core.install.** { *; }
+-keep class com.google.android.play.core.appupdate.** { *; }
+-dontwarn com.google.android.play.core.**
+
 # --- Secure storage / keystore ---
 -keep class com.it_nomads.fluttersecurestorage.** { *; }
 -dontwarn com.it_nomads.fluttersecurestorage.**
