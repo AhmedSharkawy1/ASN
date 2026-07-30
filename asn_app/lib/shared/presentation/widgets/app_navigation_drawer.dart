@@ -81,18 +81,6 @@ class AppNavigationDrawer extends ConsumerWidget {
         icon: Icons.analytics_outlined,
       ),
       NavigationDrawerItem(
-        titleKey: 'inventory',
-        pageKey: 'inventory',
-        routePath: '/inventory',
-        icon: Icons.inventory_2_outlined,
-      ),
-      NavigationDrawerItem(
-        titleKey: 'tables',
-        pageKey: 'tables',
-        routePath: '/tables',
-        icon: Icons.table_restaurant_outlined,
-      ),
-      NavigationDrawerItem(
         titleKey: 'delivery',
         pageKey: 'delivery',
         routePath: '/delivery',
@@ -103,18 +91,6 @@ class AppNavigationDrawer extends ConsumerWidget {
         pageKey: 'promotions',
         routePath: '/promotions',
         icon: Icons.local_offer_outlined,
-      ),
-      NavigationDrawerItem(
-        titleKey: 'hr',
-        pageKey: 'hr_employees',
-        routePath: '/hr',
-        icon: Icons.badge_outlined,
-      ),
-      NavigationDrawerItem(
-        titleKey: 'recipes',
-        pageKey: 'recipes',
-        routePath: '/recipes',
-        icon: Icons.menu_book_outlined,
       ),
       NavigationDrawerItem(
         titleKey: 'qr',

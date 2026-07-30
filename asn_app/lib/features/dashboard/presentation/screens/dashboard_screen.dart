@@ -48,14 +48,11 @@ class DashboardScreen extends ConsumerWidget {
         _DashboardAction(title: l10n.customers, icon: Icons.people, color: AppColors.moduleCustomers, route: '/customers'),
       if (show('reports'))
         _DashboardAction(title: l10n.reports, icon: Icons.analytics, color: AppColors.moduleReports, route: '/reports'),
+      if (show('qr'))
+        _DashboardAction(title: l10n.qrTitle, icon: Icons.qr_code_2, color: AppColors.moduleCustomers, route: '/qr'),
       // Super-admin-only modules
       if (isSuper) ...[
         _DashboardAction(title: l10n.kitchen, icon: Icons.kitchen, color: AppColors.moduleKitchen, route: '/kitchen'),
-        _DashboardAction(title: l10n.inventory, icon: Icons.inventory_2, color: AppColors.moduleInventory, route: '/inventory'),
-        _DashboardAction(title: l10n.tables, icon: Icons.table_restaurant, color: AppColors.moduleTables, route: '/tables'),
-        _DashboardAction(title: l10n.recipes, icon: Icons.menu_book, color: AppColors.moduleProducts, route: '/recipes'),
-        _DashboardAction(title: l10n.hr, icon: Icons.badge, color: AppColors.moduleHr, route: '/hr'),
-        _DashboardAction(title: l10n.qrTitle, icon: Icons.qr_code_2, color: AppColors.moduleCustomers, route: '/qr'),
       ],
     ];
 

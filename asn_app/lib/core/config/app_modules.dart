@@ -1,10 +1,10 @@
 /// Single source of truth for which restaurant modules are exposed in the
 /// mobile app.
 ///
-/// The other modules (kitchen, inventory, tables, recipes, HR, QR) are built
-/// and still work, but are intentionally hidden from restaurant users — they
-/// stay out of the drawer, the dashboard and the bottom navigation, and their
-/// routes redirect away. Flip a value here to bring one back.
+/// The remaining modules (kitchen, inventory, tables, recipes, HR) are built
+/// and still work, but are intentionally hidden — they stay out of the drawer,
+/// the dashboard and the bottom navigation, and their routes redirect away.
+/// Flip a value here to bring one back.
 class AppModules {
   AppModules._();
 
@@ -18,6 +18,7 @@ class AppModules {
     '/products': 'products',
     '/customers': 'customers',
     '/promotions': 'promotions',
+    '/qr': 'qr',
   };
 
   /// Always reachable regardless of module gating (app-level, not a module).
