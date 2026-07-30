@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -20,7 +21,9 @@ class OrderNotificationService {
   /// Set by the app shell so notification taps can navigate (e.g. to /orders).
   static void Function(String route)? navigateTo;
 
-  static const String _callActionId = 'call_customer';
+  // The action ids live on OrderAlert, which is what puts the buttons on the
+  // notification. A second copy here would only ever drift out of step and
+  // stop the branch matching.
 
   OrderNotificationService(this._supabase, this._localNotifications);
 
@@ -80,16 +83,52 @@ class OrderNotificationService {
       AppLogger.warning('Unreadable notification payload: $e', name: 'OrderNotification');
     }
 
-    if (details.actionId == _callActionId) {
-      final phone = payload['phone'] as String?;
-      if (phone != null && phone.isNotEmpty) {
-        launchUrl(Uri(scheme: 'tel', path: phone));
-      }
+    if (details.actionId == OrderAlert.callActionId) {
+      unawaited(_dial(payload['phone'] as String?));
       return;
     }
 
-    // Default tap: open the orders screen
-    navigateTo?.call(payload['route'] as String? ?? '/orders');
+    // Everything else — the plain tap and the "view order" action — lands on
+    // the order's own details.
+    navigateTo?.call(payload['route'] as String? ?? OrderAlert.routeBase());
+  }
+
+  /// Opens the dialer with the customer's number filled in.
+  ///
+  /// Stops short of placing the call: the staff member confirms it, and a
+  /// notification tapped by accident must not ring a customer.
+  Future<void> _dial(String? rawPhone) async {
+    // Numbers arrive with spaces, dashes or an Arabic-Indic keypad's digits.
+    // A tel: URI accepts none of that.
+    final digits = _toWesternDigits(rawPhone ?? '')
+        .replaceAll(RegExp(r'[^0-9+]'), '');
+    if (digits.isEmpty) {
+      AppLogger.warning('Call action with no usable number', name: 'OrderNotification');
+      return;
+    }
+
+    final uri = Uri(scheme: 'tel', path: digits);
+    try {
+      final opened = await launchUrl(uri);
+      if (!opened) {
+        AppLogger.warning('Dialer refused $uri', name: 'OrderNotification');
+      }
+    } catch (e) {
+      // Android 11+ hides apps that are not declared in <queries>; a missing
+      // declaration surfaces here rather than as a silent no-op.
+      AppLogger.warning('Could not open the dialer: $e', name: 'OrderNotification');
+    }
+  }
+
+  static String _toWesternDigits(String input) {
+    const arabicIndic = '٠١٢٣٤٥٦٧٨٩';
+    final buffer = StringBuffer();
+    for (final rune in input.runes) {
+      final char = String.fromCharCode(rune);
+      final index = arabicIndic.indexOf(char);
+      buffer.write(index >= 0 ? '$index' : char);
+    }
+    return buffer.toString();
   }
 
   void startListening(String restaurantId) {

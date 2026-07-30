@@ -104,6 +104,36 @@ void main() {
     });
   });
 
+  group('the action buttons', () {
+    test('a call button appears only when there is a number to ring', () {
+      final withPhone = OrderAlert.fromOrder(order({'customer_phone': '01000000000'}))!;
+      final ids = withPhone.details.android!.actions!.map((a) => a.id);
+      expect(ids, contains(OrderAlert.callActionId));
+      expect(ids, contains(OrderAlert.openActionId));
+
+      final withoutPhone = OrderAlert.fromOrder(order({}))!;
+      final idsNoPhone = withoutPhone.details.android!.actions!.map((a) => a.id);
+      expect(idsNoPhone, isNot(contains(OrderAlert.callActionId)));
+      expect(idsNoPhone, contains(OrderAlert.openActionId),
+          reason: 'viewing the order never depends on a phone number');
+    });
+
+    test('both buttons bring the app forward', () {
+      // Without this the tap is delivered but nothing visible happens.
+      final alert = OrderAlert.fromOrder(order({'customer_phone': '01000000000'}))!;
+      for (final action in alert.details.android!.actions!) {
+        expect(action.showsUserInterface, isTrue, reason: action.id);
+      }
+    });
+
+    test('the ids are the ones the handler branches on', () {
+      // They used to be duplicated in the service; a drift there silently
+      // turned the call button into a plain tap.
+      expect(OrderAlert.callActionId, 'call_customer');
+      expect(OrderAlert.openActionId, 'open_order');
+    });
+  });
+
   group('the order chime', () {
     test('lives on its own channel — Android freezes a channel\'s sound', () {
       // Reusing the old id would leave existing installs on the default tone,
