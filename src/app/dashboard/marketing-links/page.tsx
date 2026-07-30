@@ -7,94 +7,154 @@ import { supabase } from "@/lib/supabase/client";
 
 // List of available themes 
 const MarketingThemes = [
-    { key: "pizzapasta", nameEn: "Pizza & Pasta Hub", nameAr: "بيتزا وباستا هب" },
-    { key: "pizzapasta-cyan", nameEn: "Pizza Hub - Cyan", nameAr: "بيتزا هب - سماوي" },
-{ key: "pizzapasta-red", nameEn: "Pizza Pasta (Red)", nameAr: "بيتزا باستا (أحمر)" },
-    { key: "pizzapasta-emerald", nameEn: "Pizza Hub - Emerald", nameAr: "بيتزا هب - زمردي" },
-    { key: "pizzapasta-sky", nameEn: "Pizza Hub - Sky", nameAr: "بيتزا هب - سماوي فاتح" },
-    { key: "atyab-oriental", nameEn: "Atyab Oriental", nameAr: "أطياب الشرق" },
-    { key: "atyab-oriental-cyan", nameEn: "Atyab Oriental - Cyan", nameAr: "أطياب الشرق - سماوي" },
-{ key: "atyab-oriental-red", nameEn: "Atyab Oriental (Red)", nameAr: "أطياب أورينتال (أحمر)" },
-    { key: "atyab-oriental-emerald", nameEn: "Atyab Oriental - Emerald", nameAr: "أطياب الشرق - زمردي" },
-    { key: "atyab-oriental-sky", nameEn: "Atyab Oriental - Sky", nameAr: "أطياب الشرق - سماوي فاتح" },
-    { key: "bab-alhara", nameEn: "Bab Al-Hara", nameAr: "باب الحارة" },
-    { key: "bab-alhara-cyan", nameEn: "Bab Al-Hara - Cyan", nameAr: "باب الحارة - سماوي" },
-{ key: "bab-alhara-red", nameEn: "Bab Al Hara (Red)", nameAr: "باب الحارة (أحمر)" },
-    { key: "bab-alhara-emerald", nameEn: "Bab Al-Hara - Emerald", nameAr: "باب الحارة - زمردي" },
-    { key: "bab-alhara-sky", nameEn: "Bab Al-Hara - Sky", nameAr: "باب الحارة - سماوي فاتح" },
-    { key: "atyab-etoile", nameEn: "Atyab Etoile", nameAr: "أطياب إيتوال" },
-    { key: "atyab-etoile-cyan", nameEn: "Atyab Etoile - Cyan", nameAr: "أطياب إيتوال - سماوي" },
-{ key: "atyab-etoile-red", nameEn: "Atyab Etoile (Red)", nameAr: "أطياب ايتوال (أحمر)" },
-    { key: "atyab-etoile-emerald", nameEn: "Atyab Etoile - Emerald", nameAr: "أطياب إيتوال - زمردي" },
-    { key: "atyab-etoile-sky", nameEn: "Atyab Etoile - Sky", nameAr: "أطياب إيتوال - سماوي فاتح" },
-    { key: "theme5", nameEn: "Premium Elegance", nameAr: "الفاخر والأنيق" },
-    { key: "theme5-cyan", nameEn: "Premium Elegance - Cyan", nameAr: "الفاخر - سماوي" },
-{ key: "theme5-red", nameEn: "Theme 5 (Red)", nameAr: "ثيم 5 (أحمر)" },
-    { key: "theme5-emerald", nameEn: "Premium Elegance - Emerald", nameAr: "الفاخر - زمردي" },
-    { key: "theme5-sky", nameEn: "Premium Elegance - Sky", nameAr: "الفاخر - سماوي فاتح" },
-    { key: "theme6", nameEn: "Veranda Style", nameAr: "الروح المفتوحة" },
-    { key: "theme6-cyan", nameEn: "Veranda - Cyan", nameAr: "الروح المفتوحة - سماوي" },
-{ key: "theme6-red", nameEn: "Theme 6 (Red)", nameAr: "ثيم 6 (أحمر)" },
-    { key: "theme6-emerald", nameEn: "Veranda - Emerald", nameAr: "الروح المفتوحة - زمردي" },
-    { key: "theme6-sky", nameEn: "Veranda - Sky", nameAr: "الروح المفتوحة - سماوي فاتح" },
-    { key: "theme7", nameEn: "Haleem Dark", nameAr: "حليم المعتم" },
-    { key: "theme7-cyan", nameEn: "Haleem Dark - Cyan", nameAr: "حليم المعتم - سماوي" },
-{ key: "theme7-red", nameEn: "Theme 7 (Red)", nameAr: "ثيم 7 (أحمر)" },
-    { key: "theme7-emerald", nameEn: "Haleem Dark - Emerald", nameAr: "حليم المعتم - زمردي" },
-    { key: "theme7-sky", nameEn: "Haleem Dark - Sky", nameAr: "حليم المعتم - سماوي فاتح" },
-    { key: "theme9", nameEn: "Diablo Modern", nameAr: "ديابلو العصري" },
-    { key: "theme9-cyan", nameEn: "Diablo Modern - Cyan", nameAr: "ديابلو العصري - سماوي" },
-    { key: "theme9-emerald", nameEn: "Diablo Modern - Emerald", nameAr: "ديابلو العصري - زمردي" },
-    { key: "theme9-sky", nameEn: "Diablo Modern - Sky", nameAr: "ديابلو العصري - سماوي فاتح" },
-    { key: "theme9-pink", nameEn: "Diablo Modern - Pink", nameAr: "ديابلو العصري - بمبى وردي" },
-    { key: "theme10", nameEn: "Orange Glow", nameAr: "الوهج البرتقالي" },
-    { key: "theme10-cyan", nameEn: "Orange Glow - Cyan", nameAr: "الوهج البرتقالي - سماوي" },
-{ key: "theme10-red", nameEn: "Theme 10 (Red)", nameAr: "ثيم 10 (أحمر)" },
-    { key: "theme10-emerald", nameEn: "Orange Glow - Emerald", nameAr: "الوهج البرتقالي - زمردي" },
-    { key: "theme10-sky", nameEn: "Orange Glow - Sky", nameAr: "الوهج البرتقالي - سماوي فاتح" },
-    { key: "theme17", nameEn: "Lusha", nameAr: "لوشا" },
-        { key: "theme18-red", nameEn: "Theme 18 (Red)", nameAr: "ثيم 18 (أحمر)" },
-        { key: "theme19-red", nameEn: "Theme 19 (Red)", nameAr: "ثيم 19 (أحمر)" },
+    // Theme 1: PizzaPasta
+    { key: "pizzapasta", nameEn: "Theme 1 (Pizza Pasta - Blue)", nameAr: "ثيم 1 (بيتزا باستا - أزرق)" },
+    { key: "pizzapasta-cyan", nameEn: "Theme 1 (Pizza Pasta - Cyan)", nameAr: "ثيم 1 (بيتزا باستا - سماوي)" },
+    { key: "pizzapasta-red", nameEn: "Theme 1 (Pizza Pasta - Red)", nameAr: "ثيم 1 (بيتزا باستا - أحمر)" },
+    { key: "pizzapasta-emerald", nameEn: "Theme 1 (Pizza Pasta - Emerald)", nameAr: "ثيم 1 (بيتزا باستا - زمردي)" },
+    { key: "pizzapasta-sky", nameEn: "Theme 1 (Pizza Pasta - Sky)", nameAr: "ثيم 1 (بيتزا باستا - أزرق sky)" },
+
+    // Theme 2: Atyab Oriental
+    { key: "atyab-oriental", nameEn: "Theme 2 (Atyab Oriental - Gold)", nameAr: "ثيم 2 (أطياب أورينتال - ذهبي)" },
+    { key: "atyab-oriental-cyan", nameEn: "Theme 2 (Atyab Oriental - Cyan)", nameAr: "ثيم 2 (أطياب أورينتال - سماوي)" },
+    { key: "atyab-oriental-red", nameEn: "Theme 2 (Atyab Oriental - Red)", nameAr: "ثيم 2 (أطياب أورينتال - أحمر)" },
+    { key: "atyab-oriental-emerald", nameEn: "Theme 2 (Atyab Oriental - Emerald)", nameAr: "ثيم 2 (أطياب أورينتال - زمردي)" },
+    { key: "atyab-oriental-sky", nameEn: "Theme 2 (Atyab Oriental - Sky)", nameAr: "ثيم 2 (أطياب أورينتال - أزرق sky)" },
+
+    // Theme 3: Bab Al-Hara
+    { key: "bab-alhara", nameEn: "Theme 3 (Bab Al-Hara - Red)", nameAr: "ثيم 3 (باب الحارة - أحمر)" },
+    { key: "bab-alhara-cyan", nameEn: "Theme 3 (Bab Al-Hara - Cyan)", nameAr: "ثيم 3 (باب الحارة - سماوي)" },
+    { key: "bab-alhara-red", nameEn: "Theme 3 (Bab Al-Hara - Dark Red)", nameAr: "ثيم 3 (باب الحارة - أحمر داكن)" },
+    { key: "bab-alhara-emerald", nameEn: "Theme 3 (Bab Al-Hara - Emerald)", nameAr: "ثيم 3 (باب الحارة - زمردي)" },
+    { key: "bab-alhara-sky", nameEn: "Theme 3 (Bab Al-Hara - Sky)", nameAr: "ثيم 3 (باب الحارة - أزرق sky)" },
+
+    // Theme 4: Atyab Etoile
+    { key: "atyab-etoile", nameEn: "Theme 4 (Atyab Etoile - Gold)", nameAr: "ثيم 4 (أطياب إتوال - ذهبي)" },
+    { key: "atyab-etoile-cyan", nameEn: "Theme 4 (Atyab Etoile - Cyan)", nameAr: "ثيم 4 (أطياب إتوال - سماوي)" },
+    { key: "atyab-etoile-red", nameEn: "Theme 4 (Atyab Etoile - Red)", nameAr: "ثيم 4 (أطياب إتوال - أحمر)" },
+    { key: "atyab-etoile-emerald", nameEn: "Theme 4 (Atyab Etoile - Emerald)", nameAr: "ثيم 4 (أطياب إتوال - زمردي)" },
+    { key: "atyab-etoile-sky", nameEn: "Theme 4 (Atyab Etoile - Sky)", nameAr: "ثيم 4 (أطياب إتوال - أزرق sky)" },
+
+    // Theme 5
+    { key: "theme5", nameEn: "Theme 5 (Orange)", nameAr: "ثيم 5 (برتقالي)" },
+    { key: "theme5-cyan", nameEn: "Theme 5 (Cyan)", nameAr: "ثيم 5 (سماوي)" },
+    { key: "theme5-red", nameEn: "Theme 5 (Red)", nameAr: "ثيم 5 (أحمر)" },
+    { key: "theme5-emerald", nameEn: "Theme 5 (Emerald)", nameAr: "ثيم 5 (زمردي)" },
+    { key: "theme5-sky", nameEn: "Theme 5 (Sky)", nameAr: "ثيم 5 (أزرق sky)" },
+
+    // Theme 6: Veranda
+    { key: "theme6", nameEn: "Theme 6 (Veranda - Teal)", nameAr: "ثيم 6 (فراندة - تيل)" },
+    { key: "theme6-cyan", nameEn: "Theme 6 (Cyan)", nameAr: "ثيم 6 (سماوي)" },
+    { key: "theme6-red", nameEn: "Theme 6 (Red)", nameAr: "ثيم 6 (أحمر)" },
+    { key: "theme6-emerald", nameEn: "Theme 6 (Emerald)", nameAr: "ثيم 6 (زمردي)" },
+    { key: "theme6-sky", nameEn: "Theme 6 (Sky)", nameAr: "ثيم 6 (أزرق sky)" },
+
+    // Theme 7: Haleem
+    { key: "theme7", nameEn: "Theme 7 (Haleem - Dark Gold)", nameAr: "ثيم 7 (حليم - داكن ذهبي)" },
+    { key: "theme7-cyan", nameEn: "Theme 7 (Cyan)", nameAr: "ثيم 7 (سماوي)" },
+    { key: "theme7-red", nameEn: "Theme 7 (Red)", nameAr: "ثيم 7 (أحمر)" },
+    { key: "theme7-emerald", nameEn: "Theme 7 (Emerald)", nameAr: "ثيم 7 (زمردي)" },
+    { key: "theme7-sky", nameEn: "Theme 7 (Sky)", nameAr: "ثيم 7 (أزرق sky)" },
+
+    // Theme 8: ASWAN EN
+    { key: "aswan", nameEn: "Theme 8 (ASWAN EN - Dark Beige)", nameAr: "ثيم 8 (أسوان إنجليزي - بيج غامق)" },
+
+    // Theme 9: Diablo
+    { key: "theme9", nameEn: "Theme 9 (Diablo - Red)", nameAr: "ثيم 9 (ديابلو - أحمر)" },
+    { key: "theme9-cyan", nameEn: "Theme 9 (Diablo - Cyan)", nameAr: "ثيم 9 (ديابلو - سماوي)" },
+    { key: "theme9-emerald", nameEn: "Theme 9 (Diablo - Emerald)", nameAr: "ثيم 9 (ديابلو - زمردي)" },
+    { key: "theme9-sky", nameEn: "Theme 9 (Diablo - Sky)", nameAr: "ثيم 9 (ديابلو - أزرق sky)" },
+    { key: "theme9-pink", nameEn: "Theme 9 (Diablo - Pink)", nameAr: "ثيم 9 (ديابلو - وردي)" },
+
+    // Theme 10: Orange Glow
+    { key: "theme10", nameEn: "Theme 10 (Orange Glow)", nameAr: "ثيم 10 (الوهج البرتقالي)" },
+    { key: "theme10-cyan", nameEn: "Theme 10 (Cyan)", nameAr: "ثيم 10 (سماوي)" },
+    { key: "theme10-red", nameEn: "Theme 10 (Red)", nameAr: "ثيم 10 (أحمر)" },
+    { key: "theme10-emerald", nameEn: "Theme 10 (Emerald)", nameAr: "ثيم 10 (زمردي)" },
+    { key: "theme10-sky", nameEn: "Theme 10 (Sky)", nameAr: "ثيم 10 (أزرق sky)" },
+
+    // Theme 11: Luxe Horizontal
+    { key: "theme11", nameEn: "Theme 11 (Luxe Horizontal - Red)", nameAr: "ثيم 11 (عصري أفقي - أحمر)" },
+    { key: "theme11-cyan", nameEn: "Theme 11 (Cyan)", nameAr: "ثيم 11 (سماوي)" },
+    { key: "theme11-red", nameEn: "Theme 11 (Red)", nameAr: "ثيم 11 (أحمر)" },
+    { key: "theme11-emerald", nameEn: "Theme 11 (Emerald)", nameAr: "ثيم 11 (زمردي)" },
+    { key: "theme11-sky", nameEn: "Theme 11 (Sky)", nameAr: "ثيم 11 (أزرق sky)" },
+
+    // Theme 12: New Year
+    { key: "theme12", nameEn: "Theme 12 (New Year - RGB)", nameAr: "ثيم 12 (العام الجديد - RGB)" },
+
+    // Theme 13: Fresh Bakery / Luxe Gold
+    { key: "theme13", nameEn: "Theme 13 (Luxe Gold)", nameAr: "ثيم 13 (لوكس الذهبي)" },
+    { key: "theme13-cyan", nameEn: "Theme 13 (Cyan)", nameAr: "ثيم 13 (سماوي)" },
+    { key: "theme13-red", nameEn: "Theme 13 (Red)", nameAr: "ثيم 13 (أحمر)" },
+    { key: "theme13-emerald", nameEn: "Theme 13 (Emerald)", nameAr: "ثيم 13 (زمردي)" },
+    { key: "theme13-sky", nameEn: "Theme 13 (Sky)", nameAr: "ثيم 13 (أزرق sky)" },
+
+    // Theme 14: ASWAN AR
+    { key: "aswan-ar", nameEn: "Theme 14 (ASWAN AR - Dark Beige)", nameAr: "ثيم 14 (أسوان عربي - بيج غامق)" },
+
+    // Theme 15: ASWAN Dual
+    { key: "aswan-dual", nameEn: "Theme 15 (ASWAN Dual - Dark Beige)", nameAr: "ثيم 15 (أسوان ثنائي - بيج غامق)" },
+
+    // Theme 16: Classic Red
+    { key: "theme16", nameEn: "Theme 16 (Classic Red)", nameAr: "ثيم 16 (كلاسيك أحمر)" },
+
+    // Theme 17: Lusha
+    { key: "theme17", nameEn: "Theme 17 (Lusha - Coverflow)", nameAr: "ثيم 17 (لوشا - كوفرفلو)" },
+
+    // Theme 18: Sham Flavor
+    { key: "theme18", nameEn: "Theme 18 (Sham Flavor - Green)", nameAr: "ثيم 18 (نكهة الشام - أخضر)" },
+    { key: "theme18-red", nameEn: "Theme 18 (Red)", nameAr: "ثيم 18 (أحمر)" },
     { key: "theme18-cyan", nameEn: "Theme 18 (Cyan)", nameAr: "ثيم 18 (سماوي)" },
-    { key: "theme19-cyan", nameEn: "Theme 19 (Cyan)", nameAr: "ثيم 19 (سماوي)" },
     { key: "theme18-emerald", nameEn: "Theme 18 (Emerald)", nameAr: "ثيم 18 (زمردي)" },
-    { key: "theme19-emerald", nameEn: "Theme 19 (Emerald)", nameAr: "ثيم 19 (زمردي)" },
-    { key: "theme18-sky", nameEn: "Theme 18 (Sky)", nameAr: "ثيم 18 (سماوي فاتح)" },
-    { key: "theme19-sky", nameEn: "Theme 19 (Sky)", nameAr: "ثيم 19 (سماوي فاتح)" },
+    { key: "theme18-sky", nameEn: "Theme 18 (Sky)", nameAr: "ثيم 18 (أزرق sky)" },
     { key: "theme18-pink", nameEn: "Theme 18 (Pink)", nameAr: "ثيم 18 (وردي)" },
+    { key: "theme18-gold", nameEn: "Theme 18 (Gold)", nameAr: "ثيم 18 (ذهبي)" },
+
+    // Theme 19: MenuMasr
+    { key: "theme19", nameEn: "Theme 19 (MenuMasr - Blue)", nameAr: "ثيم 19 (منيو مصر - أزرق)" },
+    { key: "theme19-red", nameEn: "Theme 19 (Red)", nameAr: "ثيم 19 (أحمر)" },
+    { key: "theme19-cyan", nameEn: "Theme 19 (Cyan)", nameAr: "ثيم 19 (سماوي)" },
+    { key: "theme19-emerald", nameEn: "Theme 19 (Emerald)", nameAr: "ثيم 19 (زمردي)" },
+    { key: "theme19-sky", nameEn: "Theme 19 (Sky)", nameAr: "ثيم 19 (أزرق sky)" },
     { key: "theme19-pink", nameEn: "Theme 19 (Pink)", nameAr: "ثيم 19 (وردي)" },
-    { key: "theme22", nameEn: "Theme 22", nameAr: "ثيم 22" },
-    { key: "theme22-red", nameEn: "Theme 22 (Red)", nameAr: "ثيم 22 (أحمر)" },
-    { key: "theme22-cyan", nameEn: "Theme 22 (Cyan)", nameAr: "ثيم 22 (سماوي)" },
-    { key: "theme22-emerald", nameEn: "Theme 22 (Emerald)", nameAr: "ثيم 22 (زمردي)" },
-    { key: "theme22-sky", nameEn: "Theme 22 (Sky)", nameAr: "ثيم 22 (سماوي فاتح)" },
-    { key: "theme22-pink", nameEn: "Theme 22 (Pink)", nameAr: "ثيم 22 (وردي)" },
-    { key: "theme22-gold", nameEn: "Theme 22 (Gold)", nameAr: "ثيم 22 (ذهبي)" },
-    { key: "theme18", nameEn: "MenuMasr Replica", nameAr: "منيو مصر المطابق" },
-        { key: "theme19", nameEn: "Theme 19", nameAr: "ثيم 19" },
-    { key: "lamet-zaman", nameEn: "Lamet Zaman Theme", nameAr: "ثيم لمة زمان" },
-    { key: "vicino", nameEn: "Theme 20 (Vicino)", nameAr: "ثيم 20 (فيتشينو)" },
-    { key: "aswan", nameEn: "ASWAN Theme (100% English & Custom BGs)", nameAr: "ثيم أسوان (إنجليزي بالكامل وخلفيات)" },
-    { key: "usa", nameEn: "USA Theme (100% English)", nameAr: "ثيم USA الأمريكي" },
-    { key: "uae", nameEn: "UAE Theme (100% Arabic)", nameAr: "ثيم الإمارات 🇦🇪 (عربي بالكامل)" },
-    { key: "usa-dual", nameEn: "USA Dual Theme (Bilingual EN/AR)", nameAr: "ثيم USA الثنائي 🇺🇸 (عربي وإنجليزي)" },
+
+    // Theme 20: Vicino
+    { key: "vicino", nameEn: "Theme 20 (Vicino - Gold)", nameAr: "ثيم 20 (فيتشينو - ذهبي)" },
     { key: "vicino-red", nameEn: "Theme 20 (Red)", nameAr: "ثيم 20 (أحمر)" },
     { key: "vicino-cyan", nameEn: "Theme 20 (Cyan)", nameAr: "ثيم 20 (سماوي)" },
     { key: "vicino-emerald", nameEn: "Theme 20 (Emerald)", nameAr: "ثيم 20 (زمردي)" },
     { key: "vicino-purple", nameEn: "Theme 20 (Purple)", nameAr: "ثيم 20 (بنفسجي)" },
     { key: "vicino-dark", nameEn: "Theme 20 (Dark Gold)", nameAr: "ثيم 20 (ذهبي داكن)" },
-    { key: "theme11", nameEn: "Luxe Minimal", nameAr: "التصميم البسيط" },
-    { key: "theme11-cyan", nameEn: "Luxe Minimal - Cyan", nameAr: "التصميم البسيط - سماوي" },
-{ key: "theme11-red", nameEn: "Theme 11 (Red)", nameAr: "ثيم 11 (أحمر)" },
-    { key: "theme11-emerald", nameEn: "Luxe Minimal - Emerald", nameAr: "التصميم البسيط - زمردي" },
-    { key: "theme11-sky", nameEn: "Luxe Minimal - Sky", nameAr: "التصميم البسيط - سماوي فاتح" },
-    { key: "theme12", nameEn: "New Year Celebration", nameAr: "احتفالية العام الجديد" },
-    { key: "theme13", nameEn: "Fresh Bakery", nameAr: "المخبز الطازج" },
-    { key: "theme13-cyan", nameEn: "Fresh Bakery - Cyan", nameAr: "المخبز الطازج - سماوي" },
-{ key: "theme13-red", nameEn: "Theme 13 (Red)", nameAr: "ثيم 13 (أحمر)" },
-    { key: "theme13-emerald", nameEn: "Fresh Bakery - Emerald", nameAr: "المخبز الطازج - زمردي" },
-    { key: "theme13-sky", nameEn: "Fresh Bakery - Sky", nameAr: "المخبز الطازج - سماوي فاتح" },
-    { key: "theme16", nameEn: "Vibrant Hub", nameAr: "محور الحيوية" }
+
+    // Theme 21: UAE
+    { key: "uae", nameEn: "Theme 21 (UAE - Royal Gold)", nameAr: "ثيم 21 (الإمارات - ذهبي ملكي)" },
+
+    // Theme 22: Add to Cart
+    { key: "theme22", nameEn: "Theme 22 (Add to Cart - Orange)", nameAr: "ثيم 22 (إضافة للسلة - برتقالي)" },
+    { key: "theme22-red", nameEn: "Theme 22 (Red)", nameAr: "ثيم 22 (أحمر)" },
+    { key: "theme22-cyan", nameEn: "Theme 22 (Cyan)", nameAr: "ثيم 22 (سماوي)" },
+    { key: "theme22-emerald", nameEn: "Theme 22 (Emerald)", nameAr: "ثيم 22 (زمردي)" },
+    { key: "theme22-sky", nameEn: "Theme 22 (Sky)", nameAr: "ثيم 22 (أزرق sky)" },
+    { key: "theme22-pink", nameEn: "Theme 22 (Pink)", nameAr: "ثيم 22 (وردي)" },
+    { key: "theme22-gold", nameEn: "Theme 22 (Gold)", nameAr: "ثيم 22 (ذهبي)" },
+
+    // Theme 23: USA
+    { key: "usa", nameEn: "Theme 23 (USA EN - Crimson Red)", nameAr: "ثيم 23 (USA أمريكي - أحمر)" },
+
+    // Theme 24: USA Dual
+    { key: "usa-dual", nameEn: "Theme 24 (USA Dual - Crimson)", nameAr: "ثيم 24 (USA ثنائي - وردي)" },
+
+    // Theme 25: Lamet Zaman
+    { key: "lamet-zaman", nameEn: "Theme 25 (Lamet Zaman - Orange)", nameAr: "ثيم 25 (لمة زمان - برتقالي)" },
+    { key: "lamet-zaman-red", nameEn: "Theme 25 (Lamet Zaman - Red)", nameAr: "ثيم 25 (لمة زمان - أحمر)" },
+    { key: "lamet-zaman-emerald", nameEn: "Theme 25 (Lamet Zaman - Emerald)", nameAr: "ثيم 25 (لمة زمان - زمردي)" },
+    { key: "lamet-zaman-cyan", nameEn: "Theme 25 (Lamet Zaman - Cyan)", nameAr: "ثيم 25 (لمة زمان - سماوي)" },
+    { key: "lamet-zaman-sky", nameEn: "Theme 25 (Lamet Zaman - Sky)", nameAr: "ثيم 25 (لمة زمان - أزرق sky)" },
+    { key: "lamet-zaman-purple", nameEn: "Theme 25 (Lamet Zaman - Purple)", nameAr: "ثيم 25 (لمة زمان - بنفسجي)" },
+    { key: "lamet-zaman-gold", nameEn: "Theme 25 (Lamet Zaman - Gold)", nameAr: "ثيم 25 (لمة زمان - ذهبي)" },
+    { key: "lamet-zaman-pink", nameEn: "Theme 25 (Lamet Zaman - Pink)", nameAr: "ثيم 25 (لمة زمان - وردي)" },
+    { key: "lamet-zaman-dark", nameEn: "Theme 25 (Lamet Zaman - Dark)", nameAr: "ثيم 25 (لمة زمان - داكن)" }
 ];
 
 export default function MarketingLinksPage() {

@@ -26,6 +26,7 @@ const THEME_SUBDOMAINS = [
     'theme11-cyan', 'theme11-red', 'theme11-emerald', 'theme11-sky',
     'theme13-cyan', 'theme13-red', 'theme13-emerald', 'theme13-sky',
     'theme18', 'theme18-red', 'theme18-cyan', 'theme18-emerald', 'theme18-sky', 'theme18-pink',
+    'lamet-zaman', 'lamet-zaman-red', 'lamet-zaman-emerald', 'lamet-zaman-cyan', 'lamet-zaman-sky', 'lamet-zaman-purple', 'lamet-zaman-gold', 'lamet-zaman-pink', 'lamet-zaman-dark',
     'theme15-sky' // just keeping historical ones in case
 ];
 

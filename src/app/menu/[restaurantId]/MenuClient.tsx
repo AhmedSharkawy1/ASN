@@ -414,7 +414,7 @@ export default function MenuClient({
   if (config?.theme === "theme19") {
     return <Theme19Menu config={config} categories={categories} restaurantId={config.id} />;
   }
-  if (config?.theme === "lamet-zaman") {
+  if (config?.theme?.startsWith("lamet-zaman")) {
     return <LametZamanMenu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme === "theme18-red") {

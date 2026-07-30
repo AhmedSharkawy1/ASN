@@ -87,8 +87,21 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     const isDark = mounted && theme === 'dark';
     const cur = parseCurrency(config?.currency, isAr);
 
-    const T19_PRIMARY = '#f97316'; // orange-500
-    const primaryColor = config.theme_colors?.primary || T19_PRIMARY;
+    const getLametZamanPrimaryColor = (themeName?: string, customPrimary?: string) => {
+        if (customPrimary) return customPrimary;
+        if (!themeName) return '#f97316';
+        if (themeName.endsWith('-red')) return '#ef4444';
+        if (themeName.endsWith('-emerald')) return '#10b981';
+        if (themeName.endsWith('-cyan')) return '#06b6d4';
+        if (themeName.endsWith('-sky')) return '#0284c7';
+        if (themeName.endsWith('-purple')) return '#8b5cf6';
+        if (themeName.endsWith('-gold')) return '#d4af37';
+        if (themeName.endsWith('-pink')) return '#ec4899';
+        if (themeName.endsWith('-dark')) return '#1e293b';
+        return '#f97316';
+    };
+
+    const primaryColor = getLametZamanPrimaryColor(config?.theme, config?.theme_colors?.primary);
     
     // Theme colors matching the screenshots
     const bgBody = isDark ? '#111111' : '#f9fafb';
