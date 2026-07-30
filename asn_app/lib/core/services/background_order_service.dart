@@ -260,8 +260,14 @@ class _OrderListenerHandler extends TaskHandler {
     }
 
     const client = OrderPollClient();
+    // While the app is on screen its Supabase SDK owns the session; refreshing
+    // from here as well would race it and revoke one side's token.
+    final mayRefresh = !await _appIsInForeground();
     final result = await client.fetchNewOrders(
-        restaurantId: _restaurantId!, sinceUtc: _lastSeenUtc);
+      restaurantId: _restaurantId!,
+      sinceUtc: _lastSeenUtc,
+      mayRefresh: mayRefresh,
+    );
     await _saveStatus(result);
 
     if (!result.ok) {
@@ -275,7 +281,7 @@ class _OrderListenerHandler extends TaskHandler {
 
     // Reuse the cycle that just proved the token works to open or re-auth the
     // instant path, so Realtime needs no timer of its own.
-    final token = await client.currentAccessToken();
+    final token = await client.currentAccessToken(mayRefresh: mayRefresh);
     if (token != null && token.isNotEmpty) await _syncRealtime(token);
   }
 

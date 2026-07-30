@@ -53,6 +53,15 @@ class PollResult {
   }
 }
 
+/// Outcome of a token refresh, carrying the server's reason when it failed.
+class RefreshResult {
+  final String? token;
+  final int status;
+  final String? error;
+
+  const RefreshResult({this.token, this.status = 0, this.error});
+}
+
 /// Reads new orders over plain authenticated REST.
 ///
 /// Deliberately avoids the Supabase SDK: the background isolate and the UI
@@ -65,17 +74,32 @@ class OrderPollClient {
 
   const OrderPollClient();
 
+  /// [mayRefresh] false means "the app is on screen": its Supabase SDK owns
+  /// the session and is refreshing on its own schedule. Refreshing here too
+  /// would race it — Supabase rotates the refresh token and revokes the one it
+  /// replaces, so whichever side used the older copy is left permanently
+  /// unauthenticated, which is what "token refresh failed" was. When the app
+  /// is on screen this client only reads what the SDK has already stored.
   Future<PollResult> fetchNewOrders({
     required String restaurantId,
     required DateTime sinceUtc,
+    bool mayRefresh = true,
   }) async {
     try {
       var token = await _storage.read(key: accessTokenKey);
       if (token == null || token.isEmpty) {
-        token = await refreshAccessToken();
-        if (token == null) {
-          return PollResult(ok: false, error: 'no session token (login required)');
+        if (!mayRefresh) {
+          return PollResult(ok: false, error: 'waiting for the app to sign in');
         }
+        final refreshed = await refreshAccessToken();
+        if (refreshed.token == null) {
+          return PollResult(
+            ok: false,
+            httpStatus: refreshed.status,
+            error: refreshed.error ?? 'no session token (login required)',
+          );
+        }
+        token = refreshed.token;
       }
 
       final url = '${AppConfig.supabaseUrl}/rest/v1/orders'
@@ -85,13 +109,27 @@ class OrderPollClient {
           '&created_at=gt.${Uri.encodeQueryComponent(sinceUtc.toIso8601String())}'
           '&order=created_at.asc';
 
-      var res = await _get(url, token);
+      var res = await _get(url, token!);
       if (res.status == 401) {
-        final refreshed = await refreshAccessToken();
-        if (refreshed == null) {
-          return PollResult(ok: false, httpStatus: 401, error: 'token refresh failed');
+        if (!mayRefresh) {
+          // The SDK refreshes within the minute; alerting resumes then.
+          return PollResult(
+            ok: false,
+            httpStatus: 401,
+            error: 'token expired — waiting for the app to refresh it',
+          );
         }
-        res = await _get(url, refreshed);
+        final refreshed = await refreshAccessToken();
+        if (refreshed.token == null) {
+          return PollResult(
+            ok: false,
+            httpStatus: refreshed.status,
+            // Carries the server's own reason, so a rotated-away token reads
+            // differently from a network failure on the diagnostics screen.
+            error: 'token refresh failed — ${refreshed.error ?? "unknown"}',
+          );
+        }
+        res = await _get(url, refreshed.token!);
       }
 
       if (res.status != 200) {
@@ -105,19 +143,26 @@ class OrderPollClient {
     }
   }
 
-  /// A token the caller can authenticate a socket with, refreshing first if
-  /// none is stored. Returns null when nobody is signed in.
-  Future<String?> currentAccessToken() async {
+  /// A token the caller can authenticate a socket with. Refreshes only when
+  /// allowed to — see [fetchNewOrders] for why that matters.
+  Future<String?> currentAccessToken({bool mayRefresh = true}) async {
     final token = await _storage.read(key: accessTokenKey);
     if (token != null && token.isNotEmpty) return token;
-    return refreshAccessToken();
+    if (!mayRefresh) return null;
+    return (await refreshAccessToken()).token;
   }
 
   /// Exchanges the stored refresh token for a new session, persisting both
   /// tokens so the app and the background isolate stay in sync.
-  Future<String?> refreshAccessToken() async {
+  ///
+  /// Reports why it failed rather than returning a bare null: "refresh token
+  /// already used" (the two sides raced) and "no network" both used to surface
+  /// as the same unhelpful message.
+  Future<RefreshResult> refreshAccessToken() async {
     final refreshToken = await _storage.read(key: refreshTokenKey);
-    if (refreshToken == null || refreshToken.isEmpty) return null;
+    if (refreshToken == null || refreshToken.isEmpty) {
+      return const RefreshResult(error: 'no refresh token stored (sign in again)');
+    }
 
     final client = HttpClient();
     try {
@@ -129,23 +174,39 @@ class OrderPollClient {
       req.add(utf8.encode(jsonEncode({'refresh_token': refreshToken})));
       final resp = await req.close();
       final body = await resp.transform(utf8.decoder).join();
-      if (resp.statusCode != 200) return null;
+      if (resp.statusCode != 200) {
+        return RefreshResult(status: resp.statusCode, error: _reasonFrom(body));
+      }
 
       final json = jsonDecode(body) as Map<String, dynamic>;
       final newAccess = json['access_token'] as String?;
       final newRefresh = json['refresh_token'] as String?;
-      if (newAccess != null && newAccess.isNotEmpty) {
-        await _storage.write(key: accessTokenKey, value: newAccess);
+      if (newAccess == null || newAccess.isEmpty) {
+        return RefreshResult(status: resp.statusCode, error: 'response carried no token');
       }
+      await _storage.write(key: accessTokenKey, value: newAccess);
       if (newRefresh != null && newRefresh.isNotEmpty) {
         await _storage.write(key: refreshTokenKey, value: newRefresh);
       }
-      return newAccess;
-    } catch (_) {
-      return null;
+      return RefreshResult(token: newAccess, status: resp.statusCode);
+    } catch (e) {
+      return RefreshResult(error: e.toString());
     } finally {
       client.close();
     }
+  }
+
+  /// Pulls the human-readable part out of a GoTrue error body.
+  static String _reasonFrom(String body) {
+    try {
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      final msg = (json['error_description'] ?? json['msg'] ?? json['message'] ?? json['error'])
+          ?.toString();
+      if (msg != null && msg.isNotEmpty) return msg;
+    } catch (_) {
+      // Not JSON — fall through to the raw body.
+    }
+    return body.length > 120 ? '${body.substring(0, 120)}…' : body;
   }
 
   Future<({int status, String body})> _get(String url, String accessToken) async {
