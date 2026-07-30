@@ -97,6 +97,37 @@ export default function Theme22Menu({ config, categories, restaurantId }: Theme2
     const textMuted = isDark ? '#9ca3af' : '#6b7280';
     const borderColor = isDark ? '#333333' : '#f3f4f6';
 
+    const phoneList: { label: string; number: string }[] = (() => {
+        const list: { label: string; number: string }[] = [];
+        if (Array.isArray(config?.phone_numbers) && config.phone_numbers.length > 0) {
+            config.phone_numbers.forEach((p: any, idx: number) => {
+                if (typeof p === 'object' && p?.number) {
+                    list.push({
+                        label: p.label || (isAr ? (config.phone_numbers.length > 1 ? `رقم التواصل ${idx + 1}` : 'رقم الدليفري') : (config.phone_numbers.length > 1 ? `Contact ${idx + 1}` : 'Delivery Number')),
+                        number: String(p.number).trim()
+                    });
+                } else if (typeof p === 'string' && p.trim()) {
+                    list.push({
+                        label: isAr ? (config.phone_numbers.length > 1 ? `رقم التواصل ${idx + 1}` : 'رقم الدليفري') : (config.phone_numbers.length > 1 ? `Contact ${idx + 1}` : 'Delivery Number'),
+                        number: p.trim()
+                    });
+                }
+            });
+        }
+        if (config?.phone && typeof config.phone === 'string') {
+            const parts = config.phone.split(/[,/|\n]+/).map((s: string) => s.trim()).filter(Boolean);
+            parts.forEach((num: string) => {
+                if (!list.some(existing => existing.number === num)) {
+                    list.push({
+                        label: isAr ? (parts.length > 1 || list.length > 0 ? `رقم التواصل ${list.length + 1}` : 'رقم الدليفري') : (parts.length > 1 || list.length > 0 ? `Contact ${list.length + 1}` : 'Delivery Number'),
+                        number: num
+                    });
+                }
+            });
+        }
+        return list;
+    })();
+
     // State
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -793,15 +824,15 @@ export default function Theme22Menu({ config, categories, restaurantId }: Theme2
                             </div>
                             
                             <div className="space-y-4">
-                                {(config.phone || (config.phone_numbers && config.phone_numbers.length > 0)) && (
-                                    <a href={`tel:${config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}`} className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
-                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}><FaPhoneAlt /></div>
+                                {phoneList.map((ph, idx) => (
+                                    <a key={idx} href={`tel:${ph.number}`} className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
+                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}><FaPhoneAlt /></div>
                                         <div>
-                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'رقم الدليفري' : 'Delivery Number'}</p>
-                                            <span className="font-bold block" dir="ltr">{config.phone || (typeof config.phone_numbers[0] === 'object' ? config.phone_numbers[0].number : config.phone_numbers[0])}</span>
+                                            <p className="text-sm font-bold opacity-70 mb-1">{ph.label}</p>
+                                            <span className="font-bold block" dir="ltr">{ph.number}</span>
                                         </div>
                                     </a>
-                                )}
+                                ))}
                                 
                                 {config.address && (
                                     <a href={config.location_link || `https://maps.google.com/?q=${encodeURIComponent(config.address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
