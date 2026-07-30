@@ -749,41 +749,41 @@ export default function Theme22Menu({ config, categories, restaurantId }: Theme2
             <AnimatePresence>
                 {isCartOpen && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex justify-center py-16 px-5 mb-safe"
+                        className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 mb-safe overflow-hidden"
                         onClick={() => setIsCartOpen(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl"
+                            className="relative w-full max-w-[400px] max-h-[85vh] overflow-hidden rounded-[2.5rem] flex flex-col shadow-2xl border border-black/5 dark:border-white/10"
                             style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()}>
-                            <div className="p-5 flex justify-between items-center text-white shadow-md z-10 sticky top-0" style={{ backgroundColor: primaryColor }} dir={isAr ? 'rtl' : 'ltr'}>
+                            <div className="p-4 sm:p-5 flex justify-between items-center text-white shadow-md z-10 shrink-0" style={{ backgroundColor: primaryColor }} dir={isAr ? 'rtl' : 'ltr'}>
                                 <div className="flex flex-col">
                                     <span className="font-bold text-lg leading-none mb-1">{isAr ? 'عربة التسوق' : 'Shopping Cart'}</span>
                                     <span className="text-xs opacity-90">{cartCount} {isAr ? 'عناصر' : 'items'}</span>
                                 </div>
                                 <button onClick={() => setIsCartOpen(false)} className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                             </div>
-                            <div className="flex-1 overflow-y-auto" style={{ backgroundColor: bgBody }} dir={isAr ? 'rtl' : 'ltr'}>
+                            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin" style={{ backgroundColor: bgBody }} dir={isAr ? 'rtl' : 'ltr'}>
                                 {cart.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4" style={{ color: textMuted }}>
                                         <ShoppingCart className="w-10 h-10 opacity-40 mb-4" />
                                         <p className="font-bold text-lg mb-2">{isAr ? 'سلتك فارغة' : 'Your cart is empty'}</p>
                                     </div>
                                 ) : (
-                                    <div className="p-4 space-y-4">
+                                    <div className="p-3.5 sm:p-4 space-y-3">
                                         {cart.map((c, i) => (
-                                            <div key={i} className="flex gap-4 p-4 rounded-3xl shadow-sm border" style={{ backgroundColor: bgCard, borderColor }}>
-                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-20 h-20 rounded-2xl object-cover shrink-0" />
+                                            <div key={i} className="flex gap-3 p-3.5 rounded-2xl shadow-sm border overflow-hidden" style={{ backgroundColor: bgCard, borderColor }}>
+                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0" />
                                                 <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                                    <div className="flex justify-between items-start">
-                                                        <h4 className="font-bold text-sm line-clamp-2">{itemName(c.item)}</h4>
-                                                        <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-red-500 p-1"><Trash2 className="w-4 h-4" /></button>
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <h4 className="font-bold text-sm line-clamp-2 leading-snug">{itemName(c.item)}</h4>
+                                                        <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-red-500 hover:text-red-600 p-1 shrink-0 active:scale-90 transition-transform"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
-                                                    <div className="flex justify-between items-center mt-3">
-                                                        <span className="font-black" style={{ color: primaryColor }} dir="ltr">{cur}{(c.price * c.quantity).toFixed?.(0)}</span>
-                                                        <div className="flex items-center rounded-full h-8 px-1 border" style={{ borderColor }} dir="ltr">
-                                                            <button onClick={() => updateQty(c.id, c.notes, -1)} className="w-6 h-6 flex items-center justify-center"><Minus className="w-3 h-3" /></button>
-                                                            <span className="w-6 text-center text-sm font-bold">{c.quantity}</span>
-                                                            <button onClick={() => updateQty(c.id, c.notes, 1)} className="w-6 h-6 flex items-center justify-center"><Plus className="w-3 h-3" /></button>
+                                                    <div className="flex justify-between items-center gap-2 mt-2 flex-wrap">
+                                                        <span className="font-black text-sm sm:text-base shrink-0" style={{ color: primaryColor }} dir="ltr">{cur}{(c.price * c.quantity).toFixed?.(0)}</span>
+                                                        <div className="flex items-center rounded-full h-7 px-1 border shrink-0 bg-black/5 dark:bg-white/5" style={{ borderColor }} dir="ltr">
+                                                            <button onClick={() => updateQty(c.id, c.notes, -1)} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-all"><Minus className="w-3 h-3" /></button>
+                                                            <span className="w-5 text-center text-xs font-bold">{c.quantity}</span>
+                                                            <button onClick={() => updateQty(c.id, c.notes, 1)} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-all"><Plus className="w-3 h-3" /></button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -793,13 +793,13 @@ export default function Theme22Menu({ config, categories, restaurantId }: Theme2
                                 )}
                             </div>
                             {cart.length > 0 && (
-                                <div className="p-5 border-t z-20" style={{ backgroundColor: bgCard, borderColor }} dir={isAr ? 'rtl' : 'ltr'}>
-                                    <div className="flex justify-between items-center mb-4 text-sm font-bold">
+                                <div className="p-4 sm:p-5 border-t z-20 shrink-0 shadow-lg" style={{ backgroundColor: bgCard, borderColor }} dir={isAr ? 'rtl' : 'ltr'}>
+                                    <div className="flex justify-between items-center mb-3 text-sm font-bold">
                                         <span>{isAr ? 'الإجمالي' : 'Total'}</span>
-                                        <span className="text-2xl font-black" style={{ color: primaryColor }} dir="ltr">{cur}{cartTotal.toFixed?.(0)}</span>
+                                        <span className="text-xl sm:text-2xl font-black" style={{ color: primaryColor }} dir="ltr">{cur}{cartTotal.toFixed?.(0)}</span>
                                     </div>
-                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full h-14 rounded-2xl text-white font-bold text-lg bg-[#10b981] shadow-lg">
-                                        {isAr ? 'إتمام الطلب' : 'Checkout'}
+                                    <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full h-12 sm:h-14 rounded-2xl text-white font-bold text-base sm:text-lg bg-[#10b981] hover:bg-[#059669] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2">
+                                        <span>{isAr ? 'إتمام الطلب' : 'Checkout'}</span>
                                     </button>
                                 </div>
                             )}
