@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2 } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2, Power } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -17,6 +17,8 @@ interface Client {
     created_at: string;
     parent_id: string | null;
     is_marketing_account: boolean;
+    /** false = public menu switched off by a super admin. */
+    menu_enabled: boolean;
 }
 
 interface PageAccess {
@@ -148,13 +150,29 @@ export default function SuperAdminClientsPage() {
     const fetchClients = useCallback(async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const BASE = 'id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id, is_marketing_account';
+
+            // menu_enabled comes from add_menu_enabled.sql. PostgREST rejects
+            // the whole query on an unknown column, so if the migration has not
+            // run yet this page would show nothing at all. Retried without it,
+            // which leaves the client list working and only the menu switch
+            // inactive until the migration is applied.
+            // The two selects return different row shapes, so the result is held
+            // loosely and narrowed once at the end.
+            const run = (cols: string) => supabase
                 .from('restaurants')
-                .select('id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id, is_marketing_account')
+                .select(cols)
                 .order('created_at', { ascending: false });
 
-            if (error) throw error;
-            setClients((data as Client[]) || []);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let result: { data: any; error: any } = await run(`${BASE}, menu_enabled`);
+
+            if (result.error && /menu_enabled/.test(result.error.message || '')) {
+                result = await run(BASE);
+            }
+
+            if (result.error) throw result.error;
+            setClients((result.data as Client[]) || []);
         } catch (err: unknown) {
             console.error("Fetch clients error:", err);
             const message = err instanceof Error ? err.message : 'Failed to load clients';
@@ -286,6 +304,32 @@ export default function SuperAdminClientsPage() {
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to toggle marketing status");
+        }
+    };
+
+    // Takes the client's public menu offline. Confirmed first, because the
+    // effect is immediately visible to that restaurant's own customers — every
+    // printed QR code and shared link stops working the moment it is switched.
+    const handleToggleMenu = async (client: Client) => {
+        const turningOff = client.menu_enabled !== false;
+        if (turningOff && !window.confirm(
+            `إيقاف منيو "${client.name}"؟\n\n` +
+            `الصفحة العامة هتقف فوراً لكل زباينه، وأي QR مطبوع أو لينك متشارك مش هيشتغل.\n` +
+            `الداشبورد والبيانات مش هتتأثر، وتقدر ترجّعه في أي وقت.`
+        )) return;
+
+        try {
+            const newValue = !turningOff;
+            const { error } = await supabase
+                .from('restaurants')
+                .update({ menu_enabled: newValue })
+                .eq('id', client.id);
+            if (error) throw error;
+            setClients(clients.map(c => c.id === client.id ? { ...c, menu_enabled: newValue } : c));
+            toast.success(newValue ? `تم تشغيل منيو ${client.name}` : `تم إيقاف منيو ${client.name}`);
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error("Failed to toggle menu. Has add_menu_enabled.sql been run?");
         }
     };
 
@@ -555,6 +599,16 @@ export default function SuperAdminClientsPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 {(() => {
+                                                    // Takes precedence over the subscription state: a paid client
+                                                    // whose menu is off is still offline to their customers, and
+                                                    // that is the fact worth seeing in this column.
+                                                    if (client.menu_enabled === false) {
+                                                        return (
+                                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                                                                <Power className="w-3 h-3" />{language === 'ar' ? 'المنيو موقوف' : 'Menu OFF'}
+                                                            </span>
+                                                        );
+                                                    }
                                                     const remaining = getRemainingDays(client.subscription_expires_at, client.subscription_plan);
                                                     if (client.subscription_plan === 'lifetime') {
                                                         return (
@@ -601,6 +655,17 @@ export default function SuperAdminClientsPage() {
                                                     </button>
                                                     <button onClick={() => handleToggleMarketing(client)} className={`p-2 rounded-lg transition-colors ${client.is_marketing_account ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10' : 'text-stone-400 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-500/10'}`} title="Toggle Marketing Status">
                                                         <Megaphone className="w-4 h-4" />
+                                                    </button>
+                                                    {/* Held red while the menu is off, so a paused client is
+                                                        obvious at a glance rather than only inside a modal. */}
+                                                    <button
+                                                        onClick={() => handleToggleMenu(client)}
+                                                        className={`p-2 rounded-lg transition-colors ${client.menu_enabled === false
+                                                            ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10'
+                                                            : 'text-stone-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10'}`}
+                                                        title={client.menu_enabled === false ? 'Menu is OFF — click to turn on' : 'Turn menu OFF'}
+                                                    >
+                                                        <Power className="w-4 h-4" />
                                                     </button>
                                                     <button onClick={() => handleOpenSubscription(client)} className="p-2 text-stone-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-500/10 rounded-lg transition-colors" title="Manage Subscription">
                                                         <ShieldCheck className="w-4 h-4" />

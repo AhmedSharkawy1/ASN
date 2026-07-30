@@ -52,6 +52,8 @@ export type RestaurantConfig = {
   marquee_text_ar?: string;
   marquee_text_en?: string;
   orders_enabled?: boolean;
+  /** Super-admin switch. false takes the public menu offline entirely. */
+  menu_enabled?: boolean;
   order_channel?: "whatsapp" | "website" | "both";
   theme_colors?: {
     primary?: string;
@@ -80,7 +82,7 @@ export type RestaurantConfig = {
 };
 
 const RESTAURANT_COLUMNS =
-  "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, show_asn_branding, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images";
+  "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, menu_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, show_asn_branding, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -152,15 +154,30 @@ export type MenuData = { config: RestaurantConfig; categories: Category[] } | nu
 export async function loadMenu(restaurantId: string, previewTheme?: string): Promise<MenuData> {
   const supabase = serverSupabase();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query: any = supabase.from("restaurants").select(RESTAURANT_COLUMNS);
-  if (restaurantId === "demo") {
-    query = query.eq("is_marketing_account", true).limit(1).maybeSingle();
-  } else {
-    query = query.eq(UUID_RE.test(restaurantId) ? "id" : "slug", restaurantId).single();
+  // menu_enabled is added by add_menu_enabled.sql. PostgREST rejects the whole
+  // query if a named column does not exist, so asking for it before the
+  // migration has run would take every public menu down. Retried without it
+  // instead, which also means the code and the migration can go out in either
+  // order.
+  const runRestaurantQuery = async (columns: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q: any = supabase.from("restaurants").select(columns);
+    if (restaurantId === "demo") {
+      q = q.eq("is_marketing_account", true).limit(1).maybeSingle();
+    } else {
+      q = q.eq(UUID_RE.test(restaurantId) ? "id" : "slug", restaurantId).single();
+    }
+    return q;
+  };
+
+  let { data: config, error: configError } = await runRestaurantQuery(RESTAURANT_COLUMNS);
+
+  if (configError && /menu_enabled/.test(configError.message || "")) {
+    ({ data: config } = await runRestaurantQuery(
+      RESTAURANT_COLUMNS.replace(", menu_enabled", "")
+    ));
   }
 
-  const { data: config } = await query;
   if (!config) return null;
 
   if (previewTheme) config.theme = previewTheme;
