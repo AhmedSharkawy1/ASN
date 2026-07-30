@@ -812,62 +812,62 @@ export default function Theme22Menu({ config, categories, restaurantId }: Theme2
             <AnimatePresence>
                 {showContactModal && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex justify-center py-16 px-5 mb-safe"
+                        className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 mb-safe overflow-hidden"
                         onClick={() => setShowContactModal(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-[400px] rounded-[2rem] mx-auto flex flex-col shadow-2xl p-6"
-                            style={{ backgroundColor: bgCard, maxHeight: 'max-content', marginTop: 'auto', marginBottom: 'auto' }}
+                            className="relative w-full max-w-[400px] max-h-[85vh] rounded-[2.5rem] flex flex-col shadow-2xl p-5 border border-black/5 dark:border-white/10 overflow-hidden"
+                            style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()} dir={isAr ? 'rtl' : 'ltr'}>
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold">{isAr ? 'تواصل معنا' : 'Contact Us'}</h2>
+                            <div className="flex justify-between items-center pb-3 border-b border-black/5 dark:border-white/10 shrink-0 mb-3">
+                                <h2 className="text-xl font-bold">{isAr ? 'تواصل معنا' : 'Contact Us'}</h2>
                                 <button onClick={() => setShowContactModal(false)} className="w-8 h-8 flex items-center justify-center bg-black/5 dark:bg-white/10 rounded-full"><X className="w-5 h-5" /></button>
                             </div>
                             
-                            <div className="space-y-4">
+                            <div className="space-y-3 overflow-y-auto pr-1 flex-1 scrollbar-thin">
                                 {phoneList.map((ph, idx) => (
-                                    <a key={idx} href={`tel:${ph.number}`} className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
-                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}><FaPhoneAlt /></div>
-                                        <div>
-                                            <p className="text-sm font-bold opacity-70 mb-1">{ph.label}</p>
-                                            <span className="font-bold block" dir="ltr">{ph.number}</span>
+                                    <a key={idx} href={`tel:${ph.number}`} className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
+                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}><FaPhoneAlt className="text-sm" /></div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-bold opacity-70 mb-0.5">{ph.label}</p>
+                                            <span className="font-bold block text-sm" dir="ltr">{ph.number}</span>
                                         </div>
                                     </a>
                                 ))}
                                 
                                 {config.address && (
-                                    <a href={config.location_link || `https://maps.google.com/?q=${encodeURIComponent(config.address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-4 p-4 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
-                                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: primaryColor }}><FaMapMarkerAlt /></div>
-                                        <div>
-                                            <p className="text-sm font-bold opacity-70 mb-1">{isAr ? 'الموقع على الخريطة' : 'Location on Map'}</p>
-                                            <p className="font-bold line-clamp-2">{config.address}</p>
+                                    <a href={config.location_link || `https://maps.google.com/?q=${encodeURIComponent(config.address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
+                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}><FaMapMarkerAlt className="text-sm" /></div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-bold opacity-70 mb-0.5">{isAr ? 'الموقع على الخريطة' : 'Location on Map'}</p>
+                                            <p className="font-bold text-xs line-clamp-2">{config.address}</p>
                                         </div>
                                     </a>
                                 )}
 
                                 {((config.social_links && Object.keys(config.social_links).length > 0) || config.facebook_url || config.instagram_url || config.tiktok_url || config.whatsapp_number || config.youtube_url || config.whatsapp_group_url) && (
-                                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
-                                        <p className="text-center font-bold mb-4">{isAr ? 'تابعنا على' : 'Follow Us'}</p>
-                                        <div className="flex justify-center gap-4 flex-wrap">
+                                    <div className="pt-3 border-t border-black/10 dark:border-white/10 shrink-0">
+                                        <p className="text-center font-bold text-xs mb-3">{isAr ? 'تابعنا على' : 'Follow Us'}</p>
+                                        <div className="flex justify-center gap-3 flex-wrap">
                                             {(config.social_links?.facebook || config.facebook_url) && (
-                                                <a href={config.social_links?.facebook || config.facebook_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#1877F2] transition-transform hover:scale-110"><FaFacebookF /></a>
+                                                <a href={config.social_links?.facebook || config.facebook_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-[#1877F2] transition-transform hover:scale-110"><FaFacebookF /></a>
                                             )}
                                             {(config.social_links?.instagram || config.instagram_url) && (
-                                                <a href={config.social_links?.instagram || config.instagram_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] transition-transform hover:scale-110"><FaInstagram /></a>
+                                                <a href={config.social_links?.instagram || config.instagram_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-gradient-to-tr from-[#f09433] via-[#dc2743] to-[#bc1888] transition-transform hover:scale-110"><FaInstagram /></a>
                                             )}
                                             {(config.social_links?.snapchat || config.snapchat_url) && (
-                                                <a href={config.social_links?.snapchat || config.snapchat_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-black text-xl bg-[#FFFC00] transition-transform hover:scale-110"><FaSnapchatGhost /></a>
+                                                <a href={config.social_links?.snapchat || config.snapchat_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center text-black text-lg bg-[#FFFC00] transition-transform hover:scale-110"><FaSnapchatGhost /></a>
                                             )}
                                             {(config.social_links?.tiktok || config.tiktok_url) && (
-                                                <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#000000] dark:border dark:border-zinc-700 transition-transform hover:scale-110"><FaTiktok /></a>
+                                                <a href={config.social_links?.tiktok || config.tiktok_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-[#000000] dark:border dark:border-zinc-700 transition-transform hover:scale-110"><FaTiktok /></a>
                                             )}
                                             {(config.social_links?.whatsapp || config.whatsapp_number) && (
-                                                <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace('+', '')}`} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#25D366] transition-transform hover:scale-110"><FaWhatsapp /></a>
+                                                <a href={`https://wa.me/${(config.social_links?.whatsapp || config.whatsapp_number || '').replace('+', '')}`} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-[#25D366] transition-transform hover:scale-110"><FaWhatsapp /></a>
                                             )}
                                             {(config.youtube_url) && (
-                                                <a href={config.youtube_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#FF0000] transition-transform hover:scale-110"><FaYoutube /></a>
+                                                <a href={config.youtube_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-[#FF0000] transition-transform hover:scale-110"><FaYoutube /></a>
                                             )}
                                             {(config.whatsapp_group_url) && (
-                                                <a href={config.whatsapp_group_url} target="_blank" rel="noreferrer" className="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl bg-[#25D366] transition-transform hover:scale-110" title={isAr ? 'جروب الواتساب' : 'WhatsApp Group'}><FaWhatsapp /><span className="text-[8px] absolute -bottom-1">G</span></a>
+                                                <a href={config.whatsapp_group_url} target="_blank" rel="noreferrer" className="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg bg-[#25D366] transition-transform hover:scale-110" title={isAr ? 'جروب الواتساب' : 'WhatsApp Group'}><FaWhatsapp /><span className="text-[8px] absolute -bottom-1">G</span></a>
                                             )}
                                         </div>
                                     </div>
