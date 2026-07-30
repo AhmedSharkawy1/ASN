@@ -167,7 +167,6 @@ export default function PromotionsPage() {
   };
 
   const removeItem = (itemId: string) => setSelectedItems(selectedItems.filter(s => s.item_id !== itemId));
-  const updateItemQty = (itemId: string, qty: number) => setSelectedItems(selectedItems.map(s => s.item_id === itemId ? { ...s, qty: Math.max(1, qty) } : s));
 
   const discountLabel = (p: Promotion) => {
     if (p.discount_type === 'fixed_amount') return `${p.discount_value} ${isAr ? 'ج' : 'EGP'}`;

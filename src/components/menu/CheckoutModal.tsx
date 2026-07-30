@@ -28,6 +28,13 @@ type Addon = {
 
 type CheckoutCartItem = OrderItem & {
     categoryType?: 'savory' | 'sweet';
+    /**
+     * Some menu themes spread the whole menu item into the cart line, which is
+     * the only place the original product id survives — the cart's own `id` is
+     * a composite of product, size and note. Declared here so reading it needs
+     * no cast.
+     */
+    item?: { id?: string | number };
 };
 
 type CheckoutModalProps = {
@@ -48,7 +55,10 @@ type CheckoutModalProps = {
 export default function CheckoutModal({
     isOpen, onClose, cartItems, subtotal,
     restaurantId, restaurantName, whatsappNumber,
-    currency: propCurrency = "ج.م", language, orderChannel = "whatsapp", onOrderSuccess,
+    // orderChannel stays in the props type because every menu theme passes it,
+    // but this modal always saves the order and then offers the WhatsApp link
+    // when a number exists, so it never reads the value.
+    currency: propCurrency = "ج.م", language, onOrderSuccess,
     branches: propBranches = []
 }: CheckoutModalProps) {
     const isAr = language === "ar";
@@ -280,7 +290,7 @@ export default function CheckoutModal({
     // automatic evaluation sees.
     const cartForPromo = useMemo(() => cartItems.map(ci => {
         // 1) If theme spreads the full item object, use item.id directly
-        const itemObj = (ci as any).item;
+        const itemObj = ci.item;
         if (itemObj?.id) {
             return { id: String(itemObj.id), title: ci.title, qty: ci.qty, price: ci.price };
         }
@@ -340,7 +350,9 @@ export default function CheckoutModal({
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
     const canProceedStep3 = (orderType === 'pickup' || (orderType === 'delivery' && address.trim().length > 0)) && (localBranches && localBranches.length > 0 ? selectedBranch !== "" : true);
 
-    const handleSubmit = async (viaWhatsApp = false) => {
+    // The WhatsApp hand-off is a separate link built by getWhatsAppLink, so
+    // submitting is the same either way.
+    const handleSubmit = async () => {
         setLoading(true);
         const finalItems = getFinalItems();
         const currentExtrasTotal = extrasTotal;
@@ -720,7 +732,7 @@ export default function CheckoutModal({
                                 </button>
                                 <button
                                     disabled={!canProceedStep3 || loading}
-                                    onClick={() => handleSubmit(true)}
+                                    onClick={() => handleSubmit()}
                                     className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
                                 >
                                     {loading ? (
