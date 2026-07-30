@@ -842,7 +842,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                         <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-red-500 hover:text-red-600 p-1 shrink-0 active:scale-90 transition-transform"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
                                                     <div className="flex justify-between items-center gap-2 mt-2 flex-wrap">
-                                                        <span className="font-black text-sm sm:text-base shrink-0" style={{ color: primaryColor }} dir="ltr">{cur}{(c.price * c.quantity).toFixed?.(0)}</span>
+                                                        <span className="font-black text-sm sm:text-base shrink-0" style={{ color: primaryColor }}>{(c.price * c.quantity).toFixed?.(0)} {cur}</span>
                                                         <div className="flex items-center rounded-full h-7 px-1 border shrink-0 bg-black/5 dark:bg-white/5" style={{ borderColor }} dir="ltr">
                                                             <button onClick={() => updateQty(c.id, c.notes, -1)} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-all"><Minus className="w-3 h-3" /></button>
                                                             <span className="w-5 text-center text-xs font-bold">{c.quantity}</span>
@@ -859,7 +859,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                 <div className="p-4 sm:p-5 border-t z-20 shrink-0 shadow-lg" style={{ backgroundColor: bgCard, borderColor }} dir={isAr ? 'rtl' : 'ltr'}>
                                     <div className="flex justify-between items-center mb-3 text-sm font-bold">
                                         <span>{isAr ? 'الإجمالي' : 'Total'}</span>
-                                        <span className="text-xl sm:text-2xl font-black" style={{ color: primaryColor }} dir="ltr">{cur}{cartTotal.toFixed?.(0)}</span>
+                                        <span className="text-xl sm:text-2xl font-black" style={{ color: primaryColor }}>{cartTotal.toFixed?.(0)} {cur}</span>
                                     </div>
                                     <button onClick={() => { setIsCartOpen(false); setShowCheckout(true); }} className="w-full h-12 sm:h-14 rounded-2xl text-white font-bold text-base sm:text-lg bg-[#10b981] hover:bg-[#059669] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2">
                                         <span>{isAr ? 'إتمام الطلب' : 'Checkout'}</span>
