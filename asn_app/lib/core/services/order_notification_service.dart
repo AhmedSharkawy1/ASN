@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:asn_app/core/logging/logger.dart';
+import 'package:asn_app/core/services/background_order_service.dart';
 import 'package:asn_app/core/services/order_alert_builder.dart';
 import 'package:asn_app/shared/data/supabase_client.dart';
 
@@ -144,6 +145,31 @@ class OrderNotificationService {
       }
     } catch (e) {
       AppLogger.warning('Launch action handling failed: $e', name: 'OrderNotification');
+    }
+    await consumePendingTap();
+  }
+
+  /// Carries out a tap the background isolate parked for us.
+  ///
+  /// An alert raised while the app was closed is posted by that isolate, and
+  /// the tap is delivered there — where there is no navigator. It records what
+  /// was tapped; this runs on launch and on every resume, which is precisely
+  /// when the tap has brought the app to the front.
+  Future<void> consumePendingTap() async {
+    final raw = await BackgroundOrderService.takePendingTap();
+    if (raw == null) return;
+
+    try {
+      final parked = jsonDecode(raw) as Map<String, dynamic>;
+      final payload = parked['payload'] as String?;
+      if (payload == null || payload.isEmpty) return;
+      _onNotificationResponse(NotificationResponse(
+        notificationResponseType: NotificationResponseType.selectedNotification,
+        payload: payload,
+        actionId: parked['actionId'] as String?,
+      ));
+    } catch (e) {
+      AppLogger.warning('Unreadable parked tap: $e', name: 'OrderNotification');
     }
   }
 }

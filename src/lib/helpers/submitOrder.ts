@@ -413,6 +413,14 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             .eq('id', restaurantId)
             .maybeSingle();
 
+        // Decided here and written straight onto the insert. It used to be
+        // applied by an UPDATE after the row existed, whose error was never
+        // checked — and a customer placing an order is anonymous, so RLS lets
+        // them insert an order but not modify one. The update silently did
+        // nothing and every order stayed pending however this was set.
+        const autoApprove = restaurantData?.auto_approve_website_orders === true;
+        const initialStatus = autoApprove ? 'completed' : 'pending';
+
         let nextOrderNumber: number;
         if (!orderNumberRpcError && typeof rpcOrderNumber === 'number') {
             nextOrderNumber = rpcOrderNumber;
@@ -476,7 +484,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 subtotal,
                 total,
                 payment_method: paymentMethod || 'cash',
-                status: 'pending',
+                status: initialStatus,
                 is_draft: false,
                 source: 'website',
                 promotion_id: promotionId || null,
@@ -533,41 +541,21 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         await supabase.from('order_logs').insert({
             order_id: order.id,
             action: 'order_created',
-            new_status: 'pending',
+            new_status: initialStatus,
             performed_by: customerName,
         });
 
-        // 6. Process inventory deduction (blocking for status determination)
-            
-        const autoApprove = restaurantData?.auto_approve_website_orders === true;
-        let finalStatus = autoApprove ? 'completed' : 'pending';
-        
+        // 6. Deduct inventory. This no longer decides the status: with
+        // auto-approve on the order is completed regardless, and with it off it
+        // stays pending regardless, so a shortfall only needs logging.
         try {
             const invResult = await processOrderInventory(restaurantId, items, order.id);
-            if (!invResult.allDeducted && !autoApprove) {
-                finalStatus = 'pending'; // Needs factory production, stay pending unless auto-approve is forced
-                // Add a note or handle messages if needed
+            if (!invResult.allDeducted) {
                 console.log('Order deferred to factory:', invResult.messages);
             }
         } catch (err) {
             console.error('[Inventory] deduction error:', err);
-            finalStatus = autoApprove ? 'completed' : 'pending'; // Fallback
         }
-
-        // 6.5 Update the order with its calculated status
-        await supabase.from('orders').update({
-            status: finalStatus,
-            updated_at: new Date().toISOString()
-        }).eq('id', order.id);
-
-        // Optional log for initial status assignment
-        await supabase.from('order_logs').insert({
-            order_id: order.id,
-            action: 'status_assigned_auto',
-            old_status: 'pending',
-            new_status: finalStatus,
-            performed_by: 'system',
-        });
 
         // 7. Calculate order cost & profit (non-blocking)
         calculateOrderCost(order.id).catch(err =>

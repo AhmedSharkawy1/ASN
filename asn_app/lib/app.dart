@@ -44,7 +44,14 @@ class _AsnAppState extends ConsumerState<AsnApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // `resumed` is the only state where the in-app listener is guaranteed to be
     // running and visible; anything else hands the alert back to the service.
-    BackgroundOrderService.setAppForeground(state == AppLifecycleState.resumed);
+    final resumed = state == AppLifecycleState.resumed;
+    BackgroundOrderService.setAppForeground(resumed);
+    // Coming back to the front is usually a notification tap doing it, and a
+    // tap on an alert the background service posted was recorded there rather
+    // than acted on.
+    if (resumed) {
+      ref.read(orderNotificationServiceProvider).consumePendingTap();
+    }
   }
 
   bool _impersonationRestored = false;

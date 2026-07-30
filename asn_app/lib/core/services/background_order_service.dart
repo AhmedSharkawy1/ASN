@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 
@@ -53,6 +54,26 @@ class BackgroundOrderService {
       await FlutterForegroundTask.saveData(key: appForegroundKey, value: inForeground);
     } catch (e) {
       AppLogger.warning('Could not publish foreground state: $e', name: 'BgOrders');
+    }
+  }
+
+  /// A notification tap this isolate received, waiting for the UI to act on it.
+  ///
+  /// Taps on a notification posted from here are delivered to this isolate,
+  /// which cannot navigate. So it parks the payload and the UI picks it up the
+  /// moment it is on screen — which is exactly when the tap brings it there.
+  static const String pendingTapKey = 'bg_pending_tap';
+
+  /// Reads and clears the parked tap. Null when there is nothing waiting.
+  static Future<String?> takePendingTap() async {
+    try {
+      final raw = await FlutterForegroundTask.getData<String>(key: pendingTapKey);
+      if (raw == null || raw.isEmpty) return null;
+      await FlutterForegroundTask.removeData(key: pendingTapKey);
+      return raw;
+    } catch (e) {
+      AppLogger.warning('Could not read the parked tap: $e', name: 'BgOrders');
+      return null;
     }
   }
 
@@ -169,7 +190,10 @@ class _OrderListenerHandler extends TaskHandler {
       restaurantId: _restaurantId!,
       onInsert: _handleOrderRow,
     );
-    if (listener.isConnected) {
+    // Only rebuild when the subscription is actually down. Restarting a healthy
+    // one every cycle tore down a working channel and left the status reading
+    // "closed" — a join still in flight counts as healthy for the same reason.
+    if (listener.isConnected || listener.isStarting) {
       await listener.refreshAuth(accessToken);
     } else {
       await listener.start(accessToken);
@@ -209,7 +233,12 @@ class _OrderListenerHandler extends TaskHandler {
   Future<void> _initNotifications() async {
     const androidSettings = AndroidInitializationSettings('ic_notification');
     const initSettings = InitializationSettings(android: androidSettings);
-    await _notifications.initialize(settings: initSettings);
+    await _notifications.initialize(
+      settings: initSettings,
+      // Without a handler here, tapping an alert this isolate posted just
+      // brought the app to the front and went nowhere.
+      onDidReceiveNotificationResponse: _onNotificationTapped,
+    );
     // Shared definition, so the chime is identical whichever path alerts.
     await _notifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
@@ -297,6 +326,26 @@ class _OrderListenerHandler extends TaskHandler {
     } catch (e) {
       await _saveLastNotified('فشل عرض الإشعار: $e');
       AppLogger.warning('BgOrders notify failed: $e', name: 'BgOrders');
+    }
+  }
+
+  /// Parks a tap for the UI isolate. This isolate has no navigator and no
+  /// screen, so it records what was tapped and lets the UI carry it out.
+  void _onNotificationTapped(NotificationResponse response) {
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+    unawaited(_parkTap(jsonEncode({
+      'payload': payload,
+      'actionId': response.actionId,
+    })));
+  }
+
+  Future<void> _parkTap(String value) async {
+    try {
+      await FlutterForegroundTask.saveData(
+          key: BackgroundOrderService.pendingTapKey, value: value);
+    } catch (e) {
+      AppLogger.warning('Could not park the tap: $e', name: 'BgOrders');
     }
   }
 
