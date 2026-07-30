@@ -192,30 +192,49 @@ END $$;
 
 -- items has no restaurant_id; it belongs to a tenant through its category.
 --
--- The rule is simply "you may touch an item if you can see its category", and
--- it is written that way deliberately. A subquery inside a policy is itself
--- subject to the referenced table's policies, so this inherits every rule that
--- already governs categories — owner, team member, super admin, and
--- pci_access_categories' is_my_child_tenant() for branches — without
--- restating any of them, and it stays correct as those rules change.
+-- Two earlier attempts wrote the check inline in the policy. Both refused the
+-- Excel import with "new row violates row-level security policy for table
+-- items" even for a plain restaurant owner, with the category in the same run
+-- written successfully. The inline version depends on how a subquery inside a
+-- policy interacts with the referenced table's own RLS, which is the part that
+-- could not be pinned down from outside the database.
 --
--- The first version compared c.restaurant_id to get_my_tenant_id() directly.
--- That broke the Excel import for a parent restaurant working on a branch:
--- categories has a pci_access policy covering the parent/child case and items
--- never had one, because RLS was off here and it did not matter. The category
--- was written and then the item was refused with "new row violates row-level
--- security policy for table items".
+-- So the check moved into a SECURITY DEFINER function, which reads categories
+-- as the owner with no RLS involved at all. The ambiguity is gone: the
+-- function either finds the category and its tenant or it does not.
+--
+-- It covers the same three routes categories itself allows — the caller's own
+-- tenant, a branch of it via is_my_child_tenant(), and super admin — so an
+-- owner, a team member and a parent restaurant all keep working.
+CREATE OR REPLACE FUNCTION public.can_manage_category(p_category_id uuid)
+RETURNS boolean AS $$
+DECLARE
+  owner_id uuid;
+BEGIN
+  IF public.is_super_admin_safe() THEN RETURN true; END IF;
+  IF p_category_id IS NULL THEN RETURN false; END IF;
+
+  SELECT restaurant_id INTO owner_id
+    FROM public.categories WHERE id = p_category_id;
+  IF owner_id IS NULL THEN RETURN false; END IF;
+
+  IF owner_id = public.get_my_tenant_id() THEN RETURN true; END IF;
+
+  -- is_my_child_tenant is pre-existing and may not be present on every
+  -- deployment; treat a missing function as "not a branch" rather than failing.
+  BEGIN
+    RETURN public.is_my_child_tenant(owner_id);
+  EXCEPTION WHEN undefined_function THEN
+    RETURN false;
+  END;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public;
+
 ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS owner_access ON public.items;
 CREATE POLICY owner_access ON public.items FOR ALL TO authenticated
-USING (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.categories c WHERE c.id = items.category_id)
-)
-WITH CHECK (
-  public.is_super_admin_safe()
-  OR EXISTS (SELECT 1 FROM public.categories c WHERE c.id = items.category_id)
-);
+USING (public.can_manage_category(category_id))
+WITH CHECK (public.can_manage_category(category_id));
 
 -- These three have no tenant column of their own; they hang off a parent row.
 ALTER TABLE public.order_logs ENABLE ROW LEVEL SECURITY;
