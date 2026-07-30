@@ -205,8 +205,18 @@ class _NotificationDiagnosticsScreenState
                 ),
                 _statusTile(
                   'استثناء توفير البطارية',
-                  _batteryExempt ? 'مفعّل' : 'غير مفعّل — لازم تفعّله',
+                  _batteryExempt
+                      ? 'مفعّل'
+                      : 'غير مفعّل — بدونه الإشعار يتأخر حتى تفتح الشاشة. اضغط للتفعيل',
                   _batteryExempt,
+                  // Without the exemption Android defers the service's work to
+                  // its maintenance windows, so alerts land when the phone is
+                  // next woken. Asking again is a no-op once denied, so send
+                  // the user straight to the system screen.
+                  onFix: () async {
+                    await FlutterForegroundTask.openIgnoreBatteryOptimizationSettings();
+                    if (mounted) await _refresh();
+                  },
                 ),
                 _statusTile(
                   'إذن الإشعارات',
@@ -385,15 +395,20 @@ class _NotificationDiagnosticsScreenState
     );
   }
 
-  Widget _statusTile(String title, String value, bool ok) {
+  Widget _statusTile(String title, String value, bool ok, {VoidCallback? onFix}) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
+      onTap: ok ? null : onFix,
       leading: Icon(
         ok ? Icons.check_circle : Icons.cancel,
         color: ok ? AppColors.success : AppColors.error,
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
       subtitle: Text(value, style: const TextStyle(fontSize: 12)),
+      // Only offer the shortcut when there is something to fix.
+      trailing: (!ok && onFix != null)
+          ? const Icon(Icons.open_in_new, size: 18, color: AppColors.error)
+          : null,
     );
   }
 

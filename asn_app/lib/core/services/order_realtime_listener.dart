@@ -47,6 +47,10 @@ class OrderRealtimeListener {
   Future<void> start(String accessToken) async {
     await stop();
     _token = accessToken;
+    // Published before the handshake finishes. The status is read straight
+    // after this returns, and leaving it on the initial value made an attempt
+    // in progress indistinguishable from never having tried.
+    status = 'connecting';
 
     try {
       final client = RealtimeClient(

@@ -109,30 +109,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Header Logo
+                      // The product's own mark. A cutlery glyph read as
+                      // "restaurant app", and this serves shops and cafes too.
                       Center(
                         child: Container(
-                          width: 80,
-                          height: 80,
+                          width: 96,
+                          height: 96,
+                          padding: const EdgeInsets.all(AppSpacing.sm),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.brandGradient,
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.tealPrimary.withValues(alpha: 0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 4),
+                                color: AppColors.oceanBlue.withValues(alpha: 0.18),
+                                blurRadius: 24,
+                                offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.restaurant_menu,
-                            size: 38,
-                            color: Colors.white,
+                          child: Image.asset(
+                            'assets/logo.png',
+                            fit: BoxFit.contain,
+                            // A missing asset must not leave a blank page.
+                            errorBuilder: (context, error, stack) => const Icon(
+                              Icons.storefront_outlined,
+                              size: 40,
+                              color: AppColors.oceanBlue,
+                            ),
                           ),
                         ),
                       ),
+                      AppSpacing.heightMd,
+                      Text(
+                        l10n.appName,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 2,
+                              color: AppColors.oceanBlue,
+                            ),
+                      ),
                       AppSpacing.heightLg,
-                      
+
                       // Titles
                       Text(
                         l10n.loginTitle,

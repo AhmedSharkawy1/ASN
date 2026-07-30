@@ -107,11 +107,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.restaurant_menu,
-                      size: 50,
-                      color: Colors.white,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stack) => const Icon(
+                          Icons.storefront_outlined,
+                          size: 50,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -125,8 +132,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                     color: Colors.white,
                   ),
                 ),
+                // The platform runs shops and cafes as well, so the strapline
+                // no longer names one trade.
                 const Text(
-                  'RESTAURANT SYSTEM',
+                  'ASN MENU',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w800,

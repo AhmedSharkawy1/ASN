@@ -272,15 +272,17 @@ class _OrderListenerHandler extends TaskHandler {
 
     if (!result.ok) {
       AppLogger.warning('BgOrders poll: ${result.summary}', name: 'BgOrders');
-      return;
+    } else {
+      for (final row in result.rows) {
+        await _handleOrderRow(row);
+      }
     }
 
-    for (final row in result.rows) {
-      await _handleOrderRow(row);
-    }
-
-    // Reuse the cycle that just proved the token works to open or re-auth the
-    // instant path, so Realtime needs no timer of its own.
+    // Deliberately outside the poll's success check. Realtime used to be
+    // opened only after a poll succeeded, so a spell of failed polls left it
+    // "not started" for good — and Realtime is the path that survives the
+    // phone dozing, which is exactly when the poll timer is being deferred.
+    // Any usable token is enough to try.
     final token = await client.currentAccessToken(mayRefresh: mayRefresh);
     if (token != null && token.isNotEmpty) await _syncRealtime(token);
   }

@@ -50,10 +50,6 @@ class DashboardScreen extends ConsumerWidget {
         _DashboardAction(title: l10n.reports, icon: Icons.analytics, color: AppColors.moduleReports, route: '/reports'),
       if (show('qr'))
         _DashboardAction(title: l10n.qrTitle, icon: Icons.qr_code_2, color: AppColors.moduleCustomers, route: '/qr'),
-      // Super-admin-only modules
-      if (isSuper) ...[
-        _DashboardAction(title: l10n.kitchen, icon: Icons.kitchen, color: AppColors.moduleKitchen, route: '/kitchen'),
-      ],
     ];
 
     return Scaffold(
