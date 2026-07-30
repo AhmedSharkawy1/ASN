@@ -191,15 +191,31 @@ BEGIN
 END $$;
 
 -- items has no restaurant_id; it belongs to a tenant through its category.
+--
+-- The rule is simply "you may touch an item if you can see its category", and
+-- it is written that way deliberately. A subquery inside a policy is itself
+-- subject to the referenced table's policies, so this inherits every rule that
+-- already governs categories — owner, team member, super admin, and
+-- pci_access_categories' is_my_child_tenant() for branches — without
+-- restating any of them, and it stays correct as those rules change.
+--
+-- The first version compared c.restaurant_id to get_my_tenant_id() directly.
+-- That broke the Excel import for a parent restaurant working on a branch:
+-- categories has a pci_access policy covering the parent/child case and items
+-- never had one, because RLS was off here and it did not matter. The category
+-- was written and then the item was refused with "new row violates row-level
+-- security policy for table items".
 ALTER TABLE public.items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS owner_access ON public.items;
 CREATE POLICY owner_access ON public.items FOR ALL TO authenticated
-USING (public.is_super_admin_safe() OR EXISTS (
-  SELECT 1 FROM public.categories c
-   WHERE c.id = items.category_id AND c.restaurant_id = public.get_my_tenant_id()))
-WITH CHECK (public.is_super_admin_safe() OR EXISTS (
-  SELECT 1 FROM public.categories c
-   WHERE c.id = items.category_id AND c.restaurant_id = public.get_my_tenant_id()));
+USING (
+  public.is_super_admin_safe()
+  OR EXISTS (SELECT 1 FROM public.categories c WHERE c.id = items.category_id)
+)
+WITH CHECK (
+  public.is_super_admin_safe()
+  OR EXISTS (SELECT 1 FROM public.categories c WHERE c.id = items.category_id)
+);
 
 -- These three have no tenant column of their own; they hang off a parent row.
 ALTER TABLE public.order_logs ENABLE ROW LEVEL SECURITY;
