@@ -130,6 +130,19 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                 let recipesCreated = 0;
                 let materialsCreated = 0;
 
+                // The first database error, kept so a failed import can say what
+                // actually went wrong. Reporting "check your columns" when the
+                // columns are fine and the real cause was a permission denial
+                // sends people looking in the wrong place.
+                let firstDbError = '';
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const noteError = (where: string, e: any) => {
+                    console.error(`[import] ${where}:`, e);
+                    if (!firstDbError && e) {
+                        firstDbError = `${where}: ${e.message || e.code || String(e)}`;
+                    }
+                };
+
                 // A row is keyed by whichever name it actually has. An
                 // English-only sheet leaves every Arabic cell blank, and keying
                 // on Arabic alone silently skipped every row of it.
@@ -212,7 +225,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                             if (newCat) {
                                 catMap.set(catKey, newCat.id);
                             } else if (catError) {
-                                console.error(`Failed to create category ${catAr || catEn}:`, catError);
+                                noteError(`create category "${catAr || catEn}"`, catError);
                             }
                         } else {
                             // Existing category: refresh what the sheet supplies
@@ -409,7 +422,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                             .from('items').update(update).eq('id', existing.id);
 
                         if (!updateError) itemsUpdated++;
-                        else console.error(`Failed to update ${itemName}:`, updateError);
+                        else noteError(`update item "${itemName}"`, updateError);
                     } else {
                         const { data: created, error: itemError } = await supabase
                             .from('items')
@@ -432,7 +445,7 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                                 if (itemEn) itemMap.set(`${catId}::${itemEn.trim().toLowerCase()}`, rec);
                             }
                         } else {
-                            console.error(`Failed to insert ${itemName}:`, itemError);
+                            noteError(`insert item "${itemName}"`, itemError);
                         }
                     }
                 }
@@ -441,6 +454,18 @@ export const importMenuFromExcel = async (restaurantId: string, file: File) => {
                 // English-only failure so hard to place: the file looked fine,
                 // the upload said it worked, and no items appeared.
                 if (itemsCreated + itemsUpdated === 0) {
+                    // A database error means the file was fine and the write was
+                    // refused — almost always a permissions problem. Say that,
+                    // instead of sending the user to re-check correct columns.
+                    if (firstDbError) {
+                        return resolve({
+                            success: false,
+                            message:
+                                `الملف سليم، لكن قاعدة البيانات رفضت الحفظ.\n\n${firstDbError}\n\n` +
+                                `لو الرسالة تذكر "row-level security" فهذه مشكلة صلاحيات وليست مشكلة في الملف.`,
+                        });
+                    }
+
                     const headers = Object.keys(rows[0] || {}).join(' | ');
                     return resolve({
                         success: false,
