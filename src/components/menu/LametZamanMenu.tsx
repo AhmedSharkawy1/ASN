@@ -99,7 +99,14 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     const primaryColor = getLametZamanPrimaryColor(config?.theme, config?.theme_colors?.primary);
     
     // Extract background images if present
-    const tc = config?.theme_colors || {};
+    let tc = config?.theme_colors || {};
+    if (typeof tc === 'string') {
+        try {
+            tc = JSON.parse(tc);
+        } catch {
+            tc = {};
+        }
+    }
     const bgImageLight = tc.lamet_zaman_bg_light || tc.bg_image_light || tc.bg_light || tc.aswan_bg_light || tc.background_image_light || config?.lamet_zaman_bg_light || config?.bg_image_light || config?.aswan_bg_light || '';
     const bgImageDark = tc.lamet_zaman_bg_dark || tc.bg_image_dark || tc.bg_dark || tc.aswan_bg_dark || tc.background_image_dark || config?.lamet_zaman_bg_dark || config?.bg_image_dark || config?.aswan_bg_dark || '';
 

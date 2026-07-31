@@ -91,7 +91,10 @@ export default function ThemeLametZamanSettings() {
 
                 if (error && error.code !== "PGRST116") throw error;
                 if (data) {
-                    const tc = data.theme_colors || {};
+                    let tc = data.theme_colors || {};
+                    if (typeof tc === 'string') {
+                        try { tc = JSON.parse(tc); } catch { tc = {}; }
+                    }
                     setConfig({
                         lamet_zaman_bg_light: tc.lamet_zaman_bg_light || tc.bg_image_light || tc.aswan_bg_light || "",
                         lamet_zaman_bg_dark: tc.lamet_zaman_bg_dark || tc.bg_image_dark || tc.aswan_bg_dark || "",
@@ -115,13 +118,20 @@ export default function ThemeLametZamanSettings() {
         if (!restaurantId) return;
         setSaving(true);
         try {
+            let tc = config.theme_colors || {};
+            if (typeof tc === 'string') {
+                try { tc = JSON.parse(tc); } catch { tc = {}; }
+            }
+
             const updatedThemeColors = {
-                ...config.theme_colors,
+                ...tc,
                 primary: config.primary_color,
                 lamet_zaman_bg_light: config.lamet_zaman_bg_light,
                 lamet_zaman_bg_dark: config.lamet_zaman_bg_dark,
                 bg_image_light: config.lamet_zaman_bg_light,
                 bg_image_dark: config.lamet_zaman_bg_dark,
+                aswan_bg_light: config.lamet_zaman_bg_light,
+                aswan_bg_dark: config.lamet_zaman_bg_dark,
             };
 
             const targetTheme = config.current_theme.startsWith("lamet-zaman") ? config.current_theme : "lamet-zaman-bg";
