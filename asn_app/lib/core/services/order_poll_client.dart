@@ -74,17 +74,47 @@ class OrderPollClient {
 
   const OrderPollClient();
 
+  /// New orders since [sinceUtc].
+  Future<PollResult> fetchNewOrders({
+    required String restaurantId,
+    required DateTime sinceUtc,
+    bool mayRefresh = true,
+  }) {
+    final url = '${AppConfig.supabaseUrl}/rest/v1/orders'
+        '?select=id,order_number,customer_name,customer_phone,customer_address,notes,'
+        'total,subtotal,discount,delivery_fee,payment_method,order_type,delivery_zone_name,items,is_draft,created_at'
+        '&restaurant_id=eq.$restaurantId'
+        '&created_at=gt.${Uri.encodeQueryComponent(sinceUtc.toIso8601String())}'
+        '&order=created_at.asc';
+    return _fetchRows(url, mayRefresh: mayRefresh);
+  }
+
+  /// Waiter calls raised from the menu since [sinceUtc]. Only the ones nobody
+  /// has answered yet — a resolved call must not ring a second time.
+  Future<PollResult> fetchWaiterCalls({
+    required String restaurantId,
+    required DateTime sinceUtc,
+    bool mayRefresh = true,
+  }) {
+    final url = '${AppConfig.supabaseUrl}/rest/v1/waiter_calls'
+        '?select=id,table_number,status,note,created_at'
+        '&restaurant_id=eq.$restaurantId'
+        '&status=eq.pending'
+        '&created_at=gt.${Uri.encodeQueryComponent(sinceUtc.toIso8601String())}'
+        '&order=created_at.asc';
+    return _fetchRows(url, mayRefresh: mayRefresh);
+  }
+
+  /// One authenticated GET with the refresh-on-401 dance, shared by every
+  /// query so the token handling exists once.
+  ///
   /// [mayRefresh] false means "the app is on screen": its Supabase SDK owns
   /// the session and is refreshing on its own schedule. Refreshing here too
   /// would race it — Supabase rotates the refresh token and revokes the one it
   /// replaces, so whichever side used the older copy is left permanently
   /// unauthenticated, which is what "token refresh failed" was. When the app
   /// is on screen this client only reads what the SDK has already stored.
-  Future<PollResult> fetchNewOrders({
-    required String restaurantId,
-    required DateTime sinceUtc,
-    bool mayRefresh = true,
-  }) async {
+  Future<PollResult> _fetchRows(String url, {bool mayRefresh = true}) async {
     try {
       var token = await _storage.read(key: accessTokenKey);
       if (token == null || token.isEmpty) {
@@ -101,13 +131,6 @@ class OrderPollClient {
         }
         token = refreshed.token;
       }
-
-      final url = '${AppConfig.supabaseUrl}/rest/v1/orders'
-          '?select=id,order_number,customer_name,customer_phone,customer_address,notes,'
-          'total,subtotal,discount,delivery_fee,payment_method,order_type,delivery_zone_name,items,is_draft,created_at'
-          '&restaurant_id=eq.$restaurantId'
-          '&created_at=gt.${Uri.encodeQueryComponent(sinceUtc.toIso8601String())}'
-          '&order=created_at.asc';
 
       var res = await _get(url, token!);
       if (res.status == 401) {

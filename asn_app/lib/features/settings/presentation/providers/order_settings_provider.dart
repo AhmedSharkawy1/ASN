@@ -14,16 +14,26 @@ class OrderSettings {
   /// staff walk it through pending → preparing → ready → completed.
   final bool autoApproveWebsiteOrders;
 
-  const OrderSettings({this.autoApproveWebsiteOrders = false});
+  /// Shows a "call the waiter" button on the menu when a customer opens it
+  /// from a table's QR code, and alerts this app naming the table.
+  final bool waiterCallEnabled;
 
-  OrderSettings copyWith({bool? autoApproveWebsiteOrders}) => OrderSettings(
+  const OrderSettings({
+    this.autoApproveWebsiteOrders = false,
+    this.waiterCallEnabled = false,
+  });
+
+  OrderSettings copyWith({bool? autoApproveWebsiteOrders, bool? waiterCallEnabled}) =>
+      OrderSettings(
         autoApproveWebsiteOrders:
             autoApproveWebsiteOrders ?? this.autoApproveWebsiteOrders,
+        waiterCallEnabled: waiterCallEnabled ?? this.waiterCallEnabled,
       );
 }
 
 class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
-  static const String _column = 'auto_approve_website_orders';
+  static const String _autoApproveColumn = 'auto_approve_website_orders';
+  static const String _waiterCallColumn = 'waiter_call_enabled';
 
   @override
   AsyncValue<OrderSettings> build() {
@@ -48,12 +58,15 @@ class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
     try {
       final row = await SupabaseClientManager.client
           .from('restaurants')
-          .select(_column)
+          .select('$_autoApproveColumn, $_waiterCallColumn')
           .eq('id', restaurantId)
           .single();
 
       state = AsyncValue.data(
-        OrderSettings(autoApproveWebsiteOrders: row[_column] as bool? ?? false),
+        OrderSettings(
+          autoApproveWebsiteOrders: row[_autoApproveColumn] as bool? ?? false,
+          waiterCallEnabled: row[_waiterCallColumn] as bool? ?? false,
+        ),
       );
     } catch (e, st) {
       AppLogger.error('Failed to load order settings',
@@ -71,14 +84,41 @@ class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
     final restaurantId = _restaurantId;
     if (restaurantId == null) throw Exception('لا يوجد متجر مرتبط بالحساب');
 
+    await _save(
+      column: _autoApproveColumn,
+      value: value,
+      optimistic: (s) => s.copyWith(autoApproveWebsiteOrders: value),
+      restaurantId: restaurantId,
+    );
+  }
+
+  Future<void> setWaiterCallEnabled(bool value) async {
+    final restaurantId = _restaurantId;
+    if (restaurantId == null) throw Exception('لا يوجد متجر مرتبط بالحساب');
+
+    await _save(
+      column: _waiterCallColumn,
+      value: value,
+      optimistic: (s) => s.copyWith(waiterCallEnabled: value),
+      restaurantId: restaurantId,
+    );
+  }
+
+  /// Writes one flag, showing it immediately and rolling back if the write
+  /// fails — a switch that stays flipped after a failed save is a lie.
+  Future<void> _save({
+    required String column,
+    required bool value,
+    required OrderSettings Function(OrderSettings) optimistic,
+    required String restaurantId,
+  }) async {
     final previous = state.value ?? const OrderSettings();
-    // Optimistic: the switch must not lag behind the finger.
-    state = AsyncValue.data(previous.copyWith(autoApproveWebsiteOrders: value));
+    state = AsyncValue.data(optimistic(previous));
 
     try {
       await SupabaseClientManager.client
           .from('restaurants')
-          .update({_column: value})
+          .update({column: value})
           .eq('id', restaurantId);
     } catch (e, st) {
       state = AsyncValue.data(previous);

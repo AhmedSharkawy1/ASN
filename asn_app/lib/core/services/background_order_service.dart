@@ -10,6 +10,7 @@ import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/core/services/order_alert_builder.dart';
 import 'package:asn_app/core/services/order_poll_client.dart';
 import 'package:asn_app/core/services/order_realtime_listener.dart';
+import 'package:asn_app/core/services/waiter_call_alert.dart';
 
 /// Keeps order alerts arriving when the app is closed — without Firebase.
 ///
@@ -169,7 +170,13 @@ class _OrderListenerHandler extends TaskHandler {
 
   String? _restaurantId;
   DateTime _lastSeenUtc = DateTime.now().toUtc();
+
+  /// Waiter calls keep their own watermark: they arrive on a different table
+  /// and must not be skipped because an order happened to be newer.
+  DateTime _lastWaiterCallUtc = DateTime.now().toUtc();
+
   final Set<String> _notified = {};
+  final Set<String> _notifiedWaiterCalls = {};
   OrderRealtimeListener? _realtime;
 
   @override
@@ -243,6 +250,11 @@ class _OrderListenerHandler extends TaskHandler {
     await _notifications
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(OrderAlert.channel());
+    // Its own channel: staff must be able to tell a waiter call from an order
+    // by sound alone.
+    await _notifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(WaiterCallAlert.channel());
   }
 
   @override
@@ -277,6 +289,8 @@ class _OrderListenerHandler extends TaskHandler {
         await _handleOrderRow(row);
       }
     }
+
+    await _pollWaiterCalls(client, mayRefresh: mayRefresh);
 
     // Deliberately outside the poll's success check. Realtime used to be
     // opened only after a poll succeeded, so a spell of failed polls left it
@@ -334,6 +348,59 @@ class _OrderListenerHandler extends TaskHandler {
     } catch (e) {
       await _saveLastNotified('فشل عرض الإشعار: $e');
       AppLogger.warning('BgOrders notify failed: $e', name: 'BgOrders');
+    }
+  }
+
+  /// Checks whether anyone at a table has pressed "call the waiter".
+  ///
+  /// A restaurant with the feature switched off simply has no rows, and a
+  /// restaurant whose database predates the table gets a 404 — both are
+  /// nothing to report, so neither disturbs the order poll's status.
+  Future<void> _pollWaiterCalls(OrderPollClient client, {required bool mayRefresh}) async {
+    final result = await client.fetchWaiterCalls(
+      restaurantId: _restaurantId!,
+      sinceUtc: _lastWaiterCallUtc,
+      mayRefresh: mayRefresh,
+    );
+    if (!result.ok) {
+      AppLogger.info('Waiter calls unavailable: ${result.summary}', name: 'BgOrders');
+      return;
+    }
+    for (final row in result.rows) {
+      await _handleWaiterCallRow(row);
+    }
+  }
+
+  /// The single place a waiter call becomes a notification, shared by the
+  /// Realtime push and the poll so a row seen twice only rings once.
+  Future<void> _handleWaiterCallRow(Map<String, dynamic> row) async {
+    final created = DateTime.tryParse(row['created_at'] as String? ?? '')?.toUtc();
+    if (created != null && created.isAfter(_lastWaiterCallUtc)) {
+      _lastWaiterCallUtc = created;
+    }
+
+    final id = row['id']?.toString() ?? '';
+    if (id.isEmpty || _notifiedWaiterCalls.contains(id)) return;
+
+    final alert = WaiterCallAlert.fromRow(row);
+    if (alert == null) return; // already answered, or no table
+
+    // The in-app listener owns the alert while the app is on screen.
+    if (await _appIsInForeground()) {
+      _notifiedWaiterCalls.add(id);
+      return;
+    }
+
+    _notifiedWaiterCalls.add(id);
+    if (_notifiedWaiterCalls.length > 300) {
+      _notifiedWaiterCalls.remove(_notifiedWaiterCalls.first);
+    }
+
+    try {
+      await alert.show(_notifications);
+      await _saveLastNotified('نداء ترابيزة ${row['table_number']} — ${DateTime.now()}');
+    } catch (e) {
+      AppLogger.warning('Waiter call notify failed: $e', name: 'BgOrders');
     }
   }
 

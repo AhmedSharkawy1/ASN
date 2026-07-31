@@ -206,7 +206,9 @@ class SettingsScreen extends ConsumerWidget {
 
           // Orders
           const _SectionLabel(text: 'الطلبات'),
-          const _SettingsGroup(children: [_AutoApproveTile()]),
+          const _SettingsGroup(
+            children: [_AutoApproveTile(), _GroupDivider(), _WaiterCallTile()],
+          ),
           AppSpacing.heightLg,
 
           // Account
@@ -348,6 +350,68 @@ class _AutoApproveTile extends ConsumerWidget {
             : on
                 ? 'الطلب الجديد يُسجَّل مكتملاً ويُحسب في التقارير فوراً'
                 : 'الطلب الجديد يبدأ قيد الانتظار، ثم تحت التنفيذ، ثم مكتمل',
+        style: TextStyle(
+          fontSize: 11.5,
+          color: asyncSettings.hasError
+              ? AppColors.error
+              : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// Lets customers call a waiter from the menu.
+///
+/// Same restaurant-level storage as the auto-approve switch, so flipping it
+/// here also changes the web dashboard and the menu the customer sees.
+class _WaiterCallTile extends ConsumerWidget {
+  const _WaiterCallTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncSettings = ref.watch(orderSettingsProvider);
+    final settings = asyncSettings.value;
+    final on = settings?.waiterCallEnabled ?? false;
+
+    return SwitchListTile(
+      value: on,
+      // Nothing loaded yet: flipping would write a guess over the real value.
+      onChanged: settings == null
+          ? null
+          : (value) async {
+              try {
+                await ref.read(orderSettingsProvider.notifier).setWaiterCallEnabled(value);
+                if (context.mounted) {
+                  showAppSnackBar(
+                    context,
+                    value
+                        ? 'زر نداء الجرسون ظاهر الآن في المنيو'
+                        : 'تم إخفاء زر نداء الجرسون',
+                    type: AppSnackBarType.success,
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                }
+              }
+            },
+      secondary: CircleAvatar(
+        radius: 16,
+        backgroundColor: AppColors.steelBlue.withValues(alpha: 0.12),
+        child: const Icon(Icons.room_service_outlined, size: 18, color: AppColors.steelBlue),
+      ),
+      title: const Text(
+        'نداء الجرسون من المنيو',
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(
+        asyncSettings.hasError
+            ? 'تعذّر قراءة الإعداد'
+            : on
+                ? 'العميل يقدر ينادي الجرسون، ويوصلك تنبيه باسم الترابيزة'
+                : 'الزر مخفي من المنيو',
         style: TextStyle(
           fontSize: 11.5,
           color: asyncSettings.hasError

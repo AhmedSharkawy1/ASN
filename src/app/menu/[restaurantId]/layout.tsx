@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
+import CallWaiterButton from "@/components/menu/CallWaiterButton";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -80,8 +81,21 @@ export async function generateMetadata({
 
 export default function MenuLayout({
     children,
+    params,
 }: {
     children: React.ReactNode;
+    params: { restaurantId: string };
 }) {
-    return <>{children}</>;
+    return (
+        <>
+            {children}
+            {/*
+              Floats above whichever theme is rendering. Living here rather than
+              inside the themes is what let the feature ship without touching
+              any of the menu designs. It renders nothing unless the restaurant
+              switched it on and the menu was opened from a table QR code.
+            */}
+            <CallWaiterButton restaurantId={params.restaurantId} />
+        </>
+    );
 }

@@ -67,6 +67,7 @@ type RestaurantProfile = {
         settings?: boolean;
     };
     auto_approve_website_orders?: boolean;
+    waiter_call_enabled?: boolean;
     currency?: string;
     branches_enabled?: boolean;
     branches?: string[];
@@ -115,7 +116,7 @@ export default function SettingsPage() {
             // Try fetching with all columns
             const { data: d1, error: e1 } = await supabase
                 .from('restaurants')
-                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, starting_order_number')
+                .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, receipt_logo_url, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, order_channel, theme_colors, telegram_bot_token, telegram_chat_id, desktop_permissions, auto_approve_website_orders, waiter_call_enabled, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, starting_order_number')
                 .eq('id', resolvedRest.id)
                 .single();
 
@@ -123,7 +124,7 @@ export default function SettingsPage() {
                 // Fallback: omit receipt_logo_url and address if they don't exist
                 const { data: d2 } = await supabase
                     .from('restaurants')
-                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, theme_colors, order_channel, receipt_logo_url, starting_order_number')
+                    .select('id, name, slug, slogan_ar, slogan_en, phone, whatsapp_number, address, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, telegram_bot_token, telegram_chat_id, auto_approve_website_orders, waiter_call_enabled, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, menu_title_word, default_theme_mode, theme_colors, order_channel, receipt_logo_url, starting_order_number')
                     .eq('id', resolvedRest.id)
                     .single();
                 finalData = d2;
@@ -189,6 +190,7 @@ export default function SettingsPage() {
                         settings: true,
                     },
                     auto_approve_website_orders: profile.auto_approve_website_orders || false,
+                        waiter_call_enabled: profile.waiter_call_enabled || false,
                     currency: profile.currency || '',
                     branches_enabled: profile.branches_enabled || false,
                     branches: branches.filter(b => b.trim()),
@@ -231,6 +233,7 @@ export default function SettingsPage() {
                         telegram_bot_token: profile.telegram_bot_token || '',
                         telegram_chat_id: profile.telegram_chat_id || '',
                         auto_approve_website_orders: profile.auto_approve_website_orders || false,
+                        waiter_call_enabled: profile.waiter_call_enabled || false,
                         currency: profile.currency || '',
                         branches_enabled: profile.branches_enabled || false,
                         branches: branches.filter(b => b.trim()),
@@ -480,6 +483,24 @@ export default function SettingsPage() {
                             </span>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" className="sr-only peer" checked={profile.auto_approve_website_orders || false} onChange={e => setProfile({ ...profile, auto_approve_website_orders: e.target.checked })} />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
+                            </label>
+                        </div>
+
+                        {/* Call-the-waiter toggle */}
+                        <div className="flex items-center gap-2 flex-wrap bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-glass-border">
+                            <span
+                                className="text-sm font-bold text-slate-500 dark:text-zinc-400 mr-1 ml-1"
+                                title={language === "ar"
+                                    ? "يظهر زر نداء الجرسون في المنيو عند فتحه من كود الترابيزة، ويصل تنبيه للتطبيق باسم الترابيزة"
+                                    : "Shows a call-the-waiter button on the menu when opened from a table QR, and alerts the app with the table number"}
+                            >
+                                {language === "ar" ? "نداء الجرسون من المنيو:" : "Call waiter from menu:"}
+                            </span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer"
+                                    checked={profile.waiter_call_enabled || false}
+                                    onChange={e => setProfile({ ...profile, waiter_call_enabled: e.target.checked })} />
                                 <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
                             </label>
                         </div>
