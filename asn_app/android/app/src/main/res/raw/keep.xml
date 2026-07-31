@@ -7,5 +7,5 @@
 -->
 <resources
     xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_notification,@raw/order_alert"
+    tools:keep="@drawable/ic_notification,@raw/order_alert,@raw/waiter_call"
     tools:shrinkMode="safe" />

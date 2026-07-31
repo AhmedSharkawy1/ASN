@@ -113,12 +113,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // "restaurant app", and this serves shops and cafes too.
                       Center(
                         child: Container(
-                          width: 96,
-                          height: 96,
-                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          width: 104,
+                          height: 104,
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.oceanBlue.withValues(alpha: 0.15),
+                              width: 2,
+                            ),
                             boxShadow: [
                               BoxShadow(
                                 color: AppColors.oceanBlue.withValues(alpha: 0.18),
@@ -127,14 +130,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ],
                           ),
-                          child: Image.asset(
-                            'assets/logo.png',
-                            fit: BoxFit.contain,
-                            // A missing asset must not leave a blank page.
-                            errorBuilder: (context, error, stack) => const Icon(
-                              Icons.storefront_outlined,
-                              size: 40,
-                              color: AppColors.oceanBlue,
+                          // Clipped to the circle so a square logo cannot poke
+                          // out of the corners.
+                          child: ClipOval(
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.sm),
+                              child: Image.asset(
+                                'assets/logo.png',
+                                fit: BoxFit.contain,
+                                // A missing asset must not leave a blank page.
+                                errorBuilder: (context, error, stack) => const Icon(
+                                  Icons.storefront_outlined,
+                                  size: 40,
+                                  color: AppColors.oceanBlue,
+                                ),
+                              ),
                             ),
                           ),
                         ),

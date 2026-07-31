@@ -21,6 +21,11 @@ class OrderRealtimeListener {
   final String restaurantId;
   final Future<void> Function(Map<String, dynamic> order) onInsert;
 
+  /// A customer pressed "call the waiter" on the menu. Pushed on the same
+  /// socket as orders: the poll behind it runs every 45s, which is far too slow
+  /// for someone sitting at a table waiting.
+  final Future<void> Function(Map<String, dynamic> call)? onWaiterCall;
+
   /// Last subscribe outcome, surfaced in the on-device diagnostics screen so a
   /// missing publication is visible without a USB cable.
   String status = 'not started';
@@ -34,7 +39,11 @@ class OrderRealtimeListener {
   bool _joined = false;
   bool _joining = false;
 
-  OrderRealtimeListener({required this.restaurantId, required this.onInsert});
+  OrderRealtimeListener({
+    required this.restaurantId,
+    required this.onInsert,
+    this.onWaiterCall,
+  });
 
   /// Live means the channel actually joined the topic. An open socket is not
   /// enough — a connected socket with a closed channel receives nothing.
@@ -85,6 +94,19 @@ class OrderRealtimeListener {
             ),
             callback: _onPayload,
           )
+          // Same channel, second binding: one socket carries both, so the
+          // waiter call is as instant as a new order.
+          .onPostgresChanges(
+            event: PostgresChangeEvent.insert,
+            schema: 'public',
+            table: 'waiter_calls',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'restaurant_id',
+              value: restaurantId,
+            ),
+            callback: _onWaiterCallPayload,
+          )
           .subscribe((state, error) {
             // A channel we have already replaced still reports `closed` when it
             // unsubscribes. Letting that through overwrote the live channel's
@@ -115,6 +137,17 @@ class OrderRealtimeListener {
     // still only ever produces one notification.
     unawaited(onInsert(row).catchError((Object e) {
       AppLogger.warning('BgRealtime handler failed: $e', name: 'BgOrders');
+    }));
+  }
+
+  void _onWaiterCallPayload(PostgresChangePayload payload) {
+    final row = payload.newRecord;
+    if (row.isEmpty) return;
+    final handler = onWaiterCall;
+    if (handler == null) return;
+    // Deduped by the handler, so a call also caught by the poll rings once.
+    unawaited(handler(row).catchError((Object e) {
+      AppLogger.warning('BgRealtime waiter handler failed: $e', name: 'BgOrders');
     }));
   }
 

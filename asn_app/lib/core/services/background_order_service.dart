@@ -196,6 +196,7 @@ class _OrderListenerHandler extends TaskHandler {
     final listener = _realtime ??= OrderRealtimeListener(
       restaurantId: _restaurantId!,
       onInsert: _handleOrderRow,
+      onWaiterCall: _handleWaiterCallRow,
     );
     // Only rebuild when the subscription is actually down. Restarting a healthy
     // one every cycle tore down a working channel and left the status reading

@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/core/services/background_order_service.dart';
 import 'package:asn_app/core/services/order_alert_builder.dart';
+import 'package:asn_app/core/services/waiter_call_alert.dart';
 import 'package:asn_app/shared/data/supabase_client.dart';
 
 /// App-wide new-order alerts: subscribes to Supabase realtime INSERTs on
@@ -46,11 +47,13 @@ class OrderNotificationService {
 
     // Max importance so alerts heads-up, with the order chime and vibration.
     await android?.createNotificationChannel(OrderAlert.channel());
+    await android?.createNotificationChannel(WaiterCallAlert.channel());
 
     // The pre-chime channel would otherwise linger in the system settings as a
     // second, silent "New Orders" entry the user could switch on by mistake.
     try {
       await android?.deleteNotificationChannel(channelId: OrderAlert.legacyChannelId);
+      await android?.deleteNotificationChannel(channelId: WaiterCallAlert.legacyChannelId);
     } catch (e) {
       AppLogger.warning('Could not remove the old orders channel: $e',
           name: 'OrderNotification');

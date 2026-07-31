@@ -11,7 +11,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 /// pattern and its own wording. It also carries no money and no items — a
 /// table number is the whole message.
 class WaiterCallAlert {
-  static const String channelId = 'waiter_calls_channel';
+  /// Bumped when the tone was added: Android freezes a channel's sound at
+  /// creation and ignores later edits, so devices that already made the first
+  /// channel would have stayed on the default notification tone.
+  static const String channelId = 'waiter_calls_channel_v2';
+  static const String legacyChannelId = 'waiter_calls_channel';
   static const String channelName = 'نداء الجرسون';
   static const String channelDescription = 'تنبيه عندما ينادي عميل على الجرسون';
 
@@ -19,9 +23,15 @@ class WaiterCallAlert {
   /// silently replace each other.
   static const int _idOffset = 1 << 28;
 
-  /// Two short bursts — distinct from the order alert's long-short-long.
+  /// A two-second double-strike bell, louder and more insistent than the order
+  /// chime: a customer is sitting there waiting, and the floor may be noisy.
+  static const AndroidNotificationSound sound =
+      RawResourceAndroidNotificationSound('waiter_call');
+
+  /// Runs the length of the tone so the phone is still buzzing while it plays,
+  /// and patterned differently from an order so the two never sound alike.
   static final Int64List vibrationPattern =
-      Int64List.fromList([0, 250, 150, 250]);
+      Int64List.fromList([0, 500, 200, 500, 200, 500]);
 
   final int id;
   final String title;
@@ -43,6 +53,7 @@ class WaiterCallAlert {
         description: channelDescription,
         importance: Importance.max,
         playSound: true,
+        sound: sound,
         enableVibration: true,
         vibrationPattern: vibrationPattern,
       );
@@ -74,6 +85,7 @@ class WaiterCallAlert {
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
+      sound: sound,
       enableVibration: true,
       vibrationPattern: vibrationPattern,
       color: const Color(0xFF2F6690),

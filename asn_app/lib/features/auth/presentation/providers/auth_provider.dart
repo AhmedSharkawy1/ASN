@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+
+import 'package:asn_app/core/logging/logger.dart';
 
 import 'package:asn_app/core/network/api_client.dart';
 import 'package:asn_app/core/network/connectivity_service.dart';
@@ -108,18 +112,39 @@ class AuthNotifier extends Notifier<AuthState> {
     return const AuthState.initial();
   }
 
+  /// Brings the alert machinery up for a signed-in user.
+  ///
+  /// Runs behind the UI: none of it is needed to show the dashboard, and all of
+  /// it is slow — permission dialogs and a foreground service start. A failure
+  /// here must never look like a failed login, so it is logged, not thrown.
+  Future<void> _startAlerting(
+    UserEntity user, {
+    required bool askForBatteryExemption,
+  }) async {
+    final restaurantId = user.restaurantId;
+    if (restaurantId == null) return;
+    try {
+      final notifService = ref.read(orderNotificationServiceProvider);
+      notifService.startListening(restaurantId);
+      await notifService.requestPermissions();
+      if (askForBatteryExemption) {
+        // Only on a fresh sign-in: re-prompting on every app start would be
+        // pestering, and the diagnostics screen offers it any time.
+        await BackgroundOrderService.requestIgnoreBatteryOptimization();
+      }
+      await BackgroundOrderService.start(restaurantId);
+    } catch (e) {
+      AppLogger.warning('Could not start order alerts: $e', name: 'Auth');
+    }
+  }
+
   Future<void> checkSession() async {
     state = const AuthState.loading();
     try {
       final user = await ref.read(checkSessionUseCaseProvider).call();
       if (user != null) {
         state = AuthState.authenticated(user);
-        if (user.restaurantId != null) {
-          final notifService = ref.read(orderNotificationServiceProvider);
-          notifService.startListening(user.restaurantId!);
-          await notifService.requestPermissions();
-          await BackgroundOrderService.start(user.restaurantId!);
-        }
+        unawaited(_startAlerting(user, askForBatteryExemption: false));
       } else {
         state = const AuthState.unauthenticated();
       }
@@ -133,14 +158,11 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final user = await ref.read(loginUseCaseProvider).call(usernameOrEmail, password);
       state = AuthState.authenticated(user);
-      if (user.restaurantId != null) {
-        final notifService = ref.read(orderNotificationServiceProvider);
-        notifService.startListening(user.restaurantId!);
-        await notifService.requestPermissions();
-        // Keep alerts flowing after the app is closed (Android).
-        await BackgroundOrderService.requestIgnoreBatteryOptimization();
-        await BackgroundOrderService.start(user.restaurantId!);
-      }
+      // Deliberately not awaited. Setting up alerts means two system permission
+      // dialogs and starting a foreground service; awaiting them left the user
+      // staring at a spinner on a login that had already succeeded. They run
+      // behind the dashboard instead.
+      unawaited(_startAlerting(user, askForBatteryExemption: true));
     } catch (e) {
       final failure = ErrorHandler.handleException(e);
       final message = ErrorHandler.getMessage(failure, language: language);

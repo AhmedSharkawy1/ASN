@@ -43,10 +43,34 @@ void main() {
   });
 
   group('telling it apart from an order', () {
-    test('it has its own channel and its own vibration', () {
+    test('it has its own channel, tone and vibration', () {
       expect(WaiterCallAlert.channelId, isNot(OrderAlert.channelId));
+      expect(WaiterCallAlert.sound, isNot(OrderAlert.sound));
       expect(WaiterCallAlert.vibrationPattern, isNot(OrderAlert.vibrationPattern));
       expect(WaiterCallAlert.channel().importance, Importance.max);
+    });
+
+    test('the tone rides on both the channel and every alert', () {
+      // Android takes the sound from the channel, but older versions read it
+      // off the notification — missing either leaves it silent somewhere.
+      expect(WaiterCallAlert.channel().sound, WaiterCallAlert.sound);
+      final alert = WaiterCallAlert.fromRow(call({}))!;
+      expect(alert.details.android!.sound, WaiterCallAlert.sound);
+    });
+
+    test('the tone names the raw resource the build keeps', () {
+      // keep.xml protects @raw/waiter_call from the resource shrinker; renaming
+      // it here without updating that file ships a silent release.
+      expect(
+        (WaiterCallAlert.sound as RawResourceAndroidNotificationSound).sound,
+        'waiter_call',
+      );
+    });
+
+    test('the channel id was bumped when the tone was added', () {
+      // Android freezes a channel's sound at creation, so reusing the old id
+      // would leave every existing install on the default tone.
+      expect(WaiterCallAlert.channelId, isNot(WaiterCallAlert.legacyChannelId));
     });
 
     test('its ids cannot collide with an order alert', () {
