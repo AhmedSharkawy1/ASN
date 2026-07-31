@@ -184,6 +184,17 @@ const ALL_THEMES = [
     { id: "lamet-zaman-gold", name_ar: "ثيم 25 (لمة زمان - ذهبي)", name_en: "Theme 25 (Lamet Zaman - Gold)", preview_color: "#d4af37" },
     { id: "lamet-zaman-pink", name_ar: "ثيم 25 (لمة زمان - وردي)", name_en: "Theme 25 (Lamet Zaman - Pink)", preview_color: "#ec4899" },
     { id: "lamet-zaman-dark", name_ar: "ثيم 25 (لمة زمان - داكن)", name_en: "Theme 25 (Lamet Zaman - Dark)", preview_color: "#1e293b" },
+
+    // ===== Theme 26: Lamet Zaman BG Family =====
+    { id: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - برتقالي)", name_en: "Theme 26 (Lamet Zaman BG - Orange)", preview_color: "#f97316" },
+    { id: "lamet-zaman-bg-red", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - أحمر)", name_en: "Theme 26 (Lamet Zaman BG - Red)", preview_color: "#ef4444" },
+    { id: "lamet-zaman-bg-emerald", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - زمردي)", name_en: "Theme 26 (Lamet Zaman BG - Emerald)", preview_color: "#10b981" },
+    { id: "lamet-zaman-bg-cyan", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - سماوي)", name_en: "Theme 26 (Lamet Zaman BG - Cyan)", preview_color: "#06b6d4" },
+    { id: "lamet-zaman-bg-sky", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - أزرق sky)", name_en: "Theme 26 (Lamet Zaman BG - Sky)", preview_color: "#0284c7" },
+    { id: "lamet-zaman-bg-purple", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - بنفسجي)", name_en: "Theme 26 (Lamet Zaman BG - Purple)", preview_color: "#8b5cf6" },
+    { id: "lamet-zaman-bg-gold", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - ذهبي)", name_en: "Theme 26 (Lamet Zaman BG - Gold)", preview_color: "#d4af37" },
+    { id: "lamet-zaman-bg-pink", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - وردي)", name_en: "Theme 26 (Lamet Zaman BG - Pink)", preview_color: "#ec4899" },
+    { id: "lamet-zaman-bg-dark", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - داكن)", name_en: "Theme 26 (Lamet Zaman BG - Dark)", preview_color: "#1e293b" },
 ];
 
 interface ThemeOverride {

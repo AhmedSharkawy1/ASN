@@ -154,7 +154,18 @@ const MarketingThemes = [
     { key: "lamet-zaman-purple", nameEn: "Theme 25 (Lamet Zaman - Purple)", nameAr: "ثيم 25 (لمة زمان - بنفسجي)" },
     { key: "lamet-zaman-gold", nameEn: "Theme 25 (Lamet Zaman - Gold)", nameAr: "ثيم 25 (لمة زمان - ذهبي)" },
     { key: "lamet-zaman-pink", nameEn: "Theme 25 (Lamet Zaman - Pink)", nameAr: "ثيم 25 (لمة زمان - وردي)" },
-    { key: "lamet-zaman-dark", nameEn: "Theme 25 (Lamet Zaman - Dark)", nameAr: "ثيم 25 (لمة زمان - داكن)" }
+    { key: "lamet-zaman-dark", nameEn: "Theme 25 (Lamet Zaman - Dark)", nameAr: "ثيم 25 (لمة زمان - داكن)" },
+
+    // Theme 26: Lamet Zaman BG
+    { key: "lamet-zaman-bg", nameEn: "Theme 26 (Lamet Zaman BG - Orange)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - برتقالي)" },
+    { key: "lamet-zaman-bg-red", nameEn: "Theme 26 (Lamet Zaman BG - Red)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - أحمر)" },
+    { key: "lamet-zaman-bg-emerald", nameEn: "Theme 26 (Lamet Zaman BG - Emerald)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - زمردي)" },
+    { key: "lamet-zaman-bg-cyan", nameEn: "Theme 26 (Lamet Zaman BG - Cyan)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - سماوي)" },
+    { key: "lamet-zaman-bg-sky", nameEn: "Theme 26 (Lamet Zaman BG - Sky)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - أزرق sky)" },
+    { key: "lamet-zaman-bg-purple", nameEn: "Theme 26 (Lamet Zaman BG - Purple)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - بنفسجي)" },
+    { key: "lamet-zaman-bg-gold", nameEn: "Theme 26 (Lamet Zaman BG - Gold)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - ذهبي)" },
+    { key: "lamet-zaman-bg-pink", nameEn: "Theme 26 (Lamet Zaman BG - Pink)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - وردي)" },
+    { key: "lamet-zaman-bg-dark", nameEn: "Theme 26 (Lamet Zaman BG - Dark)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - داكن)" }
 ];
 
 export default function MarketingLinksPage() {

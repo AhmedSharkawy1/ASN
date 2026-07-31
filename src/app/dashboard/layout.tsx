@@ -573,6 +573,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/theme", icon: Palette, labelAr: "تخصيص المظهر", labelEn: "Appearance", key: "theme" },
                 { href: "/dashboard/theme-vicino", icon: Palette, labelAr: "تعديل الصفحة الرئيسية (Vicino)", labelEn: "Vicino Landing Page Settings", key: "theme_vicino" },
                 { href: "/dashboard/theme-aswan", icon: Palette, labelAr: "إعدادات ثيم أسوان (ASWAN)", labelEn: "ASWAN Theme Settings", key: "theme_aswan" },
+                { href: "/dashboard/theme-lamet-zaman", icon: Palette, labelAr: "إعدادات ثيم لمة زمان (خلفية صورة)", labelEn: "Lamet Zaman BG Theme Settings", key: "theme_lamet_zaman" },
                 { href: "/dashboard/theme-usa", icon: Palette, labelAr: "إعدادات ثيم USA (الأمريكي)", labelEn: "USA Theme Settings", key: "theme_usa" },
                 { href: "/dashboard/theme-uae", icon: Palette, labelAr: "إعدادات ثيم الإمارات (UAE)", labelEn: "UAE Theme Settings", key: "theme_uae" },
                 { href: "/dashboard/theme-usa-dual", icon: Palette, labelAr: "إعدادات ثيم USA الثنائي (Bilingual)", labelEn: "USA Dual Theme Settings", key: "theme_usa_dual" },

@@ -183,6 +183,17 @@ const THEMES = [
     { id: "lamet-zaman-gold", family: "lamet-zaman", name_ar: "ثيم 25 (لمة زمان - ذهبي)", name_en: "Theme 25 (Lamet Zaman - Gold)", description_ar: "ثيم لمة زمان باللون الذهبي الدافئ.", description_en: "Lamet Zaman theme with gold accent.", preview_color: "#d4af37" },
     { id: "lamet-zaman-pink", family: "lamet-zaman", name_ar: "ثيم 25 (لمة زمان - وردي)", name_en: "Theme 25 (Lamet Zaman - Pink)", description_ar: "ثيم لمة زمان باللون الوردي اللطيف.", description_en: "Lamet Zaman theme with pink accent.", preview_color: "#ec4899" },
     { id: "lamet-zaman-dark", family: "lamet-zaman", name_ar: "ثيم 25 (لمة زمان - داكن)", name_en: "Theme 25 (Lamet Zaman - Dark)", description_ar: "ثيم لمة زمان بوضع داكن فاخر.", description_en: "Lamet Zaman theme with dark mode accent.", preview_color: "#1e293b" },
+
+    // ===== Theme 26: Lamet Zaman BG Family =====
+    { id: "lamet-zaman-bg", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - برتقالي)", name_en: "Theme 26 (Lamet Zaman BG - Orange)", description_ar: "ثيم لمة زمان مع إمكانية إضافة صورة خلفية مخصصة للوضع النهاري والليلي مثل ثيم أسوان.", description_en: "Lamet Zaman theme supporting custom background images.", preview_color: "#f97316" },
+    { id: "lamet-zaman-bg-red", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - أحمر)", name_en: "Theme 26 (Lamet Zaman BG - Red)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الأحمر الجذاب.", description_en: "Lamet Zaman BG theme with red accent.", preview_color: "#ef4444" },
+    { id: "lamet-zaman-bg-emerald", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - زمردي)", name_en: "Theme 26 (Lamet Zaman BG - Emerald)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الأخضر الزمردي.", description_en: "Lamet Zaman BG theme with emerald green accent.", preview_color: "#10b981" },
+    { id: "lamet-zaman-bg-cyan", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - سماوي)", name_en: "Theme 26 (Lamet Zaman BG - Cyan)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الأزرق السماوي.", description_en: "Lamet Zaman BG theme with cyan accent.", preview_color: "#06b6d4" },
+    { id: "lamet-zaman-bg-sky", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - أزرق sky)", name_en: "Theme 26 (Lamet Zaman BG - Sky)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الأزرق النقي.", description_en: "Lamet Zaman BG theme with sky blue accent.", preview_color: "#0284c7" },
+    { id: "lamet-zaman-bg-purple", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - بنفسجي)", name_en: "Theme 26 (Lamet Zaman BG - Purple)", description_ar: "ثيم لمة زمان بخلفية صورة باللون البنفسجي الملكي.", description_en: "Lamet Zaman BG theme with purple accent.", preview_color: "#8b5cf6" },
+    { id: "lamet-zaman-bg-gold", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - ذهبي)", name_en: "Theme 26 (Lamet Zaman BG - Gold)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الذهبي الدافئ.", description_en: "Lamet Zaman BG theme with gold accent.", preview_color: "#d4af37" },
+    { id: "lamet-zaman-bg-pink", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - وردي)", name_en: "Theme 26 (Lamet Zaman BG - Pink)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الوردي اللطيف.", description_en: "Lamet Zaman BG theme with pink accent.", preview_color: "#ec4899" },
+    { id: "lamet-zaman-bg-dark", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - داكن)", name_en: "Theme 26 (Lamet Zaman BG - Dark)", description_ar: "ثيم لمة زمان بخلفية صورة بوضع داكن فاخر.", description_en: "Lamet Zaman BG theme with dark mode accent.", preview_color: "#1e293b" },
 ];
 
 const FAMILIES = [
@@ -212,6 +223,7 @@ const FAMILIES = [
     { id: 'usa', name_ar: 'ثيم 23 (USA إنجليزي)', name_en: 'Theme 23 (USA EN)' },
     { id: 'usa-dual', name_ar: 'ثيم 24 (USA ثنائي)', name_en: 'Theme 24 (USA Dual)' },
     { id: 'lamet-zaman', name_ar: 'ثيم 25 (لمة زمان)', name_en: 'Theme 25 (Lamet Zaman)' },
+    { id: 'lamet-zaman-bg', name_ar: 'ثيم 26 (لمة زمان مع خلفية صورة)', name_en: 'Theme 26 (Lamet Zaman BG)' },
 ];
 
 const DEFAULT_COLORS = {

@@ -46,12 +46,7 @@ interface CategoryWithItemsType {
 interface RestaurantType {
     name: string;
     theme?: string;
-    theme_colors?: {
-        primary?: string;
-        secondary?: string;
-        background?: string;
-        text?: string;
-    };
+    theme_colors?: any;
     cover_images?: string[];
     marquee_enabled?: boolean;
     marquee_text_ar?: string;
@@ -103,9 +98,18 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
 
     const primaryColor = getLametZamanPrimaryColor(config?.theme, config?.theme_colors?.primary);
     
+    // Extract background images if present
+    const tc = config?.theme_colors || {};
+    const bgImageLight = tc.lamet_zaman_bg_light || tc.bg_image_light || tc.bg_light || tc.aswan_bg_light || tc.background_image_light || config?.lamet_zaman_bg_light || config?.bg_image_light || config?.aswan_bg_light || '';
+    const bgImageDark = tc.lamet_zaman_bg_dark || tc.bg_image_dark || tc.bg_dark || tc.aswan_bg_dark || tc.background_image_dark || config?.lamet_zaman_bg_dark || config?.bg_image_dark || config?.aswan_bg_dark || '';
+
+    let activeBgImage = isDark ? (bgImageDark || bgImageLight) : (bgImageLight || bgImageDark);
+    activeBgImage = (activeBgImage || '').trim();
+    const hasBgImage = Boolean(activeBgImage && activeBgImage.length > 0);
+
     // Theme colors matching the screenshots
     const bgBody = isDark ? '#111111' : '#f9fafb';
-    const bgCard = isDark ? '#1c1c1e' : '#ffffff';
+    const bgCard = hasBgImage ? (isDark ? 'rgba(28, 28, 30, 0.90)' : 'rgba(255, 255, 255, 0.94)') : (isDark ? '#1c1c1e' : '#ffffff');
     const textMain = isDark ? '#ffffff' : '#000000';
     const textMuted = isDark ? '#9ca3af' : '#6b7280';
     const borderColor = isDark ? '#333333' : '#f3f4f6';
@@ -283,17 +287,41 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     if (!mounted) return <div className="min-h-screen" style={{ backgroundColor: bgBody }} />;
 
     return (
-        <div className="min-h-screen font-cairo pb-32" style={{ backgroundColor: bgBody, color: textMain }} dir={isAr ? 'rtl' : 'ltr'}>
-            
-            {/* --- MARQUEE --- */}
-            {config.marquee_enabled && (
-                <div className="text-sm text-white" style={{ backgroundColor: primaryColor }}>
-                    <SharedMarquee text={isAr ? (config.marquee_text_ar || '') : (config.marquee_text_en || config.marquee_text_ar || '')} />
-                </div>
+        <div 
+            className="min-h-screen font-cairo pb-32 relative transition-colors duration-300 antialiased" 
+            style={{ backgroundColor: hasBgImage ? 'transparent' : bgBody, color: textMain }} 
+            dir={isAr ? 'rtl' : 'ltr'}
+        >
+            {/* Fixed Background Image Layer */}
+            {hasBgImage && (
+                <div 
+                    className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
+                    style={{
+                        backgroundImage: `url("${activeBgImage}")`
+                    }}
+                />
             )}
 
-            {/* --- HEADER --- */}
-            <div className="px-5 pt-8 pb-4" style={{ backgroundColor: bgBody }}>
+            {/* Subtle Overlay for Text Contrast */}
+            {hasBgImage && (
+                <div 
+                    className="fixed inset-0 pointer-events-none transition-opacity duration-300 z-0"
+                    style={{
+                        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.45)' : 'rgba(255, 255, 255, 0.35)'
+                    }}
+                />
+            )}
+
+            <div className="relative z-10">
+                {/* --- MARQUEE --- */}
+                {config.marquee_enabled && (
+                    <div className="text-sm text-white" style={{ backgroundColor: primaryColor }}>
+                        <SharedMarquee text={isAr ? (config.marquee_text_ar || '') : (config.marquee_text_en || config.marquee_text_ar || '')} />
+                    </div>
+                )}
+
+                {/* --- HEADER --- */}
+                <div className="px-5 pt-8 pb-4" style={{ backgroundColor: hasBgImage ? 'transparent' : bgBody }}>
                 <div className="flex justify-between items-center mb-6">
                     {/* Share button on the right side of the logo (left in LTR, right in RTL) */}
                     <button onClick={handleShare} className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/10 transition-colors shadow-sm">
@@ -428,7 +456,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                 
                 {/* Categories Bar */}
                 {!searchQuery && (
-                    <div className="sticky top-0 z-30 py-2 -mx-5 px-5 mb-3 backdrop-blur-md border-b border-black/5 dark:border-white/5" style={{ backgroundColor: bgBody }}>
+                    <div className="sticky top-0 z-30 py-2 -mx-5 px-5 mb-3 backdrop-blur-md border-b border-black/5 dark:border-white/5" style={{ backgroundColor: hasBgImage ? (isDark ? 'rgba(17, 17, 17, 0.82)' : 'rgba(249, 250, 251, 0.82)') : bgBody }}>
                         <div className="flex gap-3 sm:gap-4 overflow-x-auto hide-scrollbar scrollbar-hide no-scrollbar px-1 py-1" dir={isAr ? 'rtl' : 'ltr'}>
                             <button 
                                 id="nav-cat-all"
@@ -1120,6 +1148,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
 
             {/* Hidden Footer from Theme config if any */}
             <ASNFooter show={config.show_asn_branding !== false} />
+            </div>
         </div>
     );
 }
