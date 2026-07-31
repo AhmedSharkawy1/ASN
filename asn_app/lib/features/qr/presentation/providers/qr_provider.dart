@@ -14,9 +14,25 @@ class QrInfo {
 
   const QrInfo({required this.restaurantId, this.slug});
 
-  String menuUrl({String? tableId}) {
+  /// The menu link a QR code encodes.
+  ///
+  /// [tableLabel] is what a human reads — it is what the waiter-call alert
+  /// names, so "ترابيزة 5" rather than a UUID. The id rides along separately so
+  /// the link still identifies the row exactly.
+  String menuUrl({String? tableId, String? tableLabel}) {
     final String base;
-    final String query = tableId != null ? '?table=$tableId' : '';
+    // No label to show: fall back to the id, so the alert can still say which
+    // table it was rather than nothing at all.
+    final shown = (tableLabel?.trim().isNotEmpty ?? false)
+        ? tableLabel!.trim()
+        : tableId;
+    final params = <String, String>{
+      'table': ?shown,
+      'table_id': ?tableId,
+    };
+    final query = params.isEmpty
+        ? ''
+        : '?${params.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}').join('&')}';
     if (slug != null && slug!.isNotEmpty) {
       base = 'https://$slug.asntechnology.net';
       return '$base$query';

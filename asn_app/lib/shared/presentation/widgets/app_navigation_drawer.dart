@@ -93,6 +93,12 @@ class AppNavigationDrawer extends ConsumerWidget {
         icon: Icons.local_offer_outlined,
       ),
       NavigationDrawerItem(
+        titleKey: 'tables',
+        pageKey: 'tables',
+        routePath: '/tables',
+        icon: Icons.table_restaurant_outlined,
+      ),
+      NavigationDrawerItem(
         titleKey: 'qr',
         pageKey: 'qr',
         routePath: '/qr',

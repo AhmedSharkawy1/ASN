@@ -48,6 +48,8 @@ class DashboardScreen extends ConsumerWidget {
         _DashboardAction(title: l10n.customers, icon: Icons.people, color: AppColors.moduleCustomers, route: '/customers'),
       if (show('reports'))
         _DashboardAction(title: l10n.reports, icon: Icons.analytics, color: AppColors.moduleReports, route: '/reports'),
+      if (show('tables'))
+        _DashboardAction(title: l10n.tables, icon: Icons.table_restaurant, color: AppColors.moduleTables, route: '/tables'),
       if (show('qr'))
         _DashboardAction(title: l10n.qrTitle, icon: Icons.qr_code_2, color: AppColors.moduleCustomers, route: '/qr'),
     ];

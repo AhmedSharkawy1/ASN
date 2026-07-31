@@ -43,9 +43,12 @@ class _QrScreenState extends ConsumerState<QrScreen> {
       drawer: const AppNavigationDrawer(),
       body: qrAsync.when(
         data: (info) {
-          final url = info.menuUrl(tableId: _selectedTableId);
           final selectedTable =
               tables.where((t) => t.id == _selectedTableId).firstOrNull;
+          final url = info.menuUrl(
+            tableId: _selectedTableId,
+            tableLabel: selectedTable?.label,
+          );
 
           return LayoutBuilder(
             builder: (context, constraints) {

@@ -20,12 +20,13 @@ void main() {
           '/customers',
           '/promotions',
           '/qr',
+          '/tables',
         },
       );
     });
 
     test('the deliberately hidden ones stay hidden', () {
-      for (final route in ['/kitchen', '/inventory', '/tables', '/recipes', '/hr']) {
+      for (final route in ['/kitchen', '/inventory', '/recipes', '/hr']) {
         expect(AppModules.isVisible(route), isFalse, reason: route);
       }
     });
