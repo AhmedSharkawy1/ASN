@@ -382,11 +382,11 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
 
             {/* --- BANNER --- */}
             {config.cover_images && config.cover_images.length > 0 && !searchQuery && (
-                <div className="px-5 mb-8">
-                    <Swiper key={isAr ? 'rtl' : 'ltr'} modules={[Autoplay]} autoplay={{ delay: 3000 }} className="w-full rounded-2xl overflow-hidden shadow-sm">
+                <div className="px-5 mb-6 max-w-4xl mx-auto">
+                    <Swiper key={isAr ? 'rtl' : 'ltr'} modules={[Autoplay]} autoplay={{ delay: 3500, disableOnInteraction: false }} className="w-full rounded-3xl overflow-hidden shadow-lg border" style={{ borderColor: borderColor }}>
                         {config.cover_images.map((img, i) => (
-                            <SwiperSlide key={i} className="flex items-center justify-center">
-                                <img src={img} alt="Offer" className="w-full h-auto max-h-[400px] object-contain rounded-2xl mx-auto" />
+                            <SwiperSlide key={i}>
+                                <OptimizedMenuImage src={img} alt="Offer" className="w-full h-[160px] md:h-[220px] object-cover" />
                             </SwiperSlide>
                         ))}
                     </Swiper>
