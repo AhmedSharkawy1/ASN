@@ -406,6 +406,10 @@ export default function SuperAdminClientsPage() {
                 const expiry = new Date(now);
                 expiry.setDate(expiry.getDate() + 30);
                 expiresAt = expiry.toISOString();
+            } else if (subType === 'semi_annual') {
+                const expiry = new Date(now);
+                expiry.setMonth(expiry.getMonth() + 6);
+                expiresAt = expiry.toISOString();
             } else if (subType === 'yearly') {
                 const expiry = new Date(now);
                 expiry.setFullYear(expiry.getFullYear() + 1);
@@ -458,6 +462,7 @@ export default function SuperAdminClientsPage() {
     const getSubTypeLabel = (plan: string | null) => {
         if (!plan || plan === 'Free') return language === 'ar' ? 'مجاني' : 'Free';
         if (plan === 'monthly') return language === 'ar' ? 'شهري' : 'Monthly';
+        if (plan === 'semi_annual' || plan === 'semi-annual' || plan === 'half_yearly') return language === 'ar' ? 'نصف سنوي' : 'Semi-Annual';
         if (plan === 'yearly') return language === 'ar' ? 'سنوي' : 'Yearly';
         if (plan === 'lifetime') return language === 'ar' ? 'مدى الحياة' : 'Lifetime';
         if (plan === 'custom') return language === 'ar' ? 'مخصص' : 'Custom';
@@ -589,6 +594,7 @@ export default function SuperAdminClientsPage() {
                                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wider w-fit
                                                         ${client.subscription_plan === 'lifetime' ? 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400' :
                                                           client.subscription_plan === 'yearly' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' :
+                                                          client.subscription_plan === 'semi_annual' || client.subscription_plan === 'semi-annual' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400' :
                                                           client.subscription_plan === 'monthly' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400' :
                                                           'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300'}
                                                     `}>
@@ -849,7 +855,7 @@ export default function SuperAdminClientsPage() {
             {isSubModalOpen && selectedClient && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsSubModalOpen(false)} />
-                    <div className="bg-white dark:bg-[#131b26] rounded-2xl shadow-xl w-full max-w-md relative z-10 overflow-hidden">
+                    <div className="bg-white dark:bg-[#131b26] rounded-2xl shadow-xl w-full max-w-lg relative z-10 overflow-hidden">
                         <div className="flex items-center justify-between p-6 border-b border-stone-100 dark:border-stone-800 shrink-0">
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -890,9 +896,10 @@ export default function SuperAdminClientsPage() {
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
                                     {language === 'ar' ? 'نوع الاشتراك' : 'Subscription Type'}
                                 </label>
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                     {[
                                         { value: 'monthly', labelAr: 'شهري', labelEn: 'Monthly', icon: '📅', duration: language === 'ar' ? '30 يوم' : '30 days', color: 'cyan' },
+                                        { value: 'semi_annual', labelAr: 'نصف سنوي', labelEn: 'Semi-Annual', icon: '🗓️', duration: language === 'ar' ? '6 أشهر (180 يوم)' : '6 Months (180 days)', color: 'indigo' },
                                         { value: 'yearly', labelAr: 'سنوي', labelEn: 'Yearly', icon: '📆', duration: language === 'ar' ? '365 يوم' : '365 days', color: 'blue' },
                                         { value: 'lifetime', labelAr: 'مدى الحياة', labelEn: 'Lifetime', icon: '👑', duration: language === 'ar' ? '∞ غير محدود' : '∞ Unlimited', color: 'purple' },
                                         { value: 'custom', labelAr: 'مخصص', labelEn: 'Custom', icon: '✏️', duration: language === 'ar' ? 'تحديد فترة' : 'Select period', color: 'emerald' },
@@ -904,6 +911,8 @@ export default function SuperAdminClientsPage() {
                                                 ${subType === opt.value
                                                     ? opt.color === 'cyan'
                                                         ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-500/10 shadow-md shadow-cyan-500/10'
+                                                        : opt.color === 'indigo'
+                                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 shadow-md shadow-indigo-500/10'
                                                         : opt.color === 'blue'
                                                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 shadow-md shadow-blue-500/10'
                                                         : opt.color === 'emerald'
@@ -959,6 +968,8 @@ export default function SuperAdminClientsPage() {
                                 <p className="text-xs text-blue-700 dark:text-blue-400 font-bold leading-relaxed">
                                     {subType === 'monthly'
                                         ? (language === 'ar' ? 'سيتم تفعيل الاشتراك لمدة 30 يوم بدءاً من الآن' : 'Subscription will be activated for 30 days starting now')
+                                        : subType === 'semi_annual'
+                                        ? (language === 'ar' ? 'سيتم تفعيل الاشتراك لمدة 6 أشهر بدءاً من الآن' : 'Subscription will be activated for 6 full months starting now')
                                         : subType === 'yearly'
                                         ? (language === 'ar' ? 'سيتم تفعيل الاشتراك لمدة سنة كاملة بدءاً من الآن' : 'Subscription will be activated for 1 full year starting now')
                                         : subType === 'custom'

@@ -189,6 +189,15 @@ export default function UserDashboardPage() {
                 planLabel: isAr ? 'مدى الحياة' : 'Lifetime',
             };
         }
+        const isSemiAnnual = plan === 'semi_annual' || plan === 'semi-annual' || plan === 'half_yearly';
+        const planLabel = plan === 'monthly'
+            ? (isAr ? 'شهري' : 'Monthly')
+            : isSemiAnnual
+            ? (isAr ? 'نصف سنوي' : 'Semi-Annual')
+            : plan === 'yearly'
+            ? (isAr ? 'سنوي' : 'Yearly')
+            : (isAr ? 'مجاني' : 'Free');
+
         if (!expiresAt) {
             return {
                 label: isAr ? 'نشط' : 'Active',
@@ -197,13 +206,13 @@ export default function UserDashboardPage() {
                 expiryDate: null,
                 isLifetime: false,
                 isExpired: false,
-                planLabel: plan === 'monthly' ? (isAr ? 'شهري' : 'Monthly') : plan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (isAr ? 'مجاني' : 'Free'),
+                planLabel,
             };
         }
         const now = new Date();
         const expiry = new Date(expiresAt);
         const diff = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        const totalDays = plan === 'monthly' ? 30 : plan === 'yearly' ? 365 : 30;
+        const totalDays = plan === 'monthly' ? 30 : isSemiAnnual ? 180 : plan === 'yearly' ? 365 : 30;
         return {
             label: diff <= 0 ? (isAr ? 'منتهي' : 'Expired') : (isAr ? `${diff} يوم متبقي` : `${diff} days left`),
             daysLeft: Math.max(diff, 0),
@@ -211,7 +220,7 @@ export default function UserDashboardPage() {
             expiryDate: expiry.toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' }),
             isLifetime: false,
             isExpired: diff <= 0,
-            planLabel: plan === 'monthly' ? (isAr ? 'شهري' : 'Monthly') : plan === 'yearly' ? (isAr ? 'سنوي' : 'Yearly') : (isAr ? 'مجاني' : 'Free'),
+            planLabel,
         };
     };
 
