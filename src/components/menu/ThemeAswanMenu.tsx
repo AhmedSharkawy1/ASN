@@ -735,7 +735,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain"
                             onClick={closeModal}
                         >
                             <motion.div 
@@ -744,11 +744,11 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                 exit={{ scale: 0.92, opacity: 0 }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[85vh] my-auto"
+                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[85dvh] sm:max-h-[85vh]"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
                                 {/* Header Image */}
-                                <div className="relative h-48 md:h-56 w-full bg-slate-900 shrink-0">
+                                <div className="relative h-36 sm:h-48 md:h-56 w-full bg-slate-900 shrink-0">
                                     <OptimizedMenuImage 
                                         thumbnailSrc={selectedItem.item.thumbnail_url} 
                                         originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
@@ -764,7 +764,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                 </div>
 
                                 {/* Body Info */}
-                                <div className="p-5 overflow-y-auto space-y-5 flex-1">
+                                <div className="p-4 sm:p-5 overflow-y-auto space-y-4 sm:space-y-5 flex-1 overscroll-contain">
                                     <div>
                                         <span className="text-xs font-bold uppercase tracking-wider text-sky-500 block mb-1">
                                             {selectedItem.catName}
@@ -788,7 +788,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                                     <button
                                                         key={idx}
                                                         onClick={() => setSizeIdx(idx)}
-                                                        className="p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
+                                                        className="p-2.5 sm:p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
                                                         style={{
                                                             borderColor: sizeIdx === idx ? primaryColor : borderColor,
                                                             backgroundColor: sizeIdx === idx ? `${primaryColor}15` : 'transparent',
@@ -821,7 +821,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                                                     setSelectedExtras(prev => [...prev, { id: ext.id || idx, name: extName, price: ext.price }]);
                                                                 }
                                                             }}
-                                                            className="w-full p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
+                                                            className="w-full p-2.5 sm:p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
                                                             style={{
                                                                 borderColor: isChecked ? primaryColor : borderColor,
                                                                 backgroundColor: isChecked ? `${primaryColor}15` : 'transparent'
@@ -848,14 +848,14 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
                                             placeholder="Any specific requests or allergies?"
-                                            className="w-full p-3 rounded-2xl border outline-none font-normal text-xs resize-none h-16"
+                                            className="w-full p-2.5 sm:p-3 rounded-2xl border outline-none font-normal text-xs resize-none h-14 sm:h-16"
                                             style={{ backgroundColor: bgBody, borderColor: borderColor, color: textMain }}
                                         />
                                     </div>
                                 </div>
 
                                 {/* Modal Footer (Single row Add to Cart button - No line wrapping) */}
-                                <div className="p-4 border-t flex items-center gap-3 shrink-0" style={{ borderColor: borderColor }}>
+                                <div className="p-3.5 sm:p-4 border-t flex items-center gap-2.5 sm:gap-3 shrink-0" style={{ borderColor: borderColor }}>
                                     <div className="flex items-center border rounded-2xl p-1 shrink-0" style={{ borderColor: borderColor }}>
                                         <button 
                                             onClick={() => setQty(Math.max(1, qty - 1))}
@@ -914,7 +914,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain"
                             onClick={() => setIsCartOpen(false)}
                         >
                             <motion.div 
@@ -923,7 +923,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                 exit={{ scale: 0.92, opacity: 0 }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[80vh] my-auto"
+                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[85dvh] sm:max-h-[80vh]"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
                                 <div className="p-4 border-b flex justify-between items-center shrink-0" style={{ borderColor: borderColor }}>
@@ -936,7 +936,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                     </button>
                                 </div>
 
-                                <div className="p-4 overflow-y-auto space-y-3 flex-1">
+                                <div className="p-4 overflow-y-auto space-y-3 flex-1 overscroll-contain">
                                     {cart.map((cItem, i) => (
                                         <div key={i} className="p-3.5 rounded-2xl border flex justify-between items-start gap-3" style={{ borderColor: borderColor }}>
                                             <div className="flex-1 min-w-0">
@@ -988,7 +988,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain"
                             onClick={() => setShowContactModal(false)}
                         >
                             <motion.div 
@@ -996,7 +996,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.92, opacity: 0 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl p-5 shadow-2xl border relative max-h-[80vh] overflow-y-auto my-auto"
+                                className="w-full max-w-md rounded-3xl p-4 sm:p-5 shadow-2xl border relative max-h-[85dvh] sm:max-h-[80vh] overflow-y-auto overscroll-contain"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
                                 <div className="flex justify-between items-center mb-4 border-b pb-3" style={{ borderColor: borderColor }}>
@@ -1091,7 +1091,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain"
                             onClick={() => setShowPaymentModal(false)}
                         >
                             <motion.div 
@@ -1099,7 +1099,7 @@ export default function ThemeAswanMenu({ config, categories, restaurantId }: The
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.92, opacity: 0 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl p-5 shadow-2xl border relative max-h-[80vh] overflow-y-auto my-auto"
+                                className="w-full max-w-md rounded-3xl p-4 sm:p-5 shadow-2xl border relative max-h-[85dvh] sm:max-h-[80vh] overflow-y-auto overscroll-contain"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
                                 <div className="flex justify-between items-center mb-3">

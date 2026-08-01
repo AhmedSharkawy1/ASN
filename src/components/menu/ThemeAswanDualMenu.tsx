@@ -743,7 +743,7 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain"
                             onClick={closeModal}
                         >
                             <motion.div 
@@ -752,10 +752,10 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                 exit={{ scale: 0.92, opacity: 0 }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[85vh] my-auto"
+                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[85dvh] sm:max-h-[85vh]"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
-                                <div className="relative h-48 md:h-56 w-full bg-slate-900 shrink-0">
+                                <div className="relative h-36 sm:h-48 md:h-56 w-full bg-slate-900 shrink-0">
                                     <OptimizedMenuImage 
                                         thumbnailSrc={selectedItem.item.thumbnail_url} 
                                         originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
@@ -770,7 +770,7 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                     </button>
                                 </div>
 
-                                <div className="p-5 overflow-y-auto space-y-5 flex-1">
+                                <div className="p-4 sm:p-5 overflow-y-auto space-y-4 sm:space-y-5 flex-1 overscroll-contain">
                                     <div>
                                         <span className="text-xs font-bold uppercase tracking-wider text-sky-500 block mb-1">
                                             {selectedItem.catName}
@@ -794,7 +794,7 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                                     <button
                                                         key={idx}
                                                         onClick={() => setSizeIdx(idx)}
-                                                        className="p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
+                                                        className="p-2.5 sm:p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
                                                         style={{
                                                             borderColor: sizeIdx === idx ? primaryColor : borderColor,
                                                             backgroundColor: sizeIdx === idx ? `${primaryColor}15` : 'transparent',
@@ -827,7 +827,7 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                                                     setSelectedExtras(prev => [...prev, { id: ext.id || idx, name: extName, price: ext.price }]);
                                                                 }
                                                             }}
-                                                            className="w-full p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
+                                                            className="w-full p-2.5 sm:p-3 rounded-2xl border font-semibold text-xs flex justify-between items-center transition-all"
                                                             style={{
                                                                 borderColor: isChecked ? primaryColor : borderColor,
                                                                 backgroundColor: isChecked ? `${primaryColor}15` : 'transparent'
@@ -854,13 +854,13 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
                                             placeholder={isAr ? "أضف أي طلبات خاصة..." : "Add special requests..."}
-                                            className="w-full p-3 rounded-2xl border outline-none font-normal text-xs resize-none h-16"
+                                            className="w-full p-2.5 sm:p-3 rounded-2xl border outline-none font-normal text-xs resize-none h-14 sm:h-16"
                                             style={{ backgroundColor: bgBody, borderColor: borderColor, color: textMain }}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="p-4 border-t flex items-center gap-3 shrink-0" style={{ borderColor: borderColor }}>
+                                <div className="p-3.5 sm:p-4 border-t flex items-center gap-2.5 sm:gap-3 shrink-0" style={{ borderColor: borderColor }}>
                                     <div className="flex items-center border rounded-2xl p-1 shrink-0" style={{ borderColor: borderColor }}>
                                         <button 
                                             onClick={() => setQty(Math.max(1, qty - 1))}
@@ -912,179 +912,6 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                     </div>
                 )}
 
-                {/* --- YOUR ORDER CART MODAL --- */}
-                <AnimatePresence>
-                    {isCartOpen && (
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
-                            onClick={() => setIsCartOpen(false)}
-                        >
-                            <motion.div 
-                                initial={{ scale: 0.92, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.92, opacity: 0 }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                                onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col max-h-[80vh] my-auto"
-                                style={{ backgroundColor: bgCard, borderColor: borderColor }}
-                            >
-                                <div className="p-4 border-b flex justify-between items-center shrink-0" style={{ borderColor: borderColor }}>
-                                    <div className="flex items-center gap-2">
-                                        <ShoppingCart className="w-5 h-5" style={{ color: primaryColor }} />
-                                        <h3 className="font-bold text-lg">{isAr ? `سلة طلباتك (${cartCount})` : `Your Cart (${cartCount})`}</h3>
-                                    </div>
-                                    <button onClick={() => setIsCartOpen(false)} className="p-1 rounded-full hover:bg-slate-500/10">
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-
-                                <div className="p-4 overflow-y-auto space-y-3 flex-1">
-                                    {cart.map((cItem, i) => (
-                                        <div key={i} className="p-3.5 rounded-2xl border flex justify-between items-start gap-3" style={{ borderColor: borderColor }}>
-                                            <div className="flex-1 min-w-0">
-                                                <h4 className="font-bold text-sm truncate">{getItemName(cItem.item)}</h4>
-                                                {cItem.sizeLabel && <p className="text-xs font-semibold text-sky-500 mt-0.5">{cItem.sizeLabel}</p>}
-                                                {cItem.notes && <p className="text-xs opacity-70 italic mt-0.5 font-normal">"{cItem.notes}"</p>}
-                                                <div className="font-extrabold text-sm mt-1.5" style={{ color: primaryColor }}>
-                                                    {cItem.price * cItem.quantity} {cur}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                <div className="flex items-center border rounded-xl" style={{ borderColor: borderColor }}>
-                                                    <button onClick={() => updateQty(cItem.id, cItem.notes, -1)} className="p-1.5"><Minus className="w-3.5 h-3.5" /></button>
-                                                    <span className="px-2 font-bold text-xs">{cItem.quantity}</span>
-                                                    <button onClick={() => updateQty(cItem.id, cItem.notes, 1)} className="p-1.5"><Plus className="w-3.5 h-3.5" /></button>
-                                                </div>
-                                                <button onClick={() => updateQty(cItem.id, cItem.notes, -cItem.quantity)} className="text-red-500 p-1">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="p-4 border-t space-y-3 shrink-0" style={{ borderColor: borderColor }}>
-                                    <div className="flex justify-between items-center font-extrabold text-lg">
-                                        <span>{isAr ? 'الإجمالي:' : 'Total:'}</span>
-                                        <span style={{ color: primaryColor }}>{cartTotal} {cur}</span>
-                                    </div>
-                                    <button
-                                        onClick={() => { setIsCartOpen(false); setShowCheckout(true); }}
-                                        className="w-full py-3.5 rounded-2xl font-bold text-white text-base shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95"
-                                        style={{ backgroundColor: primaryColor }}
-                                    >
-                                        <span>{isAr ? 'إتمام الطلب الآن' : 'Proceed to Checkout'}</span>
-                                        {isAr ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
-                {/* --- CONTACT MODAL --- */}
-                <AnimatePresence>
-                    {showContactModal && (
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
-                            onClick={() => setShowContactModal(false)}
-                        >
-                            <motion.div 
-                                initial={{ scale: 0.92, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.92, opacity: 0 }}
-                                onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl p-5 shadow-2xl border relative max-h-[80vh] overflow-y-auto my-auto"
-                                style={{ backgroundColor: bgCard, borderColor: borderColor }}
-                            >
-                                <div className="flex justify-between items-center mb-4 border-b pb-3" style={{ borderColor: borderColor }}>
-                                    <h3 className="font-bold text-base flex items-center gap-2">
-                                        <Phone className="w-5 h-5" style={{ color: primaryColor }} />
-                                        <span>{isAr ? 'اتصل بنا والخدمة المباشرة' : 'Contact Us'}</span>
-                                    </h3>
-                                    <button onClick={() => setShowContactModal(false)} className="p-1 rounded-full hover:bg-slate-500/10">
-                                        <X className="w-5 h-5" />
-                                    </button>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {displayNumbers.length > 0 && (
-                                        <div className="space-y-2">
-                                            <span className="text-xs font-bold uppercase tracking-wider block opacity-70">{isAr ? 'أرقام الاتصال المباشر' : 'Direct Phone Numbers'}</span>
-                                            <div className="space-y-2">
-                                                {displayNumbers.map((num: any, idx: number) => (
-                                                    <a
-                                                        key={idx}
-                                                        href={`tel:${num.number}`}
-                                                        className="flex items-center justify-between p-3.5 rounded-2xl border transition-colors hover:bg-slate-500/10"
-                                                        style={{ borderColor: borderColor, backgroundColor: bgBody }}
-                                                    >
-                                                        <div className="flex items-center gap-3">
-                                                            <Phone className="w-4 h-4" style={{ color: primaryColor }} />
-                                                            <div>
-                                                                <div className="font-bold text-xs">{num.label || (isAr ? 'رقم هاتف' : 'Phone')}</div>
-                                                                <div className="text-xs font-semibold opacity-80" dir="ltr">{num.number}</div>
-                                                            </div>
-                                                        </div>
-                                                        <span className="text-xs font-bold text-white px-3 py-1.5 rounded-xl shadow-sm" style={{ backgroundColor: primaryColor }}>
-                                                            {isAr ? 'اتصال الان' : 'Call Now'}
-                                                        </span>
-                                                    </a>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {config.whatsapp_number && (
-                                        <a
-                                            href={`https://wa.me/${config.whatsapp_number.replace(/\+/g, '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="w-full py-3.5 px-4 rounded-2xl flex items-center justify-center gap-2 text-white font-bold text-sm shadow-md"
-                                            style={{ backgroundColor: '#25D366' }}
-                                        >
-                                            <FaWhatsapp className="w-5 h-5" />
-                                            <span>WhatsApp Chat ({config.whatsapp_number})</span>
-                                        </a>
-                                    )}
-
-                                    {config.address && (
-                                        <div className="p-3.5 rounded-2xl border flex items-start gap-3" style={{ borderColor: borderColor, backgroundColor: bgBody }}>
-                                            <MapPin className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primaryColor }} />
-                                            <div>
-                                                <h4 className="font-bold text-xs uppercase opacity-70">{isAr ? 'العنوان والموقع' : 'Location Address'}</h4>
-                                                <p className="text-xs font-semibold mt-0.5">{config.address}</p>
-                                                {config.map_link && (
-                                                    <a href={config.map_link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-sky-500 hover:underline mt-1 block">
-                                                        {isAr ? 'فتح في خرائط جوجل ←' : 'Open in Google Maps →'}
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {config.working_hours && (
-                                        <div className="p-3.5 rounded-2xl border flex items-start gap-3" style={{ borderColor: borderColor, backgroundColor: bgBody }}>
-                                            <Clock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: primaryColor }} />
-                                            <div>
-                                                <h4 className="font-bold text-xs uppercase opacity-70">{isAr ? 'ساعات العمل' : 'Opening Hours'}</h4>
-                                                <p className="text-xs font-semibold whitespace-pre-line mt-0.5">{config.working_hours}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </motion.div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-
                 {/* --- PAYMENT METHODS MODAL --- */}
                 <AnimatePresence>
                     {showPaymentModal && (
@@ -1092,7 +919,7 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4 min-h-screen"
+                            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto overscroll-contain"
                             onClick={() => setShowPaymentModal(false)}
                         >
                             <motion.div 
@@ -1100,7 +927,7 @@ export default function ThemeAswanDualMenu({ config, categories, restaurantId }:
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.92, opacity: 0 }}
                                 onClick={e => e.stopPropagation()}
-                                className="w-full max-w-md rounded-3xl p-5 shadow-2xl border relative max-h-[80vh] overflow-y-auto my-auto"
+                                className="w-full max-w-md rounded-3xl p-4 sm:p-5 shadow-2xl border relative max-h-[85dvh] sm:max-h-[80vh] overflow-y-auto overscroll-contain"
                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                             >
                                 <div className="flex justify-between items-center mb-3">
