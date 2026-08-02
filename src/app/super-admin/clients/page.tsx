@@ -19,6 +19,7 @@ interface Client {
     is_marketing_account: boolean;
     /** false = public menu switched off by a super admin. */
     menu_enabled: boolean;
+    high_quality_images?: boolean;
 }
 
 interface PageAccess {
@@ -151,7 +152,7 @@ export default function SuperAdminClientsPage() {
     const fetchClients = useCallback(async () => {
         setLoading(true);
         try {
-            const BASE = 'id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id, is_marketing_account';
+            const BASE = 'id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id, is_marketing_account, high_quality_images';
 
             // menu_enabled comes from add_menu_enabled.sql. PostgREST rejects
             // the whole query on an unknown column, so if the migration has not
@@ -309,6 +310,25 @@ export default function SuperAdminClientsPage() {
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to toggle marketing status");
+        }
+    };
+
+    const handleToggleHighQuality = async (client: Client) => {
+        try {
+            const newValue = !client.high_quality_images;
+            const { error } = await supabase
+                .from('restaurants')
+                .update({ high_quality_images: newValue })
+                .eq('id', client.id);
+            if (error) throw error;
+            setClients(clients.map(c => c.id === client.id ? { ...c, high_quality_images: newValue } : c));
+            toast.success(newValue 
+                ? (language === "ar" ? `تم تفعيل جودة الصور العالية (HD) لمطعم ${client.name}` : `High Quality HD Images Enabled for ${client.name}`)
+                : (language === "ar" ? `تم إيقاف جودة الصور العالية لمطعم ${client.name}` : `High Quality HD Images Disabled for ${client.name}`)
+            );
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error("Failed to toggle high quality setting");
         }
     };
 
@@ -667,6 +687,20 @@ export default function SuperAdminClientsPage() {
                                                     <button onClick={() => handleToggleMarketing(client)} className={`p-2 rounded-lg transition-colors ${client.is_marketing_account ? 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-500/10' : 'text-stone-400 hover:text-fuchsia-600 dark:hover:text-fuchsia-400 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-500/10'}`} title="Toggle Marketing Status">
                                                         <Megaphone className="w-4 h-4" />
                                                     </button>
+                                                    <button 
+                                                         onClick={() => handleToggleHighQuality(client)} 
+                                                         className={`p-2 rounded-lg transition-colors ${
+                                                             client.high_quality_images 
+                                                                 ? 'text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-500/30' 
+                                                                 : 'text-stone-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10'
+                                                         }`} 
+                                                         title={client.high_quality_images 
+                                                             ? (language === 'ar' ? 'جودة الصور العالية (HD) مفعلة' : 'High Quality HD Images: ON') 
+                                                             : (language === 'ar' ? 'تفعيل جودة الصور العالية (HD)' : 'Turn High Quality HD Images ON')
+                                                         }
+                                                     >
+                                                         <Sparkles className="w-4 h-4" />
+                                                     </button>
                                                     {/* Held red while the menu is off, so a paused client is
                                                         obvious at a glance rather than only inside a modal. */}
                                                     <button
