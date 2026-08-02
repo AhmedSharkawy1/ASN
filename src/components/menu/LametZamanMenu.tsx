@@ -393,7 +393,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                     <Swiper key={isAr ? 'rtl' : 'ltr'} modules={[Autoplay]} autoplay={{ delay: 3500, disableOnInteraction: false }} className="w-full rounded-3xl overflow-hidden shadow-lg border" style={{ borderColor: borderColor }}>
                         {config.cover_images.map((img, i) => (
                             <SwiperSlide key={i}>
-                                <OptimizedMenuImage src={img} alt="Offer" className="w-full h-[160px] md:h-[220px] object-cover" />
+                                <OptimizedMenuImage src={img} alt="Offer" className="w-full h-[160px] md:h-[220px] object-cover" highQuality={Boolean(config?.high_quality_images)} />
                             </SwiperSlide>
                         ))}
                     </Swiper>
@@ -417,7 +417,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                         onClick={() => openModal(item, item.catName || '')}
                                     >
                                         <div className="relative h-[160px]">
-                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                            <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" highQuality={Boolean(config?.high_quality_images)} />
                                             {/* Offer Badge */}
                                             <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                                                 <span>{isAr ? 'عرض خاص' : 'Special Offer'}</span>
@@ -885,7 +885,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                             onClick={() => openModal(item, item.catName || '')}
                                                         >
                                                             <div className="relative h-[120px]">
-                                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" />
+                                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" highQuality={Boolean(config?.high_quality_images)} />
                                                                 {item.is_popular && (
                                                                     <div className="absolute top-2 left-2 bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">
                                                                         {isAr ? 'عرض خاص' : 'Offer'}
@@ -956,7 +956,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                     <div className="p-3.5 sm:p-4 space-y-3">
                                         {cart.map((c, i) => (
                                             <div key={i} className="flex gap-3 p-3.5 rounded-2xl shadow-sm border overflow-hidden" style={{ backgroundColor: bgCard, borderColor }}>
-                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0" />
+                                                <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0" highQuality={Boolean(config?.high_quality_images)} />
                                                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                                                     <div className="flex justify-between items-start gap-2">
                                                         <h4 className="font-bold text-sm line-clamp-2 leading-snug">{itemName(c.item)}</h4>

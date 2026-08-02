@@ -159,11 +159,12 @@ export default function OptimizedMenuImage({
             onError={handleError}
             priority={priority}
             fill={isFilled}
-            sizes={sizes}
-            width={!isFilled ? (width || 400) : undefined}
-            height={!isFilled ? (height || 400) : undefined}
+            sizes={isHQ ? '100vw' : sizes}
+            width={!isFilled ? (width || (isHQ ? 1200 : 400)) : undefined}
+            height={!isFilled ? (height || (isHQ ? 1200 : 400)) : undefined}
             style={!isFilled ? { width: width || '100%', height: height || '100%', ...style } : style}
-            unoptimized={primarySrc.startsWith('data:')}
+            unoptimized={isHQ || primarySrc.startsWith('data:')}
+            quality={isHQ ? 100 : 80}
           />
         ) : (
           <img
