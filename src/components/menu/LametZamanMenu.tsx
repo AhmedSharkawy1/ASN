@@ -5,7 +5,7 @@ import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard, Maximize2 } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -156,7 +156,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [navTab, setNavTab] = useState('menu'); // menu, cart, contact
-    const [viewMode, setViewMode] = useState<'grid'|'list'>('grid');
+    const [viewMode, setViewMode] = useState<'grid'|'list'|'single'>('grid');
 
     // Scroll Spy
     useEffect(() => {
@@ -481,7 +481,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                      }}>
                                      <LayoutGrid className="w-6 h-6" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
                                 </div>
-                                <span className="font-bold text-xs" style={{ color: activeCategory === 'all' ? primaryColor : textMain }}>
+                                <span className="font-bold text-xs" style={{ color: isDark ? (activeCategory === 'all' ? primaryColor : textMain) : '#000000' }}>
                                     {isAr ? 'الكل' : 'All'}
                                 </span>
                             </button>
@@ -514,7 +514,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                             }}
                                         />
                                     </div>
-                                    <span className="font-bold text-xs whitespace-nowrap" style={{ color: activeCategory === cat.id.toString() ? primaryColor : textMain }}>
+                                    <span className="font-bold text-xs whitespace-nowrap" style={{ color: isDark ? (activeCategory === cat.id.toString() ? primaryColor : textMain) : '#000000' }}>
                                         {catName(cat)}
                                     </span>
                                 </button>
@@ -525,17 +525,57 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
 
                 {/* View Mode Toggle */}
                 {!searchQuery && (
-                    <div className="flex justify-end mb-4 px-2">
-                        <button 
-                            onClick={() => setViewMode(prev => prev === 'grid' ? 'list' : 'grid')}
-                            className="w-10 h-10 rounded-full flex items-center justify-center bg-black/5 dark:bg-white/5 transition-colors"
-                        >
-                            {viewMode === 'grid' ? <LayoutList className="w-5 h-5 opacity-70" /> : <LayoutGrid className="w-5 h-5 opacity-70" />}
-                        </button>
+                    <div className="flex justify-between items-center mb-4 px-2">
+                        <span className="text-xs font-bold opacity-75">
+                            {isAr ? 'طريقة العرض:' : 'View Mode:'}
+                        </span>
+                        <div className="flex items-center gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
+                            <button
+                                onClick={() => setViewMode('grid')}
+                                title={isAr ? "صورتين (شبكة)" : "2 Columns (Grid)"}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    viewMode === 'grid' 
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
+                                        : 'opacity-60 hover:opacity-100'
+                                }`}
+                                style={viewMode === 'grid' ? { color: primaryColor } : {}}
+                            >
+                                <LayoutGrid className="w-4 h-4" />
+                                <span className="text-[11px] font-semibold">{isAr ? "صورتين" : "Grid"}</span>
+                            </button>
+
+                            <button
+                                onClick={() => setViewMode('list')}
+                                title={isAr ? "قائمة بالعرض" : "Horizontal List"}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    viewMode === 'list' 
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
+                                        : 'opacity-60 hover:opacity-100'
+                                }`}
+                                style={viewMode === 'list' ? { color: primaryColor } : {}}
+                            >
+                                <LayoutList className="w-4 h-4" />
+                                <span className="text-[11px] font-semibold">{isAr ? "قائمة" : "List"}</span>
+                            </button>
+
+                            <button
+                                onClick={() => setViewMode('single')}
+                                title={isAr ? "صورة واحدة كبيرة" : "Single Large Image"}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    viewMode === 'single' 
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
+                                        : 'opacity-60 hover:opacity-100'
+                                }`}
+                                style={viewMode === 'single' ? { color: primaryColor } : {}}
+                            >
+                                <Maximize2 className="w-4 h-4" />
+                                <span className="text-[11px] font-semibold">{isAr ? "صورة كبيرة" : "Large"}</span>
+                            </button>
+                        </div>
                     </div>
                 )}
 
-                {/* Items Grid/List */}
+                {/* Items Grid/List/Single */}
                 <div>
                     {displayCategories.map((category) => {
                         const items = category.items || [];
@@ -543,47 +583,90 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
 
                         return (
                             <div key={category.id} id={category.id.toString()} className="mb-8 pt-2">
-                                <h3 className="font-bold text-lg mb-4" style={{ color: primaryColor }}>{catName(category)}</h3>
-                                <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4" : "flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"}>
+                                <h3 className="font-black text-xl mb-4" style={{ color: isDark ? primaryColor : '#000000' }}>{catName(category)}</h3>
+                                <div className={
+                                    viewMode === 'single'
+                                        ? "grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+                                        : viewMode === 'grid'
+                                        ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4"
+                                        : "flex flex-col md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4"
+                                }>
                                     {items.map((item) => (
                                         <div 
                                             key={item.id} 
-                                            className={`rounded-3xl overflow-hidden shadow-sm border cursor-pointer relative flex ${viewMode === 'list' ? 'flex-row items-center p-2 gap-3' : 'flex-col'}`}
+                                            className={`rounded-3xl overflow-hidden border cursor-pointer relative flex transition-all active:scale-[0.99] ${
+                                                viewMode === 'list' 
+                                                    ? 'flex-row items-center p-2.5 gap-3 shadow-sm' 
+                                                    : viewMode === 'single'
+                                                    ? 'flex-col shadow-md hover:shadow-lg'
+                                                    : 'flex-col shadow-sm'
+                                            }`}
                                             style={{ backgroundColor: bgCard, borderColor }}
                                             onClick={() => openModal(item, catName(category), category.image_url)}
                                         >
                                             {/* Image container */}
-                                            <div className={`relative shrink-0 ${viewMode === 'list' ? 'h-24 w-24 rounded-2xl overflow-hidden' : 'aspect-[4/3] w-full'}`}>
-                                                <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className={`w-full h-full object-cover ${viewMode === 'grid' ? 'rounded-t-3xl' : ''}`} />
+                                            <div className={`relative shrink-0 ${
+                                                viewMode === 'list' 
+                                                    ? 'h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden' 
+                                                    : viewMode === 'single' 
+                                                    ? 'aspect-[16/9] sm:aspect-[16/10] w-full overflow-hidden' 
+                                                    : 'aspect-[4/3] w-full overflow-hidden'
+                                            }`}>
+                                                <OptimizedMenuImage 
+                                                    thumbnailSrc={item.thumbnail_url} 
+                                                    originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
+                                                    alt={itemName(item)} 
+                                                    className={`w-full h-full object-cover ${viewMode === 'list' ? 'rounded-2xl' : 'rounded-t-3xl'}`} 
+                                                />
                                                 {/* Special Offer Badge */}
                                                 {item.is_popular && (
-                                                    <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white px-2 py-0.5 rounded-full text-[10px] font-bold">
+                                                    <div className={`absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white rounded-full font-bold ${
+                                                        viewMode === 'single' ? 'px-3 py-1 text-xs shadow-md' : 'px-2 py-0.5 text-[10px]'
+                                                    }`}>
                                                         {isAr ? 'عرض خاص' : 'Offer'}
                                                     </div>
                                                 )}
-                                             </div>
+                                            </div>
                                             
                                             {/* Content */}
-                                            <div className={`flex flex-col flex-1 ${viewMode === 'list' ? 'py-1 pr-1' : 'p-3'}`}>
-                                                <h3 className="font-bold text-[0.95rem] mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
+                                            <div className={`flex flex-col flex-1 ${
+                                                viewMode === 'list' 
+                                                    ? 'py-1 pr-1' 
+                                                    : viewMode === 'single' 
+                                                    ? 'p-4 sm:p-5' 
+                                                    : 'p-3'
+                                            }`}>
+                                                <h3 className={`font-bold leading-tight ${
+                                                    viewMode === 'single' ? 'text-lg sm:text-xl font-extrabold mb-1.5' : 'text-[0.95rem] mb-1 line-clamp-2'
+                                                }`}>{itemName(item)}</h3>
+
                                                 {(item.description_ar || item.desc_ar) && (
-                                                    <p className="text-[11px] mb-2 line-clamp-2" style={{ color: textMuted }}>
+                                                    <p className={`${
+                                                        viewMode === 'single' ? 'text-xs sm:text-sm mb-3 line-clamp-3' : 'text-[11px] mb-2 line-clamp-2'
+                                                    }`} style={{ color: textMuted }}>
                                                         {isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}
                                                     </p>
                                                 )}
+
                                                 <div className="mt-auto flex flex-col w-full gap-1 pt-2" dir="ltr">
                                                     {item.prices?.map((price, pIdx) => (
                                                         <div key={pIdx} className="flex items-center justify-between w-full">
                                                             <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
                                                                 {item.size_labels?.[pIdx] && (
-                                                                    <span className="text-[10px] font-bold opacity-70 truncate block">{item.size_labels[pIdx]}</span>
+                                                                    <span className={`${viewMode === 'single' ? 'text-xs font-bold' : 'text-[10px] font-bold'} opacity-70 truncate block`}>
+                                                                        {item.size_labels[pIdx]}
+                                                                    </span>
                                                                 )}
                                                             </div>
                                                             <div className="flex items-center gap-1.5 shrink-0 ml-2">
                                                                 {item.old_prices?.[pIdx] ? (
-                                                                    <span className="text-[10px] line-through" style={{ color: textMuted }}>{item.old_prices[pIdx]}</span>
+                                                                    <span className={`${viewMode === 'single' ? 'text-xs' : 'text-[10px]'} line-through`} style={{ color: textMuted }}>
+                                                                        {item.old_prices[pIdx]}
+                                                                    </span>
                                                                 ) : null}
-                                                                <span className="font-black text-[1.05rem]" style={{ color: primaryColor }}>{price} {cur}</span>
+                                                                <span className={`font-black ${viewMode === 'single' ? 'text-xl sm:text-2xl' : 'text-[1.05rem]'}`} style={{ color: primaryColor }}>
+                                                                    {price} {cur}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     ))}
@@ -592,15 +675,17 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                 {/* Add to Cart Button */}
                                                 {config.orders_enabled !== false && (
                                                     <button
-                                                        className="mt-3 w-full py-2 px-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-1.5 text-white transition-all active:scale-95 shadow-sm hover:opacity-90"
+                                                        className={`mt-3 w-full rounded-2xl font-bold flex items-center justify-center gap-1.5 text-white transition-all active:scale-95 shadow-sm hover:opacity-90 ${
+                                                            viewMode === 'single' ? 'py-2.5 px-4 text-sm font-extrabold shadow-md' : 'py-2 px-3 text-xs'
+                                                        }`}
                                                         style={{ backgroundColor: primaryColor }}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             openModal(item, catName(category), category.image_url);
                                                         }}
                                                     >
-                                                        <ShoppingCart className="w-3.5 h-3.5" />
-                                                        <span>{isAr ? 'إضافة إلى السلة' : 'Add To Card'}</span>
+                                                        <ShoppingCart className={viewMode === 'single' ? "w-4 h-4" : "w-3.5 h-3.5"} />
+                                                        <span>{isAr ? 'إضافة إلى السلة' : 'Add To Cart'}</span>
                                                     </button>
                                                 )}
                                             </div>
@@ -1084,46 +1169,108 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
             <AnimatePresence>
                 {showMenuCategories && (
                     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm flex justify-center py-16 px-5 mb-safe"
+                        className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 mb-safe"
                         onClick={() => setShowMenuCategories(false)}>
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-[400px] max-h-[70vh] overflow-hidden rounded-[2rem] mx-auto flex flex-col shadow-2xl mt-auto"
+                            className="relative w-full max-w-[500px] sm:max-w-[560px] max-h-[85vh] overflow-hidden rounded-[2.5rem] mx-auto flex flex-col shadow-2xl border border-white/10"
                             style={{ backgroundColor: bgCard }}
                             onClick={e => e.stopPropagation()} dir={isAr ? 'rtl' : 'ltr'}>
-                            <div className="p-5 flex justify-between items-center text-white shadow-md z-10 sticky top-0" style={{ backgroundColor: primaryColor }}>
-                                <span className="font-bold text-lg">{isAr ? 'أقسام المنيو' : 'Menu Categories'}</span>
-                                <button onClick={() => setShowMenuCategories(false)} className="w-8 h-8 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                            <div className="p-5 sm:p-6 flex justify-between items-center text-white shadow-md z-10 sticky top-0" style={{ backgroundColor: primaryColor }}>
+                                <span className="font-black text-xl sm:text-2xl flex items-center gap-2">{isAr ? 'أقسام المنيو' : 'Menu Categories'}</span>
+                                <button onClick={() => setShowMenuCategories(false)} className="w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/30 rounded-full transition-all active:scale-95"><X className="w-6 h-6" /></button>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+                                {/* All Categories Button */}
                                 <button
                                     onClick={() => {
                                         setActiveCategory('all');
                                         setShowMenuCategories(false);
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                        setTimeout(() => {
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                        }, 60);
                                     }}
-                                    className="w-full text-start px-4 py-4 rounded-xl font-bold transition-colors"
-                                    style={{ backgroundColor: activeCategory === 'all' ? `${primaryColor}20` : 'transparent', color: activeCategory === 'all' ? primaryColor : textMain }}
+                                    className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl font-black text-base sm:text-lg transition-all border shadow-sm active:scale-[0.98]"
+                                    style={{ 
+                                        backgroundColor: activeCategory === 'all' ? `${primaryColor}15` : 'rgba(0,0,0,0.03)', 
+                                        borderColor: activeCategory === 'all' ? primaryColor : borderColor,
+                                        color: activeCategory === 'all' ? primaryColor : textMain 
+                                    }}
                                 >
-                                    {isAr ? 'الكل' : 'All'}
+                                    <div className="flex items-center gap-3.5">
+                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center border-2 shrink-0 shadow-sm"
+                                            style={{ 
+                                                backgroundColor: bgCard,
+                                                borderColor: activeCategory === 'all' ? primaryColor : 'transparent'
+                                            }}>
+                                            <LayoutGrid className="w-6 h-6 sm:w-7 sm:h-7" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
+                                        </div>
+                                        <span className="font-extrabold text-base sm:text-lg">{isAr ? 'جميع الأقسام' : 'All Categories'}</span>
+                                    </div>
+                                    <span className="text-xs px-2.5 py-1 rounded-full font-bold opacity-75 bg-black/5 dark:bg-white/10">
+                                        {allItems.length} {isAr ? 'صنف' : 'items'}
+                                    </span>
                                 </button>
-                                {categories.map(cat => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => {
-                                            setActiveCategory(cat.id.toString());
-                                            setShowMenuCategories(false);
-                                            const el = document.getElementById(cat.id.toString());
-                                            if(el) {
-                                                const y = el.getBoundingClientRect().top + window.scrollY - 100;
-                                                window.scrollTo({ top: y, behavior: 'smooth' });
-                                            }
-                                        }}
-                                        className="w-full text-start px-4 py-4 rounded-xl font-bold transition-colors"
-                                        style={{ backgroundColor: activeCategory === cat.id.toString() ? `${primaryColor}20` : 'transparent', color: activeCategory === cat.id.toString() ? primaryColor : textMain }}
-                                    >
-                                        {catName(cat)}
-                                    </button>
-                                ))}
+
+                                {/* Individual Categories */}
+                                {categories.map(cat => {
+                                    const catIdStr = cat.id.toString();
+                                    const isActive = activeCategory === catIdStr;
+                                    const itemCount = (cat.items || []).length;
+                                    const catImg = cat.image_url || cat.image;
+
+                                    return (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => {
+                                                setActiveCategory(catIdStr);
+                                                setShowMenuCategories(false);
+                                                setTimeout(() => {
+                                                    const el = document.getElementById(catIdStr);
+                                                    if (el) {
+                                                        const y = el.getBoundingClientRect().top + window.scrollY - 100;
+                                                        window.scrollTo({ top: y, behavior: 'smooth' });
+                                                    }
+                                                    const navEl = document.getElementById(`nav-cat-${catIdStr}`);
+                                                    if (navEl) {
+                                                        navEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                                                    }
+                                                }, 80);
+                                            }}
+                                            className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl font-black text-base sm:text-lg transition-all border shadow-sm active:scale-[0.98]"
+                                            style={{ 
+                                                backgroundColor: isActive ? `${primaryColor}15` : 'rgba(0,0,0,0.03)', 
+                                                borderColor: isActive ? primaryColor : borderColor,
+                                                color: isActive ? primaryColor : textMain 
+                                            }}
+                                        >
+                                            <div className="flex items-center gap-3.5 min-w-0">
+                                                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden border-2 shrink-0 shadow-sm bg-white dark:bg-[#1c1c1e]"
+                                                    style={{ 
+                                                        borderColor: isActive ? primaryColor : 'transparent'
+                                                    }}>
+                                                    {catImg ? (
+                                                        <img 
+                                                            src={catImg} 
+                                                            alt={catName(cat)} 
+                                                            className="w-full h-full object-cover" 
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center font-bold text-xs" style={{ color: primaryColor }}>
+                                                            {catName(cat).slice(0, 2)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className="font-extrabold text-base sm:text-lg truncate">{catName(cat)}</span>
+                                            </div>
+                                            <span className="text-xs px-2.5 py-1 rounded-full font-bold opacity-75 bg-black/5 dark:bg-white/10 shrink-0 ml-2">
+                                                {itemCount} {isAr ? 'صنف' : 'items'}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </motion.div>
                     </motion.div>
