@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2, Power } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -38,6 +38,7 @@ export default function SuperAdminClientsPage() {
     const [clientPermissions, setClientPermissions] = useState<Record<string, boolean>>({});
     const [savingAccess, setSavingAccess] = useState(false);
     const [showAsnBranding, setShowAsnBranding] = useState(true);
+    const [highQualityImages, setHighQualityImages] = useState(false);
 
     // Parent Link Modal Options
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -213,13 +214,14 @@ export default function SuperAdminClientsPage() {
             }
             setClientPermissions(perms);
 
-            // Also fetch ASN branding flag
+            // Also fetch ASN branding flag & high_quality_images flag
             const { data: restData } = await supabase
                 .from('restaurants')
-                .select('show_asn_branding')
+                .select('show_asn_branding, high_quality_images')
                 .eq('id', client.id)
                 .single();
             setShowAsnBranding(restData?.show_asn_branding !== false);
+            setHighQualityImages(Boolean(restData?.high_quality_images));
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to load permissions");
@@ -241,15 +243,18 @@ export default function SuperAdminClientsPage() {
                if (error) throw error;
             }
             
-            toast.success(language === "ar" ? "تم حفظ صلاحيات الصفحات" : "Page access updated successfully");
+            toast.success(language === "ar" ? "تم حفظ صلاحيات الصفحات والإعدادات" : "Page access & settings updated successfully");
 
-            // Save ASN branding flag
+            // Save ASN branding & high_quality_images flags
             const { error: brandingError } = await supabase
                 .from('restaurants')
-                .update({ show_asn_branding: showAsnBranding })
+                .update({ 
+                    show_asn_branding: showAsnBranding,
+                    high_quality_images: highQualityImages 
+                })
                 .eq('id', selectedClient.id);
             if (brandingError) {
-                console.error('Branding save error:', brandingError);
+                console.error('Branding/HQ save error:', brandingError);
                 toast.error('Failed to save branding setting');
             }
 
@@ -775,6 +780,26 @@ export default function SuperAdminClientsPage() {
                                             onChange={(e) => setShowAsnBranding(e.target.checked)}
                                         />
                                         <div className="w-11 h-6 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                                    </label>
+                                </div>
+                                <div className="flex items-center justify-between p-4 rounded-xl border border-stone-100 dark:border-stone-800 bg-stone-50 dark:bg-[#0a0f16] hover:border-amber-500/30 transition-colors">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-slate-700 dark:text-slate-300 text-sm flex items-center gap-2">
+                                            <Sparkles className="w-4 h-4 text-amber-500" />
+                                            {language === 'ar' ? 'عرض الصور بجودة عالية (HD)' : 'High Quality HD Images'}
+                                        </span>
+                                        <span className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
+                                            {language === 'ar' ? 'عرض الصور بالحجم الأصلي عالي الدقة في المنيو بدلاً من الصور المصغرة.' : 'Display high resolution HD images on the menu instead of compressed thumbnails.'}
+                                        </span>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            className="sr-only peer" 
+                                            checked={highQualityImages}
+                                            onChange={(e) => setHighQualityImages(e.target.checked)}
+                                        />
+                                        <div className="w-11 h-6 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                                     </label>
                                 </div>
                             </div>

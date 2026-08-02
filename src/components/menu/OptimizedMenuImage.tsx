@@ -18,6 +18,7 @@ interface OptimizedMenuImageProps {
   sizes?: string;
   priority?: boolean;
   useOriginal?: boolean;
+  highQuality?: boolean;         // High quality HD image flag
   onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   style?: React.CSSProperties;
 }
@@ -31,7 +32,7 @@ const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1546069901-ba9599a7e
  * Does NOT fabricate thumbnail URLs.
  * 
  * Fallback chain (one-shot, no loops):
- *   thumbnailSrc (if provided & not useOriginal) → originalSrc / src → default fallback → placeholder
+ *   thumbnailSrc (if provided & not useOriginal/highQuality) → originalSrc / src → default fallback → placeholder
  * 
  * Each fallback step happens at most ONCE.
  */
@@ -59,6 +60,7 @@ export default function OptimizedMenuImage({
   sizes = '(max-width: 768px) 100vw, 400px',
   priority = false,
   useOriginal = false,
+  highQuality = false,
   onClick,
   style,
 }: OptimizedMenuImageProps) {
@@ -67,14 +69,16 @@ export default function OptimizedMenuImage({
   const fallbackStageRef = useRef(0);
   const currentSrcRef = useRef<string>('');
 
+  const isHQ = useOriginal || highQuality;
+
   const primarySrc = useMemo(() => {
     fallbackStageRef.current = 0;
 
     // Determine the absolute best source to use first
     let bestSrc = '';
     
-    if (useOriginal) {
-      bestSrc = originalSrc || src || '';
+    if (isHQ) {
+      bestSrc = originalSrc || src || thumbnailSrc || '';
     } else {
       bestSrc = thumbnailSrc || originalSrc || src || '';
     }
@@ -85,13 +89,13 @@ export default function OptimizedMenuImage({
       return DEFAULT_FALLBACK;
     }
 
-    // Convert legacy/thumbnail paths to original if useOriginal is strictly requested
-    const targetUrl = useOriginal ? getOriginalUrl(bestSrc) : bestSrc;
+    // Convert legacy/thumbnail paths to original if isHQ is requested
+    const targetUrl = isHQ ? getOriginalUrl(bestSrc) : bestSrc;
     
     logImageMount(targetUrl);
     logImageDebug({
       imageSource: bestSrc,
-      thumbnailAvailable: !!thumbnailSrc && !useOriginal,
+      thumbnailAvailable: !!thumbnailSrc && !isHQ,
       finalSrc: targetUrl,
       fallbackTriggered: false,
       fallbackStage: 0,
@@ -99,7 +103,7 @@ export default function OptimizedMenuImage({
 
     currentSrcRef.current = targetUrl;
     return targetUrl;
-  }, [src, thumbnailSrc, originalSrc, useOriginal]);
+  }, [src, thumbnailSrc, originalSrc, useOriginal, highQuality, isHQ]);
 
   // One-shot error handler — each stage fires at most once
   const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {

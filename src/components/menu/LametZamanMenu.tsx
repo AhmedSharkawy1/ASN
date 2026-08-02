@@ -617,6 +617,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                     originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
                                                     alt={itemName(item)} 
                                                     className={`w-full h-full object-cover ${viewMode === 'list' ? 'rounded-2xl' : 'rounded-t-3xl'}`} 
+                                                    highQuality={Boolean(config?.high_quality_images)}
                                                 />
                                                 {/* Special Offer Badge */}
                                                 {item.is_popular && (
