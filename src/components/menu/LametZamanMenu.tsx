@@ -5,7 +5,7 @@ import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard, Maximize2 } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard, Maximize2, ExternalLink } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -1017,13 +1017,23 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                     </a>
                                 ))}
                                 
-                                {config.address && (
-                                    <a href={config.location_link || `https://maps.google.com/?q=${encodeURIComponent(config.address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
-                                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}><FaMapMarkerAlt className="text-sm" /></div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-bold opacity-70 mb-0.5">{isAr ? 'الموقع على الخريطة' : 'Location on Map'}</p>
-                                            <p className="font-bold text-xs line-clamp-2">{config.address}</p>
+                                {(config.map_link || config.location_link || config.location_url || config.address) && (
+                                    <a 
+                                        href={config.map_link || config.location_link || config.location_url || (config.address ? `https://maps.google.com/?q=${encodeURIComponent(config.address)}` : '#')} 
+                                        target="_blank" 
+                                        rel="noreferrer" 
+                                        className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-all border border-black/5 dark:border-white/10 group"
+                                    >
+                                        <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md transition-transform group-hover:scale-110" style={{ backgroundColor: primaryColor }}>
+                                            <FaMapMarkerAlt className="text-base" />
                                         </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs font-bold opacity-75 mb-0.5">{isAr ? 'موقع المطعم على الخريطة' : 'Location on Map'}</p>
+                                            <p className="font-extrabold text-xs sm:text-sm line-clamp-2" style={{ color: textMain }}>
+                                                {config.address || (isAr ? 'انقر هنا لفتح الموقع على الخريطة 🗺️' : 'Click to open location on map 🗺️')}
+                                            </p>
+                                        </div>
+                                        <ExternalLink className="w-4 h-4 opacity-60 shrink-0 group-hover:opacity-100 transition-opacity" />
                                     </a>
                                 )}
 

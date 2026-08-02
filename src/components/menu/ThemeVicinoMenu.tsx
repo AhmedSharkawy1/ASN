@@ -861,12 +861,12 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                                     </a>
                                 ))}
                                 
-                                {config.address && (
-                                    <a href={config.location_link || `https://maps.google.com/?q=${encodeURIComponent(config.address)}`} target="_blank" rel="noreferrer" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
+                                {(config.map_link || config.location_link || config.location_url || config.address) && (
+                                    <a href={config.map_link || config.location_link || config.location_url || (config.address ? `https://maps.google.com/?q=${encodeURIComponent(config.address)}` : '#')} target="_blank" rel="noreferrer" className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-colors">
                                         <div className="w-9 h-9 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor: primaryColor }}><FaMapMarkerAlt className="text-sm" /></div>
                                         <div className="min-w-0 flex-1">
                                             <p className="text-xs font-bold opacity-70 mb-0.5">{isAr ? 'الموقع على الخريطة' : 'Location on Map'}</p>
-                                            <p className="font-bold text-xs line-clamp-2">{config.address}</p>
+                                            <p className="font-bold text-xs line-clamp-2">{config.address || (isAr ? 'افتح الخريطة' : 'Open Map')}</p>
                                         </div>
                                     </a>
                                 )}
