@@ -578,7 +578,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/theme-uae", icon: Palette, labelAr: "إعدادات ثيم الإمارات (UAE)", labelEn: "UAE Theme Settings", key: "theme_uae" },
                 { href: "/dashboard/theme-usa-dual", icon: Palette, labelAr: "إعدادات ثيم USA الثنائي (Bilingual)", labelEn: "USA Dual Theme Settings", key: "theme_usa_dual" },
                 ...(!isDesktopApp ? [{ href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "qr" }] : []),
-                { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "settings_page" },
+                { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", key: "settings" },
             ]
         }
     ];
@@ -615,7 +615,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (!p) return section;
         const filteredItems = section.items.filter((item: NavItem) => {
             if (!item.key) return true; // Items without key always show
-            if (item.key === 'dashboard') return true; // Dashboard home always visible
             if (p._isAdmin) {
                 // Admin: hide only explicitly disabled pages (super admin control)
                 return p[item.key] !== false;
@@ -626,6 +625,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         });
         return { ...section, items: filteredItems };
     }).filter(section => section.items.length > 0);
+
+    // Auto-redirect staff away from /dashboard if they don't have 'dashboard' permission
+    useEffect(() => {
+        if (loading || !permissions || (permissions as any)._isAdmin) return;
+        if (pathname === '/dashboard' && permissions['dashboard'] !== true) {
+            const firstAllowed = filteredNavSections.flatMap(s => s.items)[0];
+            if (firstAllowed && firstAllowed.href !== '/dashboard') {
+                router.replace(firstAllowed.href);
+            }
+        }
+    }, [loading, permissions, pathname, router, filteredNavSections]);
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
