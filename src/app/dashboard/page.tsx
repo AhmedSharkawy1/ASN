@@ -104,9 +104,14 @@ export default function UserDashboardPage() {
                 setSubInfo({ plan: rPlan, expiresAt: rExpires });
 
                 try {
-                    const { count: catsCount } = await supabase.from('categories').select('id', { count: 'exact', head: true }).eq('restaurant_id', rId);
-                    const { count: itemsCount } = await supabase.from('items').select('id', { count: 'exact', head: true }).eq('restaurant_id', rId);
-                    setStats({ categories: catsCount || 0, items: itemsCount || 0 });
+                    const { data: catsData, count: catsCount } = await supabase.from('categories').select('id', { count: 'exact' }).eq('restaurant_id', rId);
+                    let itemsCount = 0;
+                    if (catsData && catsData.length > 0) {
+                        const catIds = catsData.map(c => c.id);
+                        const { count } = await supabase.from('items').select('id', { count: 'exact', head: true }).in('category_id', catIds);
+                        itemsCount = count || 0;
+                    }
+                    setStats({ categories: catsCount || 0, items: itemsCount });
                 } catch (e) {
                     console.warn("Dashboard counts error:", e);
                 }
