@@ -93,10 +93,11 @@ export default function StaffPage() {
                 const { data: allBranches } = await supabase.from('restaurants').select('id, name').or(`id.eq.${rootId},parent_id.eq.${rootId}`);
                 if (allBranches) setTenantLinks(allBranches);
                 
-                // Fetch tenant page access
-                const { data: pageAccess } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rootId);
+                // Fetch tenant page access bypassing RLS
+                const pageAccessRes = await fetch(`/api/tenant/page-access?tenantId=${rootId}`);
+                const pageAccess = await pageAccessRes.json();
                 const map: Record<string, boolean> = {};
-                if (pageAccess) pageAccess.forEach(p => { map[p.page_key] = p.enabled; });
+                if (Array.isArray(pageAccess)) pageAccess.forEach(p => { map[p.page_key] = p.enabled; });
                 setTenantPageAccess(map);
 
                 setNewStaff(prev => ({ ...prev, targetBranchId: activeResId! }));

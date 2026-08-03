@@ -100,9 +100,9 @@ export default function TeamPage() {
     // Fetch super-admin page access settings for this restaurant
     useEffect(() => {
         if (!restaurantId) return;
-        supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', restaurantId).then(({ data }) => {
+        fetch(`/api/tenant/page-access?tenantId=${restaurantId}`).then(res => res.json()).then(data => {
             const map: Record<string, boolean> = {};
-            if (data) data.forEach(p => { map[p.page_key] = p.enabled; });
+            if (Array.isArray(data)) data.forEach(p => { map[p.page_key] = p.enabled; });
             setTenantPageAccess(map);
         });
     }, [restaurantId]);

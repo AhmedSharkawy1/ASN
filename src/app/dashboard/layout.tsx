@@ -328,11 +328,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             if (rId) {
                 console.log("ASN_LOG: Final rId for check:", rId);
-                const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
+                const cpaRes = await fetch(`/api/tenant/page-access?tenantId=${rId}`);
+                const cpa = await cpaRes.json();
                 
                 const tenantPerms: Record<string, boolean> = {};
-                if (cpa && cpa.length > 0) {
-                    cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled; });
+                if (Array.isArray(cpa) && cpa.length > 0) {
+                    cpa.forEach((p: any) => { tenantPerms[p.page_key] = p.enabled; });
                 }
 
                 if (!isStaffFlag) {
