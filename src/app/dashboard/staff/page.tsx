@@ -233,6 +233,9 @@ export default function StaffPage() {
             }));
             await supabase.from('page_permissions').upsert(ppPayload, { onConflict: 'user_id,page_key' });
 
+            // Also sync to team_members.permissions (this is what dashboard layout reads for nav filtering)
+            await supabase.from('team_members').update({ permissions }).eq('id', selectedStaff.id);
+
             toast.success(isAr ? "تم تحديث الصلاحيات بدقة للصفحات" : "Page permissions updated perfectly");
             setIsPermissionsModalOpen(false);
         } catch (err) {
@@ -249,27 +252,29 @@ export default function StaffPage() {
         { key: 'pos', nameEn: 'POS Terminal', nameAr: 'نقطة البيع (POS)' },
         { key: 'kitchen', nameEn: 'Kitchen Display', nameAr: 'شاشة المطبخ' },
         { key: 'reports', nameEn: 'Reports', nameAr: 'التقارير' },
-        { key: 'menu', nameEn: 'Products (Menu)', nameAr: 'المنتجات والقائمة' },
+        { key: 'products', nameEn: 'Products (Menu)', nameAr: 'المنتجات والقائمة' },
         { key: 'tables', nameEn: 'Tables', nameAr: 'الطاولات' },
         { key: 'delivery', nameEn: 'Delivery', nameAr: 'الدليفري' },
+        { key: 'promotions', nameEn: 'Promotions', nameAr: 'العروض والخصومات' },
         { key: 'inventory', nameEn: 'Inventory', nameAr: 'المخزون' },
         { key: 'recipes', nameEn: 'Recipes', nameAr: 'الوصفات' },
         { key: 'factory', nameEn: 'Factory', nameAr: 'المصنع' },
-        { key: 'inventory_movements', nameEn: 'Inventory Movements', nameAr: 'حركات المخزون' },
+        { key: 'transactions', nameEn: 'Inventory Movements', nameAr: 'حركات المخزون' },
         { key: 'costs', nameEn: 'Costs & Profits', nameAr: 'التكاليف والأرباح' },
         { key: 'supplies', nameEn: 'Supplies', nameAr: 'التوريدات' },
         { key: 'branch_supplies', nameEn: 'Branch Supplies', nameAr: 'توريدات الفروع' },
-        { key: 'accounting', nameEn: 'Accounting', nameAr: 'المالية والحسابات' },
-        { key: 'hr_dashboard', nameEn: 'HR Dashboard', nameAr: 'لوحة الموارد البشرية (HR)' },
+        { key: 'accounts', nameEn: 'Accounting', nameAr: 'المالية والحسابات' },
+        { key: 'hr', nameEn: 'HR Dashboard', nameAr: 'لوحة الموارد البشرية (HR)' },
         { key: 'hr_employees', nameEn: 'HR Employees', nameAr: 'الموظفين' },
         { key: 'hr_attendance', nameEn: 'Attendance', nameAr: 'الحضور والانصراف' },
         { key: 'hr_payroll', nameEn: 'Payroll', nameAr: 'كشف المرتبات' },
         { key: 'hr_deductions', nameEn: 'Deductions', nameAr: 'الخصومات' },
         { key: 'hr_reports', nameEn: 'HR Reports', nameAr: 'تقارير HR' },
         { key: 'customers', nameEn: 'Customers', nameAr: 'العملاء' },
-        { key: 'staff', nameEn: 'Team & Staff', nameAr: 'الفريق' },
-        { key: 'customer_notifications', nameEn: 'Customer Notifications', nameAr: 'إشعارات العملاء' },
-        { key: 'printer_settings', nameEn: 'Printer Settings', nameAr: 'إعدادات الطابعة' },
+        { key: 'team', nameEn: 'Team & Staff', nameAr: 'الفريق' },
+        { key: 'notifications', nameEn: 'Customer Notifications', nameAr: 'إشعارات العملاء' },
+        { key: 'marketing_links', nameEn: 'Marketing Links', nameAr: 'روابط التسويق' },
+        { key: 'printer', nameEn: 'Printer Settings', nameAr: 'إعدادات الطابعة' },
         { key: 'branches', nameEn: 'Branches', nameAr: 'الفروع' },
         { key: 'theme', nameEn: 'Theme Customization', nameAr: 'تخصيص المظهر' },
         { key: 'qr', nameEn: 'QR Code', nameAr: 'الـ QR' },
