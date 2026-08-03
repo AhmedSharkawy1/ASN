@@ -328,7 +328,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             if (rId) {
                 console.log("ASN_LOG: Final rId for check:", rId);
-                const cpaRes = await fetch(`/api/tenant/page-access?tenantId=${rId}`);
+                const cpaRes = await fetch(`/api/tenant/page-access?tenantId=${rId}`, { cache: 'no-store' });
                 const cpa = await cpaRes.json();
                 
                 const tenantPerms: Record<string, boolean> = {};

@@ -94,11 +94,17 @@ export default function StaffPage() {
                 if (allBranches) setTenantLinks(allBranches);
                 
                 // Fetch tenant page access bypassing RLS
-                const pageAccessRes = await fetch(`/api/tenant/page-access?tenantId=${rootId}`);
-                const pageAccess = await pageAccessRes.json();
-                const map: Record<string, boolean> = {};
-                if (Array.isArray(pageAccess)) pageAccess.forEach(p => { map[p.page_key] = p.enabled; });
-                setTenantPageAccess(map);
+                const pageAccessRes = await fetch(`/api/tenant/page-access?tenantId=${rootId}`, { cache: 'no-store' });
+                if (pageAccessRes.ok) {
+                    const pageAccess = await pageAccessRes.json();
+                    const map: Record<string, boolean> = {};
+                    if (Array.isArray(pageAccess)) {
+                        pageAccess.forEach(p => { map[p.page_key] = p.enabled; });
+                        // Add a special key to indicate data was loaded successfully
+                        map['_loaded'] = true;
+                        setTenantPageAccess(map);
+                    }
+                }
 
                 setNewStaff(prev => ({ ...prev, targetBranchId: activeResId! }));
             }
@@ -290,8 +296,9 @@ export default function StaffPage() {
     ];
 
     const filteredAvailablePages = AVAILABLE_PAGES.filter(p => {
-        const hasTenantData = Object.keys(tenantPageAccess).length > 0;
-        if (!hasTenantData) return true;
+        const isLoaded = tenantPageAccess['_loaded'] === true;
+        const hasTenantData = Object.keys(tenantPageAccess).length > 1; // more than just _loaded
+        if (!isLoaded || !hasTenantData) return true;
         return tenantPageAccess[p.key] === true;
     });
 
