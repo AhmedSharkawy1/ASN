@@ -85,6 +85,7 @@ export default function SuperAdminClientsPage() {
                 { key: 'products', nameEn: 'Products & Categories', nameAr: 'المنتجات والأقسام' },
                 { key: 'tables', nameEn: 'Tables Management', nameAr: 'إدارة الطاولات' },
                 { key: 'delivery', nameEn: 'Delivery Setup', nameAr: 'إعدادات الدليفري' },
+                { key: 'promotions', nameEn: 'Promotions', nameAr: 'العروض والخصومات' },
             ]
         },
         {
@@ -132,7 +133,7 @@ export default function SuperAdminClientsPage() {
                 { key: 'branches', nameEn: 'Branches Management', nameAr: 'إدارة الفروع' },
                 { key: 'theme', nameEn: 'Appearance Customization', nameAr: 'تخصيص المظهر' },
                 { key: 'qr', nameEn: 'QR Code Generator', nameAr: 'مولد QR' },
-                { key: 'settings_page', nameEn: 'Restaurant Settings', nameAr: 'الإعدادات' },
+                { key: 'settings', nameEn: 'Restaurant Settings', nameAr: 'الإعدادات' },
             ]
         },
         {
@@ -140,6 +141,7 @@ export default function SuperAdminClientsPage() {
             pages: [
                 { key: 'theme_vicino', nameEn: 'Vicino Landing Page Settings', nameAr: 'تعديل الصفحة الرئيسية (Vicino)' },
                 { key: 'theme_aswan', nameEn: 'ASWAN Theme Settings', nameAr: 'إعدادات ثيم أسوان (ASWAN)' },
+                { key: 'theme_lamet_zaman', nameEn: 'Lamet Zaman BG Theme Settings', nameAr: 'إعدادات ثيم لمة زمان (خلفية صورة)' },
                 { key: 'theme_usa', nameEn: 'USA Theme Settings', nameAr: 'إعدادات ثيم USA (الأمريكي)' },
                 { key: 'theme_uae', nameEn: 'UAE Theme Settings', nameAr: 'إعدادات ثيم الإمارات (UAE)' },
                 { key: 'theme_usa_dual', nameEn: 'USA Dual Theme Settings', nameAr: 'إعدادات ثيم USA الثنائي (Bilingual)' },
