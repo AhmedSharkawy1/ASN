@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { username } = body;
+        const { username, restaurantId } = body;
 
         if (!username) {
             return NextResponse.json({ error: "Username is required" }, { status: 400 });
@@ -25,34 +25,43 @@ export async function POST(request: Request) {
         });
 
         // Search by username first (supports multiple restaurants)
-        const { data: matches, error } = await supabaseAdmin
+        let query = supabaseAdmin
             .from('team_members')
             .select('restaurant_id, username, auth_id, is_active')
             .eq('username', username)
             .order('created_at', { ascending: false });
+            
+        if (restaurantId) query = query.eq('restaurant_id', restaurantId);
+        const { data: matches } = await query;
 
         let member = matches?.find(m => m.is_active) || matches?.[0];
 
         // Fallback 1: search by real email (staff page stores real email in email field)
         if (!member && (!matches || matches.length === 0)) {
-            const { data: emailMatches } = await supabaseAdmin
+            let emailQuery = supabaseAdmin
                 .from('team_members')
                 .select('restaurant_id, username, auth_id, is_active')
                 .ilike('email', username)
                 .not('auth_id', 'is', null)
                 .order('created_at', { ascending: false });
+                
+            if (restaurantId) emailQuery = emailQuery.eq('restaurant_id', restaurantId);
+            const { data: emailMatches } = await emailQuery;
 
             member = emailMatches?.find(m => m.is_active) || emailMatches?.[0];
         }
 
         // Fallback 2: search by name (legacy members without username)
         if (!member) {
-            const { data: nameMatches } = await supabaseAdmin
+            let nameQuery = supabaseAdmin
                 .from('team_members')
                 .select('restaurant_id, username, auth_id, is_active')
                 .eq('name', username)
                 .not('auth_id', 'is', null)
                 .order('created_at', { ascending: false });
+                
+            if (restaurantId) nameQuery = nameQuery.eq('restaurant_id', restaurantId);
+            const { data: nameMatches } = await nameQuery;
 
             member = nameMatches?.find(m => m.is_active) || nameMatches?.[0];
         }
