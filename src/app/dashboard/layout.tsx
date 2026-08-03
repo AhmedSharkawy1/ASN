@@ -583,12 +583,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
     ];
 
-    const filteredNavSections = navSections.map(section => {
+    // Backward-compat: expand old broad permission keys to specific nav keys
+    const BROAD_TO_SPECIFIC: Record<string, string[]> = {
+        orders: ['orders', 'pos', 'kitchen'],
+        products: ['products', 'tables', 'delivery', 'promotions'],
+        settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'qr'],
+        team: ['team'],
+        customers: ['customers', 'notifications'],
+        reports: ['reports'],
+    };
+
+    const expandedPermissions = (() => {
         const p = permissions as Record<string, boolean> | null;
+        if (!p || p._isAdmin) return p;
+        const expanded: Record<string, boolean> = { ...p };
+        // Only expand if old broad keys are present and specific keys are missing
+        for (const [broadKey, specificKeys] of Object.entries(BROAD_TO_SPECIFIC)) {
+            if (broadKey in expanded) {
+                for (const sk of specificKeys) {
+                    if (!(sk in expanded)) {
+                        expanded[sk] = expanded[broadKey];
+                    }
+                }
+            }
+        }
+        return expanded;
+    })();
+
+    const filteredNavSections = navSections.map(section => {
+        const p = expandedPermissions as Record<string, boolean> | null;
         if (!p) return section;
         const filteredItems = section.items.filter((item: NavItem) => {
-            if (item.key && p[item.key] === false) return false;
-            return true;
+            if (!item.key) return true; // Items without key always show
+            if (item.key === 'dashboard') return true; // Dashboard home always visible
+            if (p._isAdmin) {
+                // Admin: hide only explicitly disabled pages (super admin control)
+                return p[item.key] !== false;
+            } else {
+                // Staff: show ONLY explicitly enabled pages
+                return p[item.key] === true;
+            }
         });
         return { ...section, items: filteredItems };
     }).filter(section => section.items.length > 0);

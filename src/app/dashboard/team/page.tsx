@@ -20,13 +20,50 @@ const roles = [
     { value: "staff", labelAr: "موظف", labelEn: "Staff" },
 ];
 
-const permKeys = [
-    { key: "orders", ar: "الطلبات", en: "Orders" },
-    { key: "products", ar: "المنتجات", en: "Products" },
-    { key: "settings", ar: "الإعدادات", en: "Settings" },
-    { key: "team", ar: "الفريق", en: "Team" },
-    { key: "customers", ar: "العملاء", en: "Customers" },
-    { key: "reports", ar: "التقارير", en: "Reports" },
+const ALL_PAGE_PERMS = [
+    { section: "الطلبات", sectionEn: "Orders", items: [
+        { key: "orders", ar: "نظام الطلبيات", en: "Orders" },
+        { key: "pos", ar: "نقطة البيع (POS)", en: "POS" },
+        { key: "kitchen", ar: "شاشة المطبخ", en: "Kitchen" },
+        { key: "reports", ar: "التقارير", en: "Reports" },
+    ]},
+    { section: "القائمة", sectionEn: "Menu", items: [
+        { key: "products", ar: "المنتجات", en: "Products" },
+        { key: "tables", ar: "الطاولات", en: "Tables" },
+        { key: "delivery", ar: "الدليفري", en: "Delivery" },
+        { key: "promotions", ar: "العروض والخصومات", en: "Promotions" },
+    ]},
+    { section: "المخزون", sectionEn: "Inventory", items: [
+        { key: "inventory", ar: "المخزون", en: "Inventory" },
+        { key: "recipes", ar: "الوصفات", en: "Recipes" },
+        { key: "factory", ar: "المصنع", en: "Factory" },
+        { key: "transactions", ar: "حركات المخزون", en: "Transactions" },
+        { key: "costs", ar: "التكاليف والأرباح", en: "Costs" },
+        { key: "supplies", ar: "التوريدات", en: "Supplies" },
+        { key: "branch_supplies", ar: "توريدات الفروع", en: "Branch Supplies" },
+    ]},
+    { section: "المالية", sectionEn: "Finance", items: [
+        { key: "accounts", ar: "الحسابات", en: "Accounts" },
+    ]},
+    { section: "الموارد البشرية", sectionEn: "HR", items: [
+        { key: "hr", ar: "لوحة HR", en: "HR Dashboard" },
+        { key: "hr_employees", ar: "الموظفين", en: "Employees" },
+        { key: "hr_attendance", ar: "الحضور والانصراف", en: "Attendance" },
+        { key: "hr_payroll", ar: "كشف المرتبات", en: "Payroll" },
+        { key: "hr_deductions", ar: "الخصومات", en: "Deductions" },
+        { key: "hr_reports", ar: "تقارير HR", en: "HR Reports" },
+    ]},
+    { section: "الإدارة", sectionEn: "Admin", items: [
+        { key: "customers", ar: "العملاء", en: "Customers" },
+        { key: "team", ar: "الفريق", en: "Team" },
+        { key: "notifications", ar: "الإشعارات", en: "Notifications" },
+    ]},
+    { section: "الأدوات", sectionEn: "Tools", items: [
+        { key: "printer", ar: "الطابعة", en: "Printer" },
+        { key: "branches", ar: "الفروع", en: "Branches" },
+        { key: "theme", ar: "المظهر", en: "Appearance" },
+        { key: "settings", ar: "الإعدادات", en: "Settings" },
+    ]},
 ];
 
 const roleColors: Record<string, string> = {
@@ -47,7 +84,8 @@ export default function TeamPage() {
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
-    const defaultPerms: Record<string, boolean> = { orders: true, products: false, settings: false, team: false, customers: false, reports: false };
+    const [tenantPageAccess, setTenantPageAccess] = useState<Record<string, boolean>>({});
+    const defaultPerms: Record<string, boolean> = {};
     const [form, setForm] = useState<{ name: string; username?: string; password?: string; email: string; phone: string; role: string; permissions: Record<string, boolean> }>({ name: "", username: "", password: "", email: "", phone: "", role: "staff", permissions: { ...defaultPerms } });
 
     const fetchMembers = useCallback(async () => {
@@ -58,6 +96,16 @@ export default function TeamPage() {
     }, [restaurantId]);
 
     useEffect(() => { fetchMembers(); }, [fetchMembers]);
+
+    // Fetch super-admin page access settings for this restaurant
+    useEffect(() => {
+        if (!restaurantId) return;
+        supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', restaurantId).then(({ data }) => {
+            const map: Record<string, boolean> = {};
+            if (data) data.forEach(p => { map[p.page_key] = p.enabled; });
+            setTenantPageAccess(map);
+        });
+    }, [restaurantId]);
 
     const handleSave = async () => {
         if (!restaurantId || !form.name.trim()) return;
@@ -148,14 +196,30 @@ export default function TeamPage() {
                                 </div>
                             </div>
                             <div>
-                                <label className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase block mb-2 flex items-center gap-1"><Shield className="w-4 h-4" />{isAr ? "الصلاحيات" : "Permissions"}</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {permKeys.map(p => (
-                                        <button key={p.key} onClick={() => togglePerm(p.key)}
-                                            className={`text-sm font-bold px-3 py-1.5 rounded-lg border transition ${form.permissions[p.key] ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"}`}>
-                                            {form.permissions[p.key] ? "✓" : ""} {isAr ? p.ar : p.en}
-                                        </button>
-                                    ))}
+                                <label className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase block mb-2 flex items-center gap-1"><Shield className="w-4 h-4" />{isAr ? "صلاحيات الصفحات" : "Page Permissions"}</label>
+                                <div className="space-y-3 max-h-64 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+                                    {ALL_PAGE_PERMS.map(section => {
+                                        // Filter items: only show pages the super admin has enabled (or not restricted)
+                                        const visibleItems = section.items.filter(p => {
+                                            const hasTenantData = Object.keys(tenantPageAccess).length > 0;
+                                            if (!hasTenantData) return true; // No restrictions set = show all
+                                            return tenantPageAccess[p.key] !== false;
+                                        });
+                                        if (visibleItems.length === 0) return null;
+                                        return (
+                                            <div key={section.section}>
+                                                <p className="text-[10px] font-extrabold text-slate-400 dark:text-zinc-600 uppercase tracking-wider mb-1">{isAr ? section.section : section.sectionEn}</p>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {visibleItems.map(p => (
+                                                        <button key={p.key} onClick={() => togglePerm(p.key)}
+                                                            className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition ${form.permissions[p.key] ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"}`}>
+                                                            {form.permissions[p.key] ? "✓ " : ""}{isAr ? p.ar : p.en}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                             <div className="flex gap-2">

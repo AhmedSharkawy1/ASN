@@ -112,15 +112,26 @@ function LoginContent() {
             // ONLINE LOGIN
             // ═══════════════════════════════════════════
             let loginEmail = input;
-            if (!loginEmail.includes('@')) {
+            // Call lookup for usernames AND real emails (not .asn internal emails)
+            // Staff accounts use internal emails like username@restaurant_id.asn
+            // so we need to resolve both plain usernames and real emails
+            if (!loginEmail.endsWith('.asn')) {
                 const res = await fetch("/api/auth/lookup", {
                     method: "POST",
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: loginEmail })
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.error || (isAr ? "اسم المستخدم غير صحيح" : "Invalid username"));
-                loginEmail = data.email;
+                if (!res.ok) {
+                    // If lookup fails and input has @, try direct auth as fallback (for restaurant owner accounts)
+                    if (loginEmail.includes('@')) {
+                        // Continue with the email as-is for owner/admin accounts
+                    } else {
+                        throw new Error(data.error || (isAr ? "اسم المستخدم غير صحيح" : "Invalid username"));
+                    }
+                } else {
+                    loginEmail = data.email;
+                }
             }
 
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
