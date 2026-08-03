@@ -512,6 +512,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             title: `طلب جديد #${order.order_number}`,
             body: `${customerName} — ${items.length} أصناف — ${total} ${parseCurrency(currency, true)} — ${orderType === 'delivery' ? 'دليفري' : 'استلام'}`,
             type: 'order',
+            target: 'admin',
             is_read: false,
         });
 

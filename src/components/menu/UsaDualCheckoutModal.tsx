@@ -197,6 +197,17 @@ export default function UsaDualCheckoutModal({
             if (error) console.warn("Database order notice:", error);
 
             const currentOrder = data || orderPayload;
+
+            // Create notification for restaurant owner
+            await supabase.from('notifications').insert({
+                restaurant_id: restaurantId,
+                title: `طلب جديد #${currentOrder.order_number || 'NEW'}`,
+                body: `${customerName} — ${cartItems.length} أصناف — ${finalTotal.toFixed(2)} ${parsedCurrency} — ${orderType === 'delivery' ? 'دليفري' : 'استلام'}`,
+                type: 'order',
+                target: 'admin',
+                is_read: false,
+            });
+
             setCreatedOrder(currentOrder);
             setOrderCompleted(true);
             

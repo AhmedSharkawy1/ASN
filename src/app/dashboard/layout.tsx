@@ -439,6 +439,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         };
     }, [router]);
 
+    // Unlock audio context on first interaction to bypass autoplay restrictions
+    useEffect(() => {
+        const unlockAudio = () => {
+            if (!audioCtxRef.current) {
+                audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+            }
+            if (audioCtxRef.current.state === 'suspended') {
+                audioCtxRef.current.resume();
+            }
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+        };
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('keydown', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
+        return () => {
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+        };
+    }, []);
+
     const playChime = useCallback(() => {
         try {
             if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
