@@ -21,16 +21,7 @@ export async function POST(request: Request) {
             auth: { autoRefreshToken: false, persistSession: false }
         });
 
-        // 1. Delete user from Supabase Auth
-        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
-        
-        // If the user is already deleted from Auth, we still want to proceed and clean up the database
-        if (authError && !authError.message.includes("not found")) {
-            console.error("Auth Delete Error:", authError);
-            return NextResponse.json({ error: authError.message }, { status: 400 });
-        }
-
-        // 2. Delete from team_members (and cascade to permissions if foreign keys are set up)
+        // 1. Delete from team_members FIRST (and cascade to permissions) to prevent foreign key errors when deleting from Auth
         const { error: dbError } = await supabaseAdmin
             .from('team_members')
             .delete()
@@ -39,6 +30,16 @@ export async function POST(request: Request) {
         if (dbError) {
             console.error("DB Delete Error:", dbError);
             return NextResponse.json({ error: dbError.message }, { status: 400 });
+        }
+
+        // 2. Delete user from Supabase Auth
+        const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
+        
+        // If the user is already deleted from Auth, we just proceed
+        if (authError && !authError.message.includes("not found") && !authError.message.includes("User not found")) {
+            console.error("Auth Delete Error:", authError);
+            // We don't fail here if DB deletion succeeded, because the user is effectively deleted from the app's perspective.
+            // But we log it.
         }
 
         return NextResponse.json({ success: true });

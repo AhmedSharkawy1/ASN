@@ -9,7 +9,7 @@ import { UserCog, Plus, Edit3, Trash2, Shield, X, ToggleLeft, ToggleRight, BarCh
 import { motion, AnimatePresence } from "framer-motion";
 import { formatCurrency } from "@/lib/helpers/formatters";
 
-type TeamMember = { id: string; name: string; username?: string; email?: string; phone?: string; role: string; permissions: Record<string, boolean>; is_active: boolean; created_at: string };
+type TeamMember = { id: string; auth_id?: string; name: string; username?: string; email?: string; phone?: string; role: string; permissions: Record<string, boolean>; is_active: boolean; created_at: string };
 
 const roles = [
     { value: "admin", labelAr: "مسؤول", labelEn: "Admin" },
@@ -138,7 +138,27 @@ export default function TeamPage() {
         }
     };
 
-    const handleDelete = async (id: string) => { await supabase.from('team_members').delete().eq('id', id); fetchMembers(); };
+    const handleDelete = async (memberId: string, authId?: string) => { 
+        if (!confirm(isAr ? "هل أنت متأكد من حذف هذا العضو؟" : "Are you sure you want to delete this member?")) return;
+        try {
+            if (authId) {
+                const res = await fetch('/api/team/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: authId })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+            } else {
+                // Fallback for members without auth_id
+                await supabase.from('team_members').delete().eq('id', memberId);
+            }
+            fetchMembers(); 
+        } catch (err: any) {
+            console.error(err);
+            alert(err.message || "Failed to delete");
+        }
+    };
     const handleToggleActive = async (m: TeamMember) => { await supabase.from('team_members').update({ is_active: !m.is_active }).eq('id', m.id); fetchMembers(); };
     const startEdit = (m: TeamMember) => { setForm({ name: m.name, username: m.username || "", password: "", email: m.email || "", phone: m.phone || "", role: m.role, permissions: m.permissions }); setEditId(m.id); setShowForm(true); };
     const resetForm = () => { setForm({ name: "", username: "", password: "", email: "", phone: "", role: "staff", permissions: { ...defaultPerms } }); setShowForm(false); setEditId(null); };
@@ -249,7 +269,7 @@ export default function TeamPage() {
                                     {m.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                                 </button>
                                 <button onClick={() => startEdit(m)} className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white"><Edit3 className="w-4 h-4" /></button>
-                                <button onClick={() => handleDelete(m.id)} className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                                <button onClick={() => handleDelete(m.id, m.auth_id)} className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                             </div>
                         </div>
                     ))}
