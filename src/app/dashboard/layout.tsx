@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -494,7 +494,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         );
     }
 
-    const navSections: NavSection[] = [
+    const navSections: NavSection[] = useMemo(() => [
         {
             key: "home",
             label: language === "ar" ? "الرئيسية" : "Home",
@@ -581,7 +581,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", key: "settings" },
             ]
         }
-    ];
+    ], [language, isDesktopApp]);
 
     // Backward-compat: expand old broad permission keys to specific nav keys
     const BROAD_TO_SPECIFIC: Record<string, string[]> = {
@@ -593,7 +593,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         reports: ['reports'],
     };
 
-    const expandedPermissions = (() => {
+    const expandedPermissions = useMemo(() => {
         const p = permissions as Record<string, boolean> | null;
         if (!p || p._isAdmin) return p;
         const expanded: Record<string, boolean> = { ...p };
@@ -608,23 +608,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
         }
         return expanded;
-    })();
+    }, [permissions]);
 
-    const filteredNavSections = navSections.map(section => {
-        const p = expandedPermissions as Record<string, boolean> | null;
-        if (!p) return section;
-        const filteredItems = section.items.filter((item: NavItem) => {
-            if (!item.key) return true; // Items without key always show
-            if (p._isAdmin) {
-                // Admin: hide only explicitly disabled pages (super admin control)
-                return p[item.key] !== false;
-            } else {
-                // Staff: show ONLY explicitly enabled pages
-                return p[item.key] === true;
-            }
-        });
-        return { ...section, items: filteredItems };
-    }).filter(section => section.items.length > 0);
+    const filteredNavSections = useMemo(() => {
+        return navSections.map(section => {
+            const p = expandedPermissions as Record<string, boolean> | null;
+            if (!p) return section;
+            const filteredItems = section.items.filter((item: NavItem) => {
+                if (!item.key) return true; // Items without key always show
+                if (p._isAdmin) {
+                    // Admin: hide only explicitly disabled pages (super admin control)
+                    return p[item.key] !== false;
+                } else {
+                    // Staff: show ONLY explicitly enabled pages
+                    return p[item.key] === true;
+                }
+            });
+            return { ...section, items: filteredItems };
+        }).filter(section => section.items.length > 0);
+    }, [expandedPermissions, navSections]);
 
     // Auto-redirect staff away from /dashboard if they don't have 'dashboard' permission
     useEffect(() => {
