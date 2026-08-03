@@ -103,9 +103,13 @@ export default function UserDashboardPage() {
                 setRestaurantName(rName);
                 setSubInfo({ plan: rPlan, expiresAt: rExpires });
 
-                const { count: catsCount } = await supabase.from('categories').select('*', { count: 'exact', head: true }).eq('restaurant_id', rId);
-                const { count: itemsCount } = await supabase.from('items').select('*, categories!inner(restaurant_id)', { count: 'exact', head: true }).eq('categories.restaurant_id', rId);
-                setStats({ categories: catsCount || 0, items: itemsCount || 0 });
+                try {
+                    const { count: catsCount } = await supabase.from('categories').select('id', { count: 'exact', head: true }).eq('restaurant_id', rId);
+                    const { count: itemsCount } = await supabase.from('items').select('id', { count: 'exact', head: true }).eq('restaurant_id', rId);
+                    setStats({ categories: catsCount || 0, items: itemsCount || 0 });
+                } catch (e) {
+                    console.warn("Dashboard counts error:", e);
+                }
             }
         };
         fetchDashboardData();

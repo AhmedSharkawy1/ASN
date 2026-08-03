@@ -156,9 +156,62 @@ function LoginContent() {
                     return;
                 }
 
+                let targetPath = '/dashboard';
+
                 if (userEmail.endsWith('.asn') || roleData?.role === 'staff') {
-                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, role').eq('auth_id', userId).maybeSingle();
-                    if (staff) { restaurantId = staff.restaurant_id; role = staff.role || 'staff'; }
+                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, role, permissions').eq('auth_id', userId).maybeSingle();
+                    if (staff) {
+                        restaurantId = staff.restaurant_id;
+                        role = staff.role || 'staff';
+
+                        if (staff.permissions) {
+                            const perms = typeof staff.permissions === 'string' ? JSON.parse(staff.permissions) : staff.permissions;
+                            if (perms.orders) targetPath = '/dashboard/orders';
+                            else if (perms.pos) targetPath = '/dashboard/pos';
+                            else if (perms.kitchen) targetPath = '/dashboard/kitchen';
+                            else if (perms.products) targetPath = '/dashboard/menu';
+                            else {
+                                const firstKey = Object.keys(perms).find(k => perms[k] === true);
+                                if (firstKey) {
+                                    const keyToPath: Record<string, string> = {
+                                        dashboard: '/dashboard',
+                                        orders: '/dashboard/orders',
+                                        pos: '/dashboard/pos',
+                                        kitchen: '/dashboard/kitchen',
+                                        reports: '/dashboard/reports',
+                                        products: '/dashboard/menu',
+                                        tables: '/dashboard/tables',
+                                        delivery: '/dashboard/delivery',
+                                        promotions: '/dashboard/promotions',
+                                        inventory: '/dashboard/inventory',
+                                        recipes: '/dashboard/recipes',
+                                        factory: '/dashboard/factory',
+                                        transactions: '/dashboard/inventory/transactions',
+                                        costs: '/dashboard/costs',
+                                        supplies: '/dashboard/supplies',
+                                        branch_supplies: '/dashboard/branch-supplies',
+                                        accounts: '/dashboard/accounts',
+                                        hr: '/dashboard/hr',
+                                        hr_employees: '/dashboard/hr/employees',
+                                        hr_attendance: '/dashboard/hr/attendance',
+                                        hr_payroll: '/dashboard/hr/payroll',
+                                        hr_deductions: '/dashboard/hr/deductions',
+                                        hr_reports: '/dashboard/hr/reports',
+                                        team: '/dashboard/staff',
+                                        customers: '/dashboard/customers',
+                                        notifications: '/dashboard/notifications',
+                                        marketing_links: '/dashboard/marketing-links',
+                                        printer: '/dashboard/printer',
+                                        branches: '/dashboard/branches',
+                                        theme: '/dashboard/theme',
+                                        qr: '/dashboard/qr',
+                                        settings: '/dashboard/settings',
+                                    };
+                                    targetPath = keyToPath[firstKey] || '/dashboard';
+                                }
+                            }
+                        }
+                    }
                 } else {
                     const { data: rest } = await supabase.from('restaurants').select('id').ilike('email', userEmail).maybeSingle();
                     if (rest) { restaurantId = rest.id; role = 'admin'; }
@@ -189,7 +242,7 @@ function LoginContent() {
             }
 
             setSuccess(true);
-            setTimeout(() => router.push('/dashboard'), 800);
+            setTimeout(() => router.push(targetPath), 800);
 
         } catch (err: any) {
             console.error("Login attempt failed:", err);
