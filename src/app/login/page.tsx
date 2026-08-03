@@ -112,41 +112,68 @@ function LoginContent() {
             // ONLINE LOGIN
             // ═══════════════════════════════════════════
             let loginEmail = input;
-            // Call lookup for usernames AND real emails (not .asn internal emails)
-            // Staff accounts use internal emails like username@restaurant_id.asn
-            // so we need to resolve both plain usernames and real emails
-            if (!loginEmail.endsWith('.asn')) {
+            let finalAuthData = null;
+            
+            // 1. If it looks like a real email, try direct login first (Owner/SuperAdmin)
+            if (loginEmail.includes('@') && !loginEmail.endsWith('.asn')) {
+                const { data: directData, error: directError } = await supabase.auth.signInWithPassword({
+                    email: loginEmail,
+                    password,
+                });
+                
+                if (!directError && directData.user) {
+                    finalAuthData = directData;
+                }
+            }
+
+            // 2. If direct login failed (or skipped), try staff lookup
+            if (!finalAuthData && !loginEmail.endsWith('.asn')) {
                 const res = await fetch("/api/auth/lookup", {
                     method: "POST",
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: loginEmail, restaurantId: rid })
                 });
+                
                 const data = await res.json();
+                
                 if (!res.ok) {
-                    // If lookup fails and input has @, try direct auth as fallback (for restaurant owner accounts)
+                    // If lookup fails and we already tried direct auth, throw the original "Invalid credentials"
+                    // Or throw the lookup error if it doesn't have @
                     if (loginEmail.includes('@')) {
-                        // Continue with the email as-is for owner/admin accounts
+                        throw new Error(isAr ? "بيانات الدخول غير صحيحة" : "Invalid login credentials");
                     } else {
                         throw new Error(data.error || (isAr ? "اسم المستخدم غير صحيح" : "Invalid username"));
                     }
                 } else {
-                    loginEmail = data.email;
+                    // Lookup succeeded, try login with internal staff email
+                    const { data: staffData, error: staffError } = await supabase.auth.signInWithPassword({
+                        email: data.email,
+                        password,
+                    });
+                    
+                    if (staffError) throw staffError;
+                    finalAuthData = staffData;
                 }
+            } else if (!finalAuthData) {
+                // For .asn emails (rare but possible manual entry)
+                const { data: asnData, error: asnError } = await supabase.auth.signInWithPassword({
+                    email: loginEmail,
+                    password,
+                });
+                if (asnError) throw asnError;
+                finalAuthData = asnData;
             }
 
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                email: loginEmail,
-                password,
-            });
-
-            if (authError) throw authError;
+            if (!finalAuthData) {
+                throw new Error(isAr ? "فشل تسجيل الدخول" : "Login failed");
+            }
 
             let targetPath = '/dashboard';
 
             // Cache for offline
             try {
-                const userId = authData.user.id;
-                const userEmail = authData.user.email || loginEmail;
+                const userId = finalAuthData.user.id;
+                const userEmail = finalAuthData.user.email || loginEmail;
                 const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle();
 
                 let restaurantId = null;
