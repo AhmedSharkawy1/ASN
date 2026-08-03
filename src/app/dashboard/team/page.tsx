@@ -223,7 +223,7 @@ export default function TeamPage() {
                                         const visibleItems = section.items.filter(p => {
                                             const hasTenantData = Object.keys(tenantPageAccess).length > 0;
                                             if (!hasTenantData) return true; // No restrictions set = show all
-                                            return tenantPageAccess[p.key] !== false;
+                                            return tenantPageAccess[p.key] === true;
                                         });
                                         if (visibleItems.length === 0) return null;
                                         return (

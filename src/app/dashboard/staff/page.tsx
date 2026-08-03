@@ -291,7 +291,7 @@ export default function StaffPage() {
     const filteredAvailablePages = AVAILABLE_PAGES.filter(p => {
         const hasTenantData = Object.keys(tenantPageAccess).length > 0;
         if (!hasTenantData) return true;
-        return tenantPageAccess[p.key] !== false;
+        return tenantPageAccess[p.key] === true;
     });
 
     const filtered = staffList.filter(s => 

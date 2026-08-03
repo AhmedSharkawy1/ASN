@@ -629,8 +629,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const filteredItems = section.items.filter((item: NavItem) => {
                 if (!item.key) return true; // Items without key always show
                 if (p._isAdmin) {
-                    // Admin: hide only explicitly disabled pages (super admin control)
-                    return p[item.key] !== false;
+                    // Admin: If no restrictions are set (i.e. only _isAdmin is true), allow all.
+                    if (Object.keys(p).length === 1) return true;
+                    // Otherwise, hide any page not explicitly enabled
+                    return p[item.key] === true;
                 } else {
                     // Staff: show ONLY explicitly enabled pages
                     return p[item.key] === true;
