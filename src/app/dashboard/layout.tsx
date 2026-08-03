@@ -483,17 +483,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const isDark = resolvedTheme === 'dark';
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-stone-50 dark:bg-background flex items-center justify-center transition-colors">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
-                    <span className="text-slate-500 text-sm font-medium">{language === "ar" ? "جاري التحميل..." : "Loading..."}</span>
-                </div>
-            </div>
-        );
-    }
-
     const navSections: NavSection[] = useMemo(() => [
         {
             key: "home",
@@ -638,6 +627,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
         }
     }, [loading, permissions, pathname, router, filteredNavSections]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-stone-50 dark:bg-background flex items-center justify-center transition-colors">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500"></div>
+                    <span className="text-slate-500 text-sm font-medium">{language === "ar" ? "جاري التحميل..." : "Loading..."}</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-stone-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>

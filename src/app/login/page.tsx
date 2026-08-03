@@ -141,6 +141,8 @@ function LoginContent() {
 
             if (authError) throw authError;
 
+            let targetPath = '/dashboard';
+
             // Cache for offline
             try {
                 const userId = authData.user.id;
@@ -155,8 +157,6 @@ function LoginContent() {
                     setTimeout(() => router.push('/super-admin'), 800);
                     return;
                 }
-
-                let targetPath = '/dashboard';
 
                 if (userEmail.endsWith('.asn') || roleData?.role === 'staff') {
                     const { data: staff } = await supabase.from('team_members').select('restaurant_id, role, permissions').eq('auth_id', userId).maybeSingle();
