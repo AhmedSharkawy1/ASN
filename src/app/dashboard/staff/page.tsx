@@ -51,6 +51,7 @@ export default function StaffPage() {
     // Form: Edit Creds
     const [editCreds, setEditCreds] = useState({ email: "", password: "", role: "staff" });
     const [updatingCreds, setUpdatingCreds] = useState(false);
+    const [tenantPageAccess, setTenantPageAccess] = useState<Record<string, boolean>>({});
 
     const fetchStaff = useCallback(async (tId: string) => {
         setLoading(true);
@@ -92,6 +93,12 @@ export default function StaffPage() {
                 const { data: allBranches } = await supabase.from('restaurants').select('id, name').or(`id.eq.${rootId},parent_id.eq.${rootId}`);
                 if (allBranches) setTenantLinks(allBranches);
                 
+                // Fetch tenant page access
+                const { data: pageAccess } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rootId);
+                const map: Record<string, boolean> = {};
+                if (pageAccess) pageAccess.forEach(p => { map[p.page_key] = p.enabled; });
+                setTenantPageAccess(map);
+
                 setNewStaff(prev => ({ ...prev, targetBranchId: activeResId! }));
             }
         };
@@ -280,6 +287,12 @@ export default function StaffPage() {
         { key: 'qr', nameEn: 'QR Code', nameAr: 'الـ QR' },
         { key: 'settings', nameEn: 'Settings', nameAr: 'الإعدادات' },
     ];
+
+    const filteredAvailablePages = AVAILABLE_PAGES.filter(p => {
+        const hasTenantData = Object.keys(tenantPageAccess).length > 0;
+        if (!hasTenantData) return true;
+        return tenantPageAccess[p.key] !== false;
+    });
 
     const filtered = staffList.filter(s => 
         s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -519,12 +532,11 @@ export default function StaffPage() {
                                 {isAr ? "قم بتفعيل الصفحات التي يُسمح لهذا الموظف برؤيتها والتعامل معها بداخل هذا الفرع فقط." : "Toggle the specific pages this employee is allowed to view and interact with exclusively in this branch."}
                             </p>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {AVAILABLE_PAGES.map(page => (
-                                    <button
-                                        key={page.key}
-                                        onClick={() => setPermissions(prev => ({ ...prev, [page.key]: !prev[page.key] }))}
-                                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 overflow-y-auto max-h-[60vh] pr-2" style={{ scrollbarWidth: 'thin' }}>
+                                {filteredAvailablePages.map(page => (
+                                    <button key={page.key} 
+                                        onClick={() => setPermissions(p => ({ ...p, [page.key]: !p[page.key] }))}
+                                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 text-right ${
                                             permissions[page.key]
                                             ? 'bg-white dark:bg-[#131b26] border-indigo-500 shadow-md shadow-indigo-500/10 scale-[1.02]'
                                             : 'bg-white/50 dark:bg-[#131b26]/50 border-stone-200 dark:border-stone-800 hover:border-indigo-300'
