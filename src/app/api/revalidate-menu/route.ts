@@ -1,5 +1,6 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 /**
  * POST /api/revalidate-menu
@@ -16,14 +17,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "restaurantId required" }, { status: 400 });
     }
 
-    // Purge the Data Cache for this restaurant's Supabase queries
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+    const { data } = await supabase.from('restaurants').select('slug').eq('id', restaurantId).single();
+    const slug = data?.slug;
+
+    // Purge the Data Cache for the UUID
     revalidateTag(`menu-${restaurantId}`);
-    
-    // Purge the Route Cache for the menu page
     revalidatePath(`/menu/${restaurantId}`);
     revalidatePath(`/menu/${restaurantId}`, 'page');
 
-    return NextResponse.json({ revalidated: true });
+    if (slug) {
+      // Purge the Data Cache for the slug
+      revalidateTag(`menu-${slug}`);
+      revalidatePath(`/menu/${slug}`);
+      revalidatePath(`/menu/${slug}`, 'page');
+    }
+
+    return NextResponse.json({ revalidated: true, slug });
   } catch {
     return NextResponse.json({ error: "Failed to revalidate" }, { status: 500 });
   }
