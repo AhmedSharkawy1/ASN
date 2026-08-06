@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>🍕 La Crosta — مراجعة وتصحيح الصور</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    header { background: #1e293b; border-bottom: 2px solid #f59e0b; padding: 16px 24px; position: sticky; top: 0; z-index: 200; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+    header h1 { color: #f59e0b; font-size: 18px; }
+    .stats-bar { display: flex; gap: 12px; margin-right: auto; flex-wrap: wrap; }
+    .stat-pill { background: #0f172a; border: 1px solid #334155; border-radius: 20px; padding: 4px 14px; font-size: 12px; color: #94a3b8; }
+    .stat-pill.green { border-color: #22c55e; color: #22c55e; }
+    .stat-pill.red { border-color: #ef4444; color: #ef4444; }
+
+    .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; line-height: 1.7; }
+    .alert-info { background: #1e3a5f; border: 1px solid #3b82f6; }
+    .alert-warning { background: #422006; border: 1px solid #f59e0b; }
+
+    .cat-section { margin-bottom: 32px; }
+    .cat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 16px; background: #1e293b; border-radius: 10px; border-right: 4px solid #f59e0b; }
+    .cat-name { font-size: 16px; font-weight: bold; color: #f59e0b; }
+    .cat-count { font-size: 12px; color: #64748b; background: #0f172a; padding: 2px 10px; border-radius: 20px; margin-right: auto; }
+
+    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+
+    .item-card { background: #1e293b; border: 2px solid #334155; border-radius: 12px; overflow: hidden; transition: all .2s; }
+    .item-card.has-img { border-color: #3b82f6; }
+    .item-card.no-img { border-color: #334155; opacity: 0.7; }
+    .item-card.move-target { border-color: #22c55e !important; box-shadow: 0 0 0 3px rgba(34,197,94,0.3); cursor: pointer; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(34,197,94,0.3)} 50%{box-shadow:0 0 0 6px rgba(34,197,94,0.1)} }
+
+    .img-area { position: relative; height: 150px; background: #0f172a; cursor: pointer; overflow: hidden; }
+    .img-area img { width: 100%; height: 100%; object-fit: cover; transition: transform .3s; }
+    .img-area:hover img { transform: scale(1.05); }
+    .img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 20px; opacity: 0; transition: opacity .2s; }
+    .img-area:hover .img-overlay { opacity: 1; }
+    .no-img-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #334155; font-size: 28px; }
+    .no-img-placeholder span { font-size: 11px; }
+
+    .item-info { padding: 10px; }
+    .item-title { font-size: 13px; font-weight: bold; color: #e2e8f0; margin-bottom: 2px; }
+    .item-cat-label { font-size: 11px; color: #64748b; margin-bottom: 8px; }
+    .item-actions { display: flex; flex-direction: column; gap: 4px; }
+
+    button { border: none; border-radius: 6px; cursor: pointer; font-size: 11px; padding: 5px 8px; font-weight: bold; transition: all .15s; }
+    .btn-move { background: #1d4ed8; color: white; }
+    .btn-move:hover { background: #1e40af; }
+    .btn-remove { background: #7f1d1d; color: #fca5a5; }
+    .btn-remove:hover { background: #991b1b; }
+    .btn-assign { background: #14532d; color: #86efac; }
+    .btn-assign:hover { background: #166534; }
+    .btn-cancel { background: #334155; color: #e2e8f0; padding: 8px 20px; font-size: 13px; }
+
+    /* Moving mode banner */
+    #move-banner { display: none; position: fixed; top: 0; left: 0; right: 0; background: #16a34a; color: white; padding: 14px 24px; z-index: 300; text-align: center; font-size: 15px; font-weight: bold; }
+    #move-banner.show { display: flex; align-items: center; justify-content: center; gap: 16px; }
+
+    /* Modal */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 999; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    .modal.show { display: flex; }
+    .modal img { max-width: 85vw; max-height: 80vh; object-fit: contain; border-radius: 12px; border: 2px solid #334155; }
+    .modal-actions { display: flex; gap: 12px; }
+    .modal-title { color: #f59e0b; font-size: 18px; font-weight: bold; }
+    .btn-modal-remove { background: #dc2626; color: white; padding: 10px 24px; font-size: 14px; border-radius: 8px; }
+    .btn-modal-move { background: #2563eb; color: white; padding: 10px 24px; font-size: 14px; border-radius: 8px; }
+    .btn-modal-close { background: #334155; color: white; padding: 10px 24px; font-size: 14px; border-radius: 8px; }
+
+    /* Toast */
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #22c55e; color: #0f172a; padding: 12px 24px; border-radius: 10px; font-weight: bold; font-size: 14px; z-index: 999; opacity: 0; transition: opacity .3s; }
+    #toast.show { opacity: 1; }
+    #toast.error { background: #ef4444; color: white; }
+  </style>
+</head>
+<body>
+
+<div id="move-banner">
+  <span id="move-banner-text">🔄 اختر الصنف الجديد للصورة</span>
+  <button class="btn-cancel" onclick="cancelMove()">❌ إلغاء</button>
+</div>
+
+<header>
+  <div>
+    <h1>🍕 La Crosta — مراجعة وتصحيح الصور</h1>
+    <div style="font-size:11px;color:#64748b">اضغط على الصورة لتكبيرها · اضغط "نقل" لتغيير الصنف · "حذف" لإزالة الصورة</div>
+  </div>
+  <div class="stats-bar">
+    <span class="stat-pill green" id="stat-with">✅ بصور: 74</span>
+    <span class="stat-pill red" id="stat-without">❌ بدون: 1</span>
+    <span class="stat-pill">📋 الكل: 75</span>
+  </div>
+</header>
+
+<div class="main">
+  <div class="alert alert-info">
+    💡 <strong>كيفية التصحيح:</strong> افتح الصورة ← تأكد هي صورة الصنف الصح ← إذا غلط اضغط <strong>🔄 نقل</strong> ثم اختر الصنف الصح · أو <strong>🗑️ حذف</strong> إذا مش تابعة للحساب
+  </div>
+
+  
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">البرجر</span>
+          <span class="cat-count">10/10 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-860a1429-1fa9-4c09-a4e4-301638446efc" data-item-id="860a1429-1fa9-4c09-a4e4-301638446efc" data-item-name="كلاسيك لحم" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgxnpak5h01j9co.webp','860a1429-1fa9-4c09-a4e4-301638446efc')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgxnpak5h01j9co.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgxnpak5h01j9co.webp'" alt="كلاسيك لحم" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">كلاسيك لحم</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('860a1429-1fa9-4c09-a4e4-301638446efc', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgxnpak5h01j9co.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgxnpak5h01j9co.webp', 'كلاسيك لحم')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('860a1429-1fa9-4c09-a4e4-301638446efc', 'كلاسيك لحم')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-6483145e-1071-4184-8b36-7f9261b650a0" data-item-id="6483145e-1071-4184-8b36-7f9261b650a0" data-item-name="سماش" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgbx4llazmrp1de.webp','6483145e-1071-4184-8b36-7f9261b650a0')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgbx4llazmrp1de.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgbx4llazmrp1de.webp'" alt="سماش" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سماش</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('6483145e-1071-4184-8b36-7f9261b650a0', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgbx4llazmrp1de.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgbx4llazmrp1de.webp', 'سماش')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('6483145e-1071-4184-8b36-7f9261b650a0', 'سماش')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-fd92240e-e187-4548-9ea9-d8338e110d8c" data-item-id="fd92240e-e187-4548-9ea9-d8338e110d8c" data-item-name="لاكروستا برجر" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgby8dsvd84fkl2.webp','fd92240e-e187-4548-9ea9-d8338e110d8c')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgby8dsvd84fkl2.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgby8dsvd84fkl2.webp'" alt="لاكروستا برجر" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">لاكروستا برجر</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('fd92240e-e187-4548-9ea9-d8338e110d8c', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgby8dsvd84fkl2.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgby8dsvd84fkl2.webp', 'لاكروستا برجر')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('fd92240e-e187-4548-9ea9-d8338e110d8c', 'لاكروستا برجر')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-365ca33e-e85e-4c55-82e4-1b1a25870644" data-item-id="365ca33e-e85e-4c55-82e4-1b1a25870644" data-item-name="جوسي لوسي بيف" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgbyjnzthsxb3ok.webp','365ca33e-e85e-4c55-82e4-1b1a25870644')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgbyjnzthsxb3ok.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgbyjnzthsxb3ok.webp'" alt="جوسي لوسي بيف" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">جوسي لوسي بيف</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('365ca33e-e85e-4c55-82e4-1b1a25870644', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgbyjnzthsxb3ok.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgbyjnzthsxb3ok.webp', 'جوسي لوسي بيف')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('365ca33e-e85e-4c55-82e4-1b1a25870644', 'جوسي لوسي بيف')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-28f7a1e4-272c-402a-a448-dc19441ed495" data-item-id="28f7a1e4-272c-402a-a448-dc19441ed495" data-item-name="سوبر جوسي لوسي بيف" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc1x4502atkof1.webp','28f7a1e4-272c-402a-a448-dc19441ed495')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc1x4502atkof1.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc1x4502atkof1.webp'" alt="سوبر جوسي لوسي بيف" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سوبر جوسي لوسي بيف</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('28f7a1e4-272c-402a-a448-dc19441ed495', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc1x4502atkof1.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc1x4502atkof1.webp', 'سوبر جوسي لوسي بيف')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('28f7a1e4-272c-402a-a448-dc19441ed495', 'سوبر جوسي لوسي بيف')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-bcfa07cc-683f-4068-ae98-2dc4cada93f0" data-item-id="bcfa07cc-683f-4068-ae98-2dc4cada93f0" data-item-name="اوريجنال كريسبي تشيكن" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc473ednp2v59j.webp','bcfa07cc-683f-4068-ae98-2dc4cada93f0')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc473ednp2v59j.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc473ednp2v59j.webp'" alt="اوريجنال كريسبي تشيكن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">اوريجنال كريسبي تشيكن</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('bcfa07cc-683f-4068-ae98-2dc4cada93f0', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc473ednp2v59j.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc473ednp2v59j.webp', 'اوريجنال كريسبي تشيكن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('bcfa07cc-683f-4068-ae98-2dc4cada93f0', 'اوريجنال كريسبي تشيكن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-4ddf01e5-2506-4a01-8c85-3aa3227a9985" data-item-id="4ddf01e5-2506-4a01-8c85-3aa3227a9985" data-item-name="سبايسي كريسبي تشيكن" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc69j06nzwo75d.webp','4ddf01e5-2506-4a01-8c85-3aa3227a9985')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc69j06nzwo75d.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc69j06nzwo75d.webp'" alt="سبايسي كريسبي تشيكن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سبايسي كريسبي تشيكن</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('4ddf01e5-2506-4a01-8c85-3aa3227a9985', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc69j06nzwo75d.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc69j06nzwo75d.webp', 'سبايسي كريسبي تشيكن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('4ddf01e5-2506-4a01-8c85-3aa3227a9985', 'سبايسي كريسبي تشيكن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-3884100d-10d9-4b44-b9c4-02ba3cab2632" data-item-id="3884100d-10d9-4b44-b9c4-02ba3cab2632" data-item-name="جريل تشيكن" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc8tsilant0q9l.webp','3884100d-10d9-4b44-b9c4-02ba3cab2632')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc8tsilant0q9l.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc8tsilant0q9l.webp'" alt="جريل تشيكن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">جريل تشيكن</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('3884100d-10d9-4b44-b9c4-02ba3cab2632', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgc8tsilant0q9l.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgc8tsilant0q9l.webp', 'جريل تشيكن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('3884100d-10d9-4b44-b9c4-02ba3cab2632', 'جريل تشيكن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-9d4392e1-a3c1-4d8f-9412-2e8e9c4add5b" data-item-id="9d4392e1-a3c1-4d8f-9412-2e8e9c4add5b" data-item-name="جوسي لوسي تشيكن" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgcb171vxyum1ho.webp','9d4392e1-a3c1-4d8f-9412-2e8e9c4add5b')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgcb171vxyum1ho.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgcb171vxyum1ho.webp'" alt="جوسي لوسي تشيكن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">جوسي لوسي تشيكن</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('9d4392e1-a3c1-4d8f-9412-2e8e9c4add5b', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgcb171vxyum1ho.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgcb171vxyum1ho.webp', 'جوسي لوسي تشيكن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('9d4392e1-a3c1-4d8f-9412-2e8e9c4add5b', 'جوسي لوسي تشيكن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-31227626-6bb2-4403-8e4d-71f91b94058d" data-item-id="31227626-6bb2-4403-8e4d-71f91b94058d" data-item-name="سوبر جوسي لوسي تشيكن" data-cat="البرجر">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgcchysytna6zmc.webp','31227626-6bb2-4403-8e4d-71f91b94058d')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgcchysytna6zmc.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgcchysytna6zmc.webp'" alt="سوبر جوسي لوسي تشيكن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سوبر جوسي لوسي تشيكن</div>
+            <div class="item-cat-label">البرجر</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('31227626-6bb2-4403-8e4d-71f91b94058d', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgcchysytna6zmc.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgcchysytna6zmc.webp', 'سوبر جوسي لوسي تشيكن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('31227626-6bb2-4403-8e4d-71f91b94058d', 'سوبر جوسي لوسي تشيكن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">البيتزا</span>
+          <span class="cat-count">22/22 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-de7fabcc-d272-4f17-8f61-449edeef0677" data-item-id="de7fabcc-d272-4f17-8f61-449edeef0677" data-item-name="مارجريتا" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgchvidfmrnwszd.webp','de7fabcc-d272-4f17-8f61-449edeef0677')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgchvidfmrnwszd.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgchvidfmrnwszd.webp'" alt="مارجريتا" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">مارجريتا</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('de7fabcc-d272-4f17-8f61-449edeef0677', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgchvidfmrnwszd.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgchvidfmrnwszd.webp', 'مارجريتا')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('de7fabcc-d272-4f17-8f61-449edeef0677', 'مارجريتا')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-b5e967aa-316a-42fb-bf2a-7372e4ddd820" data-item-id="b5e967aa-316a-42fb-bf2a-7372e4ddd820" data-item-name="فيجي" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs1gsuczs59rvv.webp','b5e967aa-316a-42fb-bf2a-7372e4ddd820')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs1gsuczs59rvv.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs1gsuczs59rvv.webp'" alt="فيجي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">فيجي</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('b5e967aa-316a-42fb-bf2a-7372e4ddd820', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs1gsuczs59rvv.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs1gsuczs59rvv.webp', 'فيجي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('b5e967aa-316a-42fb-bf2a-7372e4ddd820', 'فيجي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-1e29e0a9-7e7b-40cc-abd0-65b29e79465f" data-item-id="1e29e0a9-7e7b-40cc-abd0-65b29e79465f" data-item-name="مشروم" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs2xqz02lt0a91.webp','1e29e0a9-7e7b-40cc-abd0-65b29e79465f')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs2xqz02lt0a91.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs2xqz02lt0a91.webp'" alt="مشروم" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">مشروم</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('1e29e0a9-7e7b-40cc-abd0-65b29e79465f', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs2xqz02lt0a91.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs2xqz02lt0a91.webp', 'مشروم')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('1e29e0a9-7e7b-40cc-abd0-65b29e79465f', 'مشروم')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-dda190ad-7972-43a0-80bc-d46b75ada724" data-item-id="dda190ad-7972-43a0-80bc-d46b75ada724" data-item-name="وايت" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs5uejejhpulf1.webp','dda190ad-7972-43a0-80bc-d46b75ada724')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs5uejejhpulf1.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs5uejejhpulf1.webp'" alt="وايت" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">وايت</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('dda190ad-7972-43a0-80bc-d46b75ada724', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs5uejejhpulf1.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs5uejejhpulf1.webp', 'وايت')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('dda190ad-7972-43a0-80bc-d46b75ada724', 'وايت')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-88dd7961-40b4-48e6-9ad4-7c0ef64b9b55" data-item-id="88dd7961-40b4-48e6-9ad4-7c0ef64b9b55" data-item-name="بيبروني" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs8qjoo2xue2rv.webp','88dd7961-40b4-48e6-9ad4-7c0ef64b9b55')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs8qjoo2xue2rv.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs8qjoo2xue2rv.webp'" alt="بيبروني" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بيبروني</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('88dd7961-40b4-48e6-9ad4-7c0ef64b9b55', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs8qjoo2xue2rv.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs8qjoo2xue2rv.webp', 'بيبروني')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('88dd7961-40b4-48e6-9ad4-7c0ef64b9b55', 'بيبروني')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-edf5ce3a-999f-4e6c-821e-407aa8c46c08" data-item-id="edf5ce3a-999f-4e6c-821e-407aa8c46c08" data-item-name="سوبريم" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs9lx5rdgyaw10.webp','edf5ce3a-999f-4e6c-821e-407aa8c46c08')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs9lx5rdgyaw10.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs9lx5rdgyaw10.webp'" alt="سوبريم" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سوبريم</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('edf5ce3a-999f-4e6c-821e-407aa8c46c08', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgs9lx5rdgyaw10.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgs9lx5rdgyaw10.webp', 'سوبريم')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('edf5ce3a-999f-4e6c-821e-407aa8c46c08', 'سوبريم')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-8459f2a9-e251-415a-affe-8e10cc349d24" data-item-id="8459f2a9-e251-415a-affe-8e10cc349d24" data-item-name="هوت ستافد بيف" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsbf151nuacjos.webp','8459f2a9-e251-415a-affe-8e10cc349d24')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsbf151nuacjos.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsbf151nuacjos.webp'" alt="هوت ستافد بيف" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">هوت ستافد بيف</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('8459f2a9-e251-415a-affe-8e10cc349d24', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsbf151nuacjos.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsbf151nuacjos.webp', 'هوت ستافد بيف')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('8459f2a9-e251-415a-affe-8e10cc349d24', 'هوت ستافد بيف')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-f21c5a18-a824-4c9e-b126-f393e3706b16" data-item-id="f21c5a18-a824-4c9e-b126-f393e3706b16" data-item-name="ميت لافر" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsbf20u97ocvi0.webp','f21c5a18-a824-4c9e-b126-f393e3706b16')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsbf20u97ocvi0.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsbf20u97ocvi0.webp'" alt="ميت لافر" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">ميت لافر</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('f21c5a18-a824-4c9e-b126-f393e3706b16', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsbf20u97ocvi0.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsbf20u97ocvi0.webp', 'ميت لافر')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('f21c5a18-a824-4c9e-b126-f393e3706b16', 'ميت لافر')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-132bb51e-d2f7-47ea-90ae-b1d16bbf5375" data-item-id="132bb51e-d2f7-47ea-90ae-b1d16bbf5375" data-item-name="تشيكن رانش" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgscu3a8tqmtqkz.webp','132bb51e-d2f7-47ea-90ae-b1d16bbf5375')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgscu3a8tqmtqkz.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgscu3a8tqmtqkz.webp'" alt="تشيكن رانش" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">تشيكن رانش</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('132bb51e-d2f7-47ea-90ae-b1d16bbf5375', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgscu3a8tqmtqkz.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgscu3a8tqmtqkz.webp', 'تشيكن رانش')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('132bb51e-d2f7-47ea-90ae-b1d16bbf5375', 'تشيكن رانش')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-7ed7e500-1a76-4b6b-ad96-0e8b3f3315a3" data-item-id="7ed7e500-1a76-4b6b-ad96-0e8b3f3315a3" data-item-name="سبايسي رانش" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsdk1kodpb7tjl.webp','7ed7e500-1a76-4b6b-ad96-0e8b3f3315a3')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsdk1kodpb7tjl.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsdk1kodpb7tjl.webp'" alt="سبايسي رانش" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سبايسي رانش</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('7ed7e500-1a76-4b6b-ad96-0e8b3f3315a3', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsdk1kodpb7tjl.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsdk1kodpb7tjl.webp', 'سبايسي رانش')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('7ed7e500-1a76-4b6b-ad96-0e8b3f3315a3', 'سبايسي رانش')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-96005b37-6c6e-401a-9871-724ad0dba9e1" data-item-id="96005b37-6c6e-401a-9871-724ad0dba9e1" data-item-name="كريسبي رانش" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsgq5k2n4yd6vk.webp','96005b37-6c6e-401a-9871-724ad0dba9e1')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsgq5k2n4yd6vk.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsgq5k2n4yd6vk.webp'" alt="كريسبي رانش" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">كريسبي رانش</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('96005b37-6c6e-401a-9871-724ad0dba9e1', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsgq5k2n4yd6vk.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsgq5k2n4yd6vk.webp', 'كريسبي رانش')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('96005b37-6c6e-401a-9871-724ad0dba9e1', 'كريسبي رانش')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-0a89d5d4-bce8-4ec4-834e-158ae9203b08" data-item-id="0a89d5d4-bce8-4ec4-834e-158ae9203b08" data-item-name="بافلو تشيكن كريسبي" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsgqmqmrxf4wmi.webp','0a89d5d4-bce8-4ec4-834e-158ae9203b08')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsgqmqmrxf4wmi.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsgqmqmrxf4wmi.webp'" alt="بافلو تشيكن كريسبي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بافلو تشيكن كريسبي</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('0a89d5d4-bce8-4ec4-834e-158ae9203b08', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsgqmqmrxf4wmi.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsgqmqmrxf4wmi.webp', 'بافلو تشيكن كريسبي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('0a89d5d4-bce8-4ec4-834e-158ae9203b08', 'بافلو تشيكن كريسبي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-45192902-55d3-4a07-8f45-24ba0a323e0a" data-item-id="45192902-55d3-4a07-8f45-24ba0a323e0a" data-item-name="ديناميت تشيكن كريسبي" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsh1fuybm3zke2.webp','45192902-55d3-4a07-8f45-24ba0a323e0a')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsh1fuybm3zke2.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsh1fuybm3zke2.webp'" alt="ديناميت تشيكن كريسبي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">ديناميت تشيكن كريسبي</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('45192902-55d3-4a07-8f45-24ba0a323e0a', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsh1fuybm3zke2.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsh1fuybm3zke2.webp', 'ديناميت تشيكن كريسبي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('45192902-55d3-4a07-8f45-24ba0a323e0a', 'ديناميت تشيكن كريسبي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-57ed95e9-d2c1-4401-b93b-ad27ad33d214" data-item-id="57ed95e9-d2c1-4401-b93b-ad27ad33d214" data-item-name="كريسبي هاني مسترد" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgshnabal0dyhu4.webp','57ed95e9-d2c1-4401-b93b-ad27ad33d214')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgshnabal0dyhu4.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgshnabal0dyhu4.webp'" alt="كريسبي هاني مسترد" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">كريسبي هاني مسترد</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('57ed95e9-d2c1-4401-b93b-ad27ad33d214', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgshnabal0dyhu4.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgshnabal0dyhu4.webp', 'كريسبي هاني مسترد')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('57ed95e9-d2c1-4401-b93b-ad27ad33d214', 'كريسبي هاني مسترد')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-529c872b-c06f-4156-927a-de209b1ee20e" data-item-id="529c872b-c06f-4156-927a-de209b1ee20e" data-item-name="تشيكن سوبر سوبريم" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsjpuhk35l3fas.webp','529c872b-c06f-4156-927a-de209b1ee20e')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsjpuhk35l3fas.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsjpuhk35l3fas.webp'" alt="تشيكن سوبر سوبريم" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">تشيكن سوبر سوبريم</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('529c872b-c06f-4156-927a-de209b1ee20e', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsjpuhk35l3fas.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsjpuhk35l3fas.webp', 'تشيكن سوبر سوبريم')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('529c872b-c06f-4156-927a-de209b1ee20e', 'تشيكن سوبر سوبريم')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-98cec864-4130-455b-844f-3b2a6db74b49" data-item-id="98cec864-4130-455b-844f-3b2a6db74b49" data-item-name="باربيكيو" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgskgxg3y1wm274.webp','98cec864-4130-455b-844f-3b2a6db74b49')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgskgxg3y1wm274.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgskgxg3y1wm274.webp'" alt="باربيكيو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">باربيكيو</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('98cec864-4130-455b-844f-3b2a6db74b49', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgskgxg3y1wm274.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgskgxg3y1wm274.webp', 'باربيكيو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('98cec864-4130-455b-844f-3b2a6db74b49', 'باربيكيو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-ffcd19ba-40a5-4a49-99a8-9269ec1fb69c" data-item-id="ffcd19ba-40a5-4a49-99a8-9269ec1fb69c" data-item-name="هوت ستافد تشيكن" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgslw16g40k77su.webp','ffcd19ba-40a5-4a49-99a8-9269ec1fb69c')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgslw16g40k77su.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgslw16g40k77su.webp'" alt="هوت ستافد تشيكن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">هوت ستافد تشيكن</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('ffcd19ba-40a5-4a49-99a8-9269ec1fb69c', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgslw16g40k77su.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgslw16g40k77su.webp', 'هوت ستافد تشيكن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('ffcd19ba-40a5-4a49-99a8-9269ec1fb69c', 'هوت ستافد تشيكن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-ba733abd-1ac8-4145-a386-6b3b5c9fc52e" data-item-id="ba733abd-1ac8-4145-a386-6b3b5c9fc52e" data-item-name="جريل تشيكن" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsmjg7ae0dbyo7.webp','ba733abd-1ac8-4145-a386-6b3b5c9fc52e')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsmjg7ae0dbyo7.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsmjg7ae0dbyo7.webp'" alt="جريل تشيكن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">جريل تشيكن</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('ba733abd-1ac8-4145-a386-6b3b5c9fc52e', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsmjg7ae0dbyo7.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsmjg7ae0dbyo7.webp', 'جريل تشيكن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('ba733abd-1ac8-4145-a386-6b3b5c9fc52e', 'جريل تشيكن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-ebd95d0f-c21d-44eb-aff5-1c5bb8ecff88" data-item-id="ebd95d0f-c21d-44eb-aff5-1c5bb8ecff88" data-item-name="تشيكن فاهيتا" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsnf7g5ozafuqk.webp','ebd95d0f-c21d-44eb-aff5-1c5bb8ecff88')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsnf7g5ozafuqk.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsnf7g5ozafuqk.webp'" alt="تشيكن فاهيتا" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">تشيكن فاهيتا</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('ebd95d0f-c21d-44eb-aff5-1c5bb8ecff88', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsnf7g5ozafuqk.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsnf7g5ozafuqk.webp', 'تشيكن فاهيتا')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('ebd95d0f-c21d-44eb-aff5-1c5bb8ecff88', 'تشيكن فاهيتا')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-aaeb9c3c-570f-4f46-8980-8f9a73f4aac1" data-item-id="aaeb9c3c-570f-4f46-8980-8f9a73f4aac1" data-item-name="هاوايان" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgso7xns4cewij0.webp','aaeb9c3c-570f-4f46-8980-8f9a73f4aac1')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgso7xns4cewij0.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgso7xns4cewij0.webp'" alt="هاوايان" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">هاوايان</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('aaeb9c3c-570f-4f46-8980-8f9a73f4aac1', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgso7xns4cewij0.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgso7xns4cewij0.webp', 'هاوايان')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('aaeb9c3c-570f-4f46-8980-8f9a73f4aac1', 'هاوايان')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-c5771990-ff30-4886-bfb4-c72d9bdb011e" data-item-id="c5771990-ff30-4886-bfb4-c72d9bdb011e" data-item-name="سي فود" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgspea32dbqbmab.webp','c5771990-ff30-4886-bfb4-c72d9bdb011e')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgspea32dbqbmab.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgspea32dbqbmab.webp'" alt="سي فود" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سي فود</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('c5771990-ff30-4886-bfb4-c72d9bdb011e', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgspea32dbqbmab.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgspea32dbqbmab.webp', 'سي فود')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('c5771990-ff30-4886-bfb4-c72d9bdb011e', 'سي فود')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-c8180e1a-dcae-44f5-8ad2-64aa37eebbc7" data-item-id="c8180e1a-dcae-44f5-8ad2-64aa37eebbc7" data-item-name="سي رانش" data-cat="البيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgspqps4gvybwvm.webp','c8180e1a-dcae-44f5-8ad2-64aa37eebbc7')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgspqps4gvybwvm.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgspqps4gvybwvm.webp'" alt="سي رانش" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">سي رانش</div>
+            <div class="item-cat-label">البيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('c8180e1a-dcae-44f5-8ad2-64aa37eebbc7', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgspqps4gvybwvm.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgspqps4gvybwvm.webp', 'سي رانش')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('c8180e1a-dcae-44f5-8ad2-64aa37eebbc7', 'سي رانش')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">الكالزوني</span>
+          <span class="cat-count">6/6 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-b839b9e7-5893-480e-a600-5563e11c13da" data-item-id="b839b9e7-5893-480e-a600-5563e11c13da" data-item-name="بيبروني" data-cat="الكالزوني">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsqu6t6c44gupt.webp','b839b9e7-5893-480e-a600-5563e11c13da')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsqu6t6c44gupt.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsqu6t6c44gupt.webp'" alt="بيبروني" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بيبروني</div>
+            <div class="item-cat-label">الكالزوني</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('b839b9e7-5893-480e-a600-5563e11c13da', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsqu6t6c44gupt.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsqu6t6c44gupt.webp', 'بيبروني')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('b839b9e7-5893-480e-a600-5563e11c13da', 'بيبروني')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-1d8ccca7-3cfc-4c2b-bef1-1e57ba95f90a" data-item-id="1d8ccca7-3cfc-4c2b-bef1-1e57ba95f90a" data-item-name="بيف" data-cat="الكالزوني">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgssj8ruow089q2.webp','1d8ccca7-3cfc-4c2b-bef1-1e57ba95f90a')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgssj8ruow089q2.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgssj8ruow089q2.webp'" alt="بيف" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بيف</div>
+            <div class="item-cat-label">الكالزوني</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('1d8ccca7-3cfc-4c2b-bef1-1e57ba95f90a', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgssj8ruow089q2.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgssj8ruow089q2.webp', 'بيف')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('1d8ccca7-3cfc-4c2b-bef1-1e57ba95f90a', 'بيف')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-b1137680-613f-4c75-a6e4-cdd9c79cb808" data-item-id="b1137680-613f-4c75-a6e4-cdd9c79cb808" data-item-name="جبنة" data-cat="الكالزوني">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsu5axc8f63pae.webp','b1137680-613f-4c75-a6e4-cdd9c79cb808')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsu5axc8f63pae.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsu5axc8f63pae.webp'" alt="جبنة" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">جبنة</div>
+            <div class="item-cat-label">الكالزوني</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('b1137680-613f-4c75-a6e4-cdd9c79cb808', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsu5axc8f63pae.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsu5axc8f63pae.webp', 'جبنة')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('b1137680-613f-4c75-a6e4-cdd9c79cb808', 'جبنة')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-dcc744d0-8958-4da4-a832-6d1e7194c374" data-item-id="dcc744d0-8958-4da4-a832-6d1e7194c374" data-item-name="دجاج رانش" data-cat="الكالزوني">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsuygvy6lahnfh.webp','dcc744d0-8958-4da4-a832-6d1e7194c374')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsuygvy6lahnfh.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsuygvy6lahnfh.webp'" alt="دجاج رانش" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">دجاج رانش</div>
+            <div class="item-cat-label">الكالزوني</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('dcc744d0-8958-4da4-a832-6d1e7194c374', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsuygvy6lahnfh.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsuygvy6lahnfh.webp', 'دجاج رانش')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('dcc744d0-8958-4da4-a832-6d1e7194c374', 'دجاج رانش')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-9daeeaec-989f-4018-9dca-21f7ed970561" data-item-id="9daeeaec-989f-4018-9dca-21f7ed970561" data-item-name="دجاج سبايسي" data-cat="الكالزوني">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsw67nt6wlmdqh.webp','9daeeaec-989f-4018-9dca-21f7ed970561')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsw67nt6wlmdqh.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsw67nt6wlmdqh.webp'" alt="دجاج سبايسي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">دجاج سبايسي</div>
+            <div class="item-cat-label">الكالزوني</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('9daeeaec-989f-4018-9dca-21f7ed970561', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsw67nt6wlmdqh.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsw67nt6wlmdqh.webp', 'دجاج سبايسي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('9daeeaec-989f-4018-9dca-21f7ed970561', 'دجاج سبايسي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-2d3aec23-abe0-4c92-8b50-43b18c4dd0c2" data-item-id="2d3aec23-abe0-4c92-8b50-43b18c4dd0c2" data-item-name="باربيكيو" data-cat="الكالزوني">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgswgf7kfpeqkaf.webp','2d3aec23-abe0-4c92-8b50-43b18c4dd0c2')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgswgf7kfpeqkaf.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgswgf7kfpeqkaf.webp'" alt="باربيكيو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">باربيكيو</div>
+            <div class="item-cat-label">الكالزوني</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('2d3aec23-abe0-4c92-8b50-43b18c4dd0c2', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgswgf7kfpeqkaf.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgswgf7kfpeqkaf.webp', 'باربيكيو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('2d3aec23-abe0-4c92-8b50-43b18c4dd0c2', 'باربيكيو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">بيتزا بوكيت</span>
+          <span class="cat-count">7/7 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-1bae530c-ae1e-4a06-8210-c9cbe1a64e61" data-item-id="1bae530c-ae1e-4a06-8210-c9cbe1a64e61" data-item-name="جبنة" data-cat="بيتزا بوكيت">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgswy4ksyemfgwx.webp','1bae530c-ae1e-4a06-8210-c9cbe1a64e61')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgswy4ksyemfgwx.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgswy4ksyemfgwx.webp'" alt="جبنة" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">جبنة</div>
+            <div class="item-cat-label">بيتزا بوكيت</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('1bae530c-ae1e-4a06-8210-c9cbe1a64e61', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgswy4ksyemfgwx.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgswy4ksyemfgwx.webp', 'جبنة')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('1bae530c-ae1e-4a06-8210-c9cbe1a64e61', 'جبنة')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-c198d345-cdea-4b90-ae32-97559116553f" data-item-id="c198d345-cdea-4b90-ae32-97559116553f" data-item-name="دجاج عادي" data-cat="بيتزا بوكيت">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsycbeymg1wcm4.webp','c198d345-cdea-4b90-ae32-97559116553f')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsycbeymg1wcm4.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsycbeymg1wcm4.webp'" alt="دجاج عادي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">دجاج عادي</div>
+            <div class="item-cat-label">بيتزا بوكيت</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('c198d345-cdea-4b90-ae32-97559116553f', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsycbeymg1wcm4.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsycbeymg1wcm4.webp', 'دجاج عادي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('c198d345-cdea-4b90-ae32-97559116553f', 'دجاج عادي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-cc69abf0-db24-47b3-984a-8983831b58e2" data-item-id="cc69abf0-db24-47b3-984a-8983831b58e2" data-item-name="دجاج سبايسي" data-cat="بيتزا بوكيت">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsym1uybxicvjv.webp','cc69abf0-db24-47b3-984a-8983831b58e2')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsym1uybxicvjv.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsym1uybxicvjv.webp'" alt="دجاج سبايسي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">دجاج سبايسي</div>
+            <div class="item-cat-label">بيتزا بوكيت</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('cc69abf0-db24-47b3-984a-8983831b58e2', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgsym1uybxicvjv.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgsym1uybxicvjv.webp', 'دجاج سبايسي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('cc69abf0-db24-47b3-984a-8983831b58e2', 'دجاج سبايسي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-7cc98dca-fd23-462f-8ca6-70379c70fe6e" data-item-id="7cc98dca-fd23-462f-8ca6-70379c70fe6e" data-item-name="بيبروني" data-cat="بيتزا بوكيت">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgszln84miuftgz.webp','7cc98dca-fd23-462f-8ca6-70379c70fe6e')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgszln84miuftgz.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgszln84miuftgz.webp'" alt="بيبروني" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بيبروني</div>
+            <div class="item-cat-label">بيتزا بوكيت</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('7cc98dca-fd23-462f-8ca6-70379c70fe6e', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgszln84miuftgz.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgszln84miuftgz.webp', 'بيبروني')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('7cc98dca-fd23-462f-8ca6-70379c70fe6e', 'بيبروني')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-ed3ccbdf-a9b9-43d7-9365-3853bcebbc77" data-item-id="ed3ccbdf-a9b9-43d7-9365-3853bcebbc77" data-item-name="ميكس لحوم" data-cat="بيتزا بوكيت">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt1d470nswr8d6.webp','ed3ccbdf-a9b9-43d7-9365-3853bcebbc77')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt1d470nswr8d6.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt1d470nswr8d6.webp'" alt="ميكس لحوم" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">ميكس لحوم</div>
+            <div class="item-cat-label">بيتزا بوكيت</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('ed3ccbdf-a9b9-43d7-9365-3853bcebbc77', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt1d470nswr8d6.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt1d470nswr8d6.webp', 'ميكس لحوم')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('ed3ccbdf-a9b9-43d7-9365-3853bcebbc77', 'ميكس لحوم')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-d80d6b1d-f44f-4da9-a823-560634739494" data-item-id="d80d6b1d-f44f-4da9-a823-560634739494" data-item-name="خضراوات" data-cat="بيتزا بوكيت">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt1kzwcmo2wf50.webp','d80d6b1d-f44f-4da9-a823-560634739494')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt1kzwcmo2wf50.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt1kzwcmo2wf50.webp'" alt="خضراوات" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">خضراوات</div>
+            <div class="item-cat-label">بيتزا بوكيت</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('d80d6b1d-f44f-4da9-a823-560634739494', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt1kzwcmo2wf50.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt1kzwcmo2wf50.webp', 'خضراوات')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('d80d6b1d-f44f-4da9-a823-560634739494', 'خضراوات')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-99efc5eb-1337-4a25-84a0-136723f9b4c5" data-item-id="99efc5eb-1337-4a25-84a0-136723f9b4c5" data-item-name="ميكس لحم ودجاج" data-cat="بيتزا بوكيت">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt3xn16klrjiiw.webp','99efc5eb-1337-4a25-84a0-136723f9b4c5')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt3xn16klrjiiw.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt3xn16klrjiiw.webp'" alt="ميكس لحم ودجاج" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">ميكس لحم ودجاج</div>
+            <div class="item-cat-label">بيتزا بوكيت</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('99efc5eb-1337-4a25-84a0-136723f9b4c5', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt3xn16klrjiiw.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt3xn16klrjiiw.webp', 'ميكس لحم ودجاج')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('99efc5eb-1337-4a25-84a0-136723f9b4c5', 'ميكس لحم ودجاج')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">تشيكن بايتس</span>
+          <span class="cat-count">2/2 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-3cfdc8a8-7de7-4b2e-9f4a-c4aed3475ab7" data-item-id="3cfdc8a8-7de7-4b2e-9f4a-c4aed3475ab7" data-item-name="اوريجينال" data-cat="تشيكن بايتس">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt98vlxf7ga6jd.webp','3cfdc8a8-7de7-4b2e-9f4a-c4aed3475ab7')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt98vlxf7ga6jd.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt98vlxf7ga6jd.webp'" alt="اوريجينال" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">اوريجينال</div>
+            <div class="item-cat-label">تشيكن بايتس</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('3cfdc8a8-7de7-4b2e-9f4a-c4aed3475ab7', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt98vlxf7ga6jd.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt98vlxf7ga6jd.webp', 'اوريجينال')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('3cfdc8a8-7de7-4b2e-9f4a-c4aed3475ab7', 'اوريجينال')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-37840c0b-784a-4f89-8f8b-2b40acc47da2" data-item-id="37840c0b-784a-4f89-8f8b-2b40acc47da2" data-item-name="بافلو / ديناميت / شيبوتلي" data-cat="تشيكن بايتس">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt9yd13dj6ti0o.webp','37840c0b-784a-4f89-8f8b-2b40acc47da2')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt9yd13dj6ti0o.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt9yd13dj6ti0o.webp'" alt="بافلو / ديناميت / شيبوتلي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بافلو / ديناميت / شيبوتلي</div>
+            <div class="item-cat-label">تشيكن بايتس</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('37840c0b-784a-4f89-8f8b-2b40acc47da2', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgt9yd13dj6ti0o.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgt9yd13dj6ti0o.webp', 'بافلو / ديناميت / شيبوتلي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('37840c0b-784a-4f89-8f8b-2b40acc47da2', 'بافلو / ديناميت / شيبوتلي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">فلات بيتزا</span>
+          <span class="cat-count">5/5 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-e00e6b82-3e53-4e60-a515-1225eef06fac" data-item-id="e00e6b82-3e53-4e60-a515-1225eef06fac" data-item-name="جبنة" data-cat="فلات بيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtb8h7u1eny5xo.webp','e00e6b82-3e53-4e60-a515-1225eef06fac')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtb8h7u1eny5xo.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtb8h7u1eny5xo.webp'" alt="جبنة" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">جبنة</div>
+            <div class="item-cat-label">فلات بيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('e00e6b82-3e53-4e60-a515-1225eef06fac', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtb8h7u1eny5xo.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtb8h7u1eny5xo.webp', 'جبنة')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('e00e6b82-3e53-4e60-a515-1225eef06fac', 'جبنة')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-52bc1ded-0795-4333-bf8e-521fb38307c5" data-item-id="52bc1ded-0795-4333-bf8e-521fb38307c5" data-item-name="ميكس جبن" data-cat="فلات بيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtdsnz44u4isvb.webp','52bc1ded-0795-4333-bf8e-521fb38307c5')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtdsnz44u4isvb.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtdsnz44u4isvb.webp'" alt="ميكس جبن" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">ميكس جبن</div>
+            <div class="item-cat-label">فلات بيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('52bc1ded-0795-4333-bf8e-521fb38307c5', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtdsnz44u4isvb.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtdsnz44u4isvb.webp', 'ميكس جبن')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('52bc1ded-0795-4333-bf8e-521fb38307c5', 'ميكس جبن')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-c87f2651-5244-4353-9c18-720fa032d0de" data-item-id="c87f2651-5244-4353-9c18-720fa032d0de" data-item-name="بيبروني" data-cat="فلات بيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtf78ty4f69idn.webp','c87f2651-5244-4353-9c18-720fa032d0de')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtf78ty4f69idn.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtf78ty4f69idn.webp'" alt="بيبروني" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بيبروني</div>
+            <div class="item-cat-label">فلات بيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('c87f2651-5244-4353-9c18-720fa032d0de', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtf78ty4f69idn.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtf78ty4f69idn.webp', 'بيبروني')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('c87f2651-5244-4353-9c18-720fa032d0de', 'بيبروني')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-d7e9ab74-bbc4-4947-924b-d5830dbef304" data-item-id="d7e9ab74-bbc4-4947-924b-d5830dbef304" data-item-name="دجاج سبايسي" data-cat="فلات بيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtl5mbcg53sz17.webp','d7e9ab74-bbc4-4947-924b-d5830dbef304')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtl5mbcg53sz17.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtl5mbcg53sz17.webp'" alt="دجاج سبايسي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">دجاج سبايسي</div>
+            <div class="item-cat-label">فلات بيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('d7e9ab74-bbc4-4947-924b-d5830dbef304', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtl5mbcg53sz17.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtl5mbcg53sz17.webp', 'دجاج سبايسي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('d7e9ab74-bbc4-4947-924b-d5830dbef304', 'دجاج سبايسي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-a1b246b8-4622-437b-a346-90549442e537" data-item-id="a1b246b8-4622-437b-a346-90549442e537" data-item-name="لحوم" data-cat="فلات بيتزا">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtno714zfjzksh.webp','a1b246b8-4622-437b-a346-90549442e537')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtno714zfjzksh.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtno714zfjzksh.webp'" alt="لحوم" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">لحوم</div>
+            <div class="item-cat-label">فلات بيتزا</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('a1b246b8-4622-437b-a346-90549442e537', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtno714zfjzksh.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtno714zfjzksh.webp', 'لحوم')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('a1b246b8-4622-437b-a346-90549442e537', 'لحوم')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">المكرونة</span>
+          <span class="cat-count">1/1 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-208fd6fc-2fbd-4793-b58f-83709bebaf81" data-item-id="208fd6fc-2fbd-4793-b58f-83709bebaf81" data-item-name="تشيكن ألفريدو باستا" data-cat="المكرونة">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtqvhi9rk2j3g3.webp','208fd6fc-2fbd-4793-b58f-83709bebaf81')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtqvhi9rk2j3g3.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtqvhi9rk2j3g3.webp'" alt="تشيكن ألفريدو باستا" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">تشيكن ألفريدو باستا</div>
+            <div class="item-cat-label">المكرونة</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('208fd6fc-2fbd-4793-b58f-83709bebaf81', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtqvhi9rk2j3g3.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtqvhi9rk2j3g3.webp', 'تشيكن ألفريدو باستا')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('208fd6fc-2fbd-4793-b58f-83709bebaf81', 'تشيكن ألفريدو باستا')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">البطاطس المقلية</span>
+          <span class="cat-count">5/5 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-a6bff8e6-ac7d-4f76-b8b0-3eb0d537b41d" data-item-id="a6bff8e6-ac7d-4f76-b8b0-3eb0d537b41d" data-item-name="بطاطس مقلية" data-cat="البطاطس المقلية">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtslcrm6swfgk7.webp','a6bff8e6-ac7d-4f76-b8b0-3eb0d537b41d')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtslcrm6swfgk7.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtslcrm6swfgk7.webp'" alt="بطاطس مقلية" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بطاطس مقلية</div>
+            <div class="item-cat-label">البطاطس المقلية</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('a6bff8e6-ac7d-4f76-b8b0-3eb0d537b41d', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtslcrm6swfgk7.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtslcrm6swfgk7.webp', 'بطاطس مقلية')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('a6bff8e6-ac7d-4f76-b8b0-3eb0d537b41d', 'بطاطس مقلية')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-f94b15ac-e7b1-4af9-844d-fdb580e1c0e0" data-item-id="f94b15ac-e7b1-4af9-844d-fdb580e1c0e0" data-item-name="بطاطس تشيزي" data-cat="البطاطس المقلية">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtuej7d7m1iq2g.webp','f94b15ac-e7b1-4af9-844d-fdb580e1c0e0')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtuej7d7m1iq2g.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtuej7d7m1iq2g.webp'" alt="بطاطس تشيزي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بطاطس تشيزي</div>
+            <div class="item-cat-label">البطاطس المقلية</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('f94b15ac-e7b1-4af9-844d-fdb580e1c0e0', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtuej7d7m1iq2g.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtuej7d7m1iq2g.webp', 'بطاطس تشيزي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('f94b15ac-e7b1-4af9-844d-fdb580e1c0e0', 'بطاطس تشيزي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-a34f88c7-b362-423a-ace0-7c9522d30b4e" data-item-id="a34f88c7-b362-423a-ace0-7c9522d30b4e" data-item-name="بطاطس باربيكيو" data-cat="البطاطس المقلية">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtwh15jpfsgrzt.webp','a34f88c7-b362-423a-ace0-7c9522d30b4e')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtwh15jpfsgrzt.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtwh15jpfsgrzt.webp'" alt="بطاطس باربيكيو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بطاطس باربيكيو</div>
+            <div class="item-cat-label">البطاطس المقلية</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('a34f88c7-b362-423a-ace0-7c9522d30b4e', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtwh15jpfsgrzt.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtwh15jpfsgrzt.webp', 'بطاطس باربيكيو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('a34f88c7-b362-423a-ace0-7c9522d30b4e', 'بطاطس باربيكيو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-17301a3f-dcd6-4461-bb37-8df298c53476" data-item-id="17301a3f-dcd6-4461-bb37-8df298c53476" data-item-name="بطاطس بافلو" data-cat="البطاطس المقلية">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtxvhh65ls4ds9.webp','17301a3f-dcd6-4461-bb37-8df298c53476')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtxvhh65ls4ds9.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtxvhh65ls4ds9.webp'" alt="بطاطس بافلو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بطاطس بافلو</div>
+            <div class="item-cat-label">البطاطس المقلية</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('17301a3f-dcd6-4461-bb37-8df298c53476', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtxvhh65ls4ds9.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtxvhh65ls4ds9.webp', 'بطاطس بافلو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('17301a3f-dcd6-4461-bb37-8df298c53476', 'بطاطس بافلو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-c6b503f6-2eee-4dae-aa26-38ec05d7e594" data-item-id="c6b503f6-2eee-4dae-aa26-38ec05d7e594" data-item-name="بطاطس ديناميت" data-cat="البطاطس المقلية">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtz8x1j2hbh2n9.webp','c6b503f6-2eee-4dae-aa26-38ec05d7e594')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtz8x1j2hbh2n9.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtz8x1j2hbh2n9.webp'" alt="بطاطس ديناميت" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">بطاطس ديناميت</div>
+            <div class="item-cat-label">البطاطس المقلية</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('c6b503f6-2eee-4dae-aa26-38ec05d7e594', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgtz8x1j2hbh2n9.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgtz8x1j2hbh2n9.webp', 'بطاطس ديناميت')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('c6b503f6-2eee-4dae-aa26-38ec05d7e594', 'بطاطس ديناميت')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">الكومبو والإضافات</span>
+          <span class="cat-count">9/9 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-c0a76fec-9152-4844-9937-3741c1798126" data-item-id="c0a76fec-9152-4844-9937-3741c1798126" data-item-name="كومبو" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguce7jiv0a6q4s.webp','c0a76fec-9152-4844-9937-3741c1798126')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguce7jiv0a6q4s.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguce7jiv0a6q4s.webp'" alt="كومبو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">كومبو</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('c0a76fec-9152-4844-9937-3741c1798126', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguce7jiv0a6q4s.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguce7jiv0a6q4s.webp', 'كومبو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('c0a76fec-9152-4844-9937-3741c1798126', 'كومبو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-5c76a9d1-ddeb-40cf-9f15-96e6317b59f3" data-item-id="5c76a9d1-ddeb-40cf-9f15-96e6317b59f3" data-item-name="كولا" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgugh3yy9oc74zb.webp','5c76a9d1-ddeb-40cf-9f15-96e6317b59f3')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgugh3yy9oc74zb.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgugh3yy9oc74zb.webp'" alt="كولا" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">كولا</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('5c76a9d1-ddeb-40cf-9f15-96e6317b59f3', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgugh3yy9oc74zb.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgugh3yy9oc74zb.webp', 'كولا')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('5c76a9d1-ddeb-40cf-9f15-96e6317b59f3', 'كولا')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-5fd482cb-0908-485b-99d9-9f0d05babd29" data-item-id="5fd482cb-0908-485b-99d9-9f0d05babd29" data-item-name="إضافة خضار" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguj0bra3aggyul.webp','5fd482cb-0908-485b-99d9-9f0d05babd29')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguj0bra3aggyul.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguj0bra3aggyul.webp'" alt="إضافة خضار" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">إضافة خضار</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('5fd482cb-0908-485b-99d9-9f0d05babd29', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguj0bra3aggyul.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguj0bra3aggyul.webp', 'إضافة خضار')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('5fd482cb-0908-485b-99d9-9f0d05babd29', 'إضافة خضار')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-f444477b-4009-4930-bf6d-8be7f2e2967d" data-item-id="f444477b-4009-4930-bf6d-8be7f2e2967d" data-item-name="إضافة مشروم" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgujzb9iphh3agg.webp','f444477b-4009-4930-bf6d-8be7f2e2967d')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgujzb9iphh3agg.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgujzb9iphh3agg.webp'" alt="إضافة مشروم" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">إضافة مشروم</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('f444477b-4009-4930-bf6d-8be7f2e2967d', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgujzb9iphh3agg.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgujzb9iphh3agg.webp', 'إضافة مشروم')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('f444477b-4009-4930-bf6d-8be7f2e2967d', 'إضافة مشروم')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-0e224681-e592-4729-b903-65bae70b1310" data-item-id="0e224681-e592-4729-b903-65bae70b1310" data-item-name="إضافة زيتون" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgul4qeuabfd4r7.webp','0e224681-e592-4729-b903-65bae70b1310')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgul4qeuabfd4r7.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgul4qeuabfd4r7.webp'" alt="إضافة زيتون" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">إضافة زيتون</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('0e224681-e592-4729-b903-65bae70b1310', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgul4qeuabfd4r7.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgul4qeuabfd4r7.webp', 'إضافة زيتون')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('0e224681-e592-4729-b903-65bae70b1310', 'إضافة زيتون')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-cd6e2641-a3a9-445b-8429-530ba86c79c0" data-item-id="cd6e2641-a3a9-445b-8429-530ba86c79c0" data-item-name="إضافة دجاج" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgums17vd3l5b4a.webp','cd6e2641-a3a9-445b-8429-530ba86c79c0')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgums17vd3l5b4a.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgums17vd3l5b4a.webp'" alt="إضافة دجاج" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">إضافة دجاج</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('cd6e2641-a3a9-445b-8429-530ba86c79c0', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgums17vd3l5b4a.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgums17vd3l5b4a.webp', 'إضافة دجاج')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('cd6e2641-a3a9-445b-8429-530ba86c79c0', 'إضافة دجاج')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-71bcc23f-0c99-4c0b-b43c-829d618d86c1" data-item-id="71bcc23f-0c99-4c0b-b43c-829d618d86c1" data-item-name="إضافة بيبروني" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguomvxisj4tdsp.webp','71bcc23f-0c99-4c0b-b43c-829d618d86c1')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguomvxisj4tdsp.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguomvxisj4tdsp.webp'" alt="إضافة بيبروني" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">إضافة بيبروني</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('71bcc23f-0c99-4c0b-b43c-829d618d86c1', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguomvxisj4tdsp.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguomvxisj4tdsp.webp', 'إضافة بيبروني')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('71bcc23f-0c99-4c0b-b43c-829d618d86c1', 'إضافة بيبروني')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-b780d724-69c8-4baa-8967-5c5f3a5f3dc5" data-item-id="b780d724-69c8-4baa-8967-5c5f3a5f3dc5" data-item-name="إضافة بيف" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgupq0v0uh30n8f.webp','b780d724-69c8-4baa-8967-5c5f3a5f3dc5')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgupq0v0uh30n8f.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgupq0v0uh30n8f.webp'" alt="إضافة بيف" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">إضافة بيف</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('b780d724-69c8-4baa-8967-5c5f3a5f3dc5', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgupq0v0uh30n8f.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgupq0v0uh30n8f.webp', 'إضافة بيف')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('b780d724-69c8-4baa-8967-5c5f3a5f3dc5', 'إضافة بيف')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-37b7110a-9348-4654-b967-c05d3b14f415" data-item-id="37b7110a-9348-4654-b967-c05d3b14f415" data-item-name="إضافة أطراف جبنة" data-cat="الكومبو والإضافات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgutz52too0rilx.webp','37b7110a-9348-4654-b967-c05d3b14f415')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgutz52too0rilx.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgutz52too0rilx.webp'" alt="إضافة أطراف جبنة" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">إضافة أطراف جبنة</div>
+            <div class="item-cat-label">الكومبو والإضافات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('37b7110a-9348-4654-b967-c05d3b14f415', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgutz52too0rilx.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgutz52too0rilx.webp', 'إضافة أطراف جبنة')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('37b7110a-9348-4654-b967-c05d3b14f415', 'إضافة أطراف جبنة')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+      <div class="cat-section">
+        <div class="cat-header">
+          <span class="cat-icon">📂</span>
+          <span class="cat-name">السلطات والصوصات</span>
+          <span class="cat-count">7/8 صورة</span>
+        </div>
+        <div class="items-grid">
+        <div class="item-card has-img" id="item-75e78755-53f8-45be-877b-d8a80067a969" data-item-id="75e78755-53f8-45be-877b-d8a80067a969" data-item-name="كول سلو" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguuodnfi4ysitk.webp','75e78755-53f8-45be-877b-d8a80067a969')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguuodnfi4ysitk.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguuodnfi4ysitk.webp'" alt="كول سلو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">كول سلو</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('75e78755-53f8-45be-877b-d8a80067a969', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguuodnfi4ysitk.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguuodnfi4ysitk.webp', 'كول سلو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('75e78755-53f8-45be-877b-d8a80067a969', 'كول سلو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-129e1018-0fc6-4060-9c2c-665d8bc1582e" data-item-id="129e1018-0fc6-4060-9c2c-665d8bc1582e" data-item-name="كاتشب" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguvkkzoeoqexo0.webp','129e1018-0fc6-4060-9c2c-665d8bc1582e')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguvkkzoeoqexo0.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguvkkzoeoqexo0.webp'" alt="كاتشب" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">كاتشب</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('129e1018-0fc6-4060-9c2c-665d8bc1582e', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguvkkzoeoqexo0.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguvkkzoeoqexo0.webp', 'كاتشب')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('129e1018-0fc6-4060-9c2c-665d8bc1582e', 'كاتشب')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-5960fb5f-c849-4127-9f41-b42e83f2d9dd" data-item-id="5960fb5f-c849-4127-9f41-b42e83f2d9dd" data-item-name="صوص رانش" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguy3fueg35yfbh.webp','5960fb5f-c849-4127-9f41-b42e83f2d9dd')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguy3fueg35yfbh.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguy3fueg35yfbh.webp'" alt="صوص رانش" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">صوص رانش</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('5960fb5f-c849-4127-9f41-b42e83f2d9dd', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msguy3fueg35yfbh.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msguy3fueg35yfbh.webp', 'صوص رانش')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('5960fb5f-c849-4127-9f41-b42e83f2d9dd', 'صوص رانش')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-2dcbe657-5bbb-45e6-9568-9c09971e493f" data-item-id="2dcbe657-5bbb-45e6-9568-9c09971e493f" data-item-name="صوص باربيكيو" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv5y6wufq9hr7w.webp','2dcbe657-5bbb-45e6-9568-9c09971e493f')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv5y6wufq9hr7w.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv5y6wufq9hr7w.webp'" alt="صوص باربيكيو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">صوص باربيكيو</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('2dcbe657-5bbb-45e6-9568-9c09971e493f', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv5y6wufq9hr7w.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv5y6wufq9hr7w.webp', 'صوص باربيكيو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('2dcbe657-5bbb-45e6-9568-9c09971e493f', 'صوص باربيكيو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-eacbc16a-2280-414d-850c-865e84077d80" data-item-id="eacbc16a-2280-414d-850c-865e84077d80" data-item-name="صوص ديناميت" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv8puwtkbmoqh7.webp','eacbc16a-2280-414d-850c-865e84077d80')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv8puwtkbmoqh7.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv8puwtkbmoqh7.webp'" alt="صوص ديناميت" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">صوص ديناميت</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('eacbc16a-2280-414d-850c-865e84077d80', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv8puwtkbmoqh7.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv8puwtkbmoqh7.webp', 'صوص ديناميت')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('eacbc16a-2280-414d-850c-865e84077d80', 'صوص ديناميت')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-5ecfa094-956f-436a-845e-a52024e20a69" data-item-id="5ecfa094-956f-436a-845e-a52024e20a69" data-item-name="صوص بافلو" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv988gp84ertz6.webp','5ecfa094-956f-436a-845e-a52024e20a69')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv988gp84ertz6.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv988gp84ertz6.webp'" alt="صوص بافلو" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">صوص بافلو</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('5ecfa094-956f-436a-845e-a52024e20a69', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv988gp84ertz6.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv988gp84ertz6.webp', 'صوص بافلو')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('5ecfa094-956f-436a-845e-a52024e20a69', 'صوص بافلو')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card has-img" id="item-11d45b42-bdc0-4ec1-af5e-84f9e800ddbe" data-item-id="11d45b42-bdc0-4ec1-af5e-84f9e800ddbe" data-item-name="صوص شيبوتلي" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="openModal('https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv9woo0kgoe2m8.webp','11d45b42-bdc0-4ec1-af5e-84f9e800ddbe')">
+            <img src="https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv9woo0kgoe2m8.webp" onerror="this.src='https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv9woo0kgoe2m8.webp'" alt="صوص شيبوتلي" />
+            <div class="img-overlay">🔍 عرض</div>
+          </div>
+          <div class="item-info">
+            <div class="item-title">صوص شيبوتلي</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-move" onclick="startMove('11d45b42-bdc0-4ec1-af5e-84f9e800ddbe', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/thumbs/msgv9woo0kgoe2m8.webp', 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/original/msgv9woo0kgoe2m8.webp', 'صوص شيبوتلي')">🔄 نقل لصنف آخر</button>
+              <button class="btn-remove" onclick="removeImage('11d45b42-bdc0-4ec1-af5e-84f9e800ddbe', 'صوص شيبوتلي')">🗑️ حذف الصورة</button>
+            </div>
+          </div>
+        </div>
+        <div class="item-card no-img" id="item-d92c4a4c-fe5e-4cda-bc58-a903c3da3492" data-item-id="d92c4a4c-fe5e-4cda-bc58-a903c3da3492" data-item-name="صوص ثاوزند آيلاند" data-cat="السلطات والصوصات">
+          <div class="img-area" onclick="">
+            <div class="no-img-placeholder">📷<br><span>لا توجد صورة</span></div>
+            
+          </div>
+          <div class="item-info">
+            <div class="item-title">صوص ثاوزند آيلاند</div>
+            <div class="item-cat-label">السلطات والصوصات</div>
+            
+            <div class="item-actions">
+              <button class="btn-assign" onclick="assignPending('d92c4a4c-fe5e-4cda-bc58-a903c3da3492')">➕ إسناد صورة</button>
+            </div>
+          </div>
+        </div></div>
+      </div>
+</div>
+
+<!-- Modal لعرض الصورة -->
+<div class="modal" id="modal">
+  <div class="modal-title" id="modal-item-name"></div>
+  <img id="modal-img" src="" alt="" />
+  <div class="modal-actions">
+    <button class="btn-modal-move" onclick="startMoveFromModal()">🔄 نقل لصنف آخر</button>
+    <button class="btn-modal-remove" onclick="removeFromModal()">🗑️ حذف الصورة</button>
+    <button class="btn-modal-close" onclick="closeModal()">✕ إغلاق</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://dphylskqazuytvibiysn.supabase.co';
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaHlsc2txYXp1eXR2aWJpeXNuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjA0ODM4NiwiZXhwIjoyMDg3NjI0Mzg2fQ.vELDlTa0irq1nauUxJxK-UOcbbe_B-GElqdaaAPrnEg';
+
+let currentModalItemId = null;
+let currentModalOrigUrl = null;
+let movingItemId = null;
+let movingOrigUrl = null;
+let movingThumbUrl = null;
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = '', 3000);
+}
+
+function openModal(origUrl, itemId) {
+  currentModalItemId = itemId;
+  currentModalOrigUrl = origUrl;
+  const card = document.getElementById('item-' + itemId);
+  document.getElementById('modal-item-name').textContent = card?.dataset.itemName || '';
+  document.getElementById('modal-img').src = origUrl;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  currentModalItemId = null;
+  currentModalOrigUrl = null;
+}
+
+function startMoveFromModal() {
+  const card = document.getElementById('item-' + currentModalItemId);
+  const img = card?.querySelector('img');
+  startMove(currentModalItemId, img?.src || currentModalOrigUrl, currentModalOrigUrl, card?.dataset.itemName);
+  closeModal();
+}
+function removeFromModal() {
+  removeImage(currentModalItemId, document.getElementById('item-' + currentModalItemId)?.dataset.itemName);
+  closeModal();
+}
+
+async function removeImage(itemId, itemName) {
+  if (!confirm('حذف صورة "' + itemName + '"؟\nالصورة ستُزال من هذا الصنف لكن تبقى على Storage')) return;
+  const res = await updateItemImage(itemId, null, null);
+  if (res) {
+    const card = document.getElementById('item-' + itemId);
+    card.classList.remove('has-img');
+    card.classList.add('no-img');
+    card.querySelector('.img-area').innerHTML = '<div class="no-img-placeholder">📷<br><span>لا توجد صورة</span></div>';
+    card.querySelector('.item-actions').innerHTML = `<button class="btn-assign" onclick="assignPending('${itemId}')">➕ إسناد صورة</button>`;
+    updateStats(-1);
+    showToast('✅ تم حذف الصورة من "' + itemName + '"');
+  }
+}
+
+function startMove(itemId, thumbUrl, origUrl, itemName) {
+  movingItemId = itemId;
+  movingOrigUrl = origUrl;
+  movingThumbUrl = thumbUrl;
+  
+  // highlight all cards as targets except the current one
+  document.querySelectorAll('.item-card').forEach(card => {
+    if (card.id !== 'item-' + itemId) {
+      card.classList.add('move-target');
+      card.onclick = () => completeMove(card.dataset.itemId, card.dataset.itemName);
+    }
+  });
+  
+  const banner = document.getElementById('move-banner');
+  document.getElementById('move-banner-text').textContent = '🔄 انقل صورة "' + itemName + '" → اضغط على الصنف الجديد';
+  banner.classList.add('show');
+}
+
+async function completeMove(targetItemId, targetItemName) {
+  if (!movingItemId) return;
+  
+  // Get current target item's image
+  const targetCard = document.getElementById('item-' + targetItemId);
+  const targetImg = targetCard.querySelector('img');
+  const targetHasImg = targetCard.classList.contains('has-img');
+  
+  // Get source card info
+  const sourceCard = document.getElementById('item-' + movingItemId);
+  const sourceImg = sourceCard.querySelector('img');
+
+  // Swap images in DB
+  const sourceOrigUrl = movingOrigUrl;
+  const sourceThumbUrl = movingThumbUrl;
+  
+  if (targetHasImg) {
+    // Swap
+    const targetOrigUrl = targetImg?.src;
+    const targetThumbUrl = targetImg?.src?.replace('/original/', '/thumbs/');
+    
+    await Promise.all([
+      updateItemImage(movingItemId, targetOrigUrl, targetThumbUrl),
+      updateItemImage(targetItemId, sourceOrigUrl, sourceThumbUrl)
+    ]);
+    
+    // Update UI
+    if (sourceImg) sourceImg.src = targetOrigUrl;
+    targetImg.src = sourceOrigUrl;
+    showToast('✅ تم تبديل الصورتين بين "' + sourceCard.dataset.itemName + '" و "' + targetItemName + '"');
+  } else {
+    // Move to empty slot
+    await Promise.all([
+      updateItemImage(movingItemId, null, null),
+      updateItemImage(targetItemId, sourceOrigUrl, sourceThumbUrl)
+    ]);
+    
+    // Update source to no-img
+    sourceCard.classList.remove('has-img');
+    sourceCard.classList.add('no-img');
+    sourceCard.querySelector('.img-area').innerHTML = '<div class="no-img-placeholder">📷<br><span>لا توجد صورة</span></div>';
+    sourceCard.querySelector('.item-actions').innerHTML = `<button class="btn-assign" onclick="assignPending('${movingItemId}')">➕ إسناد صورة</button>`;
+    
+    // Update target to has-img
+    targetCard.classList.add('has-img');
+    targetCard.classList.remove('no-img');
+    targetCard.querySelector('.img-area').innerHTML = `<img src="${sourceThumbUrl}" onerror="this.src='${sourceOrigUrl}'" /><div class="img-overlay">🔍 عرض</div>`;
+    targetCard.querySelector('.img-area').onclick = () => openModal(sourceOrigUrl, targetItemId);
+    targetCard.querySelector('.item-actions').innerHTML = `
+      <button class="btn-move" onclick="startMove('${targetItemId}','${sourceThumbUrl}','${sourceOrigUrl}','${targetItemName}')">🔄 نقل لصنف آخر</button>
+      <button class="btn-remove" onclick="removeImage('${targetItemId}','${targetItemName}')">🗑️ حذف الصورة</button>`;
+    
+    showToast('✅ تم نقل الصورة إلى "' + targetItemName + '"');
+  }
+  
+  cancelMove();
+}
+
+function cancelMove() {
+  movingItemId = null;
+  movingOrigUrl = null;
+  movingThumbUrl = null;
+  document.querySelectorAll('.item-card').forEach(card => {
+    card.classList.remove('move-target');
+    card.onclick = null;
+  });
+  document.getElementById('move-banner').classList.remove('show');
+}
+
+function assignPending(itemId) {
+  showToast('⚠️ لإسناد صورة جديدة، ارفعها من الداشبورد مباشرة', true);
+}
+
+async function updateItemImage(itemId, imageUrl, thumbnailUrl) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/items?id=eq.${itemId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SERVICE_KEY,
+        'Authorization': 'Bearer ' + SERVICE_KEY,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ image_url: imageUrl, thumbnail_url: thumbnailUrl })
+    });
+    return res.ok;
+  } catch(e) {
+    showToast('❌ خطأ في الحفظ', true);
+    return false;
+  }
+}
+
+function updateStats(delta) {
+  const withEl = document.getElementById('stat-with');
+  const withoutEl = document.getElementById('stat-without');
+  const cur = parseInt(withEl.textContent.match(/\d+/)[0]);
+  withEl.textContent = '✅ بصور: ' + (cur + delta);
+  const curOut = parseInt(withoutEl.textContent.match(/\d+/)[0]);
+  withoutEl.textContent = '❌ بدون: ' + (curOut - delta);
+}
+
+// Close modal on background click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>

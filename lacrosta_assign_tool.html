@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>🍕 La Crosta - ربط الصور بالأصناف</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #0f172a; color: #e2e8f0; }
+    header { background: #1e293b; border-bottom: 2px solid #f59e0b; padding: 16px 24px; display: flex; align-items: center; gap: 16px; position: sticky; top: 0; z-index: 100; }
+    header h1 { color: #f59e0b; font-size: 20px; }
+    header .stats { display: flex; gap: 16px; margin-right: auto; font-size: 13px; color: #94a3b8; }
+    header .stats span { background: #0f172a; padding: 4px 12px; border-radius: 20px; border: 1px solid #334155; }
+    header .stats .done { color: #22c55e; border-color: #22c55e; }
+    .btn { padding: 8px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all .2s; }
+    .btn-primary { background: #f59e0b; color: #0f172a; }
+    .btn-primary:hover { background: #d97706; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: #22c55e; color: #0f172a; }
+    .btn-success:hover { background: #16a34a; }
+    .container { display: flex; height: calc(100vh - 65px); }
+    /* يسار: الصور */
+    .images-panel { width: 55%; border-left: 2px solid #334155; overflow-y: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; align-content: start; }
+    .img-card { background: #1e293b; border: 2px solid #334155; border-radius: 12px; overflow: hidden; cursor: pointer; transition: all .2s; position: relative; }
+    .img-card:hover { border-color: #f59e0b; transform: translateY(-2px); }
+    .img-card.selected { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.3); }
+    .img-card.linked { border-color: #3b82f6; opacity: 0.7; }
+    .img-card.linked::after { content: '✓'; position: absolute; top: 6px; right: 6px; background: #3b82f6; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .img-card img { width: 100%; height: 140px; object-fit: cover; display: block; }
+    .img-info { padding: 8px; font-size: 11px; color: #64748b; }
+    .img-info .idx { font-weight: bold; color: #94a3b8; font-size: 13px; }
+    .img-info .linked-to { color: #3b82f6; font-size: 11px; margin-top: 2px; word-break: break-word; }
+    /* يمين: الأصناف */
+    .items-panel { width: 45%; overflow-y: auto; padding: 16px; }
+    .items-panel h2 { color: #f59e0b; margin-bottom: 12px; font-size: 15px; }
+    .cat-group { margin-bottom: 20px; }
+    .cat-title { background: #1e293b; border-right: 3px solid #f59e0b; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: bold; color: #f59e0b; margin-bottom: 8px; }
+    .item-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: all .2s; border: 1.5px solid transparent; margin-bottom: 4px; }
+    .item-row:hover { background: #1e293b; border-color: #334155; }
+    .item-row.has-image { border-color: #3b82f6; background: #1e3a5f; }
+    .item-row.just-assigned { border-color: #22c55e; background: #14532d; }
+    .item-num { width: 28px; height: 28px; background: #334155; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #94a3b8; font-weight: bold; flex-shrink: 0; }
+    .item-thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; border: 1px solid #334155; flex-shrink: 0; }
+    .item-thumb-placeholder { width: 44px; height: 44px; border-radius: 6px; background: #1e293b; border: 1px dashed #334155; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .item-details { flex: 1; min-width: 0; }
+    .item-name { font-size: 14px; font-weight: bold; color: #e2e8f0; }
+    .item-cat { font-size: 11px; color: #64748b; }
+    .item-remove { width: 26px; height: 26px; background: #dc2626; border: none; border-radius: 50%; cursor: pointer; color: white; font-size: 14px; display: none; align-items: center; justify-content: center; flex-shrink: 0; }
+    .item-row.has-image .item-remove { display: flex; }
+    .item-row.just-assigned .item-remove { display: flex; }
+    /* Modal تكبير الصورة */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 999; align-items: center; justify-content: center; }
+    .modal.show { display: flex; }
+    .modal img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 12px; }
+    .modal-close { position: fixed; top: 20px; left: 20px; background: #dc2626; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px; }
+    /* Instructions */
+    .instructions { background: #1e3a5f; border: 1px solid #3b82f6; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; line-height: 1.8; }
+    .instructions strong { color: #f59e0b; }
+    /* Save panel */
+    .save-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 2px solid #334155; padding: 12px 24px; display: flex; align-items: center; gap: 12px; z-index: 100; }
+    .save-info { font-size: 13px; color: #94a3b8; flex: 1; }
+    #status-msg { padding: 8px 16px; background: #0f172a; border-radius: 8px; font-size: 13px; border: 1px solid #334155; }
+    .panels-wrap { display: flex; width: 100%; height: calc(100vh - 65px - 56px); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🍕 La Crosta — ربط الصور بالأصناف</h1>
+    <div style="font-size:12px;color:#64748b">اختر صورة ← اضغط على الصنف المقابل لها</div>
+  </div>
+  <div class="stats">
+    <span id="stat-total">📸 <strong id="img-count">0</strong> صورة</span>
+    <span id="stat-done" class="done">✅ تم ربط: <strong id="done-count">0</strong></span>
+    <span>📋 أصناف بدون صور: <strong id="no-img-count">0</strong></span>
+  </div>
+  <button class="btn btn-danger" onclick="clearAll()">🗑️ مسح الكل</button>
+  <button class="btn btn-success" onclick="saveToServer()">💾 حفظ في قاعدة البيانات</button>
+</header>
+
+<div class="panels-wrap">
+  <!-- الأصناف - يمين -->
+  <div class="items-panel" id="items-panel">
+    <div class="instructions">
+      <strong>طريقة الاستخدام:</strong><br>
+      1️⃣ اختر صورة من اليسار (ستتحول لإطار أخضر)<br>
+      2️⃣ اضغط على الصنف المقابل لها من اليمين<br>
+      3️⃣ اضغط "حفظ في قاعدة البيانات" بعد الانتهاء<br>
+      ❌ زر الإزالة يلغي الربط ويرجع الصورة للقائمة
+    </div>
+    <h2>📋 أصناف La Crosta</h2>
+    <div id="items-container"></div>
+  </div>
+  
+  <!-- الصور - يسار -->
+  <div class="images-panel" id="images-panel"></div>
+</div>
+
+<div class="save-panel">
+  <div class="save-info">بعد ربط كل الصور بأصنافها، اضغط "حفظ" لتطبيق التغييرات مباشرة على قاعدة البيانات</div>
+  <div id="status-msg">جاري التحميل...</div>
+  <button class="btn btn-success" onclick="saveToServer()" style="padding:10px 28px;font-size:15px">💾 حفظ الكل</button>
+</div>
+
+<div class="modal" id="modal" onclick="closeModal()">
+  <button class="modal-close" onclick="closeModal()">✕</button>
+  <img id="modal-img" src="" alt="">
+</div>
+
+<script>
+const SUPABASE_URL = 'https://dphylskqazuytvibiysn.supabase.co';
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwaHlsc2txYXp1eXR2aWJpeXNuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjA0ODM4NiwiZXhwIjoyMDg3NjI0Mzg2fQ.vELDlTa0irq1nauUxJxK-UOcbbe_B-GElqdaaAPrnEg';
+
+const IMAGES = [];
+const ITEMS = [
+  {
+    "index": 0,
+    "id": "860a1429-1fa9-4c09-a4e4-301638446efc",
+    "title": "كلاسيك لحم",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 1,
+    "id": "6483145e-1071-4184-8b36-7f9261b650a0",
+    "title": "سماش",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 2,
+    "id": "fd92240e-e187-4548-9ea9-d8338e110d8c",
+    "title": "لاكروستا برجر",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 3,
+    "id": "365ca33e-e85e-4c55-82e4-1b1a25870644",
+    "title": "جوسي لوسي بيف",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 4,
+    "id": "28f7a1e4-272c-402a-a448-dc19441ed495",
+    "title": "سوبر جوسي لوسي بيف",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 5,
+    "id": "bcfa07cc-683f-4068-ae98-2dc4cada93f0",
+    "title": "اوريجنال كريسبي تشيكن",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 6,
+    "id": "4ddf01e5-2506-4a01-8c85-3aa3227a9985",
+    "title": "سبايسي كريسبي تشيكن",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 7,
+    "id": "3884100d-10d9-4b44-b9c4-02ba3cab2632",
+    "title": "جريل تشيكن",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 8,
+    "id": "9d4392e1-a3c1-4d8f-9412-2e8e9c4add5b",
+    "title": "جوسي لوسي تشيكن",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 9,
+    "id": "31227626-6bb2-4403-8e4d-71f91b94058d",
+    "title": "سوبر جوسي لوسي تشيكن",
+    "cat": "البرجر",
+    "hasImage": true
+  },
+  {
+    "index": 10,
+    "id": "de7fabcc-d272-4f17-8f61-449edeef0677",
+    "title": "مارجريتا",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 11,
+    "id": "b5e967aa-316a-42fb-bf2a-7372e4ddd820",
+    "title": "فيجي",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 12,
+    "id": "1e29e0a9-7e7b-40cc-abd0-65b29e79465f",
+    "title": "مشروم",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 13,
+    "id": "dda190ad-7972-43a0-80bc-d46b75ada724",
+    "title": "وايت",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 14,
+    "id": "88dd7961-40b4-48e6-9ad4-7c0ef64b9b55",
+    "title": "بيبروني",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 15,
+    "id": "edf5ce3a-999f-4e6c-821e-407aa8c46c08",
+    "title": "سوبريم",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 16,
+    "id": "8459f2a9-e251-415a-affe-8e10cc349d24",
+    "title": "هوت ستافد بيف",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 17,
+    "id": "f21c5a18-a824-4c9e-b126-f393e3706b16",
+    "title": "ميت لافر",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 18,
+    "id": "132bb51e-d2f7-47ea-90ae-b1d16bbf5375",
+    "title": "تشيكن رانش",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 19,
+    "id": "7ed7e500-1a76-4b6b-ad96-0e8b3f3315a3",
+    "title": "سبايسي رانش",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 20,
+    "id": "96005b37-6c6e-401a-9871-724ad0dba9e1",
+    "title": "كريسبي رانش",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 21,
+    "id": "0a89d5d4-bce8-4ec4-834e-158ae9203b08",
+    "title": "بافلو تشيكن كريسبي",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 22,
+    "id": "45192902-55d3-4a07-8f45-24ba0a323e0a",
+    "title": "ديناميت تشيكن كريسبي",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 23,
+    "id": "57ed95e9-d2c1-4401-b93b-ad27ad33d214",
+    "title": "كريسبي هاني مسترد",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 24,
+    "id": "529c872b-c06f-4156-927a-de209b1ee20e",
+    "title": "تشيكن سوبر سوبريم",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 25,
+    "id": "98cec864-4130-455b-844f-3b2a6db74b49",
+    "title": "باربيكيو",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 26,
+    "id": "ffcd19ba-40a5-4a49-99a8-9269ec1fb69c",
+    "title": "هوت ستافد تشيكن",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 27,
+    "id": "ba733abd-1ac8-4145-a386-6b3b5c9fc52e",
+    "title": "جريل تشيكن",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 28,
+    "id": "ebd95d0f-c21d-44eb-aff5-1c5bb8ecff88",
+    "title": "تشيكن فاهيتا",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 29,
+    "id": "aaeb9c3c-570f-4f46-8980-8f9a73f4aac1",
+    "title": "هاوايان",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 30,
+    "id": "c5771990-ff30-4886-bfb4-c72d9bdb011e",
+    "title": "سي فود",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 31,
+    "id": "c8180e1a-dcae-44f5-8ad2-64aa37eebbc7",
+    "title": "سي رانش",
+    "cat": "البيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 32,
+    "id": "b839b9e7-5893-480e-a600-5563e11c13da",
+    "title": "بيبروني",
+    "cat": "الكالزوني",
+    "hasImage": true
+  },
+  {
+    "index": 33,
+    "id": "1d8ccca7-3cfc-4c2b-bef1-1e57ba95f90a",
+    "title": "بيف",
+    "cat": "الكالزوني",
+    "hasImage": true
+  },
+  {
+    "index": 34,
+    "id": "b1137680-613f-4c75-a6e4-cdd9c79cb808",
+    "title": "جبنة",
+    "cat": "الكالزوني",
+    "hasImage": true
+  },
+  {
+    "index": 35,
+    "id": "dcc744d0-8958-4da4-a832-6d1e7194c374",
+    "title": "دجاج رانش",
+    "cat": "الكالزوني",
+    "hasImage": true
+  },
+  {
+    "index": 36,
+    "id": "9daeeaec-989f-4018-9dca-21f7ed970561",
+    "title": "دجاج سبايسي",
+    "cat": "الكالزوني",
+    "hasImage": true
+  },
+  {
+    "index": 37,
+    "id": "2d3aec23-abe0-4c92-8b50-43b18c4dd0c2",
+    "title": "باربيكيو",
+    "cat": "الكالزوني",
+    "hasImage": true
+  },
+  {
+    "index": 38,
+    "id": "1bae530c-ae1e-4a06-8210-c9cbe1a64e61",
+    "title": "جبنة",
+    "cat": "بيتزا بوكيت",
+    "hasImage": true
+  },
+  {
+    "index": 39,
+    "id": "c198d345-cdea-4b90-ae32-97559116553f",
+    "title": "دجاج عادي",
+    "cat": "بيتزا بوكيت",
+    "hasImage": true
+  },
+  {
+    "index": 40,
+    "id": "cc69abf0-db24-47b3-984a-8983831b58e2",
+    "title": "دجاج سبايسي",
+    "cat": "بيتزا بوكيت",
+    "hasImage": true
+  },
+  {
+    "index": 41,
+    "id": "7cc98dca-fd23-462f-8ca6-70379c70fe6e",
+    "title": "بيبروني",
+    "cat": "بيتزا بوكيت",
+    "hasImage": true
+  },
+  {
+    "index": 42,
+    "id": "ed3ccbdf-a9b9-43d7-9365-3853bcebbc77",
+    "title": "ميكس لحوم",
+    "cat": "بيتزا بوكيت",
+    "hasImage": true
+  },
+  {
+    "index": 43,
+    "id": "d80d6b1d-f44f-4da9-a823-560634739494",
+    "title": "خضراوات",
+    "cat": "بيتزا بوكيت",
+    "hasImage": true
+  },
+  {
+    "index": 44,
+    "id": "99efc5eb-1337-4a25-84a0-136723f9b4c5",
+    "title": "ميكس لحم ودجاج",
+    "cat": "بيتزا بوكيت",
+    "hasImage": true
+  },
+  {
+    "index": 45,
+    "id": "3cfdc8a8-7de7-4b2e-9f4a-c4aed3475ab7",
+    "title": "اوريجينال",
+    "cat": "تشيكن بايتس",
+    "hasImage": true
+  },
+  {
+    "index": 46,
+    "id": "37840c0b-784a-4f89-8f8b-2b40acc47da2",
+    "title": "بافلو / ديناميت / شيبوتلي",
+    "cat": "تشيكن بايتس",
+    "hasImage": true
+  },
+  {
+    "index": 47,
+    "id": "e00e6b82-3e53-4e60-a515-1225eef06fac",
+    "title": "جبنة",
+    "cat": "فلات بيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 48,
+    "id": "52bc1ded-0795-4333-bf8e-521fb38307c5",
+    "title": "ميكس جبن",
+    "cat": "فلات بيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 49,
+    "id": "c87f2651-5244-4353-9c18-720fa032d0de",
+    "title": "بيبروني",
+    "cat": "فلات بيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 50,
+    "id": "d7e9ab74-bbc4-4947-924b-d5830dbef304",
+    "title": "دجاج سبايسي",
+    "cat": "فلات بيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 51,
+    "id": "a1b246b8-4622-437b-a346-90549442e537",
+    "title": "لحوم",
+    "cat": "فلات بيتزا",
+    "hasImage": true
+  },
+  {
+    "index": 52,
+    "id": "208fd6fc-2fbd-4793-b58f-83709bebaf81",
+    "title": "تشيكن ألفريدو باستا",
+    "cat": "المكرونة",
+    "hasImage": true
+  },
+  {
+    "index": 53,
+    "id": "a6bff8e6-ac7d-4f76-b8b0-3eb0d537b41d",
+    "title": "بطاطس مقلية",
+    "cat": "البطاطس المقلية",
+    "hasImage": true
+  },
+  {
+    "index": 54,
+    "id": "f94b15ac-e7b1-4af9-844d-fdb580e1c0e0",
+    "title": "بطاطس تشيزي",
+    "cat": "البطاطس المقلية",
+    "hasImage": true
+  },
+  {
+    "index": 55,
+    "id": "a34f88c7-b362-423a-ace0-7c9522d30b4e",
+    "title": "بطاطس باربيكيو",
+    "cat": "البطاطس المقلية",
+    "hasImage": true
+  },
+  {
+    "index": 56,
+    "id": "17301a3f-dcd6-4461-bb37-8df298c53476",
+    "title": "بطاطس بافلو",
+    "cat": "البطاطس المقلية",
+    "hasImage": true
+  },
+  {
+    "index": 57,
+    "id": "c6b503f6-2eee-4dae-aa26-38ec05d7e594",
+    "title": "بطاطس ديناميت",
+    "cat": "البطاطس المقلية",
+    "hasImage": true
+  },
+  {
+    "index": 58,
+    "id": "c0a76fec-9152-4844-9937-3741c1798126",
+    "title": "كومبو",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 59,
+    "id": "5c76a9d1-ddeb-40cf-9f15-96e6317b59f3",
+    "title": "كولا",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 60,
+    "id": "5fd482cb-0908-485b-99d9-9f0d05babd29",
+    "title": "إضافة خضار",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 61,
+    "id": "f444477b-4009-4930-bf6d-8be7f2e2967d",
+    "title": "إضافة مشروم",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 62,
+    "id": "0e224681-e592-4729-b903-65bae70b1310",
+    "title": "إضافة زيتون",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 63,
+    "id": "cd6e2641-a3a9-445b-8429-530ba86c79c0",
+    "title": "إضافة دجاج",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 64,
+    "id": "71bcc23f-0c99-4c0b-b43c-829d618d86c1",
+    "title": "إضافة بيبروني",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 65,
+    "id": "b780d724-69c8-4baa-8967-5c5f3a5f3dc5",
+    "title": "إضافة بيف",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 66,
+    "id": "37b7110a-9348-4654-b967-c05d3b14f415",
+    "title": "إضافة أطراف جبنة",
+    "cat": "الكومبو والإضافات",
+    "hasImage": true
+  },
+  {
+    "index": 67,
+    "id": "75e78755-53f8-45be-877b-d8a80067a969",
+    "title": "كول سلو",
+    "cat": "السلطات والصوصات",
+    "hasImage": true
+  },
+  {
+    "index": 68,
+    "id": "129e1018-0fc6-4060-9c2c-665d8bc1582e",
+    "title": "كاتشب",
+    "cat": "السلطات والصوصات",
+    "hasImage": true
+  },
+  {
+    "index": 69,
+    "id": "5960fb5f-c849-4127-9f41-b42e83f2d9dd",
+    "title": "صوص رانش",
+    "cat": "السلطات والصوصات",
+    "hasImage": true
+  },
+  {
+    "index": 70,
+    "id": "2dcbe657-5bbb-45e6-9568-9c09971e493f",
+    "title": "صوص باربيكيو",
+    "cat": "السلطات والصوصات",
+    "hasImage": true
+  },
+  {
+    "index": 71,
+    "id": "eacbc16a-2280-414d-850c-865e84077d80",
+    "title": "صوص ديناميت",
+    "cat": "السلطات والصوصات",
+    "hasImage": true
+  },
+  {
+    "index": 72,
+    "id": "5ecfa094-956f-436a-845e-a52024e20a69",
+    "title": "صوص بافلو",
+    "cat": "السلطات والصوصات",
+    "hasImage": true
+  },
+  {
+    "index": 73,
+    "id": "11d45b42-bdc0-4ec1-af5e-84f9e800ddbe",
+    "title": "صوص شيبوتلي",
+    "cat": "السلطات والصوصات",
+    "hasImage": true
+  },
+  {
+    "index": 74,
+    "id": "d92c4a4c-fe5e-4cda-bc58-a903c3da3492",
+    "title": "صوص ثاوزند آيلاند",
+    "cat": "السلطات والصوصات",
+    "hasImage": false
+  }
+];
+
+// state
+let selectedImageIdx = null;  // فهرس الصورة المختارة حالياً
+let assignments = {};  // { itemId: { imageIdx, fileId, thumbUrl, origUrl } }
+// Load existing assignments from items that already have images
+ITEMS.forEach(item => {
+  if (item.hasImage) {
+    // mark as already linked (we'll skip them in saving)
+    assignments[item.id] = { existing: true };
+  }
+});
+
+function renderImages() {
+  const panel = document.getElementById('images-panel');
+  panel.innerHTML = '';
+  IMAGES.forEach((img, idx) => {
+    const isLinked = Object.values(assignments).some(a => !a.existing && a.imageIdx === idx);
+    const isSelected = selectedImageIdx === idx;
+    const card = document.createElement('div');
+    card.className = 'img-card' + (isSelected ? ' selected' : '') + (isLinked ? ' linked' : '');
+    card.dataset.idx = idx;
+    
+    // Find what item this is linked to
+    let linkedLabel = '';
+    if (isLinked) {
+      const assignedItem = ITEMS.find(item => assignments[item.id]?.imageIdx === idx);
+      if (assignedItem) linkedLabel = `<div class="linked-to">→ ${assignedItem.title} (${assignedItem.cat})</div>`;
+    }
+    
+    card.innerHTML = `
+      <img src="${img.thumbUrl}" alt="${idx+1}" loading="lazy"
+           onerror="this.src='${img.origUrl}'"
+           ondblclick="openModal('${img.origUrl}')" />
+      <div class="img-info">
+        <div class="idx">#${idx+1} · ${img.time.split('،')[1]?.trim() || img.time}</div>
+        <div>${img.size}</div>
+        ${linkedLabel}
+      </div>`;
+    card.onclick = (e) => {
+      if (e.target.tagName === 'IMG' && e.detail === 1) selectImage(idx);
+      else if (e.target.tagName !== 'IMG') selectImage(idx);
+    };
+    panel.appendChild(card);
+  });
+  updateStats();
+}
+
+function renderItems() {
+  const container = document.getElementById('items-container');
+  container.innerHTML = '';
+  
+  // Group by category
+  const cats = {};
+  ITEMS.forEach(item => {
+    if (!cats[item.cat]) cats[item.cat] = [];
+    cats[item.cat].push(item);
+  });
+  
+  Object.entries(cats).forEach(([catName, items]) => {
+    const group = document.createElement('div');
+    group.className = 'cat-group';
+    group.innerHTML = `<div class="cat-title">📂 ${catName}</div>`;
+    
+    items.forEach(item => {
+      const assigned = assignments[item.id];
+      const hasNewAssignment = assigned && !assigned.existing;
+      const hasExistingImage = assigned && assigned.existing;
+      
+      const row = document.createElement('div');
+      row.className = 'item-row' + (hasNewAssignment ? ' just-assigned' : '') + (hasExistingImage ? ' has-image' : '');
+      row.dataset.itemId = item.id;
+      
+      let thumbHtml = '';
+      if (hasNewAssignment) {
+        const img = IMAGES[assigned.imageIdx];
+        thumbHtml = `<img class="item-thumb" src="${img.thumbUrl}" onerror="this.src='${img.origUrl}'" />`;
+      } else if (hasExistingImage) {
+        thumbHtml = `<div class="item-thumb-placeholder">🖼️</div>`;
+      } else {
+        thumbHtml = `<div class="item-thumb-placeholder">📷</div>`;
+      }
+      
+      row.innerHTML = `
+        ${thumbHtml}
+        <div class="item-num">${item.index+1}</div>
+        <div class="item-details">
+          <div class="item-name">${item.title}</div>
+          <div class="item-cat">${item.cat}</div>
+        </div>
+        <button class="item-remove" onclick="removeAssignment(event, '${item.id}')">✕</button>`;
+      
+      row.onclick = () => assignToItem(item.id);
+      group.appendChild(row);
+    });
+    container.appendChild(group);
+  });
+}
+
+function selectImage(idx) {
+  selectedImageIdx = idx;
+  renderImages();
+  document.getElementById('status-msg').textContent = `✅ صورة #${idx+1} محددة — اضغط على الصنف المقابل لها`;
+}
+
+function assignToItem(itemId) {
+  if (selectedImageIdx === null) {
+    document.getElementById('status-msg').textContent = '⚠️ اختر صورة أولاً من اليسار';
+    return;
+  }
+  
+  // Check if this image is already assigned to another item, remove that assignment
+  Object.keys(assignments).forEach(id => {
+    if (assignments[id].imageIdx === selectedImageIdx) {
+      delete assignments[id];
+    }
+  });
+  
+  const img = IMAGES[selectedImageIdx];
+  assignments[itemId] = { imageIdx: selectedImageIdx, fileId: img.fileId, thumbUrl: img.thumbUrl, origUrl: img.origUrl };
+  
+  const item = ITEMS.find(i => i.id === itemId);
+  document.getElementById('status-msg').textContent = `✅ تم ربط صورة #${selectedImageIdx+1} بـ "${item?.title}"`;
+  
+  selectedImageIdx = null;
+  renderImages();
+  renderItems();
+}
+
+function removeAssignment(e, itemId) {
+  e.stopPropagation();
+  delete assignments[itemId];
+  renderImages();
+  renderItems();
+  document.getElementById('status-msg').textContent = '🗑️ تم إلغاء الربط';
+}
+
+function clearAll() {
+  if (!confirm('هل تريد مسح كل الروابط الجديدة؟')) return;
+  Object.keys(assignments).forEach(id => {
+    if (!assignments[id].existing) delete assignments[id];
+  });
+  selectedImageIdx = null;
+  renderImages();
+  renderItems();
+}
+
+function updateStats() {
+  document.getElementById('img-count').textContent = IMAGES.length;
+  const doneCount = Object.values(assignments).filter(a => !a.existing).length;
+  document.getElementById('done-count').textContent = doneCount;
+  const noImgCount = ITEMS.filter(i => !assignments[i.id]).length;
+  document.getElementById('no-img-count').textContent = noImgCount;
+}
+
+function openModal(url) {
+  document.getElementById('modal-img').src = url;
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+}
+
+async function saveToServer() {
+  const newAssignments = Object.entries(assignments).filter(([_, a]) => !a.existing);
+  if (newAssignments.length === 0) {
+    document.getElementById('status-msg').textContent = '⚠️ لا يوجد روابط جديدة للحفظ';
+    return;
+  }
+  
+  const btn = document.querySelector('.btn-success');
+  btn.disabled = true;
+  btn.textContent = '⏳ جاري الحفظ...';
+  document.getElementById('status-msg').textContent = 'جاري الحفظ...';
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const [itemId, assignment] of newAssignments) {
+    const BASE = 'https://dphylskqazuytvibiysn.supabase.co/storage/v1/object/public/menu-images/';
+    const origUrl = BASE + 'original/' + assignment.fileId + '.webp';
+    const thumbUrl = BASE + 'thumbs/' + assignment.fileId + '.webp';
+    
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/items?id=eq.${itemId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SERVICE_KEY,
+          'Authorization': 'Bearer ' + SERVICE_KEY,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ image_url: origUrl, thumbnail_url: thumbUrl })
+      });
+      
+      if (res.ok) {
+        successCount++;
+      } else {
+        const err = await res.text();
+        console.error('Failed for item', itemId, err);
+        failCount++;
+      }
+    } catch(e) {
+      console.error(e);
+      failCount++;
+    }
+  }
+  
+  btn.disabled = false;
+  btn.textContent = '💾 حفظ الكل';
+  
+  if (failCount === 0) {
+    document.getElementById('status-msg').textContent = `✅ تم حفظ ${successCount} صورة بنجاح!`;
+    // Mark as existing
+    newAssignments.forEach(([id, a]) => { assignments[id] = { ...a, existing: true }; });
+    renderItems();
+  } else {
+    document.getElementById('status-msg').textContent = `⚠️ تم: ${successCount} / فشل: ${failCount}`;
+  }
+}
+
+// Init
+document.getElementById('status-msg').textContent = 'اختر صورة من اليسار ثم اضغط على الصنف المقابل';
+renderImages();
+renderItems();
+updateStats();
+</script>
+</body>
+</html>
