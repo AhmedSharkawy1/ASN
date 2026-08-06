@@ -131,11 +131,22 @@ export default function MenuBuilderPage() {
         });
     };
 
+    const triggerRevalidate = () => {
+        if (restaurantId) {
+            fetch('/api/revalidate-menu', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ restaurantId }),
+            }).catch(() => {/* best-effort */});
+        }
+    };
+
     const confirmDeleteCategory = async () => {
         if (!deletingCatId) return;
         await supabase.from('categories').delete().eq('id', deletingCatId);
         setCategories(categories.filter(c => c.id !== deletingCatId));
         setDeletingCatId(null);
+        triggerRevalidate();
     };
 
     const confirmDeleteItem = async () => {
@@ -143,6 +154,7 @@ export default function MenuBuilderPage() {
         await supabase.from('items').delete().eq('id', deletingItemObj.itemId);
         setCategories(categories.map(c => c.id === deletingItemObj.catId ? { ...c, items: c.items.filter(i => i.id !== deletingItemObj.itemId) } : c));
         setDeletingItemObj(null);
+        triggerRevalidate();
     };
 
     const handleDeleteCategory = (catId: string) => setDeletingCatId(catId);
@@ -158,7 +170,7 @@ export default function MenuBuilderPage() {
         Promise.all([
             supabase.from('categories').update({ sort_order: index }).eq('id', newCats[index].id),
             supabase.from('categories').update({ sort_order: swapIndex }).eq('id', newCats[swapIndex].id)
-        ]).catch(console.error);
+        ]).then(triggerRevalidate).catch(console.error);
     };
 
     const handleMoveItem = async (catId: string, itemIndex: number, direction: 'up' | 'down') => {
@@ -173,12 +185,13 @@ export default function MenuBuilderPage() {
         Promise.all([
             supabase.from('items').update({ sort_order: itemIndex }).eq('id', newItems[itemIndex].id),
             supabase.from('items').update({ sort_order: swapIndex }).eq('id', newItems[swapIndex].id)
-        ]).catch(console.error);
+        ]).then(triggerRevalidate).catch(console.error);
     };
 
     const updateCategory = async (catId: string, updates: Partial<Category>) => {
         await supabase.from('categories').update(updates).eq('id', catId);
         setCategories(categories.map(c => c.id === catId ? { ...c, ...updates } : c));
+        triggerRevalidate();
     };
 
     const updateItem = async (catId: string, itemId: string, updates: Partial<Item>) => {
@@ -187,14 +200,8 @@ export default function MenuBuilderPage() {
             ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, ...updates } : i) }
             : c
         ));
-        // Purge the public menu cache so visibility changes appear instantly
-        if ('is_available' in updates && restaurantId) {
-            fetch('/api/revalidate-menu', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ restaurantId }),
-            }).catch(() => {/* best-effort */});
-        }
+        // Purge the public menu cache so visibility and price changes appear instantly
+        triggerRevalidate();
     };
 
     const handleItemImageUpload = async (catId: string, itemId: string, file: File) => {
@@ -250,7 +257,10 @@ export default function MenuBuilderPage() {
                             setIsImporting(true);
                             const res = await importMenuFromExcel(restaurantId, file);
                             alert(res.message);
-                            if (res.success) window.location.reload();
+                            if (res.success) {
+                                triggerRevalidate();
+                                window.location.reload();
+                            }
                             setIsImporting(false);
                         }} />
                     </label>
@@ -279,6 +289,7 @@ export default function MenuBuilderPage() {
                             const res = await importMenuImages(restaurantId, file, (msg) => setImageProgress(msg));
                             setImageProgress(res.message);
                             if (res.success) {
+                                triggerRevalidate();
                                 setTimeout(() => { window.location.reload(); }, 2500);
                             } else {
                                 setTimeout(() => { setIsImportingImages(false); setImageProgress(null); }, 3000);
@@ -300,7 +311,11 @@ export default function MenuBuilderPage() {
                     <AddCategoryPanel
                         restaurantId={restaurantId}
                         language={language}
-                        onCreated={(newCat) => { setCategories([...categories, { ...newCat, items: [] }]); setShowAddCategory(false); }}
+                        onCreated={(newCat) => { 
+                            setCategories([...categories, { ...newCat, items: [] }]); 
+                            setShowAddCategory(false); 
+                            triggerRevalidate();
+                        }}
                         onCancel={() => setShowAddCategory(false)}
                     />
                 )}
@@ -401,6 +416,7 @@ export default function MenuBuilderPage() {
                                                             onCreated={(newItem) => {
                                                                 setCategories(categories.map(c => c.id === cat.id ? { ...c, items: [...c.items, newItem] } : c));
                                                                 setAddingItemToCat(null);
+                                                                triggerRevalidate();
                                                             }}
                                                             onCancel={() => setAddingItemToCat(null)} />
                                                     )}
