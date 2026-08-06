@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage, uploadImageWithThumb } from "@/lib/uploadImage";
 import { getBestImageFromClipboard, getBestImageFromPasteEvent } from "@/lib/clipboardImage";
-import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste } from "lucide-react";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste, Eye, EyeOff } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
 import { exportMenuImages, importMenuImages } from "@/lib/menuImages";
 import { parseCurrency } from "@/lib/currency";
@@ -365,7 +365,7 @@ export default function MenuBuilderPage() {
                                                 )}
 
                                                 {cat.items.map((item, iIdx) => (
-                                                    <div key={item.id} className="group rounded-2xl border border-glass-border bg-slate-50/50 dark:bg-card p-4 hover:border-blue/30 transition-colors">
+                                                    <div key={item.id} className={`group rounded-2xl border p-3 sm:p-4 transition-colors ${item.is_available === false ? 'border-red-500/30 bg-red-50/30 dark:bg-red-950/10 opacity-70 hover:opacity-100' : 'border-glass-border bg-slate-50/50 dark:bg-card hover:border-blue/30'}`}>
                                                         {editingItem === item.id ? (
                                                             <ItemEditor item={item} language={language} currency={currency}
                                                                 onUpdate={(u) => updateItem(cat.id, item.id, u)}
@@ -376,6 +376,7 @@ export default function MenuBuilderPage() {
                                                                 onImageUpload={(f) => handleItemImageUpload(cat.id, item.id, f)}
                                                                 onEdit={() => { setEditingItem(item.id); setEditingCat(null); setAddingItemToCat(null); }}
                                                                 onDelete={() => handleDeleteItem(cat.id, item.id)}
+                                                                onToggleVisibility={() => updateItem(cat.id, item.id, { is_available: !item.is_available })}
                                                                 isFirst={iIdx === 0}
                                                                 isLast={iIdx === cat.items.length - 1}
                                                                 onMoveUp={() => handleMoveItem(cat.id, iIdx, 'up')}
@@ -820,9 +821,10 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
 }
 
 // ===================== ITEM ROW (read-only) =====================
-function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload }: {
+function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload }: {
     item: Item; language: string;
     onEdit: () => void; onDelete: () => void;
+    onToggleVisibility?: () => void;
     isFirst?: boolean; isLast?: boolean;
     onMoveUp?: () => void; onMoveDown?: () => void;
     currency?: string;
@@ -850,9 +852,9 @@ function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, 
     return (
         <>
             {/* Main content: stacks vertically on mobile, horizontal on sm+ */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
                 <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                    <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-glass-light flex items-center justify-center flex-shrink-0 border border-glass-border overflow-hidden group">
+                    <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-glass-light flex items-center justify-center flex-shrink-0 border border-glass-border overflow-hidden group">
                         {item.image_url ? (
                             <img src={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" />
                         ) : (
@@ -866,42 +868,46 @@ function ItemRow({ item, language, onEdit, onDelete, isFirst, isLast, onMoveUp, 
                                     <div className="w-5 h-5 border-2 border-blue border-t-transparent rounded-full animate-spin" />
                                 ) : (
                                     <>
-                                        <ImageIcon className="w-6 h-6 text-silver/50 group-hover:hidden" />
-                                        <ClipboardPaste className="w-5 h-5 text-blue hidden group-hover:block" />
+                                        <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 text-silver/50 group-hover:hidden" />
+                                        <ClipboardPaste className="w-4 h-4 sm:w-5 sm:h-5 text-blue hidden group-hover:block" />
                                     </>
                                 )}
                             </button>
                         )}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className="font-bold text-foreground text-lg sm:text-xl truncate">{item.title_ar}</h4>
-                            {item.is_popular && <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1"><Star className="w-3 h-3 fill-current" /> {language === "ar" ? "مميز" : "Popular"}</span>}
-                            {item.is_spicy && <span className="text-red-500 text-base">🌶️</span>}
-                            {item.sell_by_weight && <span className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1">⚖️ {language === "ar" ? "وزن" : "Weight"} ({item.weight_unit || 'كجم'})</span>}
+                        <div className="flex items-center gap-1.5 sm:gap-2 mb-1 flex-wrap">
+                            <h4 className="font-bold text-foreground text-base sm:text-xl truncate max-w-[60vw] sm:max-w-none">{item.title_ar}</h4>
+                            {item.is_available === false && <span className="bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap"><EyeOff className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> {language === "ar" ? "مخفي" : "Hidden"}</span>}
+                            {item.is_popular && <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md flex items-center gap-1"><Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" /> {language === "ar" ? "مميز" : "Popular"}</span>}
+                            {item.is_spicy && <span className="text-red-500 text-sm sm:text-base">🌶️</span>}
+                            {item.sell_by_weight && <span className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md flex items-center gap-1">⚖️ {language === "ar" ? "وزن" : "Weight"} ({item.weight_unit || 'كجم'})</span>}
                         </div>
-                        {item.title_en && <p className="text-sm text-silver mb-1">{item.title_en}</p>}
-                        <p className="text-sm sm:text-base text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
+                        {item.title_en && <p className="text-xs sm:text-sm text-silver mb-0.5 sm:mb-1">{item.title_en}</p>}
+                        <p className="text-xs sm:text-base text-silver line-clamp-2">{item.desc_ar || (language === "ar" ? "بدون وصف" : "No description")}</p>
                     </div>
                 </div>
                 {/* Action buttons: horizontal bar on mobile, vertical column on sm+ */}
-                <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1.5 shrink-0">
+                <div className="flex sm:flex-col items-center sm:items-end gap-1.5 sm:gap-1.5 shrink-0 mt-1 sm:mt-0">
                     <div className="flex items-center bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border">
                         <button onClick={onMoveUp} disabled={isFirst} className="p-1.5 sm:p-1 px-1.5 sm:px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-4 h-4" /></button>
                         <button onClick={onMoveDown} disabled={isLast} className="p-1.5 sm:p-1 px-1.5 sm:px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-4 h-4" /></button>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-0.5 sm:gap-1">
+                        <button onClick={onToggleVisibility} className={`p-2 sm:p-1.5 rounded-lg transition-colors ${item.is_available === false ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`} title={language === 'ar' ? (item.is_available === false ? 'إظهار في المنيو' : 'إخفاء من المنيو') : (item.is_available === false ? 'Show in menu' : 'Hide from menu')}>
+                            {item.is_available === false ? <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" /> : <Eye className="w-5 h-5 sm:w-4 sm:h-4" />}
+                        </button>
                         <button onClick={onEdit} className="p-2 sm:p-1.5 text-blue hover:bg-blue/10 rounded-lg transition"><Edit2 className="w-5 h-5 sm:w-4 sm:h-4" /></button>
                         <button onClick={onDelete} className="p-2 sm:p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-5 h-5 sm:w-4 sm:h-4" /></button>
                     </div>
                 </div>
             </div>
             {/* Prices & Sizes - always visible with wrapping */}
-            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-glass-border border-dashed">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-glass-border border-dashed">
                 {(item.prices || []).map((price, pIdx) => (
-                    <div key={pIdx} className="bg-white dark:bg-black/40 border border-glass-border rounded-lg px-3 py-1.5 flex items-center gap-2 shadow-sm">
-                        <span className="text-xs sm:text-sm text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
-                        <span className="font-bold text-foreground text-sm sm:text-base">{price} {parseCurrency(currency, language === "ar")}</span>
+                    <div key={pIdx} className="bg-white dark:bg-black/40 border border-glass-border rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1.5 sm:gap-2 shadow-sm">
+                        <span className="text-[10px] sm:text-sm text-silver font-medium">{item.size_labels?.[pIdx] || 'عادي'}:</span>
+                        <span className="font-bold text-foreground text-xs sm:text-base">{price} {parseCurrency(currency, language === "ar")}</span>
                     </div>
                 ))}
             </div>
@@ -1106,10 +1112,11 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
                 ))}
                 <button onClick={() => { setLocalPrices([...localPrices, 0]); setLocalLabels([...localLabels, '']); setLocalOldPrices([...localOldPrices, 0]); }} className="text-sm text-blue font-bold flex items-center gap-1"><Plus className="w-4 h-4" /> {language === "ar" ? "إضافة حجم" : "Add Size"}</button>
             </div>
-            <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => onUpdate({ is_popular: !item.is_popular })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_popular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver'}`}>⭐ {language === "ar" ? (item.is_popular ? "إلغاء" : "مميز") : (item.is_popular ? "Remove" : "Popular")}</button>
-                <button type="button" onClick={() => onUpdate({ is_spicy: !item.is_spicy })} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${item.is_spicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver'}`}>🌶️ {language === "ar" ? (item.is_spicy ? "إلغاء" : "حار") : (item.is_spicy ? "Remove" : "Spicy")}</button>
-                <button type="button" onClick={() => { setSellByWeight(!sellByWeight); onUpdate({ sell_by_weight: !sellByWeight, weight_unit: !sellByWeight ? weightUnit : undefined }); }} className={`text-xs px-3 py-1.5 rounded-md border font-bold ${sellByWeight ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500' : 'border-glass-border text-silver'}`}>⚖️ {language === "ar" ? (sellByWeight ? "إلغاء الوزن" : "وزن") : (sellByWeight ? "Remove Weight" : "Weight")}</button>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                <button type="button" onClick={() => onUpdate({ is_available: !item.is_available })} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold flex items-center gap-1 ${item.is_available === false ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500'}`}>{item.is_available === false ? <><EyeOff className="w-3 h-3" /> {language === "ar" ? "مخفي - اضغط للإظهار" : "Hidden - Show"}</> : <><Eye className="w-3 h-3" /> {language === "ar" ? "ظاهر" : "Visible"}</>}</button>
+                <button type="button" onClick={() => onUpdate({ is_popular: !item.is_popular })} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold ${item.is_popular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver'}`}>⭐ {language === "ar" ? (item.is_popular ? "إلغاء" : "مميز") : (item.is_popular ? "Remove" : "Popular")}</button>
+                <button type="button" onClick={() => onUpdate({ is_spicy: !item.is_spicy })} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold ${item.is_spicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver'}`}>🌶️ {language === "ar" ? (item.is_spicy ? "إلغاء" : "حار") : (item.is_spicy ? "Remove" : "Spicy")}</button>
+                <button type="button" onClick={() => { setSellByWeight(!sellByWeight); onUpdate({ sell_by_weight: !sellByWeight, weight_unit: !sellByWeight ? weightUnit : undefined }); }} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold ${sellByWeight ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500' : 'border-glass-border text-silver'}`}>⚖️ {language === "ar" ? (sellByWeight ? "إلغاء الوزن" : "وزن") : (sellByWeight ? "Remove Weight" : "Weight")}</button>
             </div>
             {sellByWeight && (
                 <div className="w-full">
