@@ -1,4 +1,4 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -16,8 +16,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "restaurantId required" }, { status: 400 });
     }
 
-    // Purge the cached page for this restaurant's menu
+    // Purge the Data Cache for this restaurant's Supabase queries
+    revalidateTag(`menu-${restaurantId}`);
+    
+    // Purge the Route Cache for the menu page
     revalidatePath(`/menu/${restaurantId}`);
+    revalidatePath(`/menu/${restaurantId}`, 'page');
 
     return NextResponse.json({ revalidated: true });
   } catch {

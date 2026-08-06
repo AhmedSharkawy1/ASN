@@ -106,14 +106,14 @@ export const MENU_REVALIDATE_SECONDS = 60;
  * means repeat visitors within the window are served without touching the
  * database at all.
  */
-function serverSupabase() {
+function serverSupabase(restaurantId: string) {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       global: {
         fetch: (url, options) =>
-          fetch(url, { ...options, next: { revalidate: MENU_REVALIDATE_SECONDS } }),
+          fetch(url, { ...options, next: { revalidate: MENU_REVALIDATE_SECONDS, tags: [`menu-${restaurantId}`] } }),
       },
     }
   );
@@ -153,7 +153,7 @@ export type MenuData = { config: RestaurantConfig; categories: Category[] } | nu
  * first HTML already carries the menu.
  */
 export async function loadMenu(restaurantId: string, previewTheme?: string): Promise<MenuData> {
-  const supabase = serverSupabase();
+  const supabase = serverSupabase(restaurantId);
 
   // menu_enabled is added by add_menu_enabled.sql. PostgREST rejects the whole
   // query if a named column does not exist, so asking for it before the
