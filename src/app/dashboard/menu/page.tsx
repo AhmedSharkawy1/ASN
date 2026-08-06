@@ -187,6 +187,14 @@ export default function MenuBuilderPage() {
             ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, ...updates } : i) }
             : c
         ));
+        // Purge the public menu cache so visibility changes appear instantly
+        if ('is_available' in updates && restaurantId) {
+            fetch('/api/revalidate-menu', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ restaurantId }),
+            }).catch(() => {/* best-effort */});
+        }
     };
 
     const handleItemImageUpload = async (catId: string, itemId: string, file: File) => {
