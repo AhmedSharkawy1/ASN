@@ -1024,7 +1024,7 @@ export default function MenuClient({
         {/* Active Category Image Header */}
         {!searchQuery && activeCatData?.image_url && (
           <div className="w-full h-32 md:h-48 rounded-[2rem] overflow-hidden mb-6 relative shadow-lg">
-            <OptimizedMenuImage thumbnailSrc={activeCatData.thumbnail_url} originalSrc={activeCatData.image_url} alt="Category Cover" className="w-full h-full object-cover" />
+            <OptimizedMenuImage thumbnailSrc={activeCatData.thumbnail_url} originalSrc={activeCatData.image_url} alt="Category Cover" className="w-full h-full object-cover" highQuality={Boolean(config.high_quality_images)} />
             <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
               <h2 className="text-white text-2xl font-black">
                 {language === "ar"
@@ -1070,7 +1070,7 @@ export default function MenuClient({
                     <div className="relative shrink-0">
                       {item.image_url ? (
                         <div className="w-[100px] h-[100px] rounded-2xl bg-gray-200 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-500">
-                          <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" width={100} height={100} fill={false} />
+                          <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" width={100} height={100} fill={false} highQuality={Boolean(config.high_quality_images)} />
                         </div>
                       ) : (
                         <div className="w-[100px] h-[100px] rounded-2xl bg-gray-800 flex items-center justify-center border border-white/5 opacity-80">
