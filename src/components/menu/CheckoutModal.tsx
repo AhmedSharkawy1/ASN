@@ -83,6 +83,10 @@ export default function CheckoutModal({
         subtotal: number;
         extrasTotal: number;
         total: number;
+        promotionName?: string;
+        discountAmount?: number;
+        discountType?: string;
+        freeShipping?: boolean;
     } | null>(null);
 
     // Extras state: { [itemIndex]: { [addonId]: qty } }
@@ -388,7 +392,11 @@ export default function CheckoutModal({
                 items: finalItems,
                 subtotal: currentSubtotal,
                 extrasTotal: currentExtrasTotal,
-                total: currentTotal
+                total: currentTotal,
+                promotionName: appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined,
+                discountAmount: promoDiscount > 0 ? promoDiscount : undefined,
+                discountType: appliedPromo?.promotion.discount_type,
+                freeShipping: appliedPromo?.freeShipping,
             });
             setStep(hasAddons ? 4 : 3);
             onOrderSuccess?.();
@@ -421,9 +429,9 @@ export default function CheckoutModal({
             notes: notes || undefined,
             currency: currency,
             language,
-            promotionName: appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined,
-            discountAmount: promoDiscount > 0 ? promoDiscount : undefined,
-            discountType: appliedPromo?.promotion.discount_type,
+            promotionName: finalizedOrderDetails?.promotionName || (appliedPromo ? (isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)) : undefined),
+            discountAmount: finalizedOrderDetails?.discountAmount || (promoDiscount > 0 ? promoDiscount : undefined),
+            discountType: finalizedOrderDetails?.discountType || appliedPromo?.promotion.discount_type,
             branchName: localBranches && localBranches.length > 0 ? selectedBranch : undefined,
         });
         
@@ -748,22 +756,22 @@ export default function CheckoutModal({
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="flex gap-2">
+                                        <div className="space-y-2">
                                             <input
                                                 type="text"
                                                 value={codeInput}
                                                 onChange={e => { setCodeInput(e.target.value); setCodeError(""); }}
                                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyPromoCode(); } }}
                                                 placeholder={isAr ? "اكتب الكود" : "Enter code"}
-                                                className="flex-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-sm font-bold uppercase outline-none focus:border-amber-400"
+                                                className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 text-sm font-bold uppercase outline-none focus:border-amber-400"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={applyPromoCode}
                                                 disabled={!codeInput.trim()}
-                                                className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-bold disabled:opacity-40"
+                                                className="w-full py-2.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-bold disabled:opacity-40 transition active:scale-[0.98]"
                                             >
-                                                {isAr ? "تطبيق" : "Apply"}
+                                                {isAr ? "تطبيق الكود" : "Apply Code"}
                                             </button>
                                         </div>
                                     )}
@@ -828,7 +836,7 @@ export default function CheckoutModal({
                                 {deliveryFee > 0 && (
                                     <div className="flex justify-between text-zinc-500">
                                         <span>{isAr ? "رسوم التوصيل" : "Delivery Fee"}</span>
-                                        {appliedPromo?.freeShipping ? (
+                                        {(appliedPromo?.freeShipping || finalizedOrderDetails?.freeShipping) ? (
                                             <span className="flex items-center gap-2">
                                                 <span className="text-emerald-500 font-bold">0 {currency}</span>
                                                 <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 font-bold px-1.5 py-0.5 rounded">{isAr ? 'شحن مجاني' : 'Free'}</span>
@@ -838,16 +846,16 @@ export default function CheckoutModal({
                                         )}
                                     </div>
                                 )}
-                                {appliedPromo && promoDiscount > 0 && (
+                                {(finalizedOrderDetails?.discountAmount || (appliedPromo && promoDiscount > 0)) && (
                                     <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-xl border border-amber-200 dark:border-amber-500/20 -mx-1">
                                         <div className="flex items-center gap-1.5">
                                             <Tag className="w-3.5 h-3.5 text-amber-500" />
                                             <span className="text-amber-700 dark:text-amber-300 font-bold text-xs">
-                                                {isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)}
-                                                {appliedPromo.freeShipping && ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})`}
+                                                {finalizedOrderDetails?.promotionName || (isAr ? appliedPromo?.promotion.name_ar : (appliedPromo?.promotion.name_en || appliedPromo?.promotion.name_ar))}
+                                                {(appliedPromo?.freeShipping || finalizedOrderDetails?.freeShipping) && ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})`}
                                             </span>
                                         </div>
-                                        <span className="font-bold text-amber-600 text-sm">-{promoDiscount} {currency}</span>
+                                        <span className="font-bold text-amber-600 text-sm">-{finalizedOrderDetails?.discountAmount || promoDiscount} {currency}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between font-extrabold text-base text-zinc-900 dark:text-white pt-2 border-t border-zinc-200 dark:border-zinc-700">
