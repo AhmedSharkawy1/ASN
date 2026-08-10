@@ -726,42 +726,9 @@ export default function CheckoutModal({
                                 </div>
                             )}
 
-                            <div className="flex gap-2 mt-2">
-                                <button onClick={() => setStep(hasAddons ? 2 : 1)} className="w-[100px] py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
-                                    {isAr ? "← رجوع" : "← Back"}
-                                </button>
-                                <button
-                                    disabled={!canProceedStep3 || loading}
-                                    onClick={() => handleSubmit()}
-                                    className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
-                                >
-                                    {loading ? (
-                                        <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Sending..."}</>
-                                    ) : (
-                                        <>{isAr ? "التالي" : "Next"}</>
-                                    )}
-                                </button>
-                            </div>
-                        </>
-                    )}
-
-                    {/* ════════ STEP: SUCCESS ════════ */}
-                    {effectiveStep === 4 && (
-                        <div className="text-center space-y-4 py-4" ref={printRef}>
-                            <div className="w-20 h-20 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
-                                <CheckCircle className="w-10 h-10 text-emerald-500" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-extrabold text-zinc-900 dark:text-white">{isAr ? "برجاء إرسال الأوردر" : "Please Send Order"}</p>
-                                <p className="text-4xl font-black text-emerald-500 mt-2">#{orderNumber}</p>
-                                <p className="text-sm text-zinc-500 mt-2 font-bold">
-                                    {isAr ? "برجاء الضغط على زر الواتساب بالأسفل لارسال الطلب." : "Please click the WhatsApp button below to send the order."}
-                                </p>
-                            </div>
-
                             {/* Coupon box — only when this restaurant has a coded offer */}
                             {showPromoCodeField && (
-                                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-start">
+                                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-start mt-3">
                                     <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-500 mb-2">
                                         <Tag className="w-3.5 h-3.5" />
                                         {isAr ? "كود الخصم" : "Promo code"}
@@ -803,8 +770,54 @@ export default function CheckoutModal({
                                     {codeError && (
                                         <p className="text-[11px] font-bold text-red-500 mt-1.5">{codeError}</p>
                                     )}
+                                    {appliedPromo && promoDiscount > 0 && (
+                                        <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-xl border border-amber-200 dark:border-amber-500/20 mt-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <Tag className="w-3.5 h-3.5 text-amber-500" />
+                                                <span className="text-amber-700 dark:text-amber-300 font-bold text-xs">
+                                                    {isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)}
+                                                </span>
+                                            </div>
+                                            <span className="font-bold text-amber-600 text-sm">-{promoDiscount} {currency}</span>
+                                        </div>
+                                    )}
                                 </div>
                             )}
+
+                            <div className="flex gap-2 mt-2">
+                                <button onClick={() => setStep(hasAddons ? 2 : 1)} className="w-[100px] py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
+                                    {isAr ? "← رجوع" : "← Back"}
+                                </button>
+                                <button
+                                    disabled={!canProceedStep3 || loading}
+                                    onClick={() => handleSubmit()}
+                                    className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
+                                >
+                                    {loading ? (
+                                        <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Sending..."}</>
+                                    ) : (
+                                        <>{isAr ? "التالي" : "Next"}</>
+                                    )}
+                                </button>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ════════ STEP: SUCCESS ════════ */}
+                    {effectiveStep === 4 && (
+                        <div className="text-center space-y-4 py-4" ref={printRef}>
+                            <div className="w-20 h-20 mx-auto bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                                <CheckCircle className="w-10 h-10 text-emerald-500" />
+                            </div>
+                            <div>
+                                <p className="text-2xl font-extrabold text-zinc-900 dark:text-white">{isAr ? "برجاء إرسال الأوردر" : "Please Send Order"}</p>
+                                <p className="text-4xl font-black text-emerald-500 mt-2">#{orderNumber}</p>
+                                <p className="text-sm text-zinc-500 mt-2 font-bold">
+                                    {isAr ? "برجاء الضغط على زر الواتساب بالأسفل لارسال الطلب." : "Please click the WhatsApp button below to send the order."}
+                                </p>
+                            </div>
+
+
 
                             {/* Order Summary with Discount */}
                             <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-sm space-y-2 text-start">
