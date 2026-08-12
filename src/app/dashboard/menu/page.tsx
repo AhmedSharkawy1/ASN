@@ -349,7 +349,7 @@ export default function MenuBuilderPage() {
                                             <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => toggleCollapse(cat.id)}>
                                                 {cat.image_url ? (
                                                     <div className="w-12 h-12 rounded-xl overflow-hidden border border-glass-border flex-shrink-0">
-                                                        <img src={cat.image_url} alt="" className="w-full h-full object-cover" />
+                                                        <img src={cat.thumbnail_url || cat.image_url} alt="" className="w-full h-full object-cover" onError={(e) => { if (cat.image_url && e.currentTarget.src !== cat.image_url) e.currentTarget.src = cat.image_url; }} />
                                                     </div>
                                                 ) : (
                                                     <div className="w-10 h-10 rounded-full bg-blue/10 flex items-center justify-center text-xl shadow-inner">
@@ -918,6 +918,9 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
                         <button onClick={onMoveDown} disabled={isLast} className="p-1.5 sm:p-1 px-1.5 sm:px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-4 h-4" /></button>
                     </div>
                     <div className="flex items-center gap-0.5 sm:gap-1">
+                        <button onClick={handlePasteImage} disabled={uploading} className="p-2 sm:p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-lg transition disabled:opacity-50" title={language === 'ar' ? 'لصق صورة' : 'Paste Image'}>
+                            {uploading ? <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 animate-spin" /> : <ClipboardPaste className="w-5 h-5 sm:w-4 sm:h-4" />}
+                        </button>
                         <button onClick={onToggleVisibility} className={`p-2 sm:p-1.5 rounded-lg transition-colors ${item.is_available === false ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`} title={language === 'ar' ? (item.is_available === false ? 'إظهار في المنيو' : 'إخفاء من المنيو') : (item.is_available === false ? 'Show in menu' : 'Hide from menu')}>
                             {item.is_available === false ? <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" /> : <Eye className="w-5 h-5 sm:w-4 sm:h-4" />}
                         </button>
