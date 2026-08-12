@@ -72,10 +72,15 @@ export async function exportMenuImages(restaurantId: string, onProgress?: (msg: 
             if (cat.image_url) {
                 try {
                     onProgress?.(`جاري تحميل صورة قسم: ${cat.name_ar} (${downloadedCount + 1}/${imageCount})`);
-                    const response = await fetch(cat.image_url);
+                    let response = await fetch(cat.image_url);
+                    let targetUrl = cat.image_url;
+                    if (!response.ok && cat.thumbnail_url) {
+                        response = await fetch(cat.thumbnail_url);
+                        targetUrl = cat.thumbnail_url;
+                    }
                     if (response.ok) {
                         const blob = await response.blob();
-                        const ext = getExtFromUrl(cat.image_url) || 'webp';
+                        const ext = getExtFromUrl(targetUrl) || 'webp';
                         const filename = `${catName}__COVER.${ext}`;
                         zip.file(filename, blob);
                         manifest.categories.push({
@@ -110,10 +115,15 @@ export async function exportMenuImages(restaurantId: string, onProgress?: (msg: 
 
             try {
                 onProgress?.(`جاري تحميل صورة: ${item.title_ar} (${downloadedCount + 1}/${imageCount})`);
-                const response = await fetch(item.image_url);
+                let response = await fetch(item.image_url);
+                let targetUrl = item.image_url;
+                if (!response.ok && item.thumbnail_url) {
+                    response = await fetch(item.thumbnail_url);
+                    targetUrl = item.thumbnail_url;
+                }
                 if (response.ok) {
                     const blob = await response.blob();
-                    const ext = getExtFromUrl(item.image_url) || 'webp';
+                    const ext = getExtFromUrl(targetUrl) || 'webp';
                     const filename = `${catName}__${itemName}.${ext}`;
                     zip.file(filename, blob);
                     manifest.items.push({
