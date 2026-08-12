@@ -111,9 +111,12 @@ export default function OptimizedMenuImage({
     const currentStage = fallbackStageRef.current;
 
     if (currentStage === 0) {
-      // Stage 0 failed (which was likely thumbnailSrc) → try originalSrc
-      const fallbackUrl = originalSrc || src;
-      const targetFallbackUrl = useOriginal && fallbackUrl ? getOriginalUrl(fallbackUrl) : fallbackUrl;
+      let targetFallbackUrl = '';
+      if (currentSrcRef.current && currentSrcRef.current.includes('/original/')) {
+        targetFallbackUrl = thumbnailSrc || '';
+      } else {
+        targetFallbackUrl = originalSrc || src || '';
+      }
       
       if (targetFallbackUrl && targetFallbackUrl !== currentSrcRef.current) {
         fallbackStageRef.current = 1;
@@ -138,7 +141,7 @@ export default function OptimizedMenuImage({
 
     // Stage 2+ → nothing more to try, show placeholder via CSS
     logImageFallback(primarySrc, 'placeholder', 3);
-  }, [src, thumbnailSrc, originalSrc, primarySrc, useOriginal]);
+  }, [src, thumbnailSrc, originalSrc, primarySrc]);
 
   const isFilled = fill && !width && !height;
   const hasPosition = className.includes('absolute') || className.includes('fixed') || className.includes('relative') || className.includes('static');
