@@ -879,8 +879,8 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-3">
                 <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
                     <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-glass-light flex items-center justify-center flex-shrink-0 border border-glass-border overflow-hidden group">
-                        {item.image_url ? (
-                            <img src={item.image_url} alt={item.title_ar} className="w-full h-full object-cover" />
+                        {item.thumbnail_url || item.image_url ? (
+                            <img src={item.thumbnail_url || item.image_url} alt={item.title_ar} className="w-full h-full object-cover" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />
                         ) : (
                             <button 
                                 onClick={handlePasteImage}
@@ -1162,7 +1162,7 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
                     className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-sm rounded-lg disabled:opacity-50" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
                     <ClipboardPaste className="w-4 h-4" /> {language === "ar" ? "لصق" : "Paste"}
                 </button>
-                {item.image_url && <img src={item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
+                {item.image_url && <img src={item.thumbnail_url || item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />}
             </div>
         </div>
     );
