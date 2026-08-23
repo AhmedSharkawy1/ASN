@@ -2,7 +2,7 @@
 
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
 import { formatCurrency, formatQuantity, formatDate, statusLabel, statusColor, nextStatuses, elapsedTime, timeAgo } from "@/lib/helpers/formatters";
@@ -71,7 +71,7 @@ export default function OrdersPage() {
         const localMapped: Order[] = localOrders.map(o => ({
             id: o.id,
             order_number: o.order_number,
-            status: o.status || "completed",
+            status: o.status || "pending",
             items: (o.items || []) as OrderItem[],
             subtotal: o.subtotal || 0,
             discount: o.discount || 0,
@@ -86,22 +86,36 @@ export default function OrdersPage() {
             delivery_fee: o.delivery_fee,
             order_type: o.order_type,
             notes: o.notes,
-            source: 'pos',
+            source: o.source || 'pos',
             cashier_name: o.cashier_name,
             created_at: o.created_at,
-            updated_at: o.created_at,
+            updated_at: o.updated_at || o.created_at,
             _offline: !!o._dirty,
         }));
 
-        // 2️⃣ Also fetch from Supabase (online orders & synced records)
+        // 2️⃣ Also fetch from Supabase (all recent orders without status filter in SQL)
         let remoteOrders: Order[] = [];
         try {
-            let query = supabase.from('orders').select('*').eq('restaurant_id', restaurantId).eq('is_draft', false).order('created_at', { ascending: false }).limit(500);
-            if (statusFilter !== "all") query = query.eq('status', statusFilter);
-            if (dateRange.from) query = query.gte('created_at', dateRange.from);
-            if (dateRange.to) query = query.lte('created_at', dateRange.to + 'T23:59:59');
-            const { data } = await query;
+            const { data } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('restaurant_id', restaurantId)
+                .eq('is_draft', false)
+                .order('created_at', { ascending: false })
+                .limit(500);
             remoteOrders = (data as Order[]) || [];
+
+            // Sync updated remote statuses into Dexie so local DB stays completely up to date
+            for (const ro of remoteOrders) {
+                const local = localOrders.find(l => l.id === ro.id);
+                if (local && local.status !== ro.status) {
+                    await posDb.orders.update(ro.id, {
+                        status: ro.status,
+                        updated_at: ro.updated_at || new Date().toISOString(),
+                        _dirty: false
+                    }).catch(() => {});
+                }
+            }
         } catch { /* offline - use local only */ }
 
         // 3️⃣ Merge: remote takes priority, local fills gaps
@@ -109,28 +123,13 @@ export default function OrdersPage() {
         localMapped.forEach(o => mergedMap.set(o.id, o));
         remoteOrders.forEach(o => mergedMap.set(o.id, { ...o, _offline: false })); // remote wins
 
-        let merged = Array.from(mergedMap.values()).sort(
+        const merged = Array.from(mergedMap.values()).sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
 
-        // Apply status filter to merged list if needed
-        if (statusFilter !== "all") {
-            if (statusFilter === "in_progress") {
-                merged = merged.filter(o => ["in_progress", "accepted", "preparing", "ready", "out_for_delivery"].includes(o.status));
-            } else {
-                merged = merged.filter(o => o.status === statusFilter);
-            }
-        }
-        if (dateRange.from) merged = merged.filter(o => o.created_at >= dateRange.from);
-        if (dateRange.to) merged = merged.filter(o => o.created_at <= dateRange.to + "T23:59:59");
-
-        // Apply source filter
-        if (sourceFilter === 'pos') merged = merged.filter(o => o.source === 'pos');
-        if (sourceFilter === 'website') merged = merged.filter(o => !o.source || o.source !== 'pos');
-
         setOrders(merged);
         setLoading(false);
-    }, [restaurantId, statusFilter, dateRange, sourceFilter]);
+    }, [restaurantId]);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -147,23 +146,39 @@ export default function OrdersPage() {
     const updateStatus = async (orderId: string, newStatus: string) => {
         const order = orders.find(o => o.id === orderId);
         if (!order) return;
-        
+
+        const updatedTime = new Date().toISOString();
+
+        // 1️⃣ Optimistically update local React state
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, updated_at: updatedTime } : o));
+
+        // 2️⃣ Update local Dexie storage immediately
+        try {
+            await posDb.orders.update(orderId, { status: newStatus, updated_at: updatedTime, _dirty: false });
+        } catch (dexieErr) {
+            console.warn("Could not update Dexie order:", dexieErr);
+        }
+
+        // 3️⃣ Update Supabase
         if (newStatus === 'completed') {
             try {
                 const res = await fetch(`/api/orders/${orderId}/complete`, { method: 'POST' });
-                if (!res.ok) throw new Error("Failed to complete order via API");
-                // Optimistically update UI
-                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus, updated_at: new Date().toISOString() } : o));
+                if (!res.ok) {
+                    // Fallback to direct supabase update
+                    await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
+                    await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
+                }
             } catch (err) {
                 console.error(err);
-                alert("تعذر إكمال الطلب السحابي. يرجى المحاولة مرة أخرى.");
+                // Fallback direct update
+                await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
+                await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
             }
             return;
         }
 
-        await supabase.from('orders').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', orderId);
+        await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
         await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
-        setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus, updated_at: new Date().toISOString() } : o));
     };
 
     const fetchLogs = async (orderId: string) => {
@@ -176,9 +191,9 @@ export default function OrdersPage() {
         if (!confirm(isAr ? "هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to permanently delete this order? This cannot be undone.")) return;
         
         try {
+            setOrders(prev => prev.filter(o => o.id !== orderId));
+            await posDb.orders.delete(orderId).catch(() => {});
             await supabase.from('orders').delete().eq('id', orderId);
-            await posDb.orders.delete(orderId);
-            setOrders(orders.filter(o => o.id !== orderId));
         } catch (err) {
             console.error(err);
             alert(isAr ? "تعذر حذف الطلب." : "Failed to delete order.");
@@ -207,20 +222,44 @@ export default function OrdersPage() {
         executePrint(html, settings);
     };
 
-    const filteredOrders = orders.filter(o => {
-        if (searchQuery) {
-            const q = searchQuery.toLowerCase();
-            return o.order_number.toString().includes(q) || o.customer_name?.toLowerCase().includes(q) || o.customer_phone?.includes(q);
-        }
-        return true;
-    });
+    const filteredOrders = useMemo(() => {
+        return orders.filter(o => {
+            // Status filter
+            if (statusFilter !== "all") {
+                if (statusFilter === "in_progress") {
+                    if (!["in_progress", "accepted", "preparing", "ready", "out_for_delivery"].includes(o.status)) return false;
+                } else if (o.status !== statusFilter) {
+                    return false;
+                }
+            }
 
-    const statCounts = {
+            // Source filter
+            if (sourceFilter === 'pos' && o.source !== 'pos') return false;
+            if (sourceFilter === 'website' && o.source === 'pos') return false;
+
+            // Date filter
+            if (dateRange.from && o.created_at < dateRange.from) return false;
+            if (dateRange.to && o.created_at > dateRange.to + "T23:59:59") return false;
+
+            // Search query
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                return (
+                    o.order_number.toString().includes(q) ||
+                    o.customer_name?.toLowerCase().includes(q) ||
+                    o.customer_phone?.includes(q)
+                );
+            }
+            return true;
+        });
+    }, [orders, statusFilter, sourceFilter, dateRange, searchQuery]);
+
+    const statCounts = useMemo(() => ({
         total: orders.length,
         pending: orders.filter(o => o.status === "pending").length,
         in_progress: orders.filter(o => ["in_progress", "accepted", "preparing", "ready", "out_for_delivery"].includes(o.status)).length,
         completed: orders.filter(o => o.status === "completed").length,
-    };
+    }), [orders]);
 
     if (loading && orders.length === 0) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري تحميل الطلبات..." : "Loading orders..."}</div>;
 

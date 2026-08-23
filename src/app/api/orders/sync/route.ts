@@ -46,21 +46,23 @@ export async function POST(request: Request) {
                         try {
                             const invResult = await processOrderInventory(order.restaurant_id, order.items, order.id, supabaseAdmin);
                             
-                            // POS orders: if all deducted, mark completed. Otherwise stay pending for factory.
-                            const finalStatus = invResult.allDeducted ? 'completed' : 'pending';
-                            
-                            await supabaseAdmin.from('orders').update({
-                                status: finalStatus,
-                                updated_at: new Date().toISOString()
-                            }).eq('id', order.id);
+                            // If status is not already set on order, assign based on inventory deduction
+                            if (!order.status) {
+                                const finalStatus = invResult.allDeducted ? 'completed' : 'pending';
+                                
+                                await supabaseAdmin.from('orders').update({
+                                    status: finalStatus,
+                                    updated_at: new Date().toISOString()
+                                }).eq('id', order.id);
 
-                            await supabaseAdmin.from('order_logs').insert({
-                                order_id: order.id,
-                                action: 'status_assigned_auto_sync',
-                                old_status: 'pending',
-                                new_status: finalStatus,
-                                performed_by: 'system_sync'
-                            });
+                                await supabaseAdmin.from('order_logs').insert({
+                                    order_id: order.id,
+                                    action: 'status_assigned_auto_sync',
+                                    old_status: 'pending',
+                                    new_status: finalStatus,
+                                    performed_by: 'system_sync'
+                                });
+                            }
                         } catch (invErr) {
                             console.error(`[Sync] Inventory deduction failed for order ${order.id}:`, invErr);
                         }

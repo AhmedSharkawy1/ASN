@@ -69,6 +69,7 @@ export type PosOrder = {
     notes?: string;
     deposit_amount?: number;
     order_type?: string;
+    source?: string;
     status: string;
     is_draft?: boolean;
     created_at: string;

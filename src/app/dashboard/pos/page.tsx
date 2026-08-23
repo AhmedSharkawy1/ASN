@@ -495,6 +495,7 @@ export default function POSPage() {
                 deposit_amount: depositAmount || 0,
                 status: initialStatus,
                 is_draft: isHold,
+                source: 'pos',
                 created_at: editingOrderId && originalCreatedAt ? originalCreatedAt : new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 _dirty: true,
