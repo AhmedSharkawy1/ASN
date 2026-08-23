@@ -562,7 +562,7 @@ export default function Theme9Menu({ config, categories, restaurantId }: Theme9M
 
                             {/* Image Box */}
                             <div className="w-full h-[35vh] md:h-[40vh] shrink-0 relative flex items-center justify-center" style={{ backgroundColor: bgBody }}>
-                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-cover" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={selectedItem.item.thumbnail_url || selectedItem.item.image_url || selectedItem.catImg} originalSrc={selectedItem.item.image_url || selectedItem.item.thumbnail_url || selectedItem.catImg || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=600'} alt={itemName(selectedItem.item)} className="w-full h-full object-cover" highQuality={Boolean((config as any)?.high_quality_images)} />
                             </div>
 
                             {/* Scrollable Content */}

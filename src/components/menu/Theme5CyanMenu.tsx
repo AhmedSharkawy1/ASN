@@ -620,7 +620,7 @@ export default function Theme5CyanMenu({ config, categories, language, restauran
                         <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-[85vw] max-w-[310px] bg-white dark:bg-[#1E1E1E] rounded-3xl overflow-hidden flex flex-col h-auto max-h-[85vh] shadow-2xl mx-auto" onClick={e => e.stopPropagation()}>
                             <div className="relative h-32 bg-zinc-100 dark:bg-zinc-800">
                                 {(selectedItem.item.image_url || selectedItem.catImg) ? (
-                                    <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-contain" useOriginal={true} />
+                                    <OptimizedMenuImage thumbnailSrc={selectedItem.item.thumbnail_url || selectedItem.item.image_url || selectedItem.catImg} originalSrc={selectedItem.item.image_url || selectedItem.item.thumbnail_url || selectedItem.catImg} alt={selectedItem.cName} className="w-full h-full object-contain" highQuality={Boolean((config as any)?.high_quality_images)} />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-5xl opacity-20">{selectedItem.item.is_spicy ? "🌶️" : "🍽️"}</div>
                                 )}

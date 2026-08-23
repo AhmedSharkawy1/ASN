@@ -1180,7 +1180,7 @@ export default function MenuClient({
               <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
                 {selectedItem.item.image_url && (
                   <div className="w-full h-40 rounded-[1.5rem] overflow-hidden mb-6 shadow-md">
-                    <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url} alt="" className="w-full h-full object-contain" useOriginal={true} />
+                    <OptimizedMenuImage thumbnailSrc={selectedItem.item.thumbnail_url || selectedItem.item.image_url} originalSrc={selectedItem.item.image_url || selectedItem.item.thumbnail_url} alt="" className="w-full h-full object-contain" highQuality={Boolean((config as any)?.high_quality_images)} />
                   </div>
                 )}
 

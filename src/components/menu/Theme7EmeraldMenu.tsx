@@ -435,7 +435,7 @@ export default function Theme7EmeraldMenu({ config, categories, restaurantId }: 
                             onClick={e => e.stopPropagation()}>
                             {/* big image */}
                             <div className="relative w-full h-72 md:h-96 shrink-0" style={{ background: isDarkMode ? '#1e293b' : '#059669' }}>
-                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800'} alt="" className="w-full h-full object-cover" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={selectedItem.item.thumbnail_url || selectedItem.item.image_url || selectedItem.catImg || config.cover_url} originalSrc={selectedItem.item.image_url || selectedItem.item.thumbnail_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=800'} alt="" className="w-full h-full object-cover" highQuality={Boolean((config as any)?.high_quality_images)} />
                                 <button onClick={closeModal}
                                     className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm text-white shadow-md active:scale-90 z-10">
                                     <ArrowRight className="w-5 h-5" />

@@ -458,7 +458,7 @@ export default function Theme6Menu({ config, categories, restaurantId }: { confi
                             onClick={e => e.stopPropagation()}>
                             {/* image header */}
                             <div className="relative h-64 w-full bg-zinc-100 dark:bg-zinc-800 shrink-0">
-                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt="" className="w-full h-full object-cover" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={selectedItem.item.thumbnail_url || selectedItem.item.image_url || selectedItem.catImg || config.cover_url} originalSrc={selectedItem.item.image_url || selectedItem.item.thumbnail_url || selectedItem.catImg || config.cover_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=500'} alt="" className="w-full h-full object-cover" highQuality={Boolean((config as any)?.high_quality_images)} />
                                 <button onClick={closeItemModal}
                                     className="absolute top-4 right-4 w-8 h-8 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-zinc-800 shadow-sm active:scale-90">
                                     <X className="w-5 h-5" />

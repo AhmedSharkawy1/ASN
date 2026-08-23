@@ -610,7 +610,7 @@ export default function ThemeVicinoMenu({ config, categories, restaurantId }: Th
                         <div className="flex-1 overflow-y-auto">
                             {/* Image */}
                             <div className="w-full aspect-square shrink-0 relative">
-                                <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" useOriginal={true} />
+                                <OptimizedMenuImage thumbnailSrc={selectedItem.item.thumbnail_url || selectedItem.item.image_url || selectedItem.item.image || selectedItem.catImg} originalSrc={selectedItem.item.image_url || selectedItem.item.thumbnail_url || selectedItem.item.image || selectedItem.catImg || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt="" className="w-full h-full object-cover" highQuality={Boolean((config as any)?.high_quality_images)} />
                             </div>
 
                             <div className="p-6 -mt-8 relative rounded-t-[2rem]" style={{ backgroundColor: bgBody }}>

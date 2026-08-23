@@ -850,7 +850,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                 <div className="modal-overlay open" onClick={closeModal}>
                     <div className="modal-content-sheet w-[85vw] max-w-[310px] w-full max-h-[85vh] flex flex-col mx-auto" onClick={e => e.stopPropagation()}>
                         <div className="relative h-32 w-full bg-gray-100">
-                            <OptimizedMenuImage thumbnailSrc={null} originalSrc={selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill className="object-contain " />
+                            <OptimizedMenuImage thumbnailSrc={selectedItem.item.thumbnail_url || selectedItem.item.image_url || selectedItem.cImage || '/placeholder.jpg'} originalSrc={selectedItem.item.image_url || selectedItem.item.thumbnail_url || selectedItem.cImage || '/placeholder.jpg'} alt="Item" fill highQuality={Boolean((config as any)?.high_quality_images)} className="object-contain " />
                             <button onClick={closeModal} className="absolute top-4 left-4 bg-black/50 text-white p-2 rounded-full backdrop-blur-md">
                                 <X size={18} />
                             </button>

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { parseCurrency } from '@/lib/currency';
 import React, { useMemo, useRef, useCallback } from 'react';
-import { getOriginalUrl } from '@/lib/imageUtils';
+import { getOriginalUrl, getThumbnailUrl } from '@/lib/imageUtils';
 import { logImageDebug, logImageFallback, logImageMount } from '@/lib/imageDebug';
 
 interface OptimizedMenuImageProps {
@@ -28,13 +28,9 @@ const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1546069901-ba9599a7e
 /**
  * Optimized menu image component.
  * 
- * KEY BEHAVIOR: Uses the exact URLs provided from the database.
- * Does NOT fabricate thumbnail URLs.
- * 
- * Fallback chain (one-shot, no loops):
- *   thumbnailSrc (if provided & not useOriginal/highQuality) → originalSrc / src → default fallback → placeholder
- * 
- * Each fallback step happens at most ONCE.
+ * KEY BEHAVIOR: Uses optimized 400px thumbnails by default to maintain low egress
+ * and high cache hit rates. Automatically converts between /thumbs/ and /original/
+ * variants upon error so that images NEVER fail to display if any variant exists.
  */
 
 const isAllowedHost = (url: string) => {
@@ -65,7 +61,7 @@ export default function OptimizedMenuImage({
   style,
 }: OptimizedMenuImageProps) {
   // Track fallback stage with a ref to prevent re-render loops
-  // 0 = try primary (thumb or original), 1 = try secondary (original if thumb failed), 2 = default fallback
+  // 0 = try primary, 1 = try secondary variant, 2 = default fallback
   const fallbackStageRef = useRef(0);
   const currentSrcRef = useRef<string>('');
 
@@ -89,8 +85,15 @@ export default function OptimizedMenuImage({
       return DEFAULT_FALLBACK;
     }
 
-    // Convert legacy/thumbnail paths to original if isHQ is requested
-    const targetUrl = isHQ ? getOriginalUrl(bestSrc) : bestSrc;
+    // If HQ is requested, convert to original; otherwise preserve thumbnail / egress
+    let targetUrl = bestSrc;
+    if (isHQ) {
+      targetUrl = getOriginalUrl(bestSrc);
+    } else if (thumbnailSrc) {
+      targetUrl = thumbnailSrc;
+    } else {
+      targetUrl = getThumbnailUrl(bestSrc);
+    }
     
     logImageMount(targetUrl);
     logImageDebug({
@@ -112,10 +115,15 @@ export default function OptimizedMenuImage({
 
     if (currentStage === 0) {
       let targetFallbackUrl = '';
+      
       if (currentSrcRef.current && currentSrcRef.current.includes('/original/')) {
-        targetFallbackUrl = thumbnailSrc || '';
+        // We tried original and it failed -> try thumbnail!
+        targetFallbackUrl = thumbnailSrc || (originalSrc && originalSrc !== currentSrcRef.current ? originalSrc : '') || getThumbnailUrl(currentSrcRef.current) || src || '';
+      } else if (currentSrcRef.current && currentSrcRef.current.includes('/thumbs/')) {
+        // We tried thumbnail and it failed -> try original!
+        targetFallbackUrl = originalSrc || (thumbnailSrc && thumbnailSrc !== currentSrcRef.current ? thumbnailSrc : '') || getOriginalUrl(currentSrcRef.current) || src || '';
       } else {
-        targetFallbackUrl = originalSrc || src || '';
+        targetFallbackUrl = originalSrc || thumbnailSrc || src || '';
       }
       
       if (targetFallbackUrl && targetFallbackUrl !== currentSrcRef.current) {
