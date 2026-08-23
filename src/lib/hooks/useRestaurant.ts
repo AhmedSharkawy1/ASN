@@ -17,6 +17,8 @@ type RestaurantData = {
     receipt_logo_url?: string;
     slug?: string;
     starting_order_number?: number;
+    auto_approve_website_orders?: boolean;
+    auto_approve_cashier_orders?: boolean;
 };
 
 export function useRestaurant() {
@@ -56,15 +58,15 @@ export function useRestaurant() {
                     // Try fetching with all fields
                     const { data: d1, error: e1 } = await supabase
                         .from('restaurants')
-                        .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, receipt_logo_url, slug, starting_order_number')
+                        .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, receipt_logo_url, slug, starting_order_number, auto_approve_website_orders, auto_approve_cashier_orders')
                         .eq('id', rId)
                         .single();
 
                     if (!e1 && d1) {
                         setRestaurant(d1 as RestaurantData);
                     } else {
-                        console.warn("Retrying restaurant fetch without receipt_logo_url...");
-                        // Fallback: omit 'receipt_logo_url' if it doesn't exist
+                        console.warn("Retrying restaurant fetch without optional columns...");
+                        // Fallback: omit newer columns if they don't exist yet
                         const { data: d2, error: e2 } = await supabase
                             .from('restaurants')
                             .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, slug, starting_order_number')

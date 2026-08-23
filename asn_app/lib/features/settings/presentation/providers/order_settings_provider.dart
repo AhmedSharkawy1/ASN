@@ -14,25 +14,37 @@ class OrderSettings {
   /// staff walk it through pending → preparing → ready → completed.
   final bool autoApproveWebsiteOrders;
 
+  /// When on, a cashier (POS) order is booked as completed straight away upon saving.
+  /// When off, it arrives pending.
+  final bool autoApproveCashierOrders;
+
   /// Shows a "call the waiter" button on the menu when a customer opens it
   /// from a table's QR code, and alerts this app naming the table.
   final bool waiterCallEnabled;
 
   const OrderSettings({
     this.autoApproveWebsiteOrders = false,
+    this.autoApproveCashierOrders = false,
     this.waiterCallEnabled = false,
   });
 
-  OrderSettings copyWith({bool? autoApproveWebsiteOrders, bool? waiterCallEnabled}) =>
+  OrderSettings copyWith({
+    bool? autoApproveWebsiteOrders,
+    bool? autoApproveCashierOrders,
+    bool? waiterCallEnabled,
+  }) =>
       OrderSettings(
         autoApproveWebsiteOrders:
             autoApproveWebsiteOrders ?? this.autoApproveWebsiteOrders,
+        autoApproveCashierOrders:
+            autoApproveCashierOrders ?? this.autoApproveCashierOrders,
         waiterCallEnabled: waiterCallEnabled ?? this.waiterCallEnabled,
       );
 }
 
 class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
   static const String _autoApproveColumn = 'auto_approve_website_orders';
+  static const String _autoApproveCashierColumn = 'auto_approve_cashier_orders';
   static const String _waiterCallColumn = 'waiter_call_enabled';
 
   @override
@@ -58,13 +70,14 @@ class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
     try {
       final row = await SupabaseClientManager.client
           .from('restaurants')
-          .select('$_autoApproveColumn, $_waiterCallColumn')
+          .select('$_autoApproveColumn, $_autoApproveCashierColumn, $_waiterCallColumn')
           .eq('id', restaurantId)
           .single();
 
       state = AsyncValue.data(
         OrderSettings(
           autoApproveWebsiteOrders: row[_autoApproveColumn] as bool? ?? false,
+          autoApproveCashierOrders: row[_autoApproveCashierColumn] as bool? ?? false,
           waiterCallEnabled: row[_waiterCallColumn] as bool? ?? false,
         ),
       );
@@ -88,6 +101,18 @@ class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
       column: _autoApproveColumn,
       value: value,
       optimistic: (s) => s.copyWith(autoApproveWebsiteOrders: value),
+      restaurantId: restaurantId,
+    );
+  }
+
+  Future<void> setAutoApproveCashier(bool value) async {
+    final restaurantId = _restaurantId;
+    if (restaurantId == null) throw Exception('لا يوجد متجر مرتبط بالحساب');
+
+    await _save(
+      column: _autoApproveCashierColumn,
+      value: value,
+      optimistic: (s) => s.copyWith(autoApproveCashierOrders: value),
       restaurantId: restaurantId,
     );
   }

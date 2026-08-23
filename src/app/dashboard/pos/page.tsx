@@ -474,6 +474,8 @@ export default function POSPage() {
                 weight_unit: c.weightUnit,
             }));
             const driverObj = selectedDriver ? drivers.find(d => d.id === selectedDriver) : undefined;
+            const isAutoApprove = restaurant?.auto_approve_cashier_orders === true;
+            const initialStatus = isHold ? "pending" : (isAutoApprove ? "completed" : "pending");
 
             const orderRecord: PosOrder = {
                 id: orderId,
@@ -491,7 +493,7 @@ export default function POSPage() {
                 cashier_id: cashierId || undefined,
                 cashier_name: cashierName || undefined,
                 deposit_amount: depositAmount || 0,
-                status: "pending",
+                status: initialStatus,
                 is_draft: isHold,
                 created_at: editingOrderId && originalCreatedAt ? originalCreatedAt : new Date().toISOString(),
                 updated_at: new Date().toISOString(),
