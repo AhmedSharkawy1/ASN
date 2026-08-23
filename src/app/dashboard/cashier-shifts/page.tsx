@@ -14,7 +14,7 @@ import {
     UserCheck, Package, Eye, EyeOff, ClipboardList
 } from "lucide-react";
 
-type DateRange = "today" | "week" | "month" | "all" | "custom";
+type DateRange = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 
 type OrderItem = {
     title: string;
@@ -70,8 +70,8 @@ type CashierStats = {
     orderTypeBreakdown: Record<string, { count: number; revenue: number }>;
 };
 
-const RANGE_LABELS_AR: Record<DateRange, string> = { today: "اليوم", week: "الأسبوع", month: "الشهر", all: "الكل", custom: "مخصص" };
-const RANGE_LABELS_EN: Record<DateRange, string> = { today: "Today", week: "Week", month: "Month", all: "All", custom: "Custom" };
+const RANGE_LABELS_AR: Record<DateRange, string> = { today: "اليوم", yesterday: "أمس", week: "الأسبوع", month: "الشهر", all: "الكل", custom: "تحديد بالوقت" };
+const RANGE_LABELS_EN: Record<DateRange, string> = { today: "Today", yesterday: "Yesterday", week: "Week", month: "Month", all: "All", custom: "Exact Time" };
 
 const PAY_LABELS: Record<string, { ar: string; en: string }> = {
     cash: { ar: "كاش", en: "Cash" },
@@ -193,6 +193,15 @@ export default function CashierShiftsPage() {
         if (range === "today") {
             const startOfToday = getLocalStartOfDay(now);
             allOrders = allOrders.filter(o => new Date(o.created_at) >= startOfToday);
+        } else if (range === "yesterday") {
+            const startOfYesterday = getLocalStartOfDay(now);
+            startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+            const endOfYesterday = new Date(startOfYesterday);
+            endOfYesterday.setHours(23, 59, 59, 999);
+            allOrders = allOrders.filter(o => {
+                const d = new Date(o.created_at);
+                return d >= startOfYesterday && d <= endOfYesterday;
+            });
         } else if (range === "week") {
             const w = getLocalStartOfDay(now);
             w.setDate(w.getDate() - 7);
@@ -201,10 +210,22 @@ export default function CashierShiftsPage() {
             const m = getLocalStartOfDay(now);
             m.setMonth(m.getMonth() - 1);
             allOrders = allOrders.filter(o => new Date(o.created_at) >= m);
-        } else if (range === "custom" && customStart && customEnd) {
-            const start = new Date(customStart); start.setHours(0, 0, 0, 0);
-            const end = new Date(customEnd); end.setHours(23, 59, 59, 999);
-            allOrders = allOrders.filter(o => { const d = new Date(o.created_at); return d >= start && d <= end; });
+        } else if (range === "custom") {
+            let start: Date | null = null;
+            let end: Date | null = null;
+            if (customStart) {
+                start = customStart.includes("T") ? new Date(customStart) : new Date(customStart + "T00:00:00");
+            }
+            if (customEnd) {
+                end = customEnd.includes("T") ? new Date(customEnd) : new Date(customEnd + "T23:59:59.999");
+            }
+            if (start && end) {
+                allOrders = allOrders.filter(o => { const d = new Date(o.created_at); return d >= start! && d <= end!; });
+            } else if (start) {
+                allOrders = allOrders.filter(o => new Date(o.created_at) >= start!);
+            } else if (end) {
+                allOrders = allOrders.filter(o => new Date(o.created_at) <= end!);
+            }
         }
 
         // 5. Cashier filter
@@ -323,7 +344,15 @@ export default function CashierShiftsPage() {
         const cashierLabel = selectedCashierId === "all"
             ? (isAr ? "جميع الكاشير" : "All Cashiers")
             : cashiers.find(c => c.id === selectedCashierId)?.name || "";
-        const rangeLabel = isAr ? RANGE_LABELS_AR[range] : RANGE_LABELS_EN[range];
+        let rangeLabel = isAr ? RANGE_LABELS_AR[range] : RANGE_LABELS_EN[range];
+        if (range === "custom" && (customStart || customEnd)) {
+            const fmtDT = (str: string) => {
+                if (!str) return "-";
+                const d = new Date(str.includes("T") ? str : str + "T00:00:00");
+                return d.toLocaleString("ar-EG", { year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+            };
+            rangeLabel = `${isAr ? "فترة محددة: من" : "From"} ${fmtDT(customStart)} ${isAr ? "إلى" : "to"} ${fmtDT(customEnd)}`;
+        }
         const fmtPrice = (num: number) => new Intl.NumberFormat("ar-EG", { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(num);
 
         const ordersRows = displayedOrders.filter(o => o.status !== "cancelled").map(o => `
@@ -405,6 +434,19 @@ export default function CashierShiftsPage() {
         return info ? (isAr ? info.ar : info.en) : type;
     };
 
+    const handleRangeSelect = (r: DateRange) => {
+        setRange(r);
+        if (r === "custom" && !customStart && !customEnd) {
+            const now = new Date();
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            const yyyy = now.getFullYear();
+            const mm = pad(now.getMonth() + 1);
+            const dd = pad(now.getDate());
+            setCustomStart(`${yyyy}-${mm}-${dd}T00:00`);
+            setCustomEnd(`${yyyy}-${mm}-${dd}T23:59`);
+        }
+    };
+
     return (
         <div className="flex flex-col gap-6 w-full mx-auto pb-20">
             {/* Header */}
@@ -447,20 +489,40 @@ export default function CashierShiftsPage() {
                     </select>
                 </div>
 
-                {/* Date Range */}
+                {/* Date Range Buttons */}
+                <div className="flex flex-wrap gap-1.5 items-center">
+                    {(["today", "yesterday", "week", "month", "all", "custom"] as DateRange[]).map(r => (
+                        <button key={r} onClick={() => handleRangeSelect(r)}
+                            className={`px-3 py-2 rounded-xl text-sm font-bold border transition ${range === r ? "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/20" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
+                            {isAr ? RANGE_LABELS_AR[r] : RANGE_LABELS_EN[r]}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Custom Date & Exact Time Filter */}
                 {range === "custom" && (
-                    <div className="flex items-center gap-2 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl px-3 py-2">
-                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-transparent text-sm text-slate-700 dark:text-zinc-300 outline-none" />
-                        <span className="text-slate-400 dark:text-zinc-600">–</span>
-                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-transparent text-sm text-slate-700 dark:text-zinc-300 outline-none" />
+                    <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-card border border-violet-200 dark:border-violet-500/30 rounded-xl px-3 py-1.5 shadow-sm">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">{isAr ? "من:" : "From:"}</span>
+                            <input
+                                type="datetime-local"
+                                value={customStart}
+                                onChange={e => setCustomStart(e.target.value)}
+                                className="bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/50 rounded-lg px-2 py-1 text-xs text-slate-700 dark:text-zinc-200 outline-none font-bold cursor-pointer"
+                            />
+                        </div>
+                        <span className="text-slate-400 dark:text-zinc-600 font-bold">–</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">{isAr ? "إلى:" : "To:"}</span>
+                            <input
+                                type="datetime-local"
+                                value={customEnd}
+                                onChange={e => setCustomEnd(e.target.value)}
+                                className="bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/50 rounded-lg px-2 py-1 text-xs text-slate-700 dark:text-zinc-200 outline-none font-bold cursor-pointer"
+                            />
+                        </div>
                     </div>
                 )}
-                {(["today", "week", "month", "all", "custom"] as DateRange[]).map(r => (
-                    <button key={r} onClick={() => setRange(r)}
-                        className={`px-3 py-2 rounded-xl text-sm font-bold border transition ${range === r ? "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/20" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
-                        {isAr ? RANGE_LABELS_AR[r] : RANGE_LABELS_EN[r]}
-                    </button>
-                ))}
             </div>
 
             {loading ? (
