@@ -13,7 +13,7 @@ import {
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
     Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud, Tag,
-    Smartphone, Download
+    Smartphone, Download, UserCheck
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -522,6 +522,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/pos", icon: CreditCard, labelAr: "POS", labelEn: "POS", key: "pos" },
                 { href: "/dashboard/kitchen", icon: ChefHat, labelAr: "شاشة المطبخ", labelEn: "Kitchen Display", key: "kitchen" },
                 { href: "/dashboard/reports", icon: BarChart3, labelAr: "التقارير", labelEn: "Reports", key: "reports" },
+                { href: "/dashboard/cashier-shifts", icon: UserCheck, labelAr: "ورديات الكاشير", labelEn: "Cashier Shifts", key: "cashier_shifts" },
             ]
         },
         {
@@ -597,7 +598,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Backward-compat: expand old broad permission keys to specific nav keys
     const BROAD_TO_SPECIFIC: Record<string, string[]> = {
-        orders: ['orders', 'pos', 'kitchen'],
+        orders: ['orders', 'pos', 'kitchen', 'cashier_shifts'],
         products: ['products', 'tables', 'delivery', 'promotions'],
         settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'qr'],
         team: ['team'],

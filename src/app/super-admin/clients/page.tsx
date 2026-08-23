@@ -77,6 +77,7 @@ export default function SuperAdminClientsPage() {
                 { key: 'pos', nameEn: 'POS System', nameAr: 'نقطة البيع (POS)' },
                 { key: 'kitchen', nameEn: 'Kitchen Display', nameAr: 'شاشة المطبخ' },
                 { key: 'reports', nameEn: 'Statistics & Reports', nameAr: 'التقارير والإحصائيات' },
+                { key: 'cashier_shifts', nameEn: 'Cashier Shifts', nameAr: 'ورديات الكاشير' },
             ]
         },
         {
