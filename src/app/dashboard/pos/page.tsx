@@ -22,7 +22,8 @@ import {
     DollarSign, Save, X, Printer, Clock, Banknote,
     PauseCircle, Play, StickyNote, Users, MapPin,
     LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
-    Package, Truck, Wifi, WifiOff, Monitor, RefreshCw
+    Package, Truck, Wifi, WifiOff, Monitor, RefreshCw,
+    RotateCcw
 } from "lucide-react";
 
 /* ═══════════════════════════ TYPES ═══════════════════════════ */
@@ -107,7 +108,20 @@ export default function POSPage() {
     useEffect(() => {
         const fetchCashier = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+            if (!session) {
+                if (typeof window !== 'undefined') {
+                    const offline = localStorage.getItem('offline_session');
+                    if (offline) {
+                        try {
+                            const parsed = JSON.parse(offline);
+                            setCashierId(parsed.user?.id || parsed.id || 'offline_cashier');
+                            setCashierName(parsed.user?.user_metadata?.name || parsed.name || (isAr ? "كاشير أوفلاين" : "Offline Cashier"));
+                            return;
+                        } catch {}
+                    }
+                }
+                return;
+            }
             setCashierId(session.user.id);
             const { data: team } = await supabase.from('team_members').select('name').eq('auth_id', session.user.id).maybeSingle();
             if (team) {
@@ -125,14 +139,6 @@ export default function POSPage() {
         return () => clearInterval(t);
     }, []);
 
-    /* ── Sync status ── */
-    useEffect(() => {
-        return subscribeSyncStatus(s => {
-            setIsOnline(s.isOnline);
-            setIsSyncing(s.isSyncing);
-            setPendingSyncCount(s.pendingCount);
-        });
-    }, []);
 
     /* ── Sound ── */
     const playBeep = useCallback(() => {
@@ -211,6 +217,18 @@ export default function POSPage() {
         // Run sync in background, don't wait for it to load UI
         pullFromSupabase(restaurantId).catch(e => console.error("Initial Sync Error:", e)).finally(() => loadData());
     }, [restaurantId, loadData]);
+
+    /* ── Sync status listener ── */
+    useEffect(() => {
+        return subscribeSyncStatus(s => {
+            setIsOnline(s.isOnline);
+            setIsSyncing(s.isSyncing);
+            setPendingSyncCount(s.pendingCount);
+            if (!s.isSyncing) {
+                loadData();
+            }
+        });
+    }, [loadData]);
 
     /* ── Load existing order for editing ── */
     useEffect(() => {
@@ -629,10 +647,19 @@ export default function POSPage() {
 
     /* ── Shift Report Logic ── */
     const openShiftReport = async () => {
-        if (!restaurantId || !cashierId) return;
+        if (!restaurantId) return;
         const todayStr = new Date().toISOString().split("T")[0];
+        const resetKey = `pos_shift_reset_${restaurantId}_${cashierId || 'default'}`;
+        const lastReset = typeof window !== 'undefined' ? localStorage.getItem(resetKey) : null;
+
         const allOrders = await posDb.orders.where("restaurant_id").equals(restaurantId).toArray();
-        const myOrders = allOrders.filter(o => o.created_at.startsWith(todayStr) && o.status !== "cancelled" && !o.is_draft && o.cashier_id === cashierId);
+        const myOrders = allOrders.filter(o => {
+            if (!o.created_at.startsWith(todayStr)) return false;
+            if (o.status === "cancelled" || o.is_draft) return false;
+            if (cashierId && o.cashier_id && o.cashier_id !== cashierId) return false;
+            if (lastReset && new Date(o.created_at) <= new Date(lastReset)) return false;
+            return true;
+        });
         
         let cash = 0, deposit = 0, deliveryFees = 0, collectedCashTotal = 0;
         const orderNumbers = myOrders.map(o => o.order_number).sort((a,b) => a-b);
@@ -650,6 +677,18 @@ export default function POSPage() {
 
         setShiftStats({ count: myOrders.length, revenue: collectedCashTotal, cash, deposit, delivery: deliveryFees, orderNumbers });
         setShowShiftReport(true);
+    };
+
+    const handleResetShift = () => {
+        if (!restaurantId) return;
+        const resetKey = `pos_shift_reset_${restaurantId}_${cashierId || 'default'}`;
+        const nowIso = new Date().toISOString();
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(resetKey, nowIso);
+        }
+        setShiftStats({ count: 0, revenue: 0, cash: 0, deposit: 0, delivery: 0, orderNumbers: [] });
+        setShowShiftReport(false);
+        toast.success(isAr ? "تم تصفير الوردية بنجاح" : "Shift has been reset successfully");
     };
 
     const printShiftReport = useCallback(() => {
@@ -1183,7 +1222,7 @@ export default function POSPage() {
                             </div>
 
                             <div className="bg-emerald-50 dark:bg-emerald-500/10 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-500/20 text-center">
-                                <div className="text-[12px] font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-1.5">{isAr ? "إجمالي التحصيل اليوم" : "Total Collected"}</div>
+                                <div className="text-[12px] font-bold tracking-widest text-emerald-600 dark:text-emerald-400 uppercase mb-1.5">{isAr ? "إجمالي تحصيل الوردية" : "Total Shift Collections"}</div>
                                 <div className="text-3xl font-black text-emerald-700 dark:text-emerald-300">{formatCurrency(shiftStats.revenue)}</div>
                             </div>
                             
@@ -1210,9 +1249,9 @@ export default function POSPage() {
                             </div>
 
                             <div className="pt-2 flex gap-3">
-                                <button onClick={() => setShowShiftReport(false)} className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white rounded-2xl font-black transition-all shadow-lg shadow-indigo-600/20 text-lg flex items-center justify-center gap-2">
-                                    <CheckCircle2 className="w-5 h-5"/>
-                                    {isAr ? "تأكيد واستمرار" : "Acknowledge"}
+                                <button onClick={handleResetShift} className="flex-1 py-4 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white rounded-2xl font-black transition-all shadow-lg shadow-rose-600/20 text-lg flex items-center justify-center gap-2">
+                                    <RotateCcw className="w-5 h-5"/>
+                                    {isAr ? "تصفير الوردية" : "Reset Shift"}
                                 </button>
                                 <button onClick={printShiftReport} className="py-4 px-6 bg-slate-800 dark:bg-white hover:bg-slate-700 dark:hover:bg-slate-200 active:scale-[0.98] text-white dark:text-black rounded-2xl font-black transition-all shadow-lg text-lg flex items-center justify-center gap-2">
                                     <Printer className="w-5 h-5"/>
