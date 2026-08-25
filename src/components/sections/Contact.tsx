@@ -79,8 +79,8 @@ export default function Contact() {
         {
             icon: <FaFacebook className="w-5 h-5" />,
             title: language === "ar" ? "فيسبوك" : "Facebook",
-            value: "ASN Technology Account",
-            href: "https://www.facebook.com/profile.php?id=61588482305662",
+            value: "@ASNtechnology1",
+            href: "https://www.facebook.com/ASNtechnology1",
             delay: "0.1s",
             color: "#1d4ed8",
             hoverGlow: "rgba(29, 78, 216, 0.4)",
@@ -89,8 +89,8 @@ export default function Contact() {
         {
             icon: <FaInstagram className="w-5 h-5" />,
             title: language === "ar" ? "إنستجرام" : "Instagram",
-            value: "@asntechnology1",
-            href: "https://www.instagram.com/asntechnology1?igsh=MXN5dnRmMDBsa2Zhdw==",
+            value: "@asntechnoloogy",
+            href: "https://www.instagram.com/asntechnoloogy",
             delay: "0.2s",
             color: "#db2777",
             hoverGlow: "rgba(219, 39, 119, 0.4)",

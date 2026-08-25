@@ -10,8 +10,8 @@ export default function Footer() {
 
     const socialLinks = [
         { href: "https://wa.me/201026049216", icon: <FaWhatsapp size={20} />, label: "WhatsApp", color: "#16a34a", hoverGlow: "rgba(22, 163, 74, 0.4)", hoverBorder: "rgba(22, 163, 74, 0.6)" },
-        { href: "https://www.facebook.com/Abdalaahmed90?mibextid=ZbWKwL", icon: <FaFacebook size={20} />, label: "Facebook", color: "#1d4ed8", hoverGlow: "rgba(29, 78, 216, 0.4)", hoverBorder: "rgba(29, 78, 216, 0.6)" },
-        { href: "https://www.instagram.com/asn_technology_ceo?igsh=YzljYTk1ODg3Zg==", icon: <FaInstagram size={20} />, label: "Instagram", color: "#db2777", hoverGlow: "rgba(219, 39, 119, 0.4)", hoverBorder: "rgba(219, 39, 119, 0.6)" },
+        { href: "https://www.facebook.com/ASNtechnology1", icon: <FaFacebook size={20} />, label: "Facebook", color: "#1d4ed8", hoverGlow: "rgba(29, 78, 216, 0.4)", hoverBorder: "rgba(29, 78, 216, 0.6)" },
+        { href: "https://www.instagram.com/asntechnoloogy", icon: <FaInstagram size={20} />, label: "Instagram", color: "#db2777", hoverGlow: "rgba(219, 39, 119, 0.4)", hoverBorder: "rgba(219, 39, 119, 0.6)" },
         { href: "https://www.tiktok.com/@asntechnology?_t=8rrO8G0k5kX&_r=1", icon: <FaTiktok size={20} />, label: "TikTok", color: "currentColor", hoverGlow: "rgba(255, 255, 255, 0.3)", hoverBorder: "rgba(255, 255, 255, 0.4)" }, // Adapts to theme
         { href: "tel:201092621367", icon: <FaPhoneAlt size={20} />, label: "Phone", color: "#0ea5e9", hoverGlow: "rgba(14, 165, 233, 0.4)", hoverBorder: "rgba(14, 165, 233, 0.6)" },
     ];
