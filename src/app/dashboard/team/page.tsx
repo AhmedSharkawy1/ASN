@@ -113,8 +113,23 @@ export default function TeamPage() {
         try {
             if (editId) {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const { username, password, ...restForm } = form; // Do not update auth credentials here natively yet
+                const { username, password, ...restForm } = form;
                 await supabase.from('team_members').update(restForm).eq('id', editId);
+
+                const member = members.find(m => m.id === editId);
+                if (member?.auth_id) {
+                    await fetch("/api/team/update", {
+                        method: "POST",
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            user_id: member.auth_id,
+                            id: editId,
+                            name: form.name.trim(),
+                            role: form.role,
+                            email: form.email || undefined
+                        })
+                    });
+                }
             } else {
                 if (!form.username || !form.password) {
                     alert(isAr ? "يرجى إدخال اسم المستخدم وكلمة المرور" : "Please provide a username and password");

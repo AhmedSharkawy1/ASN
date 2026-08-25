@@ -49,7 +49,7 @@ export default function StaffPage() {
     const [adding, setAdding] = useState(false);
 
     // Form: Edit Creds
-    const [editCreds, setEditCreds] = useState({ email: "", password: "", role: "staff" });
+    const [editCreds, setEditCreds] = useState({ name: "", email: "", password: "", role: "staff" });
     const [updatingCreds, setUpdatingCreds] = useState(false);
     const [tenantPageAccess, setTenantPageAccess] = useState<Record<string, boolean>>({});
 
@@ -160,19 +160,28 @@ export default function StaffPage() {
     };
 
     // ----------------------------------------------------------------------
-    // Update Staff Credentials
+    // Update Staff Credentials & Details
     // ----------------------------------------------------------------------
     const openEditCredsModal = (staff: StaffMember) => {
         setSelectedStaff(staff);
-        setEditCreds({ email: staff.email || "", password: "", role: staff.role });
+        setEditCreds({ name: staff.name || "", email: staff.email || "", password: "", role: staff.role });
         setIsEditCredsModalOpen(true);
     };
 
     const handleUpdateCreds = async () => {
         if (!selectedStaff) return;
+        if (!editCreds.name.trim()) {
+            toast.error(isAr ? "يرجى إدخال اسم الموظف" : "Please enter employee name");
+            return;
+        }
         setUpdatingCreds(true);
         try {
-            const payload: any = { user_id: selectedStaff.auth_id, role: editCreds.role };
+            const payload: any = { 
+                user_id: selectedStaff.auth_id,
+                id: selectedStaff.id,
+                name: editCreds.name.trim(),
+                role: editCreds.role 
+            };
             if (editCreds.email && editCreds.email !== selectedStaff.email) payload.email = editCreds.email;
             if (editCreds.password) payload.password = editCreds.password;
 
@@ -486,6 +495,10 @@ export default function StaffPage() {
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-extrabold text-slate-600 dark:text-slate-400 mb-1.5">{isAr ? "اسم الموظف" : "Employee Name"}</label>
+                                <input type="text" value={editCreds.name} onChange={e => setEditCreds({...editCreds, name: e.target.value})} className="w-full px-4 py-3 bg-stone-50 dark:bg-black/20 border border-stone-200 dark:border-white/10 rounded-xl font-bold outline-none focus:ring-2 focus:ring-amber-500 dark:text-white" />
+                            </div>
                             <div>
                                 <label className="block text-sm font-extrabold text-slate-600 dark:text-slate-400 mb-1.5">{isAr ? "تغيير الإيميل" : "Change Email"}</label>
                                 <input type="email" value={editCreds.email} onChange={e => setEditCreds({...editCreds, email: e.target.value})} className="w-full px-4 py-3 bg-stone-50 dark:bg-black/20 border border-stone-200 dark:border-white/10 rounded-xl font-bold outline-none focus:ring-2 focus:ring-amber-500 dark:text-white" />
