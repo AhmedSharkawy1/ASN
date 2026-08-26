@@ -214,9 +214,12 @@ export default function POSPage() {
     /* ── Initial sync + load ── */
     useEffect(() => {
         if (!restaurantId) return;
+        if (restaurant && typeof restaurant.auto_approve_cashier_orders === 'boolean') {
+            localStorage.setItem(`pos_auto_approve_cashier_${restaurantId}`, String(restaurant.auto_approve_cashier_orders));
+        }
         // Run sync in background, don't wait for it to load UI
         pullFromSupabase(restaurantId).catch(e => console.error("Initial Sync Error:", e)).finally(() => loadData());
-    }, [restaurantId, loadData]);
+    }, [restaurantId, restaurant, loadData]);
 
     /* ── Sync status listener ── */
     useEffect(() => {
@@ -489,7 +492,9 @@ export default function POSPage() {
                 weight_unit: c.weightUnit,
             }));
             const driverObj = selectedDriver ? drivers.find(d => d.id === selectedDriver) : undefined;
-            const isAutoApprove = restaurant?.auto_approve_cashier_orders === true;
+            const isAutoApprove = typeof restaurant?.auto_approve_cashier_orders === 'boolean'
+                ? restaurant.auto_approve_cashier_orders
+                : (typeof window !== 'undefined' && localStorage.getItem(`pos_auto_approve_cashier_${restaurantId}`) === 'true');
             const initialStatus = isHold ? "pending" : (isAutoApprove ? "completed" : "pending");
 
             const orderRecord: PosOrder = {

@@ -20,11 +20,43 @@ export async function POST(request: Request) {
             auth: { autoRefreshToken: false, persistSession: false }
         });
 
-        const results = { orders: 0, customers: 0, errors: [] as string[] };
+        const results = { orders: 0, customers: 0, updatedOrders: {} as Record<string, { status: string }>, errors: [] as string[] };
+
+        // Cache restaurant settings across batch
+        const restSettingsCache = new Map<string, { auto_approve_cashier_orders?: boolean; auto_approve_website_orders?: boolean }>();
 
         // Upsert orders
         if (orders && orders.length > 0) {
             for (const order of orders) {
+                // Fetch restaurant auto-approve options if not already cached
+                let restSetting = restSettingsCache.get(order.restaurant_id);
+                if (!restSetting) {
+                    const { data: rData } = await supabaseAdmin
+                        .from('restaurants')
+                        .select('auto_approve_cashier_orders, auto_approve_website_orders')
+                        .eq('id', order.restaurant_id)
+                        .maybeSingle();
+                    restSetting = rData || {};
+                    restSettingsCache.set(order.restaurant_id, restSetting);
+                }
+
+                // Enforce auto_approve setting based on source
+                if (!order.is_draft) {
+                    const isCashier = order.source === 'pos' || (!order.source && order.cashier_id);
+                    if (isCashier) {
+                        if (restSetting.auto_approve_cashier_orders === true) {
+                            order.status = 'completed';
+                        } else if (restSetting.auto_approve_cashier_orders === false && order.status !== 'completed' && order.status !== 'in_progress' && order.status !== 'cancelled') {
+                            order.status = 'pending';
+                        }
+                    } else {
+                        // Website orders
+                        if (restSetting.auto_approve_website_orders === true) {
+                            order.status = 'completed';
+                        }
+                    }
+                }
+
                 // Check if this order was already processed for inventory
                 const { data: existingTx } = await supabaseAdmin
                     .from('inventory_transactions')
@@ -40,6 +72,7 @@ export async function POST(request: Request) {
                     results.errors.push(`Order ${order.id}: ${error.message}`);
                 } else {
                     results.orders++;
+                    results.updatedOrders[order.id] = { status: order.status };
                     
                     // Deduct from inventory if new POS order
                     if (!isAlreadyDeducted && order.items && order.items.length > 0) {
@@ -62,6 +95,7 @@ export async function POST(request: Request) {
                                     new_status: finalStatus,
                                     performed_by: 'system_sync'
                                 });
+                                results.updatedOrders[order.id] = { status: finalStatus };
                             }
                         } catch (invErr) {
                             console.error(`[Sync] Inventory deduction failed for order ${order.id}:`, invErr);

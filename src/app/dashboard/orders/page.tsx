@@ -64,7 +64,7 @@ export default function OrdersPage() {
         // 1️⃣ Load from Dexie (local, always available)
         const localOrders = await posDb.orders
             .where("restaurant_id").equals(restaurantId)
-            .and(o => !o.is_draft && o.status !== "cancelled")
+            .and(o => !o.is_draft)
             .toArray();
 
         // Map Dexie orders to the Order shape
@@ -102,7 +102,7 @@ export default function OrdersPage() {
                 .eq('restaurant_id', restaurantId)
                 .eq('is_draft', false)
                 .order('created_at', { ascending: false })
-                .limit(500);
+                .limit(5000);
             remoteOrders = (data as Order[]) || [];
 
             // Sync updated remote statuses into Dexie so local DB stays completely up to date

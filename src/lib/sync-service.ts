@@ -267,9 +267,10 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
         const result = await res.json();
 
         if (res.ok && result.success) {
-            // Mark synced orders as clean
+            // Mark synced orders as clean and update status if modified by server
             for (const order of dirtyOrders) {
-                await posDb.orders.update(order.id, { _dirty: false });
+                const finalStatus = result.updatedOrders?.[order.id]?.status || order.status;
+                await posDb.orders.update(order.id, { _dirty: false, status: finalStatus });
             }
             for (const cust of dirtyCusts) {
                 await posDb.customers.update(cust.id, { _dirty: false });
@@ -292,34 +293,35 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
     }
 }
 
-/* ── Initialize: set up online/offline listeners ── */
+/* ── Initialize: set up online/offline listeners for reconnect sync ── */
 export function initSyncService(restaurantId: string): () => void {
-    if (typeof window === 'undefined') return () => { };
+    if (typeof window === 'undefined' || !restaurantId) return () => { };
 
     const handleOnline = async () => {
         notify({ isOnline: true });
         if (isElectron()) {
-            (window as any).electronAPI.onlineStatusChanged(true);
+            (window as any).electronAPI?.onlineStatusChanged?.(true);
         }
-        await pushDirtyToSupabase(restaurantId);
-        await pullFromSupabase(restaurantId);
+        // When connection returns, push any pending orders created offline to prevent data loss
+        try {
+            await pushDirtyToSupabase(restaurantId);
+        } catch (err) {
+            console.error('[Sync] Reconnect push error:', err);
+        }
     };
 
     const handleOffline = () => {
         notify({ isOnline: false });
         if (isElectron()) {
-            (window as any).electronAPI.onlineStatusChanged(false);
+            (window as any).electronAPI?.onlineStatusChanged?.(false);
         }
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial check
+    // Initial status check
     notify({ isOnline: navigator.onLine });
-    if (navigator.onLine) {
-        pullFromSupabase(restaurantId).then(() => pushDirtyToSupabase(restaurantId));
-    }
 
     return () => {
         window.removeEventListener('online', handleOnline);
