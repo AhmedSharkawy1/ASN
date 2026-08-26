@@ -18,7 +18,7 @@ import {
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { supabase } from "@/lib/supabase/client";
-import { subscribeSyncStatus, initSyncService } from "@/lib/sync-service";
+import { subscribeSyncStatus } from "@/lib/sync-service";
 import { Toaster, toast } from "sonner";
 import { posDb } from "@/lib/pos-db";
 import { SyncStatus } from "@/components/SyncStatus";
@@ -504,14 +504,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return () => { supabase.removeChannel(channel); };
     }, [restaurantId, playChime, language]);
 
-    // Automatic Order & Data Sync Service initialization
-    useEffect(() => {
-        if (!restaurantId) return;
-        const cleanupSync = initSyncService(restaurantId);
-        return () => {
-            cleanupSync();
-        };
-    }, [restaurantId]);
 
     const isDark = resolvedTheme === 'dark';
 

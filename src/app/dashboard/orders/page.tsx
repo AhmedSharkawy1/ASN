@@ -143,19 +143,6 @@ export default function OrdersPage() {
         });
     }, [fetchOrders]);
 
-    /* ── Instant Live Orders Realtime Listener ── */
-    useEffect(() => {
-        if (!restaurantId) return;
-        const liveChannel = supabase
-            .channel(`orders-page-live-${restaurantId}`)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, () => {
-                fetchOrders();
-            })
-            .subscribe();
-        return () => {
-            supabase.removeChannel(liveChannel);
-        };
-    }, [restaurantId, fetchOrders]);
 
     const updateStatus = async (orderId: string, newStatus: string) => {
         const order = orders.find(o => o.id === orderId);

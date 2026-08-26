@@ -224,11 +224,8 @@ export default function POSPage() {
             setIsOnline(s.isOnline);
             setIsSyncing(s.isSyncing);
             setPendingSyncCount(s.pendingCount);
-            if (!s.isSyncing) {
-                loadData();
-            }
         });
-    }, [loadData]);
+    }, []);
 
     /* ── Load existing order for editing ── */
     useEffect(() => {

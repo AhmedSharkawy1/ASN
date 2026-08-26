@@ -292,28 +292,17 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
     }
 }
 
-/* ── Initialize: set up automatic sync, timers, and realtime order listeners ── */
+/* ── Initialize: set up online/offline listeners ── */
 export function initSyncService(restaurantId: string): () => void {
-    if (typeof window === 'undefined' || !restaurantId) return () => { };
-
-    let isDisposed = false;
-
-    const runFullSync = async () => {
-        if (isDisposed || !navigator.onLine || _syncStatus.isSyncing) return;
-        try {
-            await pushDirtyToSupabase(restaurantId);
-            await pullFromSupabase(restaurantId);
-        } catch (err) {
-            console.error('[Sync] Auto-sync error:', err);
-        }
-    };
+    if (typeof window === 'undefined') return () => { };
 
     const handleOnline = async () => {
         notify({ isOnline: true });
         if (isElectron()) {
             (window as any).electronAPI.onlineStatusChanged(true);
         }
-        await runFullSync();
+        await pushDirtyToSupabase(restaurantId);
+        await pullFromSupabase(restaurantId);
     };
 
     const handleOffline = () => {
@@ -323,74 +312,18 @@ export function initSyncService(restaurantId: string): () => void {
         }
     };
 
-    const handleVisibilityOrFocus = () => {
-        if (document.visibilityState === 'visible' && navigator.onLine) {
-            runFullSync();
-        }
-    };
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    window.addEventListener('focus', handleVisibilityOrFocus);
-    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
 
     // Initial check
     notify({ isOnline: navigator.onLine });
     if (navigator.onLine) {
-        runFullSync();
+        pullFromSupabase(restaurantId).then(() => pushDirtyToSupabase(restaurantId));
     }
 
-    // Auto-sync interval: every 15 seconds, automatically push any pending orders and pull updates
-    const autoSyncInterval = setInterval(() => {
-        if (!isDisposed && navigator.onLine && !_syncStatus.isSyncing) {
-            pushDirtyToSupabase(restaurantId).catch(() => {});
-        }
-    }, 15000);
-
-    // Supabase Realtime channel for instant order synchronization across devices/tabs
-    const orderSyncChannel = supabase
-        .channel(`auto-sync-orders-${restaurantId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` }, async (payload) => {
-            if (isDisposed) return;
-            try {
-                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                    const order = payload.new as PosOrder;
-                    const local = await posDb.orders.get(order.id);
-                    // Only update if we don't have an unpushed local dirty copy
-                    if (!local?._dirty) {
-                        await posDb.orders.put({
-                            ...order,
-                            restaurant_id: restaurantId,
-                            _dirty: false,
-                            customer_address: order.customer_address || undefined,
-                            delivery_driver_id: order.delivery_driver_id || undefined,
-                            delivery_driver_name: order.delivery_driver_name || undefined,
-                            delivery_fee: order.delivery_fee || undefined,
-                            deposit_amount: order.deposit_amount || 0,
-                        } as PosOrder);
-                        notify({ lastSynced: new Date().toISOString() });
-                    }
-                } else if (payload.eventType === 'DELETE') {
-                    const oldOrder = payload.old as { id: string };
-                    if (oldOrder?.id) {
-                        await posDb.orders.delete(oldOrder.id);
-                        notify({ lastSynced: new Date().toISOString() });
-                    }
-                }
-            } catch (err) {
-                console.error('[Sync] Realtime order sync error:', err);
-            }
-        })
-        .subscribe();
-
     return () => {
-        isDisposed = true;
-        clearInterval(autoSyncInterval);
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
-        window.removeEventListener('focus', handleVisibilityOrFocus);
-        document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-        supabase.removeChannel(orderSyncChannel);
     };
 }
 
