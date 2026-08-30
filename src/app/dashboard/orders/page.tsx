@@ -13,6 +13,7 @@ import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
 import { executePrint, triggerCashDrawerIfEnabled } from "@/lib/helpers/printEngine";
 import { useRouter } from "next/navigation";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
+import { toast } from "sonner";
 
 type OrderItem = {
     title: string;
@@ -279,11 +280,24 @@ export default function OrdersPage() {
                 </div>
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto">
                     <button 
-                        onClick={() => {
-                            if (navigator.onLine && restaurantId && !isSyncing) {
-                                pushDirtyToSupabase(restaurantId).then(() => pullFromSupabase(restaurantId)).then(() => fetchOrders());
-                            } else {
-                                fetchOrders();
+                        onClick={async () => {
+                            if (!restaurantId || isSyncing) return;
+                            if (!navigator.onLine) {
+                                toast.error(isAr ? "أنت غير متصل بالإنترنت" : "You are offline");
+                                return;
+                            }
+                            try {
+                                const res = await pushDirtyToSupabase(restaurantId, true);
+                                await pullFromSupabase(restaurantId);
+                                await fetchOrders();
+                                if (res.success) {
+                                    toast.success(isAr ? `تمت المزامنة بنجاح (${res.pushed} طلب)` : `Synced ${res.pushed} orders successfully`);
+                                } else {
+                                    toast.error(isAr ? "حدث خطأ أثناء المزامنة" : "Sync error occurred");
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                toast.error(isAr ? "فشلت المزامنة" : "Sync failed");
                             }
                         }}
                         disabled={isSyncing}

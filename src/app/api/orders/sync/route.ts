@@ -22,6 +22,30 @@ export async function POST(request: Request) {
 
         const results = { orders: 0, customers: 0, updatedOrders: {} as Record<string, { status: string }>, errors: [] as string[] };
 
+        // Allowed columns in Supabase schema
+        const ALLOWED_ORDER_COLUMNS = new Set([
+            'id', 'restaurant_id', 'order_number', 'items', 'subtotal', 'discount', 
+            'discount_type', 'total', 'payment_method', 'customer_name', 'customer_phone', 
+            'customer_address', 'cashier_id', 'cashier_name', 'notes', 'deposit_amount', 
+            'order_type', 'status', 'is_draft', 'source', 'branch_name', 
+            'created_at', 'updated_at'
+        ]);
+
+        const ALLOWED_CUSTOMER_COLUMNS = new Set([
+            'id', 'restaurant_id', 'name', 'phone', 'email', 'loyalty_points', 
+            'total_spent', 'total_orders', 'last_order_date', 'notes', 'created_at'
+        ]);
+
+        const sanitizeRecord = (record: any, allowedSet: Set<string>) => {
+            const clean: Record<string, any> = {};
+            for (const key of Object.keys(record)) {
+                if (allowedSet.has(key) && record[key] !== undefined) {
+                    clean[key] = record[key];
+                }
+            }
+            return clean;
+        };
+
         // Cache restaurant settings across batch
         const restSettingsCache = new Map<string, { auto_approve_cashier_orders?: boolean; auto_approve_website_orders?: boolean }>();
 
@@ -66,9 +90,10 @@ export async function POST(request: Request) {
 
                 const isAlreadyDeducted = existingTx && existingTx.length > 0;
 
-                const { error } = await supabaseAdmin.from('orders').upsert(order);
+                const cleanOrder = sanitizeRecord(order, ALLOWED_ORDER_COLUMNS);
+                const { error } = await supabaseAdmin.from('orders').upsert(cleanOrder);
                 if (error) {
-                    appendFileSync('sync_errors.log', `\nOrder Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(order)}\n`);
+                    appendFileSync('sync_errors.log', `\nOrder Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(cleanOrder)}\n`);
                     results.errors.push(`Order ${order.id}: ${error.message}`);
                 } else {
                     results.orders++;
@@ -115,9 +140,10 @@ export async function POST(request: Request) {
         // Upsert customers
         if (customers && customers.length > 0) {
             for (const cust of customers) {
-                const { error } = await supabaseAdmin.from('customers').upsert(cust);
+                const cleanCust = sanitizeRecord(cust, ALLOWED_CUSTOMER_COLUMNS);
+                const { error } = await supabaseAdmin.from('customers').upsert(cleanCust);
                 if (error) {
-                    appendFileSync('sync_errors.log', `\nCustomer Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(cust)}\n`);
+                    appendFileSync('sync_errors.log', `\nCustomer Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(cleanCust)}\n`);
                     results.errors.push(`Customer ${cust.id}: ${error.message}`);
                 } else {
                     results.customers++;

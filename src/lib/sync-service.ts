@@ -182,13 +182,19 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
 }
 
 /* ── Push: Dexie dirty records → Server API → Supabase ── */
-export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
+export async function pushDirtyToSupabase(restaurantId: string, forceAll = false): Promise<{ success: boolean; pushed: number; errors?: string[] }> {
     if (isElectron()) {
         // In Electron, we follow the "Enqeue First" rule.
         // We'll gather dirty items and send them to the Electron Action Queue.
         try {
-            const dirtyOrders = await posDb.orders.where('restaurant_id').equals(restaurantId).and(o => !!o._dirty).toArray();
-            const dirtyCusts = await posDb.customers.where('restaurant_id').equals(restaurantId).and(c => !!c._dirty).toArray();
+            const dirtyOrders = await posDb.orders
+                .where('restaurant_id').equals(restaurantId)
+                .and(o => (forceAll ? !o.is_draft : !!o._dirty))
+                .toArray();
+            const dirtyCusts = await posDb.customers
+                .where('restaurant_id').equals(restaurantId)
+                .and(c => (forceAll ? true : !!c._dirty))
+                .toArray();
 
             for (const order of dirtyOrders) {
                 await (window as any).electronAPI.enqueueAction({
@@ -210,27 +216,33 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
                 await posDb.customers.update(cust.id, { _dirty: false });
             }
             
-            return;
+            return { success: true, pushed: dirtyOrders.length };
         } catch (err) {
             console.error('[Sync] Electron Enqueue failed', err);
+            return { success: false, pushed: 0, errors: [String(err)] };
         }
     }
 
-    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return { success: false, pushed: 0, errors: ['Offline'] };
+    }
     notify({ isSyncing: true });
 
     try {
-        // Gather dirty orders
-        const dirtyOrders = await posDb.orders
+        // Gather orders to sync (either dirty only, or all non-drafts if forceAll)
+        const targetOrders = await posDb.orders
             .where('restaurant_id').equals(restaurantId)
-            .and(o => !!o._dirty).toArray();
+            .and(o => (forceAll ? !o.is_draft : !!o._dirty))
+            .toArray();
 
-        const ordersToSync = dirtyOrders.map(order => {
+        const ordersToSync = targetOrders.map(order => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { _dirty, ...rest } = order;
             delete (rest as PosOrder & { delivery_driver_id?: number }).delivery_driver_id;
             delete (rest as PosOrder & { delivery_driver_name?: string }).delivery_driver_name;
             delete (rest as PosOrder & { delivery_fee?: number }).delivery_fee;
+            delete (rest as PosOrder & { branch_id?: string }).branch_id;
+            delete (rest as PosOrder & { table_id?: string }).table_id;
             
             return {
                 ...rest,
@@ -241,20 +253,21 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
             };
         });
 
-        // Gather dirty customers
-        const dirtyCusts = await posDb.customers
+        // Gather customers to sync
+        const targetCusts = await posDb.customers
             .where('restaurant_id').equals(restaurantId)
-            .and(c => !!c._dirty).toArray();
+            .and(c => (forceAll ? true : !!c._dirty))
+            .toArray();
 
-        const custsToSync = dirtyCusts.map(cust => {
+        const custsToSync = targetCusts.map(cust => {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { _dirty, ...rest } = cust;
+            const { _dirty, address, ...rest } = cust;
             return rest;
         });
 
         if (ordersToSync.length === 0 && custsToSync.length === 0) {
             notify({ isSyncing: false });
-            return;
+            return { success: true, pushed: 0 };
         }
 
         // Push via server-side API (uses SERVICE_ROLE_KEY, bypasses RLS)
@@ -268,11 +281,13 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
 
         if (res.ok && result.success) {
             // Mark synced orders as clean and update status if modified by server
-            for (const order of dirtyOrders) {
-                const finalStatus = result.updatedOrders?.[order.id]?.status || order.status;
-                await posDb.orders.update(order.id, { _dirty: false, status: finalStatus });
+            for (const order of targetOrders) {
+                if (result.updatedOrders?.[order.id] || result.orders > 0) {
+                    const finalStatus = result.updatedOrders?.[order.id]?.status || order.status;
+                    await posDb.orders.update(order.id, { _dirty: false, status: finalStatus });
+                }
             }
-            for (const cust of dirtyCusts) {
+            for (const cust of targetCusts) {
                 await posDb.customers.update(cust.id, { _dirty: false });
             }
             console.log(`[Sync] Pushed ${result.orders} orders, ${result.customers} customers`);
@@ -286,8 +301,15 @@ export async function pushDirtyToSupabase(restaurantId: string): Promise<void> {
         const remainingDirtyOrders = await posDb.orders.where('restaurant_id').equals(restaurantId).and(o => !!o._dirty).count();
         const remainingDirtyCusts = await posDb.customers.where('restaurant_id').equals(restaurantId).and(c => !!c._dirty).count();
         notify({ lastSynced: new Date().toISOString(), pendingCount: remainingDirtyOrders + remainingDirtyCusts });
+
+        return { 
+            success: res.ok && result.success, 
+            pushed: result.orders || 0,
+            errors: result.errors 
+        };
     } catch (err) {
         console.error('[Sync] Push failed', err);
+        return { success: false, pushed: 0, errors: [String(err)] };
     } finally {
         notify({ isSyncing: false });
     }

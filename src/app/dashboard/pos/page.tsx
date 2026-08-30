@@ -752,16 +752,30 @@ export default function POSPage() {
                     </button>
                     
                     <button 
-                        onClick={() => {
-                            if (navigator.onLine && restaurantId && !isSyncing) {
-                                pushDirtyToSupabase(restaurantId).then(() => pullFromSupabase(restaurantId));
+                        onClick={async () => {
+                            if (!restaurantId || isSyncing) return;
+                            if (!navigator.onLine) {
+                                toast.error(isAr ? "أنت غير متصل بالإنترنت" : "You are offline");
+                                return;
+                            }
+                            try {
+                                const res = await pushDirtyToSupabase(restaurantId, true);
+                                await pullFromSupabase(restaurantId);
+                                if (res.success) {
+                                    toast.success(isAr ? `تمت المزامنة بنجاح (${res.pushed} طلب)` : `Synced ${res.pushed} orders successfully`);
+                                } else {
+                                    toast.error(isAr ? "حدث خطأ أثناء المزامنة" : "Sync error occurred");
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                toast.error(isAr ? "فشلت المزامنة" : "Sync failed");
                             }
                         }}
                         disabled={isSyncing || !isOnline}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${isSyncing || !isOnline ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-400 border-slate-200 hover:text-blue-600 focus:ring-2"}`}
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-blue-500" : ""}`} /> 
-                        مزامنة
+                        {isAr ? "مزامنة" : "Sync"}
                     </button>
 
                     <button onClick={() => setShowHeld(!showHeld)}
