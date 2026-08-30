@@ -72,63 +72,65 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
     notify({ isSyncing: true });
 
     try {
-        // Pull categories
-        const { data: cats } = await supabase
-            .from('categories').select('*')
-            .eq('restaurant_id', restaurantId).order('sort_order');
-        if (cats) {
+        // Parallel queries to Supabase for all master data
+        const [
+            { data: cats },
+            { data: allItems },
+            { data: orders },
+            { data: customers },
+            { data: team },
+            { data: inv },
+            { data: zones },
+            { data: bData }
+        ] = await Promise.all([
+            supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('sort_order'),
+            supabase.from('items').select('*').eq('restaurant_id', restaurantId),
+            supabase.from('orders').select('*').eq('restaurant_id', restaurantId).order('created_at', { ascending: false }).limit(200),
+            supabase.from('customers').select('*').eq('restaurant_id', restaurantId).limit(200),
+            supabase.from('team_members').select('*').eq('restaurant_id', restaurantId),
+            supabase.from('inventory_items').select('*').eq('restaurant_id', restaurantId),
+            supabase.from('delivery_zones').select('*').eq('restaurant_id', restaurantId).eq('is_active', true),
+            supabase.from('branches').select('id, branch_name').eq('tenant_id', restaurantId).eq('is_active', true)
+        ]);
+
+        // 1. Categories
+        if (cats && cats.length > 0) {
             await posDb.categories.where('restaurant_id').equals(restaurantId).delete();
-            await posDb.categories.bulkPut(
-                cats.map(c => ({ ...c, _dirty: false } as PosCategory))
+            await posDb.categories.bulkPut(cats.map(c => ({ ...c, _dirty: false } as PosCategory)));
+        }
+
+        // 2. Menu Items
+        if (allItems && allItems.length > 0) {
+            await posDb.menu_items.where('restaurant_id').equals(restaurantId).delete();
+            await posDb.menu_items.bulkPut(
+                allItems.map(i => ({ ...i, restaurant_id: restaurantId, _dirty: false } as PosMenuItem))
             );
         }
 
-        // Pull items via category IDs
-        const catIds = (cats || []).map(c => c.id as string);
-        if (catIds.length > 0) {
-            const { data: items } = await supabase.from('items').select('*').in('category_id', catIds);
-            if (items) {
-                // Remove old items for those categories
-                for (const catId of catIds) {
-                    await posDb.menu_items.where('category_id').equals(catId).delete();
-                }
-                await posDb.menu_items.bulkPut(
-                    items.map(i => ({
-                        ...i,
-                        restaurant_id: restaurantId,
-                        _dirty: false,
-                    } as PosMenuItem))
-                );
-            }
-        }
-
-        // Pull ALL orders
-        const { data: orders } = await supabase.from('orders').select('*')
-            .eq('restaurant_id', restaurantId)
-            .order('created_at', { ascending: false }).limit(5000);
-        if (orders) {
-            // Only pull-replace orders we don't have dirty local versions of
-            for (const order of orders) {
-                const local = await posDb.orders.get(order.id);
+        // 3. Orders (Bulk update without deleting dirty local orders)
+        if (orders && orders.length > 0) {
+            const cleanRemoteOrders = orders.map(order => ({
+                ...order,
+                restaurant_id: restaurantId,
+                _dirty: false,
+                customer_address: order.customer_address || undefined,
+                delivery_driver_id: order.delivery_driver_id || undefined,
+                delivery_driver_name: order.delivery_driver_name || undefined,
+                delivery_fee: order.delivery_fee || undefined,
+                deposit_amount: order.deposit_amount || 0,
+            } as PosOrder));
+            
+            // Only overwrite if not dirty locally
+            for (const ro of cleanRemoteOrders) {
+                const local = await posDb.orders.get(ro.id);
                 if (!local?._dirty) {
-                    await posDb.orders.put({
-                        ...order,
-                        restaurant_id: restaurantId,
-                        _dirty: false,
-                        customer_address: order.customer_address || undefined,
-                        delivery_driver_id: order.delivery_driver_id || undefined,
-                        delivery_driver_name: order.delivery_driver_name || undefined,
-                        delivery_fee: order.delivery_fee || undefined,
-                        deposit_amount: order.deposit_amount || 0,
-                    } as PosOrder);
+                    await posDb.orders.put(ro);
                 }
             }
         }
 
-        // Pull customers
-        const { data: customers } = await supabase.from('customers').select('*')
-            .eq('restaurant_id', restaurantId);
-        if (customers) {
+        // 4. Customers
+        if (customers && customers.length > 0) {
             for (const c of customers) {
                 const local = await posDb.customers.get(c.id);
                 if (!local?._dirty) {
@@ -137,9 +139,7 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
             }
         }
 
-        // Pull staff / team  
-        const { data: team } = await supabase.from('team_members').select('*')
-            .eq('restaurant_id', restaurantId);
+        // 5. Team
         if (team) {
             for (const t of team) {
                 const local = await posDb.pos_users.get(t.id);
@@ -148,7 +148,7 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
                         id: t.id,
                         restaurant_id: restaurantId,
                         name: t.name || t.full_name || '',
-                        username: t.email || t.username || '',
+                        username: t.email || t.phone || '',
                         password: local?.password || '',
                         role: (['admin', 'manager', 'cashier', 'kitchen', 'delivery', 'staff'].includes(t.role) ? t.role : 'staff') as PosStaffUser['role'],
                         is_active: typeof t.is_active === 'boolean' ? t.is_active : true,
@@ -158,33 +158,22 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
             }
         }
 
-        // Pull inventory items
-        const { data: inv } = await supabase.from('inventory_items').select('*')
-            .eq('restaurant_id', restaurantId);
+        // 6. Inventory
         if (inv) {
             await posDb.inventory_items.where('restaurant_id').equals(restaurantId).delete();
-            await posDb.inventory_items.bulkPut(
-                inv.map(i => ({ ...i, _dirty: false }))
-            );
+            await posDb.inventory_items.bulkPut(inv.map(i => ({ ...i, _dirty: false })));
         }
 
-        // Pull delivery zones
-        const { data: zones } = await supabase.from('delivery_zones').select('*')
-            .eq('restaurant_id', restaurantId).eq('is_active', true);
+        // 7. Delivery Zones
         if (zones) {
             await posDb.delivery_zones.where('restaurant_id').equals(restaurantId).delete();
-            await posDb.delivery_zones.bulkPut(
-                zones.map(z => ({ ...z }))
-            );
+            await posDb.delivery_zones.bulkPut(zones.map(z => ({ ...z })));
         }
 
-        // Pull branches
-        const { data: bData } = await supabase.from('branches').select('id, branch_name').eq('tenant_id', restaurantId).eq('is_active', true);
+        // 8. Branches
         if (bData) {
             await posDb.branches.where('restaurant_id').equals(restaurantId).delete();
-            await posDb.branches.bulkPut(
-                bData.map(b => ({ ...b, restaurant_id: restaurantId, is_active: true } as any))
-            );
+            await posDb.branches.bulkPut(bData.map(b => ({ ...b, restaurant_id: restaurantId, is_active: true } as any)));
         }
 
         notify({ lastSynced: new Date().toISOString() });

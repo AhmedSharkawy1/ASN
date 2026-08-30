@@ -157,11 +157,30 @@ export default function POSPage() {
     const loadData = useCallback(async () => {
         if (!restaurantId) return;
 
-        const cats = await posDb.categories.where("restaurant_id").equals(restaurantId).sortBy("sort_order");
+        let cats = await posDb.categories.where("restaurant_id").equals(restaurantId).sortBy("sort_order");
+        let items = await posDb.menu_items.where("restaurant_id").equals(restaurantId).toArray();
+
+        // Fast initial fallback if Dexie is empty on first run
+        if (cats.length === 0 && navigator.onLine) {
+            const { data: remoteCats } = await supabase
+                .from('categories').select('*')
+                .eq('restaurant_id', restaurantId).order('sort_order');
+            if (remoteCats && remoteCats.length > 0) {
+                cats = remoteCats;
+                await posDb.categories.bulkPut(remoteCats.map(c => ({ ...c, _dirty: false } as PosCategory)));
+                
+                const catIds = remoteCats.map(c => c.id as string);
+                const { data: remoteItems } = await supabase.from('items').select('*').in('category_id', catIds);
+                if (remoteItems) {
+                    items = remoteItems.map(i => ({ ...i, restaurant_id: restaurantId, _dirty: false } as PosMenuItem));
+                    await posDb.menu_items.bulkPut(items);
+                }
+            }
+        }
+
         setCategories(cats);
         // Default to the first category if none is selected
-        setActiveCategory(prev => (prev === "all" || !prev) && cats.length > 0 ? cats[0].id : prev);
-        const items = await posDb.menu_items.where("restaurant_id").equals(restaurantId).toArray();
+        setActiveCategory(prev => (prev === "all" || !prev) && cats.length > 0 ? cats[0].id : (prev || (cats.length > 0 ? cats[0].id : "all")));
         setMenuItems(items.filter(i => i.is_available !== false));
 
         const todayStr = new Date().toISOString().split("T")[0];
@@ -217,8 +236,14 @@ export default function POSPage() {
         if (restaurant && typeof restaurant.auto_approve_cashier_orders === 'boolean') {
             localStorage.setItem(`pos_auto_approve_cashier_${restaurantId}`, String(restaurant.auto_approve_cashier_orders));
         }
-        // Run sync in background, don't wait for it to load UI
-        pullFromSupabase(restaurantId).catch(e => console.error("Initial Sync Error:", e)).finally(() => loadData());
+
+        // 1. Instant display from local Dexie (0ms)
+        loadData();
+
+        // 2. Background sync from Supabase without blocking UI
+        pullFromSupabase(restaurantId)
+            .catch(e => console.error("Initial Sync Error:", e))
+            .finally(() => loadData());
     }, [restaurantId, restaurant, loadData]);
 
     /* ── Sync status listener ── */
