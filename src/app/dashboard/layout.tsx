@@ -111,25 +111,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
 
         const loadFromCache = async () => {
-            const cached = await posDb.settings.get('current_config');
-            if (cached) {
-                setRestaurantName(cached.restaurant_name);
-                setRestaurantLogo(cached.restaurant_logo || null);
-                setTenantTheme(cached.theme || '');
-                setRestaurantId(cached.restaurant_id);
-                restaurantIdRef.current = cached.restaurant_id;
-                if (cached.permissions_json) {
-                    setPermissions(JSON.parse(cached.permissions_json));
+            try {
+                const cached = await posDb.settings.get('current_config');
+                if (cached && cached.restaurant_id) {
+                    setRestaurantName(cached.restaurant_name);
+                    setRestaurantLogo(cached.restaurant_logo || null);
+                    setTenantTheme(cached.theme || '');
+                    setRestaurantId(cached.restaurant_id);
+                    restaurantIdRef.current = cached.restaurant_id;
+                    if (cached.permissions_json) {
+                        try {
+                            setPermissions(JSON.parse(cached.permissions_json));
+                        } catch {
+                            setPermissions({ _isAdmin: true });
+                        }
+                    } else {
+                        setPermissions({ _isAdmin: true });
+                    }
+                    setLoading(false);
+                    return true;
                 }
-                
-                const cachedBranches = await posDb.branches.where('restaurant_id').equals(cached.restaurant_id).toArray();
-                if (cachedBranches.length > 0) {
-                    // Branches loaded from cache — context will be updated when online
-                }
-                
-                setLoading(false);
-                return true;
+            } catch (e) {
+                console.warn("loadFromCache Dexie error:", e);
             }
+
+            try {
+                const offlineSession = typeof window !== 'undefined' ? localStorage.getItem('offline_session') : null;
+                if (offlineSession) {
+                    const parsed = JSON.parse(offlineSession);
+                    if (parsed.restaurant_id) {
+                        setRestaurantId(parsed.restaurant_id);
+                        restaurantIdRef.current = parsed.restaurant_id;
+                        setPermissions({ _isAdmin: true });
+                        setLoading(false);
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.warn("loadFromCache localStorage error:", e);
+            }
+
             return false;
         };
 
@@ -375,18 +396,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         };
 
         const checkAuthWithFallback = async () => {
-            // Priority 1: Load from local cache for instant UI
+            // Priority 1: Load from local cache for instant UI (0ms)
             const hasCache = await loadFromCache();
             
+            // Safety timeout: Never stay on full-screen loading spinner for more than 2 seconds
+            const safetyTimer = setTimeout(() => {
+                setLoading(false);
+            }, 2000);
+
             try {
                 // Priority 2: Update if online
                 if (navigator.onLine) {
-                    await checkAuth();
+                    await Promise.race([
+                        checkAuth(),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error("Auth timeout")), 2500))
+                    ]);
                 } else if (!hasCache) {
                     // Offline with no cache: check offline_session
-                    const offlineSession = localStorage.getItem('offline_session');
+                    const offlineSession = typeof window !== 'undefined' ? localStorage.getItem('offline_session') : null;
                     if (offlineSession) {
-                        // We have a session but no cache — create minimal cache
                         const parsed = JSON.parse(offlineSession);
                         if (parsed.restaurant_id) {
                             setRestaurantId(parsed.restaurant_id);
@@ -401,7 +429,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         router.push('/login');
                     }
                 } else {
-                    // Offline but has cache — already loaded, just mark done
                     setLoading(false);
                 }
             } catch (err) {
@@ -409,22 +436,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 if (hasCache) {
                     setLoading(false);
                 } else {
-                    // Check offline_session as last resort
-                    const offlineSession = localStorage.getItem('offline_session');
+                    const offlineSession = typeof window !== 'undefined' ? localStorage.getItem('offline_session') : null;
                     if (offlineSession) {
-                        const parsed = JSON.parse(offlineSession);
-                        if (parsed.restaurant_id) {
-                            setRestaurantId(parsed.restaurant_id);
-                            restaurantIdRef.current = parsed.restaurant_id;
-                            setPermissions({ _isAdmin: true });
-                            setLoading(false);
-                            return;
+                        try {
+                            const parsed = JSON.parse(offlineSession);
+                            if (parsed.restaurant_id) {
+                                setRestaurantId(parsed.restaurant_id);
+                                restaurantIdRef.current = parsed.restaurant_id;
+                                setPermissions({ _isAdmin: true });
+                                setLoading(false);
+                                return;
+                            }
+                        } catch {
+                            // ignore parse error
                         }
                     }
-                    router.push('/login');
+                    setLoading(false);
                 }
+            } finally {
+                clearTimeout(safetyTimer);
+                setLoading(false);
             }
-        }
+        };
 
         checkAuthWithFallback();
 
