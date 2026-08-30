@@ -281,27 +281,27 @@ export default function OrdersPage() {
                 <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full md:w-auto">
                     <button 
                         onClick={async () => {
-                            if (!restaurantId || isSyncing) return;
+                            if (!restaurantId) return;
                             if (!navigator.onLine) {
                                 toast.error(isAr ? "أنت غير متصل بالإنترنت" : "You are offline");
                                 return;
                             }
+                            const toastId = toast.loading(isAr ? "جاري المزامنة مع السيرفر..." : "Syncing with server...");
                             try {
                                 const res = await pushDirtyToSupabase(restaurantId, true);
                                 await pullFromSupabase(restaurantId);
                                 await fetchOrders();
                                 if (res.success) {
-                                    toast.success(isAr ? `تمت المزامنة بنجاح (${res.pushed} طلب)` : `Synced ${res.pushed} orders successfully`);
+                                    toast.success(isAr ? `تمت المزامنة بنجاح (${res.pushed} طلب)` : `Synced ${res.pushed} orders successfully`, { id: toastId });
                                 } else {
-                                    toast.error(isAr ? "حدث خطأ أثناء المزامنة" : "Sync error occurred");
+                                    toast.error(isAr ? "حدث خطأ أثناء المزامنة" : "Sync error occurred", { id: toastId });
                                 }
                             } catch (err) {
                                 console.error(err);
-                                toast.error(isAr ? "فشلت المزامنة" : "Sync failed");
+                                toast.error(isAr ? "فشلت المزامنة" : "Sync failed", { id: toastId });
                             }
                         }}
-                        disabled={isSyncing}
-                        className={`flex-1 sm:flex-none p-2.5 rounded-xl border transition flex items-center justify-center gap-2 ${isSyncing ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200" : "bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white border-slate-300 dark:border-zinc-700/50 hover:border-blue-400 focus:ring-2"}`}
+                        className="flex-1 sm:flex-none p-2.5 rounded-xl border transition flex items-center justify-center gap-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white border-slate-300 dark:border-zinc-700/50 hover:border-blue-400 focus:ring-2 active:scale-95 cursor-pointer shadow-sm"
                     >
                         <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin text-blue-500" : ""}`} />
                         <span className="text-sm font-bold">{isAr ? "مزامنة و تحديث" : "Sync & Refresh"}</span>

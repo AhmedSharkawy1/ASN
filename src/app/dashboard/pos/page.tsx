@@ -753,26 +753,26 @@ export default function POSPage() {
                     
                     <button 
                         onClick={async () => {
-                            if (!restaurantId || isSyncing) return;
+                            if (!restaurantId) return;
                             if (!navigator.onLine) {
                                 toast.error(isAr ? "أنت غير متصل بالإنترنت" : "You are offline");
                                 return;
                             }
+                            const toastId = toast.loading(isAr ? "جاري المزامنة مع السيرفر..." : "Syncing with server...");
                             try {
                                 const res = await pushDirtyToSupabase(restaurantId, true);
                                 await pullFromSupabase(restaurantId);
                                 if (res.success) {
-                                    toast.success(isAr ? `تمت المزامنة بنجاح (${res.pushed} طلب)` : `Synced ${res.pushed} orders successfully`);
+                                    toast.success(isAr ? `تمت المزامنة بنجاح (${res.pushed} طلب)` : `Synced ${res.pushed} orders successfully`, { id: toastId });
                                 } else {
-                                    toast.error(isAr ? "حدث خطأ أثناء المزامنة" : "Sync error occurred");
+                                    toast.error(isAr ? "حدث خطأ أثناء المزامنة" : "Sync error occurred", { id: toastId });
                                 }
                             } catch (err) {
                                 console.error(err);
-                                toast.error(isAr ? "فشلت المزامنة" : "Sync failed");
+                                toast.error(isAr ? "فشلت المزامنة" : "Sync failed", { id: toastId });
                             }
                         }}
-                        disabled={isSyncing || !isOnline}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${isSyncing || !isOnline ? "opacity-50 cursor-not-allowed bg-slate-100 border-slate-200" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-400 border-slate-200 hover:text-blue-600 focus:ring-2"}`}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition bg-white dark:bg-card text-slate-700 dark:text-zinc-300 border-slate-200 hover:text-blue-600 focus:ring-2 active:scale-95 cursor-pointer shadow-sm"
                     >
                         <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin text-blue-500" : ""}`} /> 
                         {isAr ? "مزامنة" : "Sync"}

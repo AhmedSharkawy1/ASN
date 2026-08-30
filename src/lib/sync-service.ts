@@ -16,12 +16,26 @@ export interface SyncStatus {
 
 let _syncStatus: SyncStatus = { isOnline: true, isSyncing: false, pendingCount: 0 };
 const _listeners = new Set<(s: SyncStatus) => void>();
+let _syncTimeout: NodeJS.Timeout | null = null;
 
 // Helper to check for Electron
 const isElectron = () => typeof window !== 'undefined' && 'electronAPI' in window;
 
 function notify(update: Partial<SyncStatus>) {
     _syncStatus = { ..._syncStatus, ...update };
+    
+    // Safety auto-reset for isSyncing so it never hangs indefinitely
+    if (_syncTimeout) clearTimeout(_syncTimeout);
+    if (_syncStatus.isSyncing) {
+        _syncTimeout = setTimeout(() => {
+            if (_syncStatus.isSyncing) {
+                console.warn('[SyncService] Sync safety timeout reached (15s), resetting isSyncing to false');
+                _syncStatus = { ..._syncStatus, isSyncing: false };
+                _listeners.forEach(l => l(_syncStatus));
+            }
+        }, 15000);
+    }
+
     _listeners.forEach(l => l(_syncStatus));
 }
 
