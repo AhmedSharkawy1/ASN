@@ -243,28 +243,42 @@ export async function pushDirtyToSupabase(restaurantId: string, forceAll = false
     notify({ isSyncing: true });
 
     try {
-        // Gather orders to sync (either dirty only, or all dirty + recent non-drafts if forceAll)
-        let targetOrders: PosOrder[] = [];
+        // 1. Gather all dirty orders (must always be synced)
+        const dirtyOrders = await posDb.orders
+            .where('restaurant_id').equals(restaurantId)
+            .and(o => !!o._dirty)
+            .toArray();
+
+        // 2. Gather non-draft orders and sort by created_at descending (newest first)
+        const allNonDrafts = await posDb.orders
+            .where('restaurant_id').equals(restaurantId)
+            .and(o => !o.is_draft)
+            .toArray();
+
+        allNonDrafts.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+
+        // Combine: all dirty orders + top 200 newest orders
+        const orderMap = new Map<string, PosOrder>();
+        dirtyOrders.forEach(o => orderMap.set(o.id, o));
         if (forceAll) {
-            targetOrders = await posDb.orders
-                .where('restaurant_id').equals(restaurantId)
-                .and(o => !o.is_draft)
-                .reverse()
-                .limit(100)
-                .toArray();
-        } else {
-            targetOrders = await posDb.orders
-                .where('restaurant_id').equals(restaurantId)
-                .and(o => !!o._dirty)
-                .toArray();
+            allNonDrafts.slice(0, 200).forEach(o => orderMap.set(o.id, o));
         }
+        const targetOrders = Array.from(orderMap.values());
 
         // Gather customers to sync
-        const targetCusts = await posDb.customers
+        const dirtyCusts = await posDb.customers
             .where('restaurant_id').equals(restaurantId)
-            .and(c => (forceAll ? true : !!c._dirty))
-            .limit(50)
+            .and(c => !!c._dirty)
             .toArray();
+        const allCusts = await posDb.customers
+            .where('restaurant_id').equals(restaurantId)
+            .toArray();
+        const custMap = new Map<string, PosCustomer>();
+        dirtyCusts.forEach(c => custMap.set(c.id, c));
+        if (forceAll) {
+            allCusts.slice(0, 100).forEach(c => custMap.set(c.id, c));
+        }
+        const targetCusts = Array.from(custMap.values());
 
         if (targetOrders.length === 0 && targetCusts.length === 0) {
             notify({ isSyncing: false });
