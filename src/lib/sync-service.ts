@@ -243,73 +243,93 @@ export async function pushDirtyToSupabase(restaurantId: string, forceAll = false
     notify({ isSyncing: true });
 
     try {
-        // Gather orders to sync (either dirty only, or all non-drafts if forceAll)
-        const targetOrders = await posDb.orders
-            .where('restaurant_id').equals(restaurantId)
-            .and(o => (forceAll ? !o.is_draft : !!o._dirty))
-            .toArray();
-
-        const ordersToSync = targetOrders.map(order => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { _dirty, ...rest } = order;
-            delete (rest as PosOrder & { delivery_driver_id?: number }).delivery_driver_id;
-            delete (rest as PosOrder & { delivery_driver_name?: string }).delivery_driver_name;
-            delete (rest as PosOrder & { delivery_fee?: number }).delivery_fee;
-            delete (rest as PosOrder & { branch_id?: string }).branch_id;
-            delete (rest as PosOrder & { table_id?: string }).table_id;
-            
-            return {
-                ...rest,
-                customer_address: rest.customer_address || null,
-                notes: (rest as { notes?: string }).notes || null,
-                deposit_amount: (rest as { deposit_amount?: number }).deposit_amount || 0,
-                source: (rest as { source?: string }).source || 'pos',
-            };
-        });
+        // Gather orders to sync (either dirty only, or all dirty + recent non-drafts if forceAll)
+        let targetOrders: PosOrder[] = [];
+        if (forceAll) {
+            targetOrders = await posDb.orders
+                .where('restaurant_id').equals(restaurantId)
+                .and(o => !o.is_draft)
+                .reverse()
+                .limit(100)
+                .toArray();
+        } else {
+            targetOrders = await posDb.orders
+                .where('restaurant_id').equals(restaurantId)
+                .and(o => !!o._dirty)
+                .toArray();
+        }
 
         // Gather customers to sync
         const targetCusts = await posDb.customers
             .where('restaurant_id').equals(restaurantId)
             .and(c => (forceAll ? true : !!c._dirty))
+            .limit(50)
             .toArray();
 
-        const custsToSync = targetCusts.map(cust => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { _dirty, address, ...rest } = cust;
-            return rest;
-        });
-
-        if (ordersToSync.length === 0 && custsToSync.length === 0) {
+        if (targetOrders.length === 0 && targetCusts.length === 0) {
             notify({ isSyncing: false });
             return { success: true, pushed: 0 };
         }
 
-        // Push via server-side API (uses SERVICE_ROLE_KEY, bypasses RLS)
-        const res = await fetch('/api/orders/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orders: ordersToSync, customers: custsToSync }),
-        });
+        let totalPushed = 0;
+        const allErrors: string[] = [];
 
-        const result = await res.json();
+        // Push in chunks of 50 orders max to ensure fast response times
+        const CHUNK_SIZE = 50;
+        for (let i = 0; i < Math.max(targetOrders.length, 1); i += CHUNK_SIZE) {
+            const orderChunk = targetOrders.slice(i, i + CHUNK_SIZE);
+            const custChunk = i === 0 ? targetCusts : [];
 
-        if (res.ok && result.success) {
-            // Mark synced orders as clean and update status if modified by server
-            for (const order of targetOrders) {
-                if (result.updatedOrders?.[order.id] || result.orders > 0) {
-                    const finalStatus = result.updatedOrders?.[order.id]?.status || order.status;
-                    await posDb.orders.update(order.id, { _dirty: false, status: finalStatus });
+            const ordersToSync = orderChunk.map(order => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { _dirty, ...rest } = order;
+                delete (rest as PosOrder & { delivery_driver_id?: number }).delivery_driver_id;
+                delete (rest as PosOrder & { delivery_driver_name?: string }).delivery_driver_name;
+                delete (rest as PosOrder & { delivery_fee?: number }).delivery_fee;
+                delete (rest as PosOrder & { branch_id?: string }).branch_id;
+                delete (rest as PosOrder & { table_id?: string }).table_id;
+                
+                return {
+                    ...rest,
+                    customer_address: rest.customer_address || null,
+                    notes: (rest as { notes?: string }).notes || null,
+                    deposit_amount: (rest as { deposit_amount?: number }).deposit_amount || 0,
+                    source: (rest as { source?: string }).source || 'pos',
+                };
+            });
+
+            const custsToSync = custChunk.map(cust => {
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { _dirty, address, ...rest } = cust;
+                return rest;
+            });
+
+            const res = await fetch('/api/orders/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orders: ordersToSync, customers: custsToSync }),
+            });
+
+            const result = await res.json();
+
+            if (res.ok && result.success) {
+                totalPushed += result.orders || 0;
+                for (const order of orderChunk) {
+                    if (result.updatedOrders?.[order.id] || result.orders > 0) {
+                        const finalStatus = result.updatedOrders?.[order.id]?.status || order.status;
+                        await posDb.orders.update(order.id, { _dirty: false, status: finalStatus });
+                    }
                 }
+                for (const cust of custChunk) {
+                    await posDb.customers.update(cust.id, { _dirty: false });
+                }
+                if (result.errors?.length > 0) {
+                    allErrors.push(...result.errors);
+                }
+            } else {
+                console.error('[Sync] Chunk failed:', result.error || result);
+                if (result.error) allErrors.push(result.error);
             }
-            for (const cust of targetCusts) {
-                await posDb.customers.update(cust.id, { _dirty: false });
-            }
-            console.log(`[Sync] Pushed ${result.orders} orders, ${result.customers} customers`);
-            if (result.errors?.length > 0) {
-                console.warn('[Sync] Some items had errors:', result.errors);
-            }
-        } else {
-            console.error('[Sync] Push API failed:', result.error || result);
         }
 
         const remainingDirtyOrders = await posDb.orders.where('restaurant_id').equals(restaurantId).and(o => !!o._dirty).count();
@@ -317,9 +337,9 @@ export async function pushDirtyToSupabase(restaurantId: string, forceAll = false
         notify({ lastSynced: new Date().toISOString(), pendingCount: remainingDirtyOrders + remainingDirtyCusts });
 
         return { 
-            success: res.ok && result.success, 
-            pushed: result.orders || 0,
-            errors: result.errors 
+            success: allErrors.length === 0 || totalPushed > 0, 
+            pushed: totalPushed,
+            errors: allErrors 
         };
     } catch (err) {
         console.error('[Sync] Push failed', err);
