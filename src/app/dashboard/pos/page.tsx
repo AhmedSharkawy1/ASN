@@ -160,8 +160,8 @@ export default function POSPage() {
         let cats = await posDb.categories.where("restaurant_id").equals(restaurantId).sortBy("sort_order");
         let items = await posDb.menu_items.where("restaurant_id").equals(restaurantId).toArray();
 
-        // Fast initial fallback if Dexie is empty on first run
-        if (cats.length === 0 && navigator.onLine) {
+        // Fast initial fallback if Dexie is empty on first run or after clearing cache
+        if ((cats.length === 0 || items.length === 0) && navigator.onLine) {
             const { data: remoteCats } = await supabase
                 .from('categories').select('*')
                 .eq('restaurant_id', restaurantId).order('sort_order');
@@ -171,7 +171,7 @@ export default function POSPage() {
                 
                 const catIds = remoteCats.map(c => c.id as string);
                 const { data: remoteItems } = await supabase.from('items').select('*').in('category_id', catIds);
-                if (remoteItems) {
+                if (remoteItems && remoteItems.length > 0) {
                     items = remoteItems.map(i => ({ ...i, restaurant_id: restaurantId, _dirty: false } as PosMenuItem));
                     await posDb.menu_items.bulkPut(items);
                 }

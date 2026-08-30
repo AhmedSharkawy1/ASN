@@ -26,63 +26,106 @@ export function useRestaurant() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetch = async () => {
+        let isMounted = true;
+
+        const loadCachedFirst = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
+                const { posDb } = await import('@/lib/pos-db');
+                const cached = await posDb.settings.get('current_config');
+                if (cached && cached.restaurant_id && isMounted) {
+                    setRestaurant(prev => prev || {
+                        id: cached.restaurant_id,
+                        name: cached.restaurant_name,
+                        email: '',
+                        currency: cached.currency || 'EGP',
+                        subscription_plan: 'pro',
+                        subscription_expires_at: null,
+                        logo_url: cached.restaurant_logo || undefined,
+                        theme: cached.theme || undefined,
+                    } as RestaurantData);
+                    setLoading(false);
+                }
+            } catch {}
+
+            try {
+                const offlineSession = typeof window !== 'undefined' ? localStorage.getItem('offline_session') : null;
+                if (offlineSession && isMounted) {
+                    const parsed = JSON.parse(offlineSession);
+                    if (parsed.restaurant_id) {
+                        setRestaurant(prev => prev || {
+                            id: parsed.restaurant_id,
+                            name: parsed.restaurant_name || 'Restaurant',
+                            email: parsed.email || '',
+                            currency: 'EGP',
+                            subscription_plan: 'pro',
+                            subscription_expires_at: null,
+                        } as RestaurantData);
+                        setLoading(false);
+                    }
+                }
+            } catch {}
+        };
+
+        loadCachedFirst();
+
+        const fetchRemote = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const user = session?.user;
                 if (!user) return;
 
                 const email = user.email || "";
-                let rId = null;
+                let rId: string | null = null;
 
                 const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
 
                 if (impersonatingTenant) {
                     rId = impersonatingTenant;
                 } else if (email.endsWith('.asn')) {
-                    // Staff member with .asn email
-                    const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).single();
+                    const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).maybeSingle();
                     if (staff) rId = staff.restaurant_id;
                 } else {
-                    // Owner
-                    const { data: rest } = await supabase.from('restaurants').select('id').eq('email', email).single();
+                    const { data: rest } = await supabase.from('restaurants').select('id').eq('email', email).maybeSingle();
                     if (rest) {
                         rId = rest.id;
                     } else {
-                        // Fallback: staff user with regular email
-                        const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).single();
+                        const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).maybeSingle();
                         if (staff) rId = staff.restaurant_id;
                     }
                 }
 
-                if (rId) {
-                    // Try fetching with all fields
+                if (rId && isMounted) {
                     const { data: d1, error: e1 } = await supabase
                         .from('restaurants')
                         .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, receipt_logo_url, slug, starting_order_number, auto_approve_website_orders, auto_approve_cashier_orders')
                         .eq('id', rId)
-                        .single();
+                        .maybeSingle();
 
                     if (!e1 && d1) {
                         setRestaurant(d1 as RestaurantData);
                     } else {
-                        console.warn("Retrying restaurant fetch without optional columns...");
-                        // Fallback: omit newer columns if they don't exist yet
-                        const { data: d2, error: e2 } = await supabase
+                        const { data: d2 } = await supabase
                             .from('restaurants')
                             .select('id, name, email, currency, subscription_plan, subscription_expires_at, logo_url, phone, whatsapp_number, phone_numbers, address, slug, starting_order_number')
                             .eq('id', rId)
-                            .single();
+                            .maybeSingle();
                         if (d2) {
                             setRestaurant(d2 as RestaurantData);
-                        } else if (e2) {
-                            console.error("Failed to fetch restaurant even on fallback:", e2);
                         }
                     }
                 }
-            } catch (e) { console.error(e); }
-            finally { setLoading(false); }
+            } catch (e) {
+                console.error("useRestaurant fetch error:", e);
+            } finally {
+                if (isMounted) setLoading(false);
+            }
         };
-        fetch();
+
+        fetchRemote();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     return { restaurant, loading, restaurantId: restaurant?.id || null, slug: restaurant?.slug || null };

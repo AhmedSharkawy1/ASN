@@ -72,9 +72,15 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
     notify({ isSyncing: true });
 
     try {
-        // Parallel queries to Supabase for all master data
+        // 1. First fetch categories for this restaurant
+        const { data: cats } = await supabase
+            .from('categories').select('*')
+            .eq('restaurant_id', restaurantId).order('sort_order');
+
+        const catIds = (cats || []).map(c => c.id as string);
+
+        // 2. Fetch items for these categories in parallel with other master data
         const [
-            { data: cats },
             { data: allItems },
             { data: orders },
             { data: customers },
@@ -83,8 +89,7 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
             { data: zones },
             { data: bData }
         ] = await Promise.all([
-            supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('sort_order'),
-            supabase.from('items').select('*').eq('restaurant_id', restaurantId),
+            catIds.length > 0 ? supabase.from('items').select('*').in('category_id', catIds) : Promise.resolve({ data: [] }),
             supabase.from('orders').select('*').eq('restaurant_id', restaurantId).order('created_at', { ascending: false }).limit(200),
             supabase.from('customers').select('*').eq('restaurant_id', restaurantId).limit(200),
             supabase.from('team_members').select('*').eq('restaurant_id', restaurantId),
