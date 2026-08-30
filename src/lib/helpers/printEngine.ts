@@ -128,29 +128,54 @@ export function browserPrint(html: string): boolean {
 }
 
 /**
- * Send ESC/POS cash drawer kick command via Electron API.
- * The command (ESC p 0 25 250) generates an electrical pulse
- * on the printer's RJ11 port to open the connected cash drawer.
- * Only works when running inside the Electron desktop app.
+ * Send ESC/POS cash drawer kick command.
+ * Tries multiple methods in order:
+ * 1. Electron API (desktop app)
+ * 2. Local Cash Drawer Service on localhost:5689 (web browser)
  */
 export async function openCashDrawer(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
-    if (!('electronAPI' in (window as any))) {
-        console.warn('[PrintEngine] Cash drawer requires the desktop app (Electron)');
-        return false;
-    }
-    try {
-        const res = await (window as any).electronAPI.openCashDrawer();
-        if (res?.success) {
-            console.log('[PrintEngine] Cash drawer opened');
-            return true;
+
+    // Method 1: Electron API (desktop app)
+    if ('electronAPI' in (window as any)) {
+        try {
+            const res = await (window as any).electronAPI.openCashDrawer();
+            if (res?.success) {
+                console.log('[PrintEngine] Cash drawer opened via Electron');
+                return true;
+            }
+        } catch (err) {
+            console.error('[PrintEngine] Electron cash drawer error:', err);
         }
-        console.error('[PrintEngine] Cash drawer failed:', res?.error);
-        return false;
-    } catch (err) {
-        console.error('[PrintEngine] Cash drawer error:', err);
-        return false;
     }
+
+    // Method 2: Local Cash Drawer Service (web browser)
+    // Calls http://localhost:5689/open-drawer which sends ESC/POS
+    // command to the thermal printer via Windows RAW print API
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+
+        const res = await fetch('http://localhost:5689/open-drawer', {
+            method: 'POST',
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+                console.log('[PrintEngine] Cash drawer opened via local service');
+                return true;
+            }
+            console.error('[PrintEngine] Local service error:', data.error);
+        }
+    } catch (err) {
+        // Service not running - this is expected on machines without the service
+        console.warn('[PrintEngine] Local cash drawer service not available (localhost:5689). Run start-drawer-service.bat on the POS machine.');
+    }
+
+    return false;
 }
 
 /**
