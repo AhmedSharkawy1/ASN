@@ -154,9 +154,9 @@ export default function OrdersPage() {
         // 1️⃣ Optimistically update local React state
         setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, updated_at: updatedTime } : o));
 
-        // 2️⃣ Update local Dexie storage immediately
+        // 2️⃣ Update local Dexie storage immediately (mark _dirty until Supabase confirms)
         try {
-            await posDb.orders.update(orderId, { status: newStatus, updated_at: updatedTime, _dirty: false });
+            await posDb.orders.update(orderId, { status: newStatus, updated_at: updatedTime, _dirty: true });
         } catch (dexieErr) {
             console.warn("Could not update Dexie order:", dexieErr);
         }
@@ -165,22 +165,35 @@ export default function OrdersPage() {
         if (newStatus === 'completed') {
             try {
                 const res = await fetch(`/api/orders/${orderId}/complete`, { method: 'POST' });
-                if (!res.ok) {
-                    // Fallback to direct supabase update
-                    await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
-                    await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
+                if (res.ok) {
+                    await posDb.orders.update(orderId, { _dirty: false }).catch(() => {});
+                    return;
                 }
             } catch (err) {
                 console.error(err);
-                // Fallback direct update
-                await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
-                await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
+            }
+            // Fallback direct update
+            try {
+                const { error } = await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
+                if (!error) {
+                    await posDb.orders.update(orderId, { _dirty: false }).catch(() => {});
+                    await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
+                }
+            } catch (err) {
+                console.error("Direct update failed:", err);
             }
             return;
         }
 
-        await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
-        await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
+        try {
+            const { error } = await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
+            if (!error) {
+                await posDb.orders.update(orderId, { _dirty: false }).catch(() => {});
+                await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: order.status, new_status: newStatus, performed_by: 'admin' });
+            }
+        } catch (err) {
+            console.error("Direct update failed:", err);
+        }
     };
 
     const fetchLogs = async (orderId: string) => {
