@@ -10,7 +10,7 @@ import { ClipboardList, Search, Filter, Download, ChevronDown, ChevronUp, Clock,
 import { motion, AnimatePresence } from "framer-motion";
 import { getPrinterSettings } from "@/lib/helpers/printerSettings";
 import { renderReceiptHtml } from "@/lib/helpers/receiptRenderer";
-import { executePrint } from "@/lib/helpers/printEngine";
+import { executePrint, triggerCashDrawerIfEnabled } from "@/lib/helpers/printEngine";
 import { useRouter } from "next/navigation";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
 
@@ -221,6 +221,8 @@ export default function OrdersPage() {
         const html = renderReceiptHtml(order, restaurant, isAr);
         const settings = getPrinterSettings();
         executePrint(html, settings);
+        // Open cash drawer if enabled
+        triggerCashDrawerIfEnabled(settings);
     };
 
     const filteredOrders = useMemo(() => {

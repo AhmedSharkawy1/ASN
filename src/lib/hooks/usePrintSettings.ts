@@ -39,6 +39,7 @@ export function usePrintSettings(restaurantId: string | null) {
                         systemPrinterName: data.system_printer_name || '',
                         orientation: data.orientation || 'portrait',
                         margins: data.margins || 'none',
+                        openCashDrawer: data.open_cash_drawer ?? false,
                     };
 
                     // Respect URL override (Automatic Tool)
@@ -78,6 +79,7 @@ export function usePrintSettings(restaurantId: string | null) {
                 margins: newSettings.margins || 'none',
                 font_size: newSettings.fontSize,
                 auto_print: newSettings.autoPrint,
+                open_cash_drawer: newSettings.openCashDrawer ?? false,
                 updated_at: new Date().toISOString(),
             }, { onConflict: 'restaurant_id' });
         } catch (err) {

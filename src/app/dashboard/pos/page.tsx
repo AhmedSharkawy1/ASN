@@ -10,7 +10,7 @@ import { posDb, generateId, getPosNextOrderNumber, decrementPosStock } from "@/l
 import type { PosCategory, PosMenuItem, PosOrder, PosCustomer, PosStaffUser } from "@/lib/pos-db";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
 import { getReceiptStyles, getPrinterSettings } from "@/lib/helpers/printerSettings";
-import { executePrint } from "@/lib/helpers/printEngine";
+import { executePrint, triggerCashDrawerIfEnabled } from "@/lib/helpers/printEngine";
 import { usePrintSettings } from "@/lib/hooks/usePrintSettings";
 import PrintModal from "@/components/PrintModal";
 import { renderReceiptHtml, renderShiftReceiptHtml } from "@/lib/helpers/receiptRenderer";
@@ -409,6 +409,8 @@ export default function POSPage() {
         executePrint(html, settings, (modalHtml) => {
             setPrintModalHtml(modalHtml);
         });
+        // Open cash drawer if enabled
+        triggerCashDrawerIfEnabled(settings);
     };
 
     const printDirectReceipt = useCallback((
@@ -447,6 +449,9 @@ export default function POSPage() {
         executePrint(html, currentSettings, (modalHtml) => {
             setPrintModalHtml(modalHtml);
         });
+
+        // Open cash drawer if enabled
+        triggerCashDrawerIfEnabled(currentSettings);
     }, [restaurant, isAr]);
 
     /* ── Submit Order ── */

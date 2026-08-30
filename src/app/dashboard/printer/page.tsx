@@ -284,6 +284,36 @@ export default function PrinterPage() {
                         </button>
                     </div>
 
+                    {/* Cash Drawer Toggle */}
+                    <div className={`flex items-center justify-between p-4 rounded-xl border transition-all ${
+                        settings.openCashDrawer
+                            ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20"
+                            : "bg-slate-50 dark:bg-black/20 border-slate-200 dark:border-zinc-700/50"
+                    }`}>
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl">{settings.openCashDrawer ? "💰" : "🗃️"}</span>
+                            <div>
+                                <label className="text-sm font-bold text-slate-900 dark:text-white block">
+                                    {isAr ? "فتح درج الكاشير" : "Open Cash Drawer"}
+                                </label>
+                                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 font-bold">
+                                    {settings.openCashDrawer
+                                        ? (isAr ? "✓ الدرج هيفتح تلقائياً لما الأوردر يتعمل" : "✓ Drawer opens automatically when an order is placed")
+                                        : (isAr ? "الدرج مش هيفتح تلقائياً" : "Drawer will not open automatically")
+                                    }
+                                </p>
+                                <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-bold">
+                                    {isAr ? "⚡ يتطلب تطبيق سطح المكتب + درج متوصل بالطابعة الحرارية (كابل RJ11)" : "⚡ Requires desktop app + drawer connected to thermal printer (RJ11 cable)"}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setSettings({ ...settings, openCashDrawer: !settings.openCashDrawer })}
+                            className={`w-14 h-8 rounded-full transition-all relative ${settings.openCashDrawer ? "bg-amber-500 shadow-inner" : "bg-slate-300 dark:bg-zinc-700"}`}>
+                            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${settings.openCashDrawer ? (isAr ? "right-1" : "left-7") : (isAr ? "right-7" : "left-1")}`} />
+                        </button>
+                    </div>
+
                     {/* Universal Setup Tool */}
                     <div className="p-5 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-500/10 dark:to-blue-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 shadow-sm relative overflow-hidden group">
                         <div className="relative z-10">

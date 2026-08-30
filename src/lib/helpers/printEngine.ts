@@ -126,3 +126,40 @@ export function browserPrint(html: string): boolean {
     }
     return false;
 }
+
+/**
+ * Send ESC/POS cash drawer kick command via Electron API.
+ * The command (ESC p 0 25 250) generates an electrical pulse
+ * on the printer's RJ11 port to open the connected cash drawer.
+ * Only works when running inside the Electron desktop app.
+ */
+export async function openCashDrawer(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    if (!('electronAPI' in (window as any))) {
+        console.warn('[PrintEngine] Cash drawer requires the desktop app (Electron)');
+        return false;
+    }
+    try {
+        const res = await (window as any).electronAPI.openCashDrawer();
+        if (res?.success) {
+            console.log('[PrintEngine] Cash drawer opened');
+            return true;
+        }
+        console.error('[PrintEngine] Cash drawer failed:', res?.error);
+        return false;
+    } catch (err) {
+        console.error('[PrintEngine] Cash drawer error:', err);
+        return false;
+    }
+}
+
+/**
+ * Trigger cash drawer open if the setting is enabled.
+ * Call this after a successful print/order submission.
+ */
+export function triggerCashDrawerIfEnabled(settings: PrinterSettings): void {
+    if (settings.openCashDrawer) {
+        openCashDrawer();
+    }
+}
+

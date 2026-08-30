@@ -47,6 +47,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
      */
     getPrinters: () => ipcRenderer.invoke('get-printers'),
 
+    /**
+     * Open the cash drawer connected to the thermal printer.
+     * Sends ESC/POS kick pulse command via RAW printing.
+     * @returns {{ success: boolean, error?: string }}
+     */
+    openCashDrawer: () => ipcRenderer.invoke('open-cash-drawer'),
+
     /* ── Device & App Info ── */
 
     /**

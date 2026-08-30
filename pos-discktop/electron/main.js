@@ -362,6 +362,14 @@ function setupIPC() {
         return [];
     });
 
+    // Cash drawer
+    ipcMain.handle('open-cash-drawer', async () => {
+        if (printService) {
+            return printService.openCashDrawer(mainWindow);
+        }
+        return { success: false, error: 'Print service not initialized' };
+    });
+
     // Device ID
     ipcMain.handle('get-device-id', async () => {
         if (syncWorker) {

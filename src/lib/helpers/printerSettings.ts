@@ -10,6 +10,7 @@ export type PrinterSettings = {
     systemPrinterName?: string;  // real system printer name from QZ Tray
     orientation?: string;        // 'portrait' or 'landscape'
     margins?: string;            // 'none', 'small', 'normal'
+    openCashDrawer?: boolean;    // open cash drawer on order submission
 };
 
 const DEFAULT_SETTINGS: PrinterSettings = {
@@ -20,6 +21,7 @@ const DEFAULT_SETTINGS: PrinterSettings = {
     systemPrinterName: '',
     orientation: 'portrait',
     margins: 'none',
+    openCashDrawer: false,
 };
 
 export function getPrinterSettings(): PrinterSettings {
