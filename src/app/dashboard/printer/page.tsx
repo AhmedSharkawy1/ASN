@@ -303,7 +303,7 @@ export default function PrinterPage() {
                                     }
                                 </p>
                                 <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 font-bold">
-                                    {isAr ? "⚡ يتطلب تطبيق سطح المكتب + درج متوصل بالطابعة الحرارية (كابل RJ11)" : "⚡ Requires desktop app + drawer connected to thermal printer (RJ11 cable)"}
+                                    {isAr ? "⚡ درج متوصل بالطابعة الحرارية (كابل RJ11)" : "⚡ Drawer connected to thermal printer (RJ11 cable)"}
                                 </p>
                             </div>
                         </div>
@@ -313,6 +313,32 @@ export default function PrinterPage() {
                             <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-all ${settings.openCashDrawer ? (isAr ? "right-1" : "left-7") : (isAr ? "right-7" : "left-1")}`} />
                         </button>
                     </div>
+
+                    {/* Cash Drawer Web Helper - shown when drawer is enabled */}
+                    {settings.openCashDrawer && (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-500/20">
+                            <h4 className="text-sm font-black text-amber-900 dark:text-amber-300 mb-2 flex items-center gap-2">
+                                💰 {isAr ? "تشغيل الدرج من المتصفح" : "Cash Drawer for Web Browser"}
+                            </h4>
+                            <p className="text-xs text-amber-700 dark:text-amber-400 font-bold mb-3 leading-relaxed">
+                                {isAr
+                                    ? "لو بتستخدم النظام من المتصفح (مش تطبيق الديسكتوب)، حمّل الملفين دول وحطهم على سطح المكتب في جهاز الكاشير، وشغّل open-drawer.bat مرة واحدة وسيبه مفتوح."
+                                    : "If using the web browser (not desktop app), download these 2 files to the POS machine desktop, then run open-drawer.bat and keep it open."}
+                            </p>
+                            <div className="flex gap-2 flex-wrap">
+                                <a href="/open-drawer.bat" download="open-drawer.bat"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors">
+                                    <Download className="w-3.5 h-3.5" />
+                                    open-drawer.bat
+                                </a>
+                                <a href="/asn-drawer.ps1" download="asn-drawer.ps1"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors">
+                                    <Download className="w-3.5 h-3.5" />
+                                    asn-drawer.ps1
+                                </a>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Universal Setup Tool */}
                     <div className="p-5 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-500/10 dark:to-blue-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 shadow-sm relative overflow-hidden group">
