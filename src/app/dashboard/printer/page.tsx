@@ -318,23 +318,18 @@ export default function PrinterPage() {
                     {settings.openCashDrawer && (
                         <div className="p-4 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-200 dark:border-amber-500/20">
                             <h4 className="text-sm font-black text-amber-900 dark:text-amber-300 mb-2 flex items-center gap-2">
-                                💰 {isAr ? "تشغيل الدرج من المتصفح" : "Cash Drawer for Web Browser"}
+                                💰 {isAr ? "تشغيل الدرج من المتصفح (مرة واحدة فقط)" : "Cash Drawer Web Setup (One-time only)"}
                             </h4>
                             <p className="text-xs text-amber-700 dark:text-amber-400 font-bold mb-3 leading-relaxed">
                                 {isAr
-                                    ? "لو بتستخدم النظام من المتصفح (مش تطبيق الديسكتوب)، حمّل الملفين دول وحطهم على سطح المكتب في جهاز الكاشير، وشغّل open-drawer.bat مرة واحدة وسيبه مفتوح."
-                                    : "If using the web browser (not desktop app), download these 2 files to the POS machine desktop, then run open-drawer.bat and keep it open."}
+                                    ? "حمّل الأداة وشغلها مرة واحدة فقط على جهاز الكاشير. ستعمل في الخلفية وتفتح تلقائياً مع تشغيل الويندوز بدون أن تحتاج لفتح أي ملفات مجدداً."
+                                    : "Download and run this tool once on the POS machine. It will run in the background and start automatically with Windows."}
                             </p>
                             <div className="flex gap-2 flex-wrap">
-                                <a href="/open-drawer.bat" download="open-drawer.bat"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors">
-                                    <Download className="w-3.5 h-3.5" />
-                                    open-drawer.bat
-                                </a>
-                                <a href="/asn-drawer.ps1" download="asn-drawer.ps1"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors">
-                                    <Download className="w-3.5 h-3.5" />
-                                    asn-drawer.ps1
+                                <a href="/setup-cash-drawer.bat" download="setup-cash-drawer.bat"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm">
+                                    <Download className="w-4 h-4" />
+                                    {isAr ? "تحميل أداة التثبيت التلقائي (setup-cash-drawer.bat)" : "Download Auto-Setup Tool (setup-cash-drawer.bat)"}
                                 </a>
                             </div>
                         </div>
