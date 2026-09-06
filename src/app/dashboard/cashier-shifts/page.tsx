@@ -10,7 +10,7 @@ import { browserPrint } from "@/lib/helpers/printEngine";
 import {
     Users, ShoppingCart, DollarSign, Download, Printer,
     Calendar, Banknote, Tag, Truck, CreditCard, Smartphone,
-    Clock, ChevronDown, ChevronUp, Search, ArrowUpRight,
+    Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, ArrowUpRight,
     UserCheck, Package, Eye, EyeOff, ClipboardList
 } from "lucide-react";
 
@@ -87,6 +87,50 @@ const ORDER_TYPE_LABELS: Record<string, { ar: string; en: string }> = {
     dine_in: { ar: "صالة", en: "Dine In" },
 };
 
+const getLocalStartOfDay = (d: Date) => {
+    const start = new Date(d);
+    start.setHours(0, 0, 0, 0);
+    return start;
+};
+
+const getDateBounds = (range: DateRange, customStart: string, customEnd: string) => {
+    const now = new Date();
+    let dateFrom: string | null = null;
+    let dateTo: string | null = null;
+
+    if (range === "today") {
+        dateFrom = getLocalStartOfDay(now).toISOString();
+    } else if (range === "yesterday") {
+        const startOfYesterday = getLocalStartOfDay(now);
+        startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+        dateFrom = startOfYesterday.toISOString();
+
+        const endOfYesterday = new Date(startOfYesterday);
+        endOfYesterday.setHours(23, 59, 59, 999);
+        dateTo = endOfYesterday.toISOString();
+    } else if (range === "week") {
+        const w = getLocalStartOfDay(now);
+        w.setDate(w.getDate() - 7);
+        dateFrom = w.toISOString();
+    } else if (range === "month") {
+        const m = getLocalStartOfDay(now);
+        m.setMonth(m.getMonth() - 1);
+        dateFrom = m.toISOString();
+    } else if (range === "custom") {
+        if (customStart) {
+            dateFrom = customStart.includes("T")
+                ? new Date(customStart).toISOString()
+                : new Date(customStart + "T00:00:00").toISOString();
+        }
+        if (customEnd) {
+            dateTo = customEnd.includes("T")
+                ? new Date(customEnd).toISOString()
+                : new Date(customEnd + "T23:59:59.999").toISOString();
+        }
+    }
+    return { dateFrom, dateTo };
+};
+
 export default function CashierShiftsPage() {
     const { language } = useLanguage();
     const { restaurant, restaurantId } = useRestaurant();
@@ -107,6 +151,8 @@ export default function CashierShiftsPage() {
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [showItemsInline, setShowItemsInline] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 25;
 
     // Fetch cashier accounts
     useEffect(() => {
@@ -130,11 +176,23 @@ export default function CashierShiftsPage() {
         if (!restaurantId) return;
         setLoading(true);
 
+        const { dateFrom, dateTo } = getDateBounds(range, customStart, customEnd);
+
         // 1. Local Dexie
-        const localOrders = await posDb.orders
+        let localOrders = await posDb.orders
             .where("restaurant_id").equals(restaurantId)
             .and(o => !o.is_draft)
             .toArray();
+
+        if (dateFrom || dateTo) {
+            const fromTime = dateFrom ? new Date(dateFrom).getTime() : 0;
+            const toTime = dateTo ? new Date(dateTo).getTime() : Infinity;
+            localOrders = localOrders.filter(o => {
+                const t = new Date(o.created_at).getTime();
+                return t >= fromTime && t <= toTime;
+            });
+        }
+
         const localMapped: OrderLike[] = localOrders.map(o => {
             const oa = o as any;
             return {
@@ -162,19 +220,39 @@ export default function CashierShiftsPage() {
             };
         });
 
-        // 2. Supabase
+        // 2. Supabase - Chunked fetch with date boundaries
         let remoteOrders: OrderLike[] = [];
         try {
-            const { data } = await supabase
-                .from("orders")
-                .select("id, order_number, status, is_draft, total, subtotal, deposit_amount, delivery_fee, discount, discount_type, payment_method, order_type, cashier_id, cashier_name, customer_name, customer_phone, source, promotion_name, items, created_at, notes")
-                .eq("restaurant_id", restaurantId)
-                .eq("is_draft", false);
-            remoteOrders = ((data as OrderLike[]) || []).map(o => ({
-                ...o,
-                total: o.total || 0,
-                items: (o.items || []) as OrderItem[],
-            }));
+            const batchSize = 1000;
+            let offset = 0;
+            while (true) {
+                let query = supabase
+                    .from("orders")
+                    .select("id, order_number, status, is_draft, total, subtotal, deposit_amount, delivery_fee, discount, discount_type, payment_method, order_type, cashier_id, cashier_name, customer_name, customer_phone, source, promotion_name, items, created_at, notes")
+                    .eq("restaurant_id", restaurantId)
+                    .eq("is_draft", false)
+                    .order("created_at", { ascending: false });
+
+                if (dateFrom) query = query.gte("created_at", dateFrom);
+                if (dateTo) query = query.lte("created_at", dateTo);
+
+                const { data, error } = await query.range(offset, offset + batchSize - 1);
+                if (error) {
+                    console.error("Error fetching cashier shift orders:", error);
+                    break;
+                }
+                if (!data || data.length === 0) break;
+
+                const mapped = (data as OrderLike[]).map(o => ({
+                    ...o,
+                    total: o.total || 0,
+                    items: (o.items || []) as OrderItem[],
+                }));
+                remoteOrders.push(...mapped);
+
+                if (data.length < batchSize) break;
+                offset += batchSize;
+            }
         } catch { /* offline */ }
 
         // 3. Merge
@@ -183,52 +261,7 @@ export default function CashierShiftsPage() {
         remoteOrders.forEach(o => mergedMap.set(o.id, o));
         let allOrders = Array.from(mergedMap.values());
 
-        // 4. Date filter
-        const getLocalStartOfDay = (d: Date) => {
-            const start = new Date(d);
-            start.setHours(0, 0, 0, 0);
-            return start;
-        };
-        const now = new Date();
-        if (range === "today") {
-            const startOfToday = getLocalStartOfDay(now);
-            allOrders = allOrders.filter(o => new Date(o.created_at) >= startOfToday);
-        } else if (range === "yesterday") {
-            const startOfYesterday = getLocalStartOfDay(now);
-            startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-            const endOfYesterday = new Date(startOfYesterday);
-            endOfYesterday.setHours(23, 59, 59, 999);
-            allOrders = allOrders.filter(o => {
-                const d = new Date(o.created_at);
-                return d >= startOfYesterday && d <= endOfYesterday;
-            });
-        } else if (range === "week") {
-            const w = getLocalStartOfDay(now);
-            w.setDate(w.getDate() - 7);
-            allOrders = allOrders.filter(o => new Date(o.created_at) >= w);
-        } else if (range === "month") {
-            const m = getLocalStartOfDay(now);
-            m.setMonth(m.getMonth() - 1);
-            allOrders = allOrders.filter(o => new Date(o.created_at) >= m);
-        } else if (range === "custom") {
-            let start: Date | null = null;
-            let end: Date | null = null;
-            if (customStart) {
-                start = customStart.includes("T") ? new Date(customStart) : new Date(customStart + "T00:00:00");
-            }
-            if (customEnd) {
-                end = customEnd.includes("T") ? new Date(customEnd) : new Date(customEnd + "T23:59:59.999");
-            }
-            if (start && end) {
-                allOrders = allOrders.filter(o => { const d = new Date(o.created_at); return d >= start! && d <= end!; });
-            } else if (start) {
-                allOrders = allOrders.filter(o => new Date(o.created_at) >= start!);
-            } else if (end) {
-                allOrders = allOrders.filter(o => new Date(o.created_at) <= end!);
-            }
-        }
-
-        // 5. Cashier filter
+        // 4. Cashier filter
         let filtered = allOrders;
         if (selectedCashierId !== "all") {
             const selectedCashier = cashiers.find(c => c.id === selectedCashierId);
@@ -244,7 +277,7 @@ export default function CashierShiftsPage() {
         // Sort by date descending
         filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-        // 6. Compute stats (exclude cancelled from financial stats)
+        // 5. Compute stats (exclude cancelled from financial stats)
         const activeOrders = filtered.filter(o => o.status !== "cancelled");
         const totalRevenue = activeOrders.reduce((s, o) => s + (o.total || 0), 0);
         const totalCash = activeOrders.reduce((s, o) => {
@@ -289,6 +322,12 @@ export default function CashierShiftsPage() {
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
+    // Reset pagination and expanded order when filters change
+    useEffect(() => {
+        setCurrentPage(1);
+        setExpandedOrder(null);
+    }, [range, customStart, customEnd, selectedCashierId, searchQuery]);
+
     // Search filter
     const displayedOrders = searchQuery.trim()
         ? orders.filter(o =>
@@ -297,6 +336,9 @@ export default function CashierShiftsPage() {
             (o.customer_phone || "").includes(searchQuery)
         )
         : orders;
+
+    const totalPages = Math.max(1, Math.ceil(displayedOrders.length / pageSize));
+    const paginatedOrders = displayedOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     // CSV export
     const exportCSV = () => {
@@ -648,7 +690,8 @@ export default function CashierShiftsPage() {
                                 <p className="text-sm font-bold">{isAr ? "لا توجد أوردرات في هذه الفترة" : "No orders in this period"}</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
+                            <>
+                                <div className="overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
                                 <table className="w-full min-w-[800px]">
                                     <thead>
                                         <tr className="bg-slate-50 dark:bg-zinc-800/30 border-b border-slate-200 dark:border-zinc-800/50">
@@ -665,7 +708,7 @@ export default function CashierShiftsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {displayedOrders.map((order) => (
+                                        {paginatedOrders.map((order) => (
                                             <tr key={order.id}
                                                 className="border-b border-slate-100 dark:border-zinc-800/30 hover:bg-slate-50/50 dark:hover:bg-zinc-800/10 transition cursor-pointer"
                                                 onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}>
@@ -786,7 +829,40 @@ export default function CashierShiftsPage() {
                                     );
                                 })()}
                             </div>
-                        )}
+
+                            {/* Pagination Controls */}
+                            {displayedOrders.length > pageSize && (
+                                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-zinc-800/50 flex-wrap gap-2">
+                                    <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">
+                                        {isAr
+                                            ? `عرض ${(currentPage - 1) * pageSize + 1} إلى ${Math.min(currentPage * pageSize, displayedOrders.length)} من أصل ${displayedOrders.length} طلب`
+                                            : `Showing ${(currentPage - 1) * pageSize + 1} to ${Math.min(currentPage * pageSize, displayedOrders.length)} of ${displayedOrders.length} orders`}
+                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                            disabled={currentPage === 1}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-slate-50 dark:bg-zinc-800/30 text-slate-600 dark:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
+                                            title={isAr ? "السابق" : "Previous"}
+                                        >
+                                            {isAr ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+                                        </button>
+                                        <span className="text-xs font-bold px-2 text-slate-700 dark:text-zinc-200">
+                                            {isAr ? `صفحة ${currentPage} من ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+                                        </span>
+                                        <button
+                                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={currentPage === totalPages}
+                                            className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800/50 bg-slate-50 dark:bg-zinc-800/30 text-slate-600 dark:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
+                                            title={isAr ? "التالي" : "Next"}
+                                        >
+                                            {isAr ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
                     </div>
                 </>
             )}
