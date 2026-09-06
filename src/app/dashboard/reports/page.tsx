@@ -2,14 +2,15 @@
 
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { posDb } from "@/lib/pos-db";
 import { supabase } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/helpers/formatters";
 import {
     BarChart3, ShoppingCart, DollarSign,
     Package, Download, Users, CreditCard,
-    Banknote, Smartphone, Calendar, ArrowUpRight
+    Banknote, Smartphone, Calendar, ArrowUpRight,
+    ArrowUpDown
 } from "lucide-react";
 
 type DateRange = "today" | "yesterday" | "week" | "month" | "all" | "custom";
@@ -109,6 +110,8 @@ export default function ReportsPage() {
     const [loading, setLoading] = useState(true);
     const [itemSearch, setItemSearch] = useState("");
     const [itemLimit, setItemLimit] = useState(30);
+    const [categorySortBy, setCategorySortBy] = useState<"revenue" | "quantity">("revenue");
+    const [itemSortBy, setItemSortBy] = useState<"revenue" | "quantity" | "price">("revenue");
     const [activeTab, setActiveTab] = useState<"items" | "categories" | "staff" | "payments" | "hourly">("items");
     const [stats, setStats] = useState<Stats>({
         revenue: 0, collectedCash: 0, orders: 0, avgTicket: 0, deliveryFees: 0, discounts: 0, totalUnitsSold: 0,
@@ -307,14 +310,46 @@ export default function ReportsPage() {
 
     useEffect(() => { fetchStats(); }, [fetchStats]);
 
+    const sortedCategories = useMemo(() => {
+        return [...stats.categoryBreakdown].sort((a, b) => {
+            if (categorySortBy === "quantity") {
+                return b.items - a.items;
+            }
+            return b.revenue - a.revenue;
+        });
+    }, [stats.categoryBreakdown, categorySortBy]);
+
+    const sortedAndFilteredItems = useMemo(() => {
+        let list = stats.allItems;
+        if (itemSearch.trim()) {
+            const q = itemSearch.trim().toLowerCase();
+            list = list.filter(item =>
+                item.title.toLowerCase().includes(q) || (item.category && item.category.toLowerCase().includes(q))
+            );
+        }
+        return [...list].sort((a, b) => {
+            if (itemSortBy === "quantity") {
+                return b.count - a.count;
+            }
+            if (itemSortBy === "price") {
+                const priceA = a.count > 0 ? a.revenue / a.count : 0;
+                const priceB = b.count > 0 ? b.revenue / b.count : 0;
+                return priceB - priceA;
+            }
+            return b.revenue - a.revenue;
+        });
+    }, [stats.allItems, itemSearch, itemSortBy]);
+
+    const displayedItems = itemSearch.trim() ? sortedAndFilteredItems : sortedAndFilteredItems.slice(0, itemLimit);
+
     const exportCSV = () => {
         let headers: string[], rows: (string | number)[][];
         if (activeTab === "items") {
-            headers = ["الصنف", "القسم", "الكمية", "الإيراد"];
-            rows = stats.allItems.map(i => [i.title, i.category || "-", i.count, i.revenue]);
+            headers = ["الصنف", "القسم", "الكمية المباعة", "الإيراد"];
+            rows = sortedAndFilteredItems.map(i => [i.title, i.category || "-", i.count, i.revenue]);
         } else if (activeTab === "categories") {
-            headers = ["القسم", "الأصناف المباعة", "الإيراد"];
-            rows = stats.categoryBreakdown.map(c => [c.name, c.items, c.revenue]);
+            headers = ["القسم / التصنيف", "الكمية المباعة (قطعة)", "الإيراد"];
+            rows = sortedCategories.map(c => [c.name, c.items, c.revenue]);
         } else if (activeTab === "staff") {
             headers = ["الموظف", "الطلبات", "الإيراد"];
             rows = stats.staffBreakdown.map(s => [s.name, s.orders, s.revenue]);
@@ -341,13 +376,6 @@ export default function ReportsPage() {
         { key: "payments", label: "طرق الدفع", icon: CreditCard },
         { key: "hourly", label: "التوقيت", icon: Calendar },
     ] as const;
-
-    const filteredItems = stats.allItems.filter(item => {
-        if (!itemSearch.trim()) return true;
-        const q = itemSearch.trim().toLowerCase();
-        return item.title.toLowerCase().includes(q) || (item.category && item.category.toLowerCase().includes(q));
-    });
-    const displayedItems = itemSearch.trim() ? filteredItems : filteredItems.slice(0, itemLimit);
 
     return (
         <div className="flex flex-col gap-6 w-full mx-auto pb-20">
@@ -424,29 +452,69 @@ export default function ReportsPage() {
                             {activeTab === "items" && (
                                 stats.allItems.length === 0 ? <EmptyState /> :
                                     <div className="space-y-4">
-                                        {/* Search & Summary Bar */}
+                                        {/* Search & Sort Bar */}
                                         <div className="flex items-center justify-between gap-3 flex-wrap bg-slate-50 dark:bg-zinc-800/30 p-3 rounded-xl border border-slate-200 dark:border-zinc-700/30">
                                             <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-zinc-300">
                                                 <span>{isAr ? "إجمالي الأصناف المباعة:" : "Total items sold:"}</span>
                                                 <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">{stats.totalUnitsSold.toLocaleString()} {isAr ? "قطعة" : "items"}</span>
                                                 <span className="text-slate-400 dark:text-zinc-500">({stats.allItems.length} {isAr ? "صنف مختلف" : "unique items"})</span>
                                             </div>
-                                            <div className="relative min-w-[200px] max-w-xs flex-1">
-                                                <input
-                                                    type="text"
-                                                    value={itemSearch}
-                                                    onChange={e => setItemSearch(e.target.value)}
-                                                    placeholder={isAr ? "بحث في الأصناف المباعة..." : "Search sold items..."}
-                                                    className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-zinc-200 placeholder-slate-400 outline-none focus:border-emerald-500"
-                                                />
-                                                {itemSearch && (
+
+                                            <div className="flex items-center gap-2 flex-wrap flex-1 justify-end">
+                                                {/* Sort buttons */}
+                                                <div className="flex items-center gap-1 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700/60 rounded-lg p-1">
+                                                    <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 px-1 flex items-center gap-1">
+                                                        <ArrowUpDown className="w-3 h-3" /> {isAr ? "فرز:" : "Sort:"}
+                                                    </span>
                                                     <button
-                                                        onClick={() => setItemSearch("")}
-                                                        className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                                                        onClick={() => setItemSortBy("revenue")}
+                                                        className={`px-2.5 py-1 rounded text-xs font-bold transition ${
+                                                            itemSortBy === "revenue"
+                                                                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                                                : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+                                                        }`}
                                                     >
-                                                        ✕
+                                                        💰 {isAr ? "الأعلى إيراداً" : "Revenue"}
                                                     </button>
-                                                )}
+                                                    <button
+                                                        onClick={() => setItemSortBy("quantity")}
+                                                        className={`px-2.5 py-1 rounded text-xs font-bold transition ${
+                                                            itemSortBy === "quantity"
+                                                                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                                                : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+                                                        }`}
+                                                    >
+                                                        📦 {isAr ? "الأكثر كمية" : "Quantity"}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setItemSortBy("price")}
+                                                        className={`px-2.5 py-1 rounded text-xs font-bold transition ${
+                                                            itemSortBy === "price"
+                                                                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                                                : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+                                                        }`}
+                                                    >
+                                                        🏷️ {isAr ? "سعر القطعة" : "Unit Price"}
+                                                    </button>
+                                                </div>
+
+                                                <div className="relative min-w-[170px] max-w-xs flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={itemSearch}
+                                                        onChange={e => setItemSearch(e.target.value)}
+                                                        placeholder={isAr ? "بحث في الأصناف المباعة..." : "Search sold items..."}
+                                                        className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-zinc-200 placeholder-slate-400 outline-none focus:border-emerald-500"
+                                                    />
+                                                    {itemSearch && (
+                                                        <button
+                                                            onClick={() => setItemSearch("")}
+                                                            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
 
@@ -458,7 +526,20 @@ export default function ReportsPage() {
                                             <div className="overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
                                                 <div className="min-w-[400px] space-y-1.5">
                                                     {displayedItems.map((item, i) => {
-                                                        const maxRev = stats.allItems[0]?.revenue || 1;
+                                                        const maxItemVal = itemSortBy === "quantity"
+                                                            ? (sortedAndFilteredItems[0]?.count || 1)
+                                                            : itemSortBy === "price"
+                                                            ? (sortedAndFilteredItems[0]?.count > 0 ? sortedAndFilteredItems[0].revenue / sortedAndFilteredItems[0].count : 1)
+                                                            : (sortedAndFilteredItems[0]?.revenue || 1);
+
+                                                        const currItemVal = itemSortBy === "quantity"
+                                                            ? item.count
+                                                            : itemSortBy === "price"
+                                                            ? (item.count > 0 ? item.revenue / item.count : 0)
+                                                            : item.revenue;
+
+                                                        const itemBarPct = Math.min(100, Math.max(2, Math.round((currItemVal / maxItemVal) * 100)));
+
                                                         return (
                                                             <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/30 transition group">
                                                                 <span className="w-6 text-center text-xs font-bold text-slate-400 dark:text-zinc-600">{i + 1}</span>
@@ -468,11 +549,15 @@ export default function ReportsPage() {
                                                                         {item.category && <span className="text-xs bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 px-2 py-0.5 rounded-md font-bold flex-shrink-0">{item.category}</span>}
                                                                     </div>
                                                                     <div className="w-full bg-slate-100 dark:bg-zinc-800/50 rounded-full h-1.5">
-                                                                        <div className="bg-emerald-500/60 h-1.5 rounded-full transition-all duration-500" style={{ width: `${(item.revenue / maxRev) * 100}%` }} />
+                                                                        <div className="bg-emerald-500/60 h-1.5 rounded-full transition-all duration-500" style={{ width: `${itemBarPct}%` }} />
                                                                     </div>
                                                                 </div>
-                                                                <span className="text-sm text-slate-500 dark:text-zinc-500 font-bold w-20 text-center flex-shrink-0">{item.count.toLocaleString()} قطعة</span>
-                                                                <span className="text-base font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums w-28 text-left flex-shrink-0">{formatCurrency(item.revenue, restaurant?.currency)}</span>
+                                                                <span className={`text-sm font-bold w-20 text-center flex-shrink-0 ${itemSortBy === "quantity" ? "text-emerald-600 dark:text-emerald-400 font-extrabold" : "text-slate-500 dark:text-zinc-500"}`}>
+                                                                    {item.count.toLocaleString()} قطعة
+                                                                </span>
+                                                                <span className={`text-base tabular-nums w-28 text-left flex-shrink-0 ${itemSortBy === "revenue" ? "font-extrabold text-emerald-600 dark:text-emerald-400" : "font-bold text-slate-700 dark:text-zinc-300"}`}>
+                                                                    {formatCurrency(item.revenue, restaurant?.currency)}
+                                                                </span>
                                                             </div>
                                                         );
                                                     })}
@@ -495,29 +580,83 @@ export default function ReportsPage() {
 
                             {/* ── CATEGORIES TAB ── */}
                             {activeTab === "categories" && (
-                                stats.categoryBreakdown.length === 0 ? <EmptyState /> :
-                                    <div className="overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
-                                        <div className="min-w-[400px] space-y-1.5">
-                                            {stats.categoryBreakdown.map((cat, i) => {
-                                                const maxRev = stats.categoryBreakdown[0]?.revenue || 1;
-                                                const pct = Math.round((cat.revenue / stats.revenue) * 100);
-                                                return (
-                                                    <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-white/[0.02] transition">
-                                                        <span className="w-6 text-center text-xs font-bold text-slate-400 dark:text-zinc-600">{i + 1}</span>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center justify-between mb-1">
-                                                                <p className="text-base font-bold text-slate-700 dark:text-zinc-200">{cat.name}</p>
-                                                                <span className="text-xs text-slate-500 dark:text-zinc-500 font-bold">{pct}%</span>
+                                sortedCategories.length === 0 ? <EmptyState /> :
+                                    <div className="space-y-4">
+                                        {/* Sort & Summary Bar for Categories */}
+                                        <div className="flex items-center justify-between gap-3 flex-wrap bg-slate-50 dark:bg-zinc-800/30 p-3 rounded-xl border border-slate-200 dark:border-zinc-700/30">
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-zinc-300">
+                                                <BarChart3 className="w-4 h-4 text-blue-500" />
+                                                <span>{isAr ? "أقسام وتصنيفات المبيعات:" : "Sales Categories:"}</span>
+                                                <span className="text-blue-600 dark:text-blue-400 font-extrabold text-sm">{sortedCategories.length} {isAr ? "قسم" : "categories"}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-xs font-bold text-slate-500 dark:text-zinc-400 flex items-center gap-1">
+                                                    <ArrowUpDown className="w-3.5 h-3.5" />
+                                                    {isAr ? "الفرز حسب:" : "Sort by:"}
+                                                </span>
+                                                <button
+                                                    onClick={() => setCategorySortBy("revenue")}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+                                                        categorySortBy === "revenue"
+                                                            ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-500/30 shadow-sm"
+                                                            : "bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-white"
+                                                    }`}
+                                                >
+                                                    💰 {isAr ? "السعر / الإيراد" : "Revenue"}
+                                                </button>
+                                                <button
+                                                    onClick={() => setCategorySortBy("quantity")}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+                                                        categorySortBy === "quantity"
+                                                            ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-500/30 shadow-sm"
+                                                            : "bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-white"
+                                                    }`}
+                                                >
+                                                    📦 {isAr ? "الكمية المباعة" : "Quantity Sold"}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
+                                            <div className="min-w-[400px] space-y-1.5">
+                                                {sortedCategories.map((cat, i) => {
+                                                    const maxVal = categorySortBy === "quantity"
+                                                        ? (sortedCategories[0]?.items || 1)
+                                                        : (sortedCategories[0]?.revenue || 1);
+                                                    const currVal = categorySortBy === "quantity" ? cat.items : cat.revenue;
+                                                    const pct = categorySortBy === "quantity"
+                                                        ? (stats.totalUnitsSold > 0 ? Math.round((cat.items / stats.totalUnitsSold) * 100) : 0)
+                                                        : (stats.revenue > 0 ? Math.round((cat.revenue / stats.revenue) * 100) : 0);
+
+                                                    return (
+                                                        <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/30 transition">
+                                                            <span className="w-6 text-center text-xs font-bold text-slate-400 dark:text-zinc-600">{i + 1}</span>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <p className="text-base font-bold text-slate-700 dark:text-zinc-200">{cat.name}</p>
+                                                                    <span className="text-xs text-slate-500 dark:text-zinc-500 font-bold">
+                                                                        {pct}% {categorySortBy === "quantity" ? (isAr ? "من الكمية" : "of units") : (isAr ? "من الإيراد" : "of revenue")}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="w-full bg-slate-100 dark:bg-zinc-800/50 rounded-full h-1.5">
+                                                                    <div
+                                                                        className={`h-1.5 rounded-full transition-all duration-500 ${
+                                                                            categorySortBy === "quantity" ? "bg-cyan-500/70" : "bg-blue-500/60"
+                                                                        }`}
+                                                                        style={{ width: `${Math.min(100, Math.max(2, Math.round((currVal / maxVal) * 100)))}%` }}
+                                                                    />
+                                                                </div>
                                                             </div>
-                                                            <div className="w-full bg-slate-100 dark:bg-zinc-800/50 rounded-full h-1.5">
-                                                                <div className="bg-blue-500/60 h-1.5 rounded-full transition-all duration-500" style={{ width: `${(cat.revenue / maxRev) * 100}%` }} />
-                                                            </div>
+                                                            <span className={`text-sm font-bold w-20 text-center flex-shrink-0 ${categorySortBy === "quantity" ? "text-cyan-600 dark:text-cyan-400 font-extrabold" : "text-slate-500 dark:text-zinc-500"}`}>
+                                                                {cat.items.toLocaleString()} قطعة
+                                                            </span>
+                                                            <span className={`text-base tabular-nums w-28 text-left flex-shrink-0 ${categorySortBy === "revenue" ? "font-extrabold text-blue-600 dark:text-blue-400" : "font-bold text-slate-600 dark:text-zinc-300"}`}>
+                                                                {formatCurrency(cat.revenue, restaurant?.currency)}
+                                                            </span>
                                                         </div>
-                                                        <span className="text-sm text-slate-500 dark:text-zinc-500 font-bold w-16 text-center flex-shrink-0">{cat.items} صنف</span>
-                                                        <span className="text-base font-extrabold text-blue-600 dark:text-blue-400 tabular-nums w-24 text-left flex-shrink-0">{formatCurrency(cat.revenue, restaurant?.currency)}</span>
-                                                    </div>
-                                                );
-                                            })}
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     </div>
                             )}
