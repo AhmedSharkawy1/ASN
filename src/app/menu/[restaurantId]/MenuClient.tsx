@@ -178,7 +178,7 @@ export default function MenuClient({
     if (!localStorage.getItem(`lead_captured_${config.id}`)) setShowLeadPopup(true);
   }, [isVicino, config.vicino_landing_enabled, config.id]);
 
-  // Track customer visit / view for this restaurant
+  // Track customer visit / view for this restaurant (1 day protection cooldown per user)
   useEffect(() => {
     if (typeof window === "undefined" || !config?.id) return;
 
@@ -187,12 +187,22 @@ export default function MenuClient({
     const isPreview = urlParams.has("previewTheme") || urlParams.has("preview_theme");
     if (isPreview || config.id === "demo") return;
 
-    // 10-second debounce to avoid React double-mount or instant refresh spam, but count every real open
-    const viewKey = `asn_last_view_${config.id}`;
-    const lastView = sessionStorage.getItem(viewKey);
+    // 1-day (24 hours) protection cooldown per user/device
+    const viewKey = `asn_menu_view_date_${config.id}`;
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
     const now = Date.now();
-    if (!lastView || now - Number(lastView) > 10000) {
-      sessionStorage.setItem(viewKey, String(now));
+    let lastView: string | null = null;
+    try {
+      lastView = localStorage.getItem(viewKey);
+    } catch {
+      // In case localStorage is blocked in private mode
+    }
+
+    if (!lastView || now - Number(lastView) > ONE_DAY_MS) {
+      try {
+        localStorage.setItem(viewKey, String(now));
+      } catch {}
+
       fetch("/api/menu-views", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
