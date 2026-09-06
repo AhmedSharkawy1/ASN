@@ -2,7 +2,7 @@
 
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { posDb } from "@/lib/pos-db";
 import { supabase } from "@/lib/supabase/client";
 import { formatCurrency, formatDate, statusLabel, statusColor } from "@/lib/helpers/formatters";
@@ -11,8 +11,9 @@ import {
     Users, ShoppingCart, DollarSign, Download, Printer,
     Calendar, Banknote, Tag, Truck, CreditCard, Smartphone,
     Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, ArrowUpRight,
-    UserCheck, Package, Eye, EyeOff, ClipboardList
+    UserCheck, Package, Eye, EyeOff, ClipboardList, X
 } from "lucide-react";
+import { applyOrderSearchToSupabase, matchesOrderSearch, sortOrdersForSearch } from "@/lib/helpers/orderSearch";
 
 type DateRange = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 
@@ -150,9 +151,18 @@ export default function CashierShiftsPage() {
     });
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [showItemsInline, setShowItemsInline] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 25;
+
+    // Debounce search input by 300ms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery.trim());
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // Fetch cashier accounts
     useEffect(() => {
@@ -176,7 +186,9 @@ export default function CashierShiftsPage() {
         if (!restaurantId) return;
         setLoading(true);
 
-        const { dateFrom, dateTo } = getDateBounds(range, customStart, customEnd);
+        const { dateFrom, dateTo } = debouncedSearch
+            ? { dateFrom: null, dateTo: null }
+            : getDateBounds(range, customStart, customEnd);
 
         // 1. Local Dexie
         let localOrders = await posDb.orders
@@ -184,7 +196,9 @@ export default function CashierShiftsPage() {
             .and(o => !o.is_draft)
             .toArray();
 
-        if (dateFrom || dateTo) {
+        if (debouncedSearch) {
+            localOrders = localOrders.filter(o => matchesOrderSearch(o, debouncedSearch));
+        } else if (dateFrom || dateTo) {
             const fromTime = dateFrom ? new Date(dateFrom).getTime() : 0;
             const toTime = dateTo ? new Date(dateTo).getTime() : Infinity;
             localOrders = localOrders.filter(o => {
@@ -220,7 +234,7 @@ export default function CashierShiftsPage() {
             };
         });
 
-        // 2. Supabase - Chunked fetch with date boundaries
+        // 2. Supabase - Chunked fetch with date boundaries or logical search
         let remoteOrders: OrderLike[] = [];
         try {
             const batchSize = 1000;
@@ -233,8 +247,12 @@ export default function CashierShiftsPage() {
                     .eq("is_draft", false)
                     .order("created_at", { ascending: false });
 
-                if (dateFrom) query = query.gte("created_at", dateFrom);
-                if (dateTo) query = query.lte("created_at", dateTo);
+                if (debouncedSearch) {
+                    query = applyOrderSearchToSupabase(query, debouncedSearch);
+                } else {
+                    if (dateFrom) query = query.gte("created_at", dateFrom);
+                    if (dateTo) query = query.lte("created_at", dateTo);
+                }
 
                 const { data, error } = await query.range(offset, offset + batchSize - 1);
                 if (error) {
@@ -274,8 +292,12 @@ export default function CashierShiftsPage() {
             }
         }
 
-        // Sort by date descending
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // Sort by date descending (and if search active, exact order_number first)
+        if (debouncedSearch) {
+            filtered = sortOrdersForSearch(filtered, debouncedSearch);
+        } else {
+            filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        }
 
         // 5. Compute stats (exclude cancelled from financial stats)
         const activeOrders = filtered.filter(o => o.status !== "cancelled");
@@ -318,7 +340,7 @@ export default function CashierShiftsPage() {
             paymentBreakdown, orderTypeBreakdown,
         });
         setLoading(false);
-    }, [restaurantId, range, customStart, customEnd, selectedCashierId, cashiers]);
+    }, [restaurantId, range, customStart, customEnd, selectedCashierId, cashiers, debouncedSearch]);
 
     useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -328,14 +350,12 @@ export default function CashierShiftsPage() {
         setExpandedOrder(null);
     }, [range, customStart, customEnd, selectedCashierId, searchQuery]);
 
-    // Search filter
-    const displayedOrders = searchQuery.trim()
-        ? orders.filter(o =>
-            (o.order_number?.toString() || "").includes(searchQuery) ||
-            (o.customer_name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (o.customer_phone || "").includes(searchQuery)
-        )
-        : orders;
+    // Search filter: logical matching & prioritize exact order_number match
+    const displayedOrders = useMemo(() => {
+        if (!searchQuery.trim()) return orders;
+        const filtered = orders.filter(o => matchesOrderSearch(o, searchQuery));
+        return sortOrdersForSearch(filtered, searchQuery);
+    }, [orders, searchQuery]);
 
     const totalPages = Math.max(1, Math.ceil(displayedOrders.length / pageSize));
     const paginatedOrders = displayedOrders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -669,11 +689,19 @@ export default function CashierShiftsPage() {
                                     <Search className="w-3.5 h-3.5 text-slate-400" />
                                     <input
                                         type="text"
-                                        placeholder={isAr ? "بحث برقم الطلب أو اسم العميل..." : "Search by order # or customer..."}
+                                        placeholder={isAr ? "بحث برقم الطلب (مثال: 15) أو الهاتف أو العميل..." : "Search by order # (e.g. 15), phone, or customer..."}
                                         value={searchQuery}
                                         onChange={e => setSearchQuery(e.target.value)}
-                                        className="bg-transparent text-sm text-slate-700 dark:text-zinc-300 outline-none w-48"
+                                        className="bg-transparent text-sm text-slate-700 dark:text-zinc-300 outline-none w-48 sm:w-64"
                                     />
+                                    {searchQuery && (
+                                        <button
+                                            onClick={() => setSearchQuery("")}
+                                            className="text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                                        >
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                 </div>
                                 <button onClick={() => setShowItemsInline(!showItemsInline)}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-slate-50 dark:bg-zinc-800/30 text-slate-500 dark:text-zinc-500 border border-slate-200 dark:border-zinc-700/30 rounded-xl text-xs font-bold hover:text-slate-900 dark:hover:text-white transition"

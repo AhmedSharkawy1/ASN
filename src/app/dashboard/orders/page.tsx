@@ -14,6 +14,7 @@ import { executePrint, triggerCashDrawerIfEnabled } from "@/lib/helpers/printEng
 import { useRouter } from "next/navigation";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
 import { toast } from "sonner";
+import { applyOrderSearchToSupabase, matchesOrderSearch, sortOrdersForSearch } from "@/lib/helpers/orderSearch";
 
 type OrderItem = {
     title: string;
@@ -174,15 +175,9 @@ export default function OrdersPage() {
                 .eq('restaurant_id', restaurantId)
                 .eq('is_draft', false);
 
-            // Search by order number or customer
+            // Search by order number, customer phone, or customer name
             if (debouncedSearch) {
-                const term = debouncedSearch.replace(/^#/, '');
-                const isNumeric = /^\d+$/.test(term);
-                if (isNumeric) {
-                    query = query.or(`order_number.eq.${Number(term)},customer_phone.ilike.%${term}%`);
-                } else {
-                    query = query.or(`customer_name.ilike.%${term}%,customer_phone.ilike.%${term}%`);
-                }
+                query = applyOrderSearchToSupabase(query, debouncedSearch);
             } else {
                 // Apply timeframe date filter only if not specifically searching
                 const { from, to } = getDateBounds();
@@ -219,6 +214,9 @@ export default function OrdersPage() {
             }
 
             let remoteOrders = (data as Order[]) || [];
+            if (debouncedSearch) {
+                remoteOrders = sortOrdersForSearch(remoteOrders, debouncedSearch);
+            }
             setTotalCount(count ?? 0);
 
             // On first page, also check for any local unsynced (dirty) orders in Dexie
@@ -302,9 +300,29 @@ export default function OrdersPage() {
                     _offline: !!o._dirty,
                 })).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-                setTotalCount(mapped.length);
+                let filtered = mapped;
+                if (debouncedSearch) {
+                    filtered = sortOrdersForSearch(
+                        mapped.filter(o => matchesOrderSearch(o, debouncedSearch)),
+                        debouncedSearch
+                    );
+                }
+                if (statusFilter !== 'all') {
+                    if (statusFilter === 'in_progress') {
+                        filtered = filtered.filter(o => ['in_progress', 'accepted', 'preparing', 'ready', 'out_for_delivery'].includes(o.status));
+                    } else {
+                        filtered = filtered.filter(o => o.status === statusFilter);
+                    }
+                }
+                if (sourceFilter === 'pos') {
+                    filtered = filtered.filter(o => o.source === 'pos');
+                } else if (sourceFilter === 'website') {
+                    filtered = filtered.filter(o => !o.source || o.source !== 'pos');
+                }
+
+                setTotalCount(filtered.length);
                 const fromIdx = (page - 1) * pageSize;
-                setOrders(mapped.slice(fromIdx, fromIdx + pageSize));
+                setOrders(filtered.slice(fromIdx, fromIdx + pageSize));
             } catch { /* offline fallback failed */ }
         } finally {
             setLoading(false);
@@ -451,13 +469,7 @@ export default function OrdersPage() {
                 .eq('is_draft', false);
 
             if (debouncedSearch) {
-                const term = debouncedSearch.replace(/^#/, '');
-                const isNumeric = /^\d+$/.test(term);
-                if (isNumeric) {
-                    q = q.or(`order_number.eq.${Number(term)},customer_phone.ilike.%${term}%`);
-                } else {
-                    q = q.or(`customer_name.ilike.%${term}%,customer_phone.ilike.%${term}%`);
-                }
+                q = applyOrderSearchToSupabase(q, debouncedSearch);
             } else {
                 const { from, to } = getDateBounds();
                 if (from) q = q.gte('created_at', from);
