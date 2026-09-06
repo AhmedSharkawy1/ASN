@@ -111,7 +111,7 @@ export default function ReportsPage() {
     const [itemSearch, setItemSearch] = useState("");
     const [itemLimit, setItemLimit] = useState(30);
     const [categorySortBy, setCategorySortBy] = useState<"revenue" | "quantity">("revenue");
-    const [itemSortBy, setItemSortBy] = useState<"revenue" | "quantity" | "price">("revenue");
+    const [itemSortBy, setItemSortBy] = useState<"revenue" | "quantity">("revenue");
     const [activeTab, setActiveTab] = useState<"items" | "categories" | "staff" | "payments" | "hourly">("items");
     const [stats, setStats] = useState<Stats>({
         revenue: 0, collectedCash: 0, orders: 0, avgTicket: 0, deliveryFees: 0, discounts: 0, totalUnitsSold: 0,
@@ -331,11 +331,6 @@ export default function ReportsPage() {
             if (itemSortBy === "quantity") {
                 return b.count - a.count;
             }
-            if (itemSortBy === "price") {
-                const priceA = a.count > 0 ? a.revenue / a.count : 0;
-                const priceB = b.count > 0 ? b.revenue / b.count : 0;
-                return priceB - priceA;
-            }
             return b.revenue - a.revenue;
         });
     }, [stats.allItems, itemSearch, itemSortBy]);
@@ -486,16 +481,6 @@ export default function ReportsPage() {
                                                     >
                                                         📦 {isAr ? "الأكثر كمية" : "Quantity"}
                                                     </button>
-                                                    <button
-                                                        onClick={() => setItemSortBy("price")}
-                                                        className={`px-2.5 py-1 rounded text-xs font-bold transition ${
-                                                            itemSortBy === "price"
-                                                                ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                                                                : "text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
-                                                        }`}
-                                                    >
-                                                        🏷️ {isAr ? "سعر القطعة" : "Unit Price"}
-                                                    </button>
                                                 </div>
 
                                                 <div className="relative min-w-[170px] max-w-xs flex-1">
@@ -528,14 +513,10 @@ export default function ReportsPage() {
                                                     {displayedItems.map((item, i) => {
                                                         const maxItemVal = itemSortBy === "quantity"
                                                             ? (sortedAndFilteredItems[0]?.count || 1)
-                                                            : itemSortBy === "price"
-                                                            ? (sortedAndFilteredItems[0]?.count > 0 ? sortedAndFilteredItems[0].revenue / sortedAndFilteredItems[0].count : 1)
                                                             : (sortedAndFilteredItems[0]?.revenue || 1);
 
                                                         const currItemVal = itemSortBy === "quantity"
                                                             ? item.count
-                                                            : itemSortBy === "price"
-                                                            ? (item.count > 0 ? item.revenue / item.count : 0)
                                                             : item.revenue;
 
                                                         const itemBarPct = Math.min(100, Math.max(2, Math.round((currItemVal / maxItemVal) * 100)));
@@ -602,7 +583,7 @@ export default function ReportsPage() {
                                                             : "bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-white"
                                                     }`}
                                                 >
-                                                    💰 {isAr ? "السعر / الإيراد" : "Revenue"}
+                                                    💰 {isAr ? "الأعلى إيراداً" : "Revenue"}
                                                 </button>
                                                 <button
                                                     onClick={() => setCategorySortBy("quantity")}
@@ -612,7 +593,7 @@ export default function ReportsPage() {
                                                             : "bg-white dark:bg-zinc-900 text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-800 dark:hover:text-white"
                                                     }`}
                                                 >
-                                                    📦 {isAr ? "الكمية المباعة" : "Quantity Sold"}
+                                                    📦 {isAr ? "الأكثر كمية" : "Quantity"}
                                                 </button>
                                             </div>
                                         </div>
