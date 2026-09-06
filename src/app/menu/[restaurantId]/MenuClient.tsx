@@ -178,6 +178,28 @@ export default function MenuClient({
     if (!localStorage.getItem(`lead_captured_${config.id}`)) setShowLeadPopup(true);
   }, [isVicino, config.vicino_landing_enabled, config.id]);
 
+  // Track unique customer visit / view per session for this restaurant
+  useEffect(() => {
+    if (typeof window === "undefined" || !config?.id) return;
+
+    // Do not count preview mode or demo account
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPreview = urlParams.has("previewTheme") || urlParams.has("preview_theme");
+    if (isPreview || config.id === "demo") return;
+
+    const sessionKey = `asn_menu_view_${config.id}`;
+    if (!sessionStorage.getItem(sessionKey)) {
+      sessionStorage.setItem(sessionKey, "1");
+      fetch("/api/menu-views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ restaurant_id: config.id }),
+      }).catch((err) => {
+        console.warn("Could not record menu view:", err);
+      });
+    }
+  }, [config?.id]);
+
   // Global Delivery Modal (for themes without built-in call menu)
   const [globalDeliveryNumbers, setGlobalDeliveryNumbers] = useState<{label?: string, number: string}[]>([]);
   const [showGlobalDeliveryModal, setShowGlobalDeliveryModal] = useState(false);

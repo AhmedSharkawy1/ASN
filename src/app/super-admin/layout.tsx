@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { useTheme } from "next-themes";
 import {
     LayoutDashboard, Users, CreditCard, Layers,
-    Shield, Database, LineChart, Activity, Settings, Palette,
+    Shield, Database, LineChart, Activity, Settings, Palette, Wallet,
     LogOut, Menu, X, ChevronLeft, Sun, Moon, PanelLeftClose, PanelLeftOpen
 } from "lucide-react";
 import Link from "next/link";
@@ -73,6 +73,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         { href: "/super-admin", icon: LayoutDashboard, label: "Platform Overview", exact: true },
         { href: "/super-admin/clients", icon: Users, label: "Clients & Tenants" },
         { href: "/super-admin/subscriptions", icon: CreditCard, label: "Subscriptions" },
+        { href: "/super-admin/finances", icon: Wallet, label: language === 'ar' ? "الحسابات والمصروفات" : "Finances & Costs" },
         { href: "/super-admin/plans", icon: Layers, label: "Pricing Plans" },
         { href: "/super-admin/features", icon: Shield, label: "Feature Controls" },
         { href: "/super-admin/themes", icon: Palette, label: "Themes Management" },

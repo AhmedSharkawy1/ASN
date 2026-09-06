@@ -30,7 +30,13 @@ export default function SuperAdminPlansPage() {
                 .order('price', { ascending: true });
 
             if (error) throw error;
-            setPlans(data || []);
+            const validPlans = (data || []).filter((p: any) =>
+                !p.plan_name.startsWith('client_') &&
+                !p.plan_name.startsWith('expense_') &&
+                !p.plan_name.startsWith('task_') &&
+                !p.plan_name.startsWith('menu_views_')
+            );
+            setPlans(validPlans);
         } catch (err: unknown) {
             console.error(err);
             const message = err instanceof Error ? err.message : 'Unknown error';

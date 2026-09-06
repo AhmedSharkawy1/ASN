@@ -14,7 +14,7 @@ export default function UserDashboardPage() {
     const { language } = useLanguage();
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [restaurantName, setRestaurantName] = useState("");
-    const [stats, setStats] = useState({ items: 0, categories: 0 });
+    const [stats, setStats] = useState({ items: 0, categories: 0, views: 0 });
     const [subInfo, setSubInfo] = useState<{ plan: string | null; expiresAt: string | null }>({ plan: null, expiresAt: null });
     const qrRef = useRef<SVGSVGElement>(null);
     const [copied, setCopied] = useState(false);
@@ -111,13 +111,28 @@ export default function UserDashboardPage() {
                         const { count } = await supabase.from('items').select('id', { count: 'exact', head: true }).in('category_id', catIds);
                         itemsCount = count || 0;
                     }
-                    setStats({ categories: catsCount || 0, items: itemsCount });
+
+                    // Fetch restaurant menu views
+                    let viewsCount = 0;
+                    try {
+                        const vRes = await fetch(`/api/menu-views?restaurant_id=${rId}`);
+                        if (vRes.ok) {
+                            const vData = await vRes.json();
+                            viewsCount = Number(vData.views) || 0;
+                        }
+                    } catch (e) {
+                        console.warn("Dashboard views fetch error:", e);
+                    }
+
+                    setStats({ categories: catsCount || 0, items: itemsCount, views: viewsCount });
                 } catch (e) {
                     console.warn("Dashboard counts error:", e);
                 }
             }
         };
         fetchDashboardData();
+        window.addEventListener('focus', fetchDashboardData);
+        return () => window.removeEventListener('focus', fetchDashboardData);
     }, []);
 
     const [origin, setOrigin] = useState("");
@@ -131,10 +146,11 @@ export default function UserDashboardPage() {
     useEffect(() => {
         if (restaurantId) {
             const slug = (window as any).rSlug;
-            if (slug) {
+            const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
+            if (slug && !isLocal) {
                 setMenuUrl(`https://${slug}.asntechnology.net`);
             } else if (origin) {
-                setMenuUrl(`${origin}/menu/${restaurantId}`);
+                setMenuUrl(`${origin}/menu/${slug || restaurantId}`);
             }
         }
     }, [restaurantId, origin]);
@@ -238,7 +254,7 @@ export default function UserDashboardPage() {
     const statCards = [
         { label: isAr ? "عدد الأقسام" : "Categories", value: stats.categories, icon: Layers, gradientLight: "from-violet-50 to-purple-50", gradientDark: "dark:from-violet-600/20 dark:to-purple-600/20", borderLight: "border-violet-200", borderDark: "dark:border-violet-500/20", iconColor: "text-violet-500 dark:text-violet-400", iconBg: "bg-violet-100 dark:bg-black/20" },
         { label: isAr ? "إجمالي الأصناف" : "Total Items", value: stats.items, icon: Utensils, gradientLight: "from-emerald-50 to-teal-50", gradientDark: "dark:from-emerald-600/20 dark:to-teal-600/20", borderLight: "border-emerald-200", borderDark: "dark:border-glass-border", iconColor: "text-emerald-500 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-black/20" },
-        { label: isAr ? "المشاهدات" : "Views", value: isAr ? "قريباً" : "Soon", icon: Eye, gradientLight: "from-amber-50 to-orange-50", gradientDark: "dark:from-amber-600/20 dark:to-orange-600/20", borderLight: "border-amber-200", borderDark: "dark:border-amber-500/20", iconColor: "text-amber-500 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-black/20" },
+        { label: isAr ? "المشاهدات" : "Views", value: stats.views.toLocaleString(isAr ? "ar-EG" : "en-US"), icon: Eye, gradientLight: "from-amber-50 to-orange-50", gradientDark: "dark:from-amber-600/20 dark:to-orange-600/20", borderLight: "border-amber-200", borderDark: "dark:border-amber-500/20", iconColor: "text-amber-500 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-black/20" },
     ];
 
     const quickLinks = [
