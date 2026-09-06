@@ -64,13 +64,6 @@ export default function CostAnalyticsPage() {
             });
         }
 
-        // Get per-product profitability
-        let query = supabase.from('orders').select('items, total, order_cost, order_profit')
-            .eq('restaurant_id', restaurantId).eq('is_draft', false).not('order_cost', 'is', null);
-        if (dateFrom) query = query.gte('created_at', dateFrom);
-        if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59');
-        const { data: orders } = await query;
-
         interface OrderItem {
             id?: string;
             title?: string;
@@ -83,7 +76,32 @@ export default function CostAnalyticsPage() {
             order_cost: number | null;
         }
 
-        if (orders) {
+        // Get per-product profitability in chunks (bypassing 1000 order limit)
+        let orders: OrderData[] = [];
+        try {
+            const batchSize = 1000;
+            let offset = 0;
+            while (true) {
+                let query = supabase.from('orders')
+                    .select('items, total, order_cost, order_profit')
+                    .eq('restaurant_id', restaurantId)
+                    .eq('is_draft', false)
+                    .not('order_cost', 'is', null)
+                    .order('created_at', { ascending: false });
+
+                if (dateFrom) query = query.gte('created_at', dateFrom);
+                if (dateTo) query = query.lte('created_at', dateTo + 'T23:59:59');
+
+                const { data, error } = await query.range(offset, offset + batchSize - 1);
+                if (error || !data || data.length === 0) break;
+
+                orders.push(...(data as unknown as OrderData[]));
+                if (data.length < batchSize) break;
+                offset += batchSize;
+            }
+        } catch { /* offline / error */ }
+
+        if (orders && orders.length > 0) {
             const productMap = new Map<string, { revenue: number; cost: number; profit: number; count: number }>();
             (orders as unknown as OrderData[]).forEach((order) => {
                 const items = order.items || [];
