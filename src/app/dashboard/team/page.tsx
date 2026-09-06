@@ -302,19 +302,36 @@ function EmployeeReports({ restaurantId, members }: { restaurantId: string; memb
     const [dateRange, setDateRange] = useState("month");
     const [stats, setStats] = useState<Record<string, { count: number; revenue: number }>>({});
 
-    const dateFrom = useMemo(() => {
+    const { dateFrom, dateTo } = useMemo(() => {
         const d = new Date();
-        if (dateRange === "today") d.setHours(0, 0, 0, 0);
-        else if (dateRange === "week") d.setDate(d.getDate() - 7);
-        else if (dateRange === "month") d.setDate(d.getDate() - 30);
-        else return null;
-        return d.toISOString();
+        let from: string | null = null;
+        let to: string | null = null;
+        if (dateRange === "today") {
+            d.setHours(0, 0, 0, 0);
+            from = d.toISOString();
+        } else if (dateRange === "yesterday") {
+            const startOfYesterday = new Date(d);
+            startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+            startOfYesterday.setHours(0, 0, 0, 0);
+            from = startOfYesterday.toISOString();
+
+            const endOfYesterday = new Date(startOfYesterday);
+            endOfYesterday.setHours(23, 59, 59, 999);
+            to = endOfYesterday.toISOString();
+        } else if (dateRange === "week") {
+            d.setDate(d.getDate() - 7);
+            from = d.toISOString();
+        } else if (dateRange === "month") {
+            d.setDate(d.getDate() - 30);
+            from = d.toISOString();
+        }
+        return { dateFrom: from, dateTo: to };
     }, [dateRange]);
 
     useEffect(() => {
         if (!restaurantId) return;
         posDb.orders.where("restaurant_id").equals(restaurantId)
-            .and(o => o.status !== "cancelled" && !o.is_draft && (!dateFrom || o.created_at >= dateFrom))
+            .and(o => o.status !== "cancelled" && !o.is_draft && (!dateFrom || o.created_at >= dateFrom) && (!dateTo || o.created_at <= dateTo))
             .toArray().then(orders => {
                 const map: Record<string, { count: number; revenue: number }> = {};
                 for (const o of orders) {
@@ -331,16 +348,16 @@ function EmployeeReports({ restaurantId, members }: { restaurantId: string; memb
                 }
                 setStats(map);
             });
-    }, [restaurantId, dateFrom]);
+    }, [restaurantId, dateFrom, dateTo]);
 
     return (
         <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-                <h2 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><BarChart2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> تقريري أداء الموظفين</h2>
+                <h2 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><BarChart2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" /> تقرير أداء الموظفين</h2>
                 <div className="flex gap-2">
-                    {["today", "week", "month"].map(r => (
+                    {["today", "yesterday", "week", "month"].map(r => (
                         <button key={r} onClick={() => setDateRange(r)} className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${dateRange === r ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"}`}>
-                            {r === "today" ? "اليوم" : r === "week" ? "الأسبوع" : "الشهر"}
+                            {r === "today" ? "اليوم" : r === "yesterday" ? "أمس" : r === "week" ? "الأسبوع" : "الشهر"}
                         </button>
                     ))}
                 </div>

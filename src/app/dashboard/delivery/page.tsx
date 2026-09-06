@@ -16,7 +16,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 type Zone = { id: string; name_ar: string; name_en?: string; fee: number; min_order: number; estimated_time: number; is_active: boolean };
-type DateRange = "today" | "week" | "month" | "all" | "custom";
+type DateRange = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 
 export default function DeliveryPage() {
     const { language } = useLanguage();
@@ -76,6 +76,11 @@ export default function DeliveryPage() {
         if (range === "today") {
             const ts = now.toISOString().split("T")[0];
             allOrders = allOrders.filter(o => o.created_at.startsWith(ts));
+        } else if (range === "yesterday") {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const ts = yesterday.toISOString().split("T")[0];
+            allOrders = allOrders.filter(o => o.created_at.startsWith(ts));
         } else if (range === "week") {
             const w = new Date(now); w.setDate(w.getDate() - 7);
             allOrders = allOrders.filter(o => new Date(o.created_at) >= w);
@@ -110,7 +115,7 @@ export default function DeliveryPage() {
         fees: orders.reduce((s, o) => s + (o.delivery_fee || 0), 0),
     }), [orders, drivers]);
 
-    const rangeLabels: Record<DateRange, string> = { today: "اليوم", week: "الأسبوع", month: "الشهر", all: "الكل", custom: "مخصص" };
+    const rangeLabels: Record<DateRange, string> = { today: "اليوم", yesterday: "أمس", week: "الأسبوع", month: "الشهر", all: "الكل", custom: "مخصص" };
 
     return (
         <div className="flex flex-col gap-6 w-full mx-auto pb-20">
@@ -138,7 +143,7 @@ export default function DeliveryPage() {
                 <>
                     {/* Date range */}
                     <div className="flex flex-wrap gap-2 items-center">
-                        {(["today", "week", "month", "all", "custom"] as DateRange[]).map(r => (
+                        {(["today", "yesterday", "week", "month", "all", "custom"] as DateRange[]).map(r => (
                             <button key={r} onClick={() => setRange(r)}
                                 className={`px-3 py-2 rounded-xl text-xs font-bold border transition ${range === r ? "bg-cyan-100 dark:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border-cyan-500/30" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
                                 {rangeLabels[r]}

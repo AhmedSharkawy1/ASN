@@ -37,7 +37,7 @@ type Order = {
 };
 type OrderLog = { id: string; action: string; old_status?: string; new_status?: string; performed_by?: string; created_at: string };
 
-type Timeframe = "today" | "week" | "month" | "all" | "custom";
+type Timeframe = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 
 export default function OrdersPage() {
     const router = useRouter();
@@ -96,6 +96,11 @@ export default function OrdersPage() {
         if (timeframe === "today") {
             const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
             const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+            return { from: start.toISOString(), to: end.toISOString() };
+        }
+        if (timeframe === "yesterday") {
+            const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+            const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
             return { from: start.toISOString(), to: end.toISOString() };
         }
         if (timeframe === "week") {
@@ -306,6 +311,16 @@ export default function OrdersPage() {
                         mapped.filter(o => matchesOrderSearch(o, debouncedSearch)),
                         debouncedSearch
                     );
+                } else {
+                    const { from, to } = getDateBounds();
+                    if (from || to) {
+                        const fromTime = from ? new Date(from).getTime() : 0;
+                        const toTime = to ? new Date(to).getTime() : Infinity;
+                        filtered = filtered.filter(o => {
+                            const t = new Date(o.created_at).getTime();
+                            return t >= fromTime && t <= toTime;
+                        });
+                    }
                 }
                 if (statusFilter !== 'all') {
                     if (statusFilter === 'in_progress') {
@@ -610,6 +625,7 @@ export default function OrdersPage() {
                     </span>
                     {[
                         { id: "today", label: isAr ? "اليوم" : "Today" },
+                        { id: "yesterday", label: isAr ? "أمس" : "Yesterday" },
                         { id: "week", label: isAr ? "الأسبوع" : "This Week" },
                         { id: "month", label: isAr ? "الشهر" : "This Month" },
                         { id: "all", label: isAr ? "الكل" : "All Time" },
@@ -664,6 +680,7 @@ export default function OrdersPage() {
                             <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase">{s.label}</p>
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-400 font-bold">
                                 {timeframe === "today" ? (isAr ? "اليوم" : "Today") :
+                                 timeframe === "yesterday" ? (isAr ? "أمس" : "Yesterday") :
                                  timeframe === "week" ? (isAr ? "الأسبوع" : "Week") :
                                  timeframe === "month" ? (isAr ? "الشهر" : "Month") :
                                  timeframe === "custom" ? (isAr ? "مخصص" : "Custom") : (isAr ? "الكل" : "All")}
