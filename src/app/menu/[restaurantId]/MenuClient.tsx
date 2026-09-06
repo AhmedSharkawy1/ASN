@@ -178,7 +178,7 @@ export default function MenuClient({
     if (!localStorage.getItem(`lead_captured_${config.id}`)) setShowLeadPopup(true);
   }, [isVicino, config.vicino_landing_enabled, config.id]);
 
-  // Track unique customer visit / view per session for this restaurant
+  // Track customer visit / view for this restaurant
   useEffect(() => {
     if (typeof window === "undefined" || !config?.id) return;
 
@@ -187,13 +187,17 @@ export default function MenuClient({
     const isPreview = urlParams.has("previewTheme") || urlParams.has("preview_theme");
     if (isPreview || config.id === "demo") return;
 
-    const sessionKey = `asn_menu_view_${config.id}`;
-    if (!sessionStorage.getItem(sessionKey)) {
-      sessionStorage.setItem(sessionKey, "1");
+    // 10-second debounce to avoid React double-mount or instant refresh spam, but count every real open
+    const viewKey = `asn_last_view_${config.id}`;
+    const lastView = sessionStorage.getItem(viewKey);
+    const now = Date.now();
+    if (!lastView || now - Number(lastView) > 10000) {
+      sessionStorage.setItem(viewKey, String(now));
       fetch("/api/menu-views", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ restaurant_id: config.id }),
+        keepalive: true,
       }).catch((err) => {
         console.warn("Could not record menu view:", err);
       });

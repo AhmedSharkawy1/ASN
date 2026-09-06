@@ -1,8 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Download, ExternalLink, Copy, Utensils, Layers, Eye, QrCode, Palette, Settings, Zap, Crown, CalendarDays } from "lucide-react";
+import { Download, ExternalLink, Copy, Utensils, Layers, Eye, QrCode, Palette, Settings, Zap, Crown, CalendarDays, RefreshCw } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
@@ -112,10 +111,10 @@ export default function UserDashboardPage() {
                         itemsCount = count || 0;
                     }
 
-                    // Fetch restaurant menu views
+                    // Fetch restaurant menu views with timestamp to bypass browser cache
                     let viewsCount = 0;
                     try {
-                        const vRes = await fetch(`/api/menu-views?restaurant_id=${rId}`);
+                        const vRes = await fetch(`/api/menu-views?restaurant_id=${rId}&_t=${Date.now()}`, { cache: 'no-store' });
                         if (vRes.ok) {
                             const vData = await vRes.json();
                             viewsCount = Number(vData.views) || 0;
@@ -134,6 +133,24 @@ export default function UserDashboardPage() {
         window.addEventListener('focus', fetchDashboardData);
         return () => window.removeEventListener('focus', fetchDashboardData);
     }, []);
+
+    const [refreshingViews, setRefreshingViews] = useState(false);
+
+    const refreshViews = async () => {
+        if (!restaurantId) return;
+        setRefreshingViews(true);
+        try {
+            const vRes = await fetch(`/api/menu-views?restaurant_id=${restaurantId}&_t=${Date.now()}`, { cache: 'no-store' });
+            if (vRes.ok) {
+                const vData = await vRes.json();
+                setStats(prev => ({ ...prev, views: Number(vData.views) || 0 }));
+            }
+        } catch (e) {
+            console.warn("Refresh views error:", e);
+        } finally {
+            setRefreshingViews(false);
+        }
+    };
 
     const [origin, setOrigin] = useState("");
     useEffect(() => {
@@ -254,7 +271,7 @@ export default function UserDashboardPage() {
     const statCards = [
         { label: isAr ? "عدد الأقسام" : "Categories", value: stats.categories, icon: Layers, gradientLight: "from-violet-50 to-purple-50", gradientDark: "dark:from-violet-600/20 dark:to-purple-600/20", borderLight: "border-violet-200", borderDark: "dark:border-violet-500/20", iconColor: "text-violet-500 dark:text-violet-400", iconBg: "bg-violet-100 dark:bg-black/20" },
         { label: isAr ? "إجمالي الأصناف" : "Total Items", value: stats.items, icon: Utensils, gradientLight: "from-emerald-50 to-teal-50", gradientDark: "dark:from-emerald-600/20 dark:to-teal-600/20", borderLight: "border-emerald-200", borderDark: "dark:border-glass-border", iconColor: "text-emerald-500 dark:text-emerald-400", iconBg: "bg-emerald-100 dark:bg-black/20" },
-        { label: isAr ? "المشاهدات" : "Views", value: stats.views.toLocaleString(isAr ? "ar-EG" : "en-US"), icon: Eye, gradientLight: "from-amber-50 to-orange-50", gradientDark: "dark:from-amber-600/20 dark:to-orange-600/20", borderLight: "border-amber-200", borderDark: "dark:border-amber-500/20", iconColor: "text-amber-500 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-black/20" },
+        { label: isAr ? "المشاهدات" : "Views", value: stats.views.toLocaleString(isAr ? "ar-EG" : "en-US"), icon: Eye, gradientLight: "from-amber-50 to-orange-50", gradientDark: "dark:from-amber-600/20 dark:to-orange-600/20", borderLight: "border-amber-200", borderDark: "dark:border-amber-500/20", iconColor: "text-amber-500 dark:text-amber-400", iconBg: "bg-amber-100 dark:bg-black/20", isViews: true },
     ];
 
     const quickLinks = [
@@ -291,6 +308,15 @@ export default function UserDashboardPage() {
                             <div className={`w-12 h-12 rounded-xl border border-white/50 dark:border-white/5 shadow-inner ${card.iconBg} flex items-center justify-center ${card.iconColor}`}>
                                 <card.icon className="w-6 h-6" />
                             </div>
+                            {(card as any).isViews && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); refreshViews(); }}
+                                    title={isAr ? "تحديث المشاهدات الآن" : "Refresh views now"}
+                                    className="p-1.5 rounded-xl bg-white/70 dark:bg-white/5 hover:bg-white dark:hover:bg-white/15 text-slate-500 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400 border border-stone-200/60 dark:border-stone-700/50 shadow-sm transition-all active:scale-90"
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${refreshingViews ? 'animate-spin text-amber-500' : ''}`} />
+                                </button>
+                            )}
                         </div>
                         <h3 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white mb-1 drop-shadow-sm">{card.value}</h3>
                         <p className="text-[14px] text-slate-600 dark:text-zinc-400 font-extrabold tracking-wide">{card.label}</p>

@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const CORS_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: CORS_HEADERS,
+  });
+}
 
 export async function GET(req: Request) {
   try {
@@ -9,7 +24,7 @@ export async function GET(req: Request) {
     const restaurantId = searchParams.get('restaurant_id');
 
     if (!restaurantId) {
-      return NextResponse.json({ error: 'Missing restaurant_id' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing restaurant_id' }, { status: 400, headers: CORS_HEADERS });
     }
 
     const planKey = `menu_views_${restaurantId}`;
@@ -21,7 +36,7 @@ export async function GET(req: Request) {
 
     if (error) {
       console.error('Error getting menu views:', error);
-      return NextResponse.json({ views: 0, today: 0 });
+      return NextResponse.json({ views: 0, today: 0 }, { headers: CORS_HEADERS });
     }
 
     const views = data?.price ? Number(data.price) : 0;
@@ -33,10 +48,10 @@ export async function GET(req: Request) {
       views,
       today,
       last_viewed: features.last_viewed || null
-    });
+    }, { headers: CORS_HEADERS });
   } catch (err: any) {
     console.error('menu-views GET error:', err);
-    return NextResponse.json({ views: 0, error: err.message }, { status: 500 });
+    return NextResponse.json({ views: 0, error: err.message }, { status: 500, headers: CORS_HEADERS });
   }
 }
 
@@ -46,12 +61,12 @@ export async function POST(req: Request) {
     const { restaurant_id } = body;
 
     if (!restaurant_id || typeof restaurant_id !== 'string') {
-      return NextResponse.json({ error: 'Missing or invalid restaurant_id' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing or invalid restaurant_id' }, { status: 400, headers: CORS_HEADERS });
     }
 
     // Ignore demo or template previews
     if (restaurant_id === 'demo' || restaurant_id.length < 5) {
-      return NextResponse.json({ success: true, ignored: true });
+      return NextResponse.json({ success: true, ignored: true }, { headers: CORS_HEADERS });
     }
 
     const planKey = `menu_views_${restaurant_id}`;
@@ -91,12 +106,12 @@ export async function POST(req: Request) {
 
     if (upsertError) {
       console.error('Error incrementing menu views:', upsertError);
-      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+      return NextResponse.json({ error: upsertError.message }, { status: 500, headers: CORS_HEADERS });
     }
 
-    return NextResponse.json({ success: true, views: newViews });
+    return NextResponse.json({ success: true, views: newViews }, { headers: CORS_HEADERS });
   } catch (err: any) {
     console.error('menu-views POST error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: err.message }, { status: 500, headers: CORS_HEADERS });
   }
 }
