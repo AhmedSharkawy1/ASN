@@ -72,8 +72,13 @@ export default function AccountsPage() {
             .map(o => {
                 const isCashEquivalent = ['cash', 'visa', 'card', 'online', 'bank', 'كاش', 'فيزا', 'بطاقة'].includes((o.payment_method || '').toLowerCase());
                 
+                // Completed/cancelled orders are considered fully paid — no remaining balance
+                const isSettled = o.status === 'completed' || o.status === 'cancelled';
+
                 let remaining = 0;
-                if (o.deposit_amount !== null && o.deposit_amount !== undefined) {
+                if (isSettled) {
+                    remaining = 0;
+                } else if (o.deposit_amount !== null && o.deposit_amount !== undefined) {
                     remaining = (o.total || 0) - o.deposit_amount;
                 } else {
                     remaining = isCashEquivalent ? 0 : (o.total || 0);
@@ -81,7 +86,7 @@ export default function AccountsPage() {
 
                 return {
                     ...o,
-                    deposit_amount: o.deposit_amount || 0,
+                    deposit_amount: isSettled ? (o.total || 0) : (o.deposit_amount || 0),
                     remaining: remaining,
                 };
             })
