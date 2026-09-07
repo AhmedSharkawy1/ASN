@@ -41,6 +41,7 @@ export type ReportItem = {
     count: number;
     revenue: number;
     category?: string;
+    categories?: string[];
     variants?: ReportItemVariant[];
 };
 
@@ -143,6 +144,26 @@ export default function ReportsPage() {
         // 1️⃣ Load from local Dexie (always available, even offline)
         let localOrders = await posDb.orders.where("restaurant_id").equals(restaurantId)
             .and(o => o.status !== "cancelled" && !o.is_draft).toArray();
+
+        // Build category fallback map from local menu
+        const menuCategoryByTitle = new Map<string, string>();
+        try {
+            const [localCats, localMenuItems] = await Promise.all([
+                posDb.categories.where("restaurant_id").equals(restaurantId).toArray(),
+                posDb.menu_items.where("restaurant_id").equals(restaurantId).toArray(),
+            ]);
+            const catMapById = new Map<string, string>();
+            localCats.forEach(c => {
+                catMapById.set(c.id, c.name_ar || c.name_en || '');
+            });
+            localMenuItems.forEach(m => {
+                const catName = catMapById.get(m.category_id);
+                if (catName) {
+                    if (m.title_ar) menuCategoryByTitle.set(m.title_ar.trim().toLowerCase(), catName.trim());
+                    if (m.title_en) menuCategoryByTitle.set(m.title_en.trim().toLowerCase(), catName.trim());
+                }
+            });
+        } catch { /* posDb menu fallback optional */ }
 
         if (dateFrom || dateTo) {
             const fromTime = dateFrom ? new Date(dateFrom).getTime() : 0;
@@ -251,7 +272,7 @@ export default function ReportsPage() {
         const itemMap: Record<string, {
             count: number;
             revenue: number;
-            category?: string;
+            categoryCounts: Record<string, number>;
             variants: Record<string, ReportItemVariant>;
         }> = {};
 
@@ -260,13 +281,18 @@ export default function ReportsPage() {
             const title = rawTitle.trim();
             const qty = Number(i.qty) || 1;
             const price = Number(i.price) || 0;
-            const cat = i.category ? String(i.category).trim() : undefined;
+            let cat = i.category ? String(i.category).trim() : "";
+            if (!cat) {
+                cat = menuCategoryByTitle.get(title.toLowerCase()) || "";
+            }
             const size = i.size ? String(i.size).trim() : "";
 
             if (!itemMap[title]) {
-                itemMap[title] = { count: 0, revenue: 0, category: cat, variants: {} };
+                itemMap[title] = { count: 0, revenue: 0, categoryCounts: {}, variants: {} };
             }
-            if (!itemMap[title].category && cat) itemMap[title].category = cat;
+            if (cat) {
+                itemMap[title].categoryCounts[cat] = (itemMap[title].categoryCounts[cat] || 0) + qty;
+            }
             itemMap[title].count += qty;
             itemMap[title].revenue += price * qty;
             totalUnitsSold += qty;
@@ -287,19 +313,31 @@ export default function ReportsPage() {
             itemMap[title].variants[variantKey].revenue += price * qty;
         }));
 
-        const allItems: ReportItem[] = Object.entries(itemMap).map(([title, v]) => ({
-            title,
-            count: v.count,
-            revenue: v.revenue,
-            category: v.category,
-            variants: Object.values(v.variants).sort((a, b) => b.count - a.count),
-        })).sort((a, b) => b.revenue - a.revenue);
+        const allItems: ReportItem[] = Object.entries(itemMap).map(([title, v]) => {
+            const bestCategory = Object.entries(v.categoryCounts)
+                .sort((a, b) => b[1] - a[1])[0]?.[0];
+            const allItemCategories = Object.keys(v.categoryCounts);
+
+            return {
+                title,
+                count: v.count,
+                revenue: v.revenue,
+                category: bestCategory,
+                categories: allItemCategories,
+                variants: Object.values(v.variants).sort((a, b) => b.count - a.count),
+            };
+        }).sort((a, b) => b.revenue - a.revenue);
         const topItems = allItems.slice(0, 15);
 
         // Category breakdown
         const catMap: Record<string, { items: number; revenue: number }> = {};
         orders.forEach(o => (o.items || []).forEach(i => {
-            const cat = (i.category ? String(i.category).trim() : "") || "بدون قسم";
+            const title = (i.title || "غير محدد").trim();
+            let cat = (i.category ? String(i.category).trim() : "");
+            if (!cat) {
+                cat = menuCategoryByTitle.get(title.toLowerCase()) || "";
+            }
+            if (!cat) cat = "بدون قسم";
             const qty = Number(i.qty) || 1;
             const price = Number(i.price) || 0;
             if (!catMap[cat]) catMap[cat] = { items: 0, revenue: 0 };
@@ -377,7 +415,9 @@ export default function ReportsPage() {
         if (itemSearch.trim()) {
             const q = itemSearch.trim().toLowerCase();
             list = list.filter(item =>
-                item.title.toLowerCase().includes(q) || (item.category && item.category.toLowerCase().includes(q))
+                item.title.toLowerCase().includes(q) ||
+                (item.category && item.category.toLowerCase().includes(q)) ||
+                (item.categories && item.categories.some(c => c.toLowerCase().includes(q)))
             );
         }
         return [...list].sort((a, b) => {
