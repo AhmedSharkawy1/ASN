@@ -25,15 +25,30 @@ type OrderLike = {
     discount?: number;
     payment_method?: string;
     cashier_name?: string;
-    items: { title: string; qty: number; price: number; category?: string }[];
+    items: { title: string; qty: number; price: number; category?: string; size?: string }[];
     created_at: string;
+};
+
+export type ReportItemVariant = {
+    label?: string;
+    price: number;
+    count: number;
+    revenue: number;
+};
+
+export type ReportItem = {
+    title: string;
+    count: number;
+    revenue: number;
+    category?: string;
+    variants?: ReportItemVariant[];
 };
 
 type Stats = {
     revenue: number; collectedCash: number; orders: number; avgTicket: number;
-    deliveryFees: number; discounts: number; totalUnitsSold: number;
-    topItems: { title: string; count: number; revenue: number; category?: string }[];
-    allItems: { title: string; count: number; revenue: number; category?: string }[];
+    deliveryFees: number; discounts: number; totalUnitsSold: number; totalItemsRevenue: number;
+    topItems: ReportItem[];
+    allItems: ReportItem[];
     categoryBreakdown: { name: string; items: number; revenue: number }[];
     staffBreakdown: { name: string; orders: number; revenue: number }[];
     paymentBreakdown: { method: string; count: number; revenue: number }[];
@@ -114,7 +129,7 @@ export default function ReportsPage() {
     const [itemSortBy, setItemSortBy] = useState<"revenue" | "quantity">("revenue");
     const [activeTab, setActiveTab] = useState<"items" | "categories" | "staff" | "payments" | "hourly">("items");
     const [stats, setStats] = useState<Stats>({
-        revenue: 0, collectedCash: 0, orders: 0, avgTicket: 0, deliveryFees: 0, discounts: 0, totalUnitsSold: 0,
+        revenue: 0, collectedCash: 0, orders: 0, avgTicket: 0, deliveryFees: 0, discounts: 0, totalUnitsSold: 0, totalItemsRevenue: 0,
         topItems: [], allItems: [], categoryBreakdown: [], staffBreakdown: [],
         paymentBreakdown: [], hourlyBreakdown: [],
     });
@@ -149,10 +164,11 @@ export default function ReportsPage() {
             payment_method: o.payment_method,
             cashier_name: o.cashier_name,
             items: (o.items || []).map((i: any) => ({
-                title: i.title || "غير محدد",
-                qty: Number(i.qty) || 1,
-                price: Number(i.price) || 0,
-                category: i.category,
+                title: (i.title || "غير محدد").trim(),
+                qty: Number(i.qty ?? i.quantity) || 1,
+                price: Number(i.price ?? i.unit_price) || 0,
+                category: i.category ? String(i.category).trim() : undefined,
+                size: i.size ? String(i.size).trim() : undefined,
             })),
             created_at: o.created_at,
         }));
@@ -185,10 +201,11 @@ export default function ReportsPage() {
                     ...o,
                     total: Number(o.total) || 0,
                     items: (o.items || []).map((i: any) => ({
-                        title: i.title || "غير محدد",
-                        qty: Number(i.qty) || 1,
-                        price: Number(i.price) || 0,
-                        category: i.category,
+                        title: (i.title || "غير محدد").trim(),
+                        qty: Number(i.qty ?? i.quantity) || 1,
+                        price: Number(i.price ?? i.unit_price) || 0,
+                        category: i.category ? String(i.category).trim() : undefined,
+                        size: i.size ? String(i.size).trim() : undefined,
                     })),
                 }));
                 remoteOrders.push(...mapped);
@@ -230,24 +247,59 @@ export default function ReportsPage() {
 
         // All items & Top items
         let totalUnitsSold = 0;
-        const itemMap: Record<string, { count: number; revenue: number; category?: string }> = {};
+        let totalItemsRevenue = 0;
+        const itemMap: Record<string, {
+            count: number;
+            revenue: number;
+            category?: string;
+            variants: Record<string, ReportItemVariant>;
+        }> = {};
+
         orders.forEach(o => (o.items || []).forEach(i => {
-            const title = i.title || "غير محدد";
+            const rawTitle = i.title || "غير محدد";
+            const title = rawTitle.trim();
             const qty = Number(i.qty) || 1;
             const price = Number(i.price) || 0;
-            if (!itemMap[title]) itemMap[title] = { count: 0, revenue: 0, category: i.category };
+            const cat = i.category ? String(i.category).trim() : undefined;
+            const size = i.size ? String(i.size).trim() : "";
+
+            if (!itemMap[title]) {
+                itemMap[title] = { count: 0, revenue: 0, category: cat, variants: {} };
+            }
+            if (!itemMap[title].category && cat) itemMap[title].category = cat;
             itemMap[title].count += qty;
             itemMap[title].revenue += price * qty;
             totalUnitsSold += qty;
+            totalItemsRevenue += price * qty;
+
+            const variantKey = size ? `${size}__${price}` : `price__${price}`;
+            const variantLabel = size ? (size.includes(':') ? size.split(':')[0] : size) : '';
+
+            if (!itemMap[title].variants[variantKey]) {
+                itemMap[title].variants[variantKey] = {
+                    label: variantLabel,
+                    price,
+                    count: 0,
+                    revenue: 0,
+                };
+            }
+            itemMap[title].variants[variantKey].count += qty;
+            itemMap[title].variants[variantKey].revenue += price * qty;
         }));
-        const allItems = Object.entries(itemMap).map(([title, v]) => ({ title, ...v }))
-            .sort((a, b) => b.revenue - a.revenue);
+
+        const allItems: ReportItem[] = Object.entries(itemMap).map(([title, v]) => ({
+            title,
+            count: v.count,
+            revenue: v.revenue,
+            category: v.category,
+            variants: Object.values(v.variants).sort((a, b) => b.count - a.count),
+        })).sort((a, b) => b.revenue - a.revenue);
         const topItems = allItems.slice(0, 15);
 
         // Category breakdown
         const catMap: Record<string, { items: number; revenue: number }> = {};
         orders.forEach(o => (o.items || []).forEach(i => {
-            const cat = i.category || "بدون قسم";
+            const cat = (i.category ? String(i.category).trim() : "") || "بدون قسم";
             const qty = Number(i.qty) || 1;
             const price = Number(i.price) || 0;
             if (!catMap[cat]) catMap[cat] = { items: 0, revenue: 0 };
@@ -298,6 +350,7 @@ export default function ReportsPage() {
             deliveryFees,
             discounts,
             totalUnitsSold,
+            totalItemsRevenue,
             topItems,
             allItems,
             categoryBreakdown,
@@ -337,11 +390,25 @@ export default function ReportsPage() {
 
     const displayedItems = itemSearch.trim() ? sortedAndFilteredItems : sortedAndFilteredItems.slice(0, itemLimit);
 
+    const filteredTotalUnits = useMemo(() => {
+        return sortedAndFilteredItems.reduce((acc, item) => acc + item.count, 0);
+    }, [sortedAndFilteredItems]);
+
+    const filteredTotalRevenue = useMemo(() => {
+        return sortedAndFilteredItems.reduce((acc, item) => acc + item.revenue, 0);
+    }, [sortedAndFilteredItems]);
+
     const exportCSV = () => {
         let headers: string[], rows: (string | number)[][];
         if (activeTab === "items") {
-            headers = ["الصنف", "القسم", "الكمية المباعة", "الإيراد"];
-            rows = sortedAndFilteredItems.map(i => [i.title, i.category || "-", i.count, i.revenue]);
+            headers = ["الصنف", "القسم", "الكمية المباعة (قطعة)", "الإيراد", "تفاصيل الأحجام والأسعار"];
+            rows = sortedAndFilteredItems.map(i => [
+                `"${i.title.replace(/"/g, '""')}"`,
+                `"${(i.category || "-").replace(/"/g, '""')}"`,
+                i.count,
+                i.revenue,
+                `"${(i.variants || []).map(v => `${v.label ? v.label + ': ' : ''}${v.count} ق × ${v.price} ج.م`).join(' | ').replace(/"/g, '""')}"`
+            ]);
         } else if (activeTab === "categories") {
             headers = ["القسم / التصنيف", "الكمية المباعة (قطعة)", "الإيراد"];
             rows = sortedCategories.map(c => [c.name, c.items, c.revenue]);
@@ -406,11 +473,44 @@ export default function ReportsPage() {
                     {/* KPI Cards */}
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                         {[
-                            { icon: DollarSign, label: isAr ? "إجمالي المبيعات" : "Total Revenue", val: formatCurrency(stats.revenue, restaurant?.currency), color: "text-slate-700 dark:text-zinc-300", bg: "bg-slate-50 dark:bg-zinc-800/20 border-slate-200 dark:border-zinc-700/30" },
-                            { icon: Banknote, label: isAr ? "المحصلة النقدية" : "Cash Collected", val: formatCurrency(stats.collectedCash, restaurant?.currency), color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-glass-border" },
-                            { icon: ShoppingCart, label: isAr ? "الطلبات" : "Orders", val: stats.orders.toLocaleString(), color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20" },
-                            { icon: Package, label: isAr ? "الأصناف المباعة" : "Items Sold", val: `${stats.totalUnitsSold.toLocaleString()} ${isAr ? "قطعة" : "pcs"}`, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20" },
-                            { icon: ArrowUpRight, label: isAr ? "الخصومات" : "Discounts", val: formatCurrency(stats.discounts, restaurant?.currency), color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20" },
+                            {
+                                icon: DollarSign,
+                                label: isAr ? "إجمالي المبيعات" : "Total Revenue",
+                                val: formatCurrency(stats.revenue, restaurant?.currency),
+                                sub: stats.discounts > 0 ? (isAr ? `صافي بعد خصم ${formatCurrency(stats.discounts, restaurant?.currency)}` : `Net after ${formatCurrency(stats.discounts, restaurant?.currency)} disc.`) : undefined,
+                                color: "text-slate-700 dark:text-zinc-300",
+                                bg: "bg-slate-50 dark:bg-zinc-800/20 border-slate-200 dark:border-zinc-700/30"
+                            },
+                            {
+                                icon: Banknote,
+                                label: isAr ? "المحصلة النقدية" : "Cash Collected",
+                                val: formatCurrency(stats.collectedCash, restaurant?.currency),
+                                color: "text-emerald-600 dark:text-emerald-400",
+                                bg: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-glass-border"
+                            },
+                            {
+                                icon: ShoppingCart,
+                                label: isAr ? "الطلبات" : "Orders",
+                                val: stats.orders.toLocaleString(),
+                                sub: stats.orders > 0 ? (isAr ? `متوسط الطلب ${formatCurrency(stats.avgTicket, restaurant?.currency)}` : `Avg ${formatCurrency(stats.avgTicket, restaurant?.currency)}`) : undefined,
+                                color: "text-blue-600 dark:text-blue-400",
+                                bg: "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20"
+                            },
+                            {
+                                icon: Package,
+                                label: isAr ? "الأصناف المباعة" : "Items Sold",
+                                val: `${stats.totalUnitsSold.toLocaleString()} ${isAr ? "قطعة" : "pcs"}`,
+                                sub: isAr ? `بقيمة ${formatCurrency(stats.totalItemsRevenue, restaurant?.currency)}` : `Value ${formatCurrency(stats.totalItemsRevenue, restaurant?.currency)}`,
+                                color: "text-purple-600 dark:text-purple-400",
+                                bg: "bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20"
+                            },
+                            {
+                                icon: ArrowUpRight,
+                                label: isAr ? "الخصومات" : "Discounts",
+                                val: formatCurrency(stats.discounts, restaurant?.currency),
+                                color: "text-red-600 dark:text-red-400",
+                                bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20"
+                            },
                         ].map((card, i) => (
                             <div key={i} className={`bg-white dark:bg-card border ${card.bg} rounded-xl p-4 flex items-center gap-3`}>
                                 <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center ${card.color} flex-shrink-0`}>
@@ -419,6 +519,9 @@ export default function ReportsPage() {
                                 <div className="min-w-0">
                                     <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase mb-0.5">{card.label}</p>
                                     <p className={`text-xl font-extrabold ${card.color} tabular-nums truncate`}>{card.val}</p>
+                                    {card.sub && (
+                                        <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 truncate mt-0.5">{card.sub}</p>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -449,10 +552,21 @@ export default function ReportsPage() {
                                     <div className="space-y-4">
                                         {/* Search & Sort Bar */}
                                         <div className="flex items-center justify-between gap-3 flex-wrap bg-slate-50 dark:bg-zinc-800/30 p-3 rounded-xl border border-slate-200 dark:border-zinc-700/30">
-                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-zinc-300">
-                                                <span>{isAr ? "إجمالي الأصناف المباعة:" : "Total items sold:"}</span>
-                                                <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">{stats.totalUnitsSold.toLocaleString()} {isAr ? "قطعة" : "items"}</span>
-                                                <span className="text-slate-400 dark:text-zinc-500">({stats.allItems.length} {isAr ? "صنف مختلف" : "unique items"})</span>
+                                            <div className="flex items-center gap-3 text-xs font-bold text-slate-600 dark:text-zinc-300 flex-wrap">
+                                                <span className="flex items-center gap-1.5">
+                                                    <Package className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                                    <span>{isAr ? "إجمالي القطع المباعة:" : "Units sold:"}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-extrabold text-sm">{filteredTotalUnits.toLocaleString()} {isAr ? "قطعة" : "pcs"}</span>
+                                                </span>
+                                                <span className="text-slate-300 dark:text-zinc-700 hidden sm:inline">|</span>
+                                                <span className="flex items-center gap-1.5">
+                                                    <DollarSign className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                                    <span>{isAr ? "إجمالي قيمة الأصناف:" : "Total value:"}</span>
+                                                    <span className="text-blue-600 dark:text-blue-400 font-extrabold text-sm">{formatCurrency(filteredTotalRevenue, restaurant?.currency)}</span>
+                                                </span>
+                                                <span className="text-slate-400 dark:text-zinc-500 font-normal">
+                                                    ({sortedAndFilteredItems.length} {isAr ? "صنف" : "items"})
+                                                </span>
                                             </div>
 
                                             <div className="flex items-center gap-2 flex-wrap flex-1 justify-end">
@@ -509,7 +623,15 @@ export default function ReportsPage() {
                                             </div>
                                         ) : (
                                             <div className="overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
-                                                <div className="min-w-[400px] space-y-1.5">
+                                                <div className="min-w-[500px] space-y-1.5">
+                                                    {/* Table Header Row */}
+                                                    <div className="flex items-center gap-3 px-3 py-2 bg-slate-100/70 dark:bg-zinc-800/50 rounded-lg text-xs font-bold text-slate-500 dark:text-zinc-400 border border-slate-200/50 dark:border-zinc-700/40">
+                                                        <span className="w-6 text-center">#</span>
+                                                        <span className="flex-1">{isAr ? "الصنف والتفاصيل" : "Item & Details"}</span>
+                                                        <span className="w-24 text-center">{isAr ? "الكمية المباعة" : "Qty Sold"}</span>
+                                                        <span className="w-32 text-left">{isAr ? "إجمالي القيمة" : "Total Revenue"}</span>
+                                                    </div>
+
                                                     {displayedItems.map((item, i) => {
                                                         const maxItemVal = itemSortBy === "quantity"
                                                             ? (sortedAndFilteredItems[0]?.count || 1)
@@ -522,23 +644,45 @@ export default function ReportsPage() {
                                                         const itemBarPct = Math.min(100, Math.max(2, Math.round((currItemVal / maxItemVal) * 100)));
 
                                                         return (
-                                                            <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/30 transition group">
-                                                                <span className="w-6 text-center text-xs font-bold text-slate-400 dark:text-zinc-600">{i + 1}</span>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <p className="text-base font-bold text-slate-700 dark:text-zinc-200 truncate">{item.title}</p>
-                                                                        {item.category && <span className="text-xs bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 px-2 py-0.5 rounded-md font-bold flex-shrink-0">{item.category}</span>}
+                                                            <div key={i} className="py-2.5 px-3 rounded-xl hover:bg-slate-50 dark:hover:bg-zinc-800/30 transition group border border-transparent hover:border-slate-100 dark:hover:border-zinc-800">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="w-6 text-center text-xs font-bold text-slate-400 dark:text-zinc-600">{i + 1}</span>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                                            <p className="text-base font-bold text-slate-800 dark:text-zinc-100 truncate">{item.title}</p>
+                                                                            {item.category && (
+                                                                                <span className="text-xs bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 px-2 py-0.5 rounded-md font-bold flex-shrink-0">
+                                                                                    {item.category}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="w-full bg-slate-100 dark:bg-zinc-800/50 rounded-full h-1.5">
+                                                                            <div className="bg-emerald-500/60 h-1.5 rounded-full transition-all duration-500" style={{ width: `${itemBarPct}%` }} />
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="w-full bg-slate-100 dark:bg-zinc-800/50 rounded-full h-1.5">
-                                                                        <div className="bg-emerald-500/60 h-1.5 rounded-full transition-all duration-500" style={{ width: `${itemBarPct}%` }} />
-                                                                    </div>
+                                                                    <span className={`text-sm font-bold w-24 text-center flex-shrink-0 ${itemSortBy === "quantity" ? "text-emerald-600 dark:text-emerald-400 font-extrabold" : "text-slate-600 dark:text-zinc-400"}`}>
+                                                                        {item.count.toLocaleString()} {isAr ? "قطعة" : "pcs"}
+                                                                    </span>
+                                                                    <span className={`text-base tabular-nums w-32 text-left flex-shrink-0 ${itemSortBy === "revenue" ? "font-extrabold text-emerald-600 dark:text-emerald-400" : "font-bold text-slate-700 dark:text-zinc-300"}`}>
+                                                                        {formatCurrency(item.revenue, restaurant?.currency)}
+                                                                    </span>
                                                                 </div>
-                                                                <span className={`text-sm font-bold w-20 text-center flex-shrink-0 ${itemSortBy === "quantity" ? "text-emerald-600 dark:text-emerald-400 font-extrabold" : "text-slate-500 dark:text-zinc-500"}`}>
-                                                                    {item.count.toLocaleString()} قطعة
-                                                                </span>
-                                                                <span className={`text-base tabular-nums w-28 text-left flex-shrink-0 ${itemSortBy === "revenue" ? "font-extrabold text-emerald-600 dark:text-emerald-400" : "font-bold text-slate-700 dark:text-zinc-300"}`}>
-                                                                    {formatCurrency(item.revenue, restaurant?.currency)}
-                                                                </span>
+
+                                                                {/* Size / Price Breakdown Badges */}
+                                                                {item.variants && item.variants.length > 0 && (
+                                                                    <div className="mr-9 mt-1.5 flex items-center gap-1.5 flex-wrap">
+                                                                        {item.variants.map((v, vIdx) => (
+                                                                            <span
+                                                                                key={vIdx}
+                                                                                className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-400 font-medium border border-slate-200/60 dark:border-zinc-700/40"
+                                                                            >
+                                                                                {v.label && <span className="font-bold text-slate-700 dark:text-zinc-300">{v.label}:</span>}
+                                                                                <span>{v.count.toLocaleString()} {isAr ? "ق" : "pcs"} × {v.price}</span>
+                                                                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">= {formatCurrency(v.revenue, restaurant?.currency)}</span>
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         );
                                                     })}
