@@ -4,6 +4,9 @@ import MenuClient from "./MenuClient";
 import MenuOffline from "./MenuOffline";
 import { loadMenu } from "./menuData";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function SmartMenuPage({
   params,
   searchParams,

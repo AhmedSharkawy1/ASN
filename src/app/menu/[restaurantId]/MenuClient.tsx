@@ -174,45 +174,46 @@ export default function MenuClient({
 
   // localStorage is browser-only, so this check cannot move to the server.
   useEffect(() => {
-    if (!isVicino || config.vicino_landing_enabled) return;
-    if (!localStorage.getItem(`lead_captured_${config.id}`)) setShowLeadPopup(true);
-  }, [isVicino, config.vicino_landing_enabled, config.id]);
+    try {
+      if (!isVicino || config?.vicino_landing_enabled || !config?.id) return;
+      if (!localStorage.getItem(`lead_captured_${config.id}`)) setShowLeadPopup(true);
+    } catch (_e) {}
+  }, [isVicino, config?.vicino_landing_enabled, config?.id]);
 
   // Track customer visit / view for this restaurant (1 day protection cooldown per user)
   useEffect(() => {
-    if (typeof window === "undefined" || !config?.id) return;
-
-    // Do not count preview mode or demo account
-    const urlParams = new URLSearchParams(window.location.search);
-    const isPreview = urlParams.has("previewTheme") || urlParams.has("preview_theme");
-    if (isPreview || config.id === "demo") return;
-
-    // 1-day (24 hours) protection cooldown per user/device
-    const viewKey = `asn_menu_view_date_${config.id}`;
-    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    let lastView: string | null = null;
     try {
-      lastView = localStorage.getItem(viewKey);
-    } catch (_e) {
-      // localStorage may be blocked in private/incognito mode
-    }
+      if (typeof window === "undefined" || !config?.id) return;
 
-    if (!lastView || now - Number(lastView) > ONE_DAY_MS) {
+      // Do not count preview mode or demo account
+      const urlParams = new URLSearchParams(window.location.search);
+      const isPreview = urlParams.has("previewTheme") || urlParams.has("preview_theme");
+      if (isPreview || config.id === "demo") return;
+
+      // 1-day (24 hours) protection cooldown per user/device
+      const viewKey = `asn_menu_view_date_${config.id}`;
+      const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      let lastView: string | null = null;
       try {
-        localStorage.setItem(viewKey, String(now));
+        lastView = localStorage.getItem(viewKey);
       } catch (_e) {
         // localStorage may be blocked in private/incognito mode
       }
 
-      fetch("/api/menu-views", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ restaurant_id: config.id }),
-        keepalive: true,
-      }).catch(function (_err) {
-        // Silently fail - view tracking is non-critical
-      });
+      if (!lastView || now - Number(lastView) > ONE_DAY_MS) {
+        try {
+          localStorage.setItem(viewKey, String(now));
+        } catch (_e) {}
+
+        fetch("/api/menu-views", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ restaurant_id: config.id }),
+        }).catch(function (_err) {});
+      }
+    } catch (_e) {
+      // Never crash the UI for analytics tracking
     }
   }, [config?.id]);
 
