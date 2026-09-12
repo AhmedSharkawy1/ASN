@@ -16,12 +16,29 @@ export const metadata: Metadata = {
   title: "ASN Technology | Futuristic AI Solutions",
   description: "Next-generation AI solutions for the enterprise. Experience the future with ASN Technology.",
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon-48.png", type: "image/png", sizes: "48x48" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" },
+      { url: "/icon-512.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
   },
   openGraph: {
     title: "ASN Technology",
     description: "Premium futuristic AI technology company.",
     type: "website",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 1200,
+        alt: "ASN Technology",
+      },
+    ],
   }
 };
 
