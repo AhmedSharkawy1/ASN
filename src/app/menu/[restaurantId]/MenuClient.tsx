@@ -194,22 +194,24 @@ export default function MenuClient({
     let lastView: string | null = null;
     try {
       lastView = localStorage.getItem(viewKey);
-    } catch {
-      // In case localStorage is blocked in private mode
+    } catch (_e) {
+      // localStorage may be blocked in private/incognito mode
     }
 
     if (!lastView || now - Number(lastView) > ONE_DAY_MS) {
       try {
         localStorage.setItem(viewKey, String(now));
-      } catch {}
+      } catch (_e) {
+        // localStorage may be blocked in private/incognito mode
+      }
 
       fetch("/api/menu-views", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ restaurant_id: config.id }),
         keepalive: true,
-      }).catch((err) => {
-        console.warn("Could not record menu view:", err);
+      }).catch(function (_err) {
+        // Silently fail - view tracking is non-critical
       });
     }
   }, [config?.id]);
@@ -279,7 +281,7 @@ export default function MenuClient({
       
       let parsedLogos = { light: config?.vicino_logo_url, dark: config?.vicino_logo_url };
       if (config?.vicino_logo_url?.startsWith('{')) {
-          try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch {}
+          try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch (_e) {}
       }
       const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
       const finalLogoSrc = currentLogo || config?.logo_url;
@@ -800,7 +802,7 @@ export default function MenuClient({
       } else {
         alert(language === "ar" ? "حدث خطأ، حاول مرة أخرى" : "Error submitting, please try again");
       }
-    } catch { alert("حدث خطأ"); }
+    } catch (_e) { alert("حدث خطأ"); }
     finally { setOrderSubmitting(false); }
   };
 

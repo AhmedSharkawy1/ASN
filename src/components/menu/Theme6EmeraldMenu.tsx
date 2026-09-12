@@ -53,7 +53,7 @@ export default function Theme6EmeraldMenu({ config, categories, restaurantId }: 
 
     /* ── persist cart ── */
     useEffect(() => {
-        try { const s = localStorage.getItem(`cart_${config.id}`); if (s) setCart(JSON.parse(s)); } catch { }
+        try { const s = localStorage.getItem(`cart_${config.id}`); if (s) setCart(JSON.parse(s)); } catch (_e) { }
     }, [config.id]);
     useEffect(() => {
         localStorage.setItem(`cart_${config.id}`, JSON.stringify(cart));

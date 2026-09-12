@@ -160,7 +160,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                 const c = new Date().getHours() * 60 + new Date().getMinutes();
                 return e <= s ? (c >= s || c <= e) : (c >= s && c <= e);
             }
-        } catch { return true; }
+        } catch (_e) { return true; }
         return true;
     })();
 

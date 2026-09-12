@@ -49,7 +49,7 @@ export default function UsaLandingPage({ config, onContinue }: UsaLandingPagePro
 
     let parsedLogos = { light: config.vicino_logo_url, dark: config.vicino_logo_url };
     if (config.vicino_logo_url?.startsWith('{')) {
-        try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch {}
+        try { parsedLogos = JSON.parse(config.vicino_logo_url); } catch (_e) {}
     }
     const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
     const finalLogoSrc = currentLogo || config.logo_url;

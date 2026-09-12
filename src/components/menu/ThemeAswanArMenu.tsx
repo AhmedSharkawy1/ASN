@@ -392,7 +392,7 @@ export default function ThemeAswanArMenu({ config, categories, restaurantId }: T
                             let parsedLogos = { light: config.aswan_logo_url || config.vicino_logo_url, dark: config.aswan_logo_url || config.vicino_logo_url };
                             const logoField = config.aswan_logo_url || config.vicino_logo_url;
                             if (logoField && logoField.startsWith('{')) {
-                                try { parsedLogos = JSON.parse(logoField); } catch {}
+                                try { parsedLogos = JSON.parse(logoField); } catch (_e) {}
                             }
                             const currentLogo = isDark ? (parsedLogos.dark || parsedLogos.light) : (parsedLogos.light || parsedLogos.dark);
                             const finalLogoSrc = currentLogo || config.logo_url;

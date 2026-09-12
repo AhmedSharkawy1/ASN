@@ -103,7 +103,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     if (typeof tc === 'string') {
         try {
             tc = JSON.parse(tc);
-        } catch {
+        } catch (_e) {
             tc = {};
         }
     }

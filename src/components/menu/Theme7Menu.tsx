@@ -60,7 +60,7 @@ export default function Theme7Menu({ config, categories, restaurantId }: { confi
 
     /* persist cart */
     useEffect(() => {
-        try { const s = localStorage.getItem(`cart7_${config.id}`); if (s) setCart(JSON.parse(s)); } catch { /* noop */ }
+        try { const s = localStorage.getItem(`cart7_${config.id}`); if (s) setCart(JSON.parse(s)); } catch (_e) { /* noop */ }
     }, [config.id]);
     useEffect(() => {
         localStorage.setItem(`cart7_${config.id}`, JSON.stringify(cart));
