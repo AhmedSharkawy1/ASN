@@ -652,11 +652,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const expandedPermissions = useMemo(() => {
         const p = permissions as Record<string, boolean> | null;
-        if (!p || p._isAdmin) return p;
+        if (!p) return p;
         const expanded: Record<string, boolean> = { ...p };
-        // Only expand if old broad keys are present and specific keys are missing
+        // Expand broad keys to specific keys
         for (const [broadKey, specificKeys] of Object.entries(BROAD_TO_SPECIFIC)) {
-            if (broadKey in expanded) {
+            if (broadKey in expanded && expanded[broadKey]) {
                 for (const sk of specificKeys) {
                     if (!(sk in expanded)) {
                         expanded[sk] = expanded[broadKey];
@@ -676,9 +676,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 if (p._isAdmin) {
                     // Admin: If no restrictions are set (i.e. only _isAdmin is true), allow all.
                     if (Object.keys(p).length === 1) return true;
+                    // If explicitly set to false, hide it!
+                    if (p[item.key] === false) return false;
+                    // For WhatsApp: show unless specifically set to false
+                    if (item.key === 'whatsapp') {
+                        return p['whatsapp'] !== false;
+                    }
                     // Otherwise, hide any page not explicitly enabled
                     return p[item.key] === true;
                 } else {
+                    // Staff: hide if tenant disabled it
+                    if (p['whatsapp'] === false && item.key === 'whatsapp') return false;
                     // Staff: show ONLY explicitly enabled pages
                     return p[item.key] === true;
                 }
