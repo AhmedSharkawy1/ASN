@@ -678,15 +678,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     if (Object.keys(p).length === 1) return true;
                     // If explicitly set to false, hide it!
                     if (p[item.key] === false) return false;
-                    // For WhatsApp: show unless specifically set to false
+                    // For WhatsApp: STRICTLY hidden from everyone unless explicitly enabled (true) by Super Admin
                     if (item.key === 'whatsapp') {
-                        return p['whatsapp'] !== false;
+                        return p['whatsapp'] === true;
                     }
                     // Otherwise, hide any page not explicitly enabled
                     return p[item.key] === true;
                 } else {
-                    // Staff: hide if tenant disabled it
-                    if (p['whatsapp'] === false && item.key === 'whatsapp') return false;
+                    // For WhatsApp: only show if explicitly enabled
+                    if (item.key === 'whatsapp') {
+                        return p['whatsapp'] === true;
+                    }
                     // Staff: show ONLY explicitly enabled pages
                     return p[item.key] === true;
                 }

@@ -6,12 +6,19 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
-import { buildWhatsAppLink, formatWhatsAppMessage, cleanPhoneNumber, isValidPhone } from "@/lib/helpers/whatsappService";
+import {
+    buildWhatsAppLink,
+    formatWhatsAppMessage,
+    cleanPhoneNumber,
+    isValidPhone,
+    sendAutomatedMessage,
+    testConnection
+} from "@/lib/helpers/whatsappService";
 import {
     MessageCircle, Send, Users, Upload, Download, Search, CheckCircle2,
-    AlertCircle, Phone, FileSpreadsheet, Zap, Clock, ExternalLink,
+    AlertCircle, Phone, FileSpreadsheet, Zap, Clock,
     ChevronDown, ChevronUp, Loader2, Copy, Check, Play, Pause, RotateCcw,
-    User, Lock
+    User, Lock, ShieldCheck, Key, Save, CheckCircle
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
@@ -29,6 +36,7 @@ type MessageLog = {
     phone: string;
     name: string;
     status: "pending" | "opened" | "skipped";
+    error?: string;
     timestamp?: string;
 };
 
@@ -50,12 +58,24 @@ export default function WhatsAppPage() {
     const [message, setMessage] = useState("");
     const [quickPhone, setQuickPhone] = useState("");
     const [quickName, setQuickName] = useState("");
+    const [sendingQuick, setSendingQuick] = useState(false);
+
+    // Gateway / Automated Send Credentials
+    const [instanceId, setInstanceId] = useState("");
+    const [apiToken, setApiToken] = useState("");
+    const [savingSettings, setSavingSettings] = useState(false);
+    const [testingConnection, setTestingConnection] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState<{
+        connected: boolean;
+        message: string;
+        phone?: string;
+    } | null>(null);
 
     // Bulk send state
     const [bulkStatus, setBulkStatus] = useState<SendStatus>("idle");
     const [bulkLogs, setBulkLogs] = useState<MessageLog[]>([]);
     const [bulkIndex, setBulkIndex] = useState(0);
-    const [bulkDelay, setBulkDelay] = useState(3); // seconds between messages
+    const [bulkDelay, setBulkDelay] = useState(2); // seconds between messages
     const bulkTimerRef = useRef<NodeJS.Timeout | null>(null);
     const bulkIndexRef = useRef(0);
 
@@ -70,9 +90,9 @@ export default function WhatsAppPage() {
     // Stats
     const [messagesSentToday, setMessagesSentToday] = useState(0);
 
-    // Permission guard
+    // Strict Permission guard: Strictly hidden from everyone unless explicitly true
     const [accessChecked, setAccessChecked] = useState(false);
-    const [isPageAllowed, setIsPageAllowed] = useState(true);
+    const [isPageAllowed, setIsPageAllowed] = useState(false);
 
     useEffect(() => {
         if (!restaurantId) return;
@@ -85,19 +105,49 @@ export default function WhatsAppPage() {
                     .eq('page_key', 'whatsapp')
                     .maybeSingle();
 
-                if (data && data.enabled === false) {
-                    setIsPageAllowed(false);
-                } else {
+                if (data && data.enabled === true) {
                     setIsPageAllowed(true);
+                } else {
+                    setIsPageAllowed(false);
                 }
             } catch {
-                setIsPageAllowed(true);
+                setIsPageAllowed(false);
             } finally {
                 setAccessChecked(true);
             }
         };
         checkAccess();
     }, [restaurantId]);
+
+    // Load credentials from restaurant profile
+    useEffect(() => {
+        if (!restaurantId) return;
+        const loadCredentials = async () => {
+            try {
+                const { data } = await supabase
+                    .from('restaurants')
+                    .select('whatsapp_api_token, whatsapp_phone_number_id')
+                    .eq('id', restaurantId)
+                    .single();
+
+                if (data) {
+                    setApiToken(data.whatsapp_api_token || "");
+                    setInstanceId(data.whatsapp_phone_number_id || "");
+                    if (data.whatsapp_api_token && data.whatsapp_phone_number_id) {
+                        setConnectionStatus({
+                            connected: true,
+                            message: isAr ? "بيانات البوابة محفوظة وجاهزة للإرسال التلقائي" : "Gateway credentials loaded & ready for auto-send"
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load WhatsApp credentials:", err);
+            }
+        };
+        loadCredentials();
+    }, [restaurantId, isAr]);
+
+    const isGatewayConfigured = Boolean(instanceId.trim() && apiToken.trim());
 
     // Template variables
     const templateVars = useMemo(() => ({
@@ -171,30 +221,132 @@ export default function WhatsAppPage() {
 
     const selectedCount = customers.filter(c => c.selected).length;
 
-    // ── Quick Send ──
-    const handleQuickSend = () => {
+    // ── Save Gateway Settings ──
+    const handleSaveSettings = async () => {
+        if (!restaurantId) return;
+        setSavingSettings(true);
+        try {
+            const { error } = await supabase
+                .from('restaurants')
+                .update({
+                    whatsapp_api_token: apiToken.trim() || null,
+                    whatsapp_phone_number_id: instanceId.trim() || null,
+                    whatsapp_integration_enabled: Boolean(apiToken.trim() && instanceId.trim())
+                })
+                .eq('id', restaurantId);
+
+            if (error) throw error;
+
+            toast.success(isAr ? "تم حفظ إعدادات بوابة واتساب بنجاح ✅" : "WhatsApp settings saved successfully ✅");
+            if (instanceId.trim() && apiToken.trim()) {
+                handleTestConnection();
+            }
+        } catch (err: unknown) {
+            console.error("Failed to save settings:", err);
+            const msg = err instanceof Error ? err.message : 'Error';
+            toast.error(isAr ? `خطأ: ${msg}` : `Error: ${msg}`);
+        } finally {
+            setSavingSettings(false);
+        }
+    };
+
+    // ── Test Connection ──
+    const handleTestConnection = async () => {
+        if (!restaurantId) return;
+        setTestingConnection(true);
+        setConnectionStatus(null);
+        try {
+            const result = await testConnection(restaurantId);
+            if (result.connected) {
+                setConnectionStatus({
+                    connected: true,
+                    message: isAr
+                        ? `متصل بنجاح! جاهز للإرسال التلقائي ${result.phone ? `(${result.phone})` : ''} ⚡`
+                        : `Connected! Ready for automated sending ${result.phone ? `(${result.phone})` : ''} ⚡`,
+                    phone: result.phone
+                });
+                toast.success(isAr ? "الاتصال بالبوابة نشط ويعمل بكفاءة! ✅" : "WhatsApp connection active! ✅");
+            } else {
+                setConnectionStatus({
+                    connected: false,
+                    message: result.error || (isAr ? "فشل الاتصال، يرجى مراجعة الـ Instance ID والـ Token" : "Connection failed, check Instance ID & Token")
+                });
+                toast.error(result.error || (isAr ? "فشل الاتصال بالبوابة" : "Connection failed"));
+            }
+        } catch {
+            setConnectionStatus({
+                connected: false,
+                message: isAr ? "خطأ أثناء اختبار الاتصال" : "Error testing connection"
+            });
+        } finally {
+            setTestingConnection(false);
+        }
+    };
+
+    // ── Quick Send (Automated or wa.me fallback) ──
+    const handleQuickSend = async () => {
         if (!quickPhone.trim() || !message.trim()) {
             toast.error(isAr ? "أدخل الرقم والرسالة" : "Enter phone number and message");
             return;
         }
         const formatted = formatWhatsAppMessage(message, { ...templateVars, customer_name: quickName || "" });
-        const link = buildWhatsAppLink(quickPhone, formatted);
-        window.open(link, "_blank");
-        setMessagesSentToday(prev => prev + 1);
-        toast.success(isAr ? "تم فتح واتساب ✅" : "WhatsApp opened ✅");
+
+        if (isGatewayConfigured) {
+            setSendingQuick(true);
+            try {
+                const res = await sendAutomatedMessage({
+                    restaurantId: restaurantId!,
+                    phone: quickPhone,
+                    message: formatted
+                });
+
+                if (res.success) {
+                    setMessagesSentToday(prev => prev + 1);
+                    toast.success(isAr ? "تم الإرسال تلقائياً بنجاح! 🚀" : "Sent automatically! 🚀");
+                    setQuickPhone("");
+                } else {
+                    toast.error(res.error || (isAr ? "فشل الإرسال التلقائي" : "Failed to send automatically"));
+                }
+            } finally {
+                setSendingQuick(false);
+            }
+        } else {
+            // Fallback to wa.me
+            const link = buildWhatsAppLink(quickPhone, formatted);
+            window.open(link, "_blank");
+            setMessagesSentToday(prev => prev + 1);
+            toast.info(isAr ? "تم فتح واتساب (اربط البوابة في الإعدادات للإرسال التلقائي)" : "WhatsApp opened (configure Gateway for auto-send)");
+        }
     };
 
     // ── Send to Selected Customer ──
-    const handleSendToOne = (customer: CustomerEntry) => {
+    const handleSendToOne = async (customer: CustomerEntry) => {
         if (!message.trim()) {
             toast.error(isAr ? "اكتب الرسالة أولاً" : "Write a message first");
             return;
         }
         const formatted = formatWhatsAppMessage(message, { ...templateVars, customer_name: customer.name });
-        const link = buildWhatsAppLink(customer.phone, formatted);
-        window.open(link, "_blank");
-        setMessagesSentToday(prev => prev + 1);
-        toast.success(isAr ? `تم فتح واتساب لـ ${customer.name}` : `WhatsApp opened for ${customer.name}`);
+
+        if (isGatewayConfigured) {
+            toast.info(isAr ? `جاري الإرسال تلقائياً لـ ${customer.name}...` : `Sending to ${customer.name}...`);
+            const res = await sendAutomatedMessage({
+                restaurantId: restaurantId!,
+                phone: customer.phone,
+                message: formatted
+            });
+
+            if (res.success) {
+                setMessagesSentToday(prev => prev + 1);
+                toast.success(isAr ? `تم الإرسال لـ ${customer.name} تلقائياً بنجاح! ✅` : `Sent to ${customer.name} automatically! ✅`);
+            } else {
+                toast.error(res.error || (isAr ? `فشل الإرسال لـ ${customer.name}` : `Failed to send to ${customer.name}`));
+            }
+        } else {
+            const link = buildWhatsAppLink(customer.phone, formatted);
+            window.open(link, "_blank");
+            setMessagesSentToday(prev => prev + 1);
+            toast.info(isAr ? `تم فتح واتساب لـ ${customer.name}` : `WhatsApp opened for ${customer.name}`);
+        }
     };
 
     // ── Bulk Send ──
@@ -222,37 +374,58 @@ export default function WhatsAppPage() {
         bulkIndexRef.current = 0;
         setBulkStatus("sending");
 
-        // Open first one immediately
-        openWhatsAppForIndex(0, logs, selected);
+        sendBulkForIndex(0, logs, selected);
     };
 
-    const openWhatsAppForIndex = (idx: number, logs: MessageLog[], selected: CustomerEntry[]) => {
+    const sendBulkForIndex = async (idx: number, logs: MessageLog[], selected: CustomerEntry[]) => {
         if (idx >= selected.length) {
             setBulkStatus("done");
-            toast.success(isAr ? `تم الانتهاء! تم فتح ${selected.length} محادثة` : `Done! Opened ${selected.length} chats`);
+            toast.success(isAr ? `تم الانتهاء! تم إرسال كافة الرسائل بنجاح 🎉` : `Done! All messages sent successfully 🎉`);
             return;
         }
 
         const customer = selected[idx];
         const formatted = formatWhatsAppMessage(message, { ...templateVars, customer_name: customer.name });
-        const link = buildWhatsAppLink(customer.phone, formatted);
-        window.open(link, "_blank");
-
         const updatedLogs = [...logs];
-        updatedLogs[idx] = { ...updatedLogs[idx], status: "opened", timestamp: new Date().toLocaleTimeString() };
+
+        if (isGatewayConfigured) {
+            // AUTOMATED BACKGROUND SENDING (No tabs, no send click!)
+            const res = await sendAutomatedMessage({
+                restaurantId: restaurantId!,
+                phone: customer.phone,
+                message: formatted
+            });
+
+            if (res.success) {
+                updatedLogs[idx] = { ...updatedLogs[idx], status: "opened", timestamp: new Date().toLocaleTimeString() };
+                setMessagesSentToday(prev => prev + 1);
+            } else {
+                updatedLogs[idx] = {
+                    ...updatedLogs[idx],
+                    status: "skipped",
+                    error: res.error,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+            }
+        } else {
+            // Fallback to wa.me
+            const link = buildWhatsAppLink(customer.phone, formatted);
+            window.open(link, "_blank");
+            updatedLogs[idx] = { ...updatedLogs[idx], status: "opened", timestamp: new Date().toLocaleTimeString() };
+            setMessagesSentToday(prev => prev + 1);
+        }
+
         setBulkLogs(updatedLogs);
         setBulkIndex(idx + 1);
         bulkIndexRef.current = idx + 1;
-        setMessagesSentToday(prev => prev + 1);
 
-        // Schedule next
         if (idx + 1 < selected.length) {
             bulkTimerRef.current = setTimeout(() => {
-                openWhatsAppForIndex(idx + 1, updatedLogs, selected);
+                sendBulkForIndex(idx + 1, updatedLogs, selected);
             }, bulkDelay * 1000);
         } else {
             setBulkStatus("done");
-            toast.success(isAr ? `تم الانتهاء! تم فتح ${selected.length} محادثة` : `Done! Opened ${selected.length} chats`);
+            toast.success(isAr ? `تم الانتهاء! تم إرسال ${selected.length} رسالة تلقائياً 🎉` : `Done! Sent ${selected.length} messages automatically 🎉`);
         }
     };
 
@@ -268,7 +441,7 @@ export default function WhatsAppPage() {
     const resumeBulkSend = () => {
         const selected = getSelectedCustomers();
         setBulkStatus("sending");
-        openWhatsAppForIndex(bulkIndexRef.current, bulkLogs, selected);
+        sendBulkForIndex(bulkIndexRef.current, bulkLogs, selected);
     };
 
     const resetBulkSend = () => {
@@ -330,8 +503,8 @@ export default function WhatsAppPage() {
 
     const downloadTemplate = () => {
         const rows = [
-            { "الاسم": "أحمد محمد", "الهاتف": "201001234567" },
-            { "الاسم": "سارة علي", "الهاتف": "201112345678" },
+            { "الاسم": "أحمد محمد", "الهاتف": "01001234567" },
+            { "الاسم": "سارة علي", "الهاتف": "01111234567" },
         ];
         const ws = XLSX.utils.json_to_sheet(rows);
         const wb = XLSX.utils.book_new();
@@ -360,9 +533,10 @@ export default function WhatsAppPage() {
         { key: "send" as const, labelAr: "إرسال سريع", labelEn: "Quick Send", icon: Zap },
         { key: "bulk" as const, labelAr: "إرسال جماعي", labelEn: "Bulk Send", icon: Users },
         { key: "import" as const, labelAr: "استيراد أرقام", labelEn: "Import Numbers", icon: Upload },
-        { key: "settings" as const, labelAr: "الإعدادات", labelEn: "Settings", icon: MessageCircle },
+        { key: "settings" as const, labelAr: "إعدادات الربط التلقائي", labelEn: "Auto-Send Settings", icon: MessageCircle },
     ];
 
+    // Locked screen if not explicitly allowed by Super Admin
     if (accessChecked && !isPageAllowed) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-2xl max-w-xl mx-auto my-12">
@@ -391,19 +565,50 @@ export default function WhatsAppPage() {
                 <div>
                     <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
                         <FaWhatsapp className="w-7 h-7 text-[#25D366]" />
-                        {isAr ? "رسائل واتساب" : "WhatsApp Messaging"}
+                        {isAr ? "رسائل واتساب التلقائية" : "Automated WhatsApp Messaging"}
                     </h1>
                     <p className="text-slate-500 dark:text-zinc-400 text-sm mt-1">
-                        {isAr ? "أرسل رسائل لعملائك عبر واتساب بسهولة" : "Send messages to your customers via WhatsApp easily"}
+                        {isAr ? "أرسل رسائل لعملائك تلقائياً في الخلفية بدون الضغط على Send" : "Send messages to your customers automatically in the background"}
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold bg-slate-50 dark:bg-zinc-900/50 border-slate-200 dark:border-zinc-800">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isGatewayConfigured ? "#25D366" : "#f59e0b" }}></span>
+                        {isGatewayConfigured 
+                            ? (isAr ? "الوضع: تلقائي ⚡" : "Mode: Auto ⚡") 
+                            : (isAr ? "الوضع: يدوي (اربط البوابة)" : "Mode: Manual (Connect Gateway)")}
+                    </div>
                     <div className="bg-[#25D366]/10 dark:bg-[#25D366]/20 px-4 py-2 rounded-xl border border-[#25D366]/20 dark:border-[#25D366]/30">
                         <span className="text-xs text-[#25D366] font-bold uppercase">{isAr ? "تم الإرسال اليوم" : "Sent Today"}</span>
                         <p className="text-xl font-extrabold text-[#25D366]">{messagesSentToday}</p>
                     </div>
                 </div>
             </div>
+
+            {/* Gateway Status Banner (if not configured) */}
+            {!isGatewayConfigured && (
+                <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl p-4 flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <div>
+                            <p className="font-bold text-amber-900 dark:text-amber-200 text-sm">
+                                {isAr ? "تريد الإرسال التلقائي بدون الضغط على Send في كل رسالة؟" : "Want automated sending without clicking Send?"}
+                            </p>
+                            <p className="text-xs text-amber-700 dark:text-amber-300">
+                                {isAr 
+                                    ? "انتقل لتبويب \"إعدادات الربط التلقائي\" واربط حسابك بمسح QR Code مرة واحدة ليتم الإرسال تلقائياً في الخلفية!" 
+                                    : "Go to Auto-Send Settings and connect via QR Code to send automatically in background!"}
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={() => setActiveTab("settings")}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition"
+                    >
+                        {isAr ? "ضبط الربط التلقائي الآن" : "Configure Now"}
+                    </button>
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -441,48 +646,50 @@ export default function WhatsAppPage() {
                 ))}
             </div>
 
-            {/* Message Composer (shared across tabs) */}
-            <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5 space-y-4">
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5 text-[#25D366]" />
-                    {isAr ? "الرسالة" : "Message"}
-                </h3>
-                <textarea
-                    value={message}
-                    onChange={e => setMessage(e.target.value)}
-                    placeholder={isAr ? "اكتب رسالتك هنا...\n\nالمتغيرات المتاحة:\n{customer_name} - اسم العميل\n{restaurant_name} - اسم المطعم" : "Write your message here...\n\nAvailable variables:\n{customer_name} - Customer name\n{restaurant_name} - Restaurant name"}
-                    dir={isAr ? "rtl" : "ltr"}
-                    rows={4}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-xl text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-[#25D366]/30 focus:border-[#25D366]/50 resize-none transition"
-                />
-                {/* Quick variable buttons */}
-                <div className="flex flex-wrap gap-2">
-                    {[
-                        { label: isAr ? "اسم العميل" : "Customer Name", var: "{customer_name}" },
-                        { label: isAr ? "اسم المطعم" : "Restaurant Name", var: "{restaurant_name}" },
-                    ].map(v => (
-                        <button
-                            key={v.var}
-                            onClick={() => setMessage(prev => prev + " " + v.var)}
-                            className="px-3 py-1.5 text-xs font-bold bg-[#25D366]/10 dark:bg-[#25D366]/20 text-[#25D366] rounded-lg border border-[#25D366]/20 dark:border-[#25D366]/30 hover:bg-[#25D366]/20 transition"
-                        >
-                            + {v.label}
-                        </button>
-                    ))}
-                </div>
-                {/* Preview */}
-                {message && (
-                    <div className="bg-[#DCF8C6] dark:bg-[#005C4B] rounded-xl p-4 relative">
-                        <p className="text-xs font-bold text-[#075E54] dark:text-[#25D366] mb-1 uppercase">{isAr ? "معاينة الرسالة" : "Message Preview"}</p>
-                        <p className="text-sm text-[#303030] dark:text-white whitespace-pre-wrap" dir={isAr ? "rtl" : "ltr"}>
-                            {previewMessage}
-                        </p>
-                        <div className="absolute bottom-2 end-3 text-[10px] text-[#075E54]/50 dark:text-[#25D366]/50">
-                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ✓✓
-                        </div>
+            {/* Message Composer (shared across tabs except settings) */}
+            {activeTab !== "settings" && (
+                <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5 space-y-4">
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                        <MessageCircle className="w-5 h-5 text-[#25D366]" />
+                        {isAr ? "الرسالة" : "Message"}
+                    </h3>
+                    <textarea
+                        value={message}
+                        onChange={e => setMessage(e.target.value)}
+                        placeholder={isAr ? "اكتب رسالتك هنا...\n\nالمتغيرات المتاحة:\n{customer_name} - اسم العميل\n{restaurant_name} - اسم المطعم" : "Write your message here...\n\nAvailable variables:\n{customer_name} - Customer name\n{restaurant_name} - Restaurant name"}
+                        dir={isAr ? "rtl" : "ltr"}
+                        rows={4}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-xl text-base text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none focus:ring-2 focus:ring-[#25D366]/30 focus:border-[#25D366]/50 resize-none transition"
+                    />
+                    {/* Quick variable buttons */}
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { label: isAr ? "اسم العميل" : "Customer Name", var: "{customer_name}" },
+                            { label: isAr ? "اسم المطعم" : "Restaurant Name", var: "{restaurant_name}" },
+                        ].map(v => (
+                            <button
+                                key={v.var}
+                                onClick={() => setMessage(prev => prev + " " + v.var)}
+                                className="px-3 py-1.5 text-xs font-bold bg-[#25D366]/10 dark:bg-[#25D366]/20 text-[#25D366] rounded-lg border border-[#25D366]/20 dark:border-[#25D366]/30 hover:bg-[#25D366]/20 transition"
+                            >
+                                + {v.label}
+                            </button>
+                        ))}
                     </div>
-                )}
-            </div>
+                    {/* Preview */}
+                    {message && (
+                        <div className="bg-[#DCF8C6] dark:bg-[#005C4B] rounded-xl p-4 relative">
+                            <p className="text-xs font-bold text-[#075E54] dark:text-[#25D366] mb-1 uppercase">{isAr ? "معاينة الرسالة" : "Message Preview"}</p>
+                            <p className="text-sm text-[#303030] dark:text-white whitespace-pre-wrap" dir={isAr ? "rtl" : "ltr"}>
+                                {previewMessage}
+                            </p>
+                            <div className="absolute bottom-2 end-3 text-[10px] text-[#075E54]/50 dark:text-[#25D366]/50">
+                                {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ✓✓
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* ═══════════ TAB: Quick Send ═══════════ */}
             {activeTab === "send" && (
@@ -497,7 +704,7 @@ export default function WhatsAppPage() {
                             <input
                                 value={quickPhone}
                                 onChange={e => setQuickPhone(e.target.value)}
-                                placeholder={isAr ? "مثال: 201001234567" : "e.g. 201001234567"}
+                                placeholder={isAr ? "مثال: 01001234567" : "e.g. 01001234567"}
                                 dir="ltr"
                                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-xl text-base text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-[#25D366]/30"
                             />
@@ -515,12 +722,13 @@ export default function WhatsAppPage() {
                     </div>
                     <button
                         onClick={handleQuickSend}
-                        disabled={!quickPhone.trim() || !message.trim()}
+                        disabled={sendingQuick || !quickPhone.trim() || !message.trim()}
                         className="flex items-center gap-2 px-6 py-3 bg-[#25D366] hover:bg-[#128C7E] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl shadow-lg shadow-[#25D366]/20 transition active:scale-95"
                     >
-                        <FaWhatsapp className="w-5 h-5" />
-                        {isAr ? "إرسال عبر واتساب" : "Send via WhatsApp"}
-                        <ExternalLink className="w-4 h-4" />
+                        {sendingQuick ? <Loader2 className="w-5 h-5 animate-spin" /> : <FaWhatsapp className="w-5 h-5" />}
+                        {isGatewayConfigured 
+                            ? (isAr ? "إرسال تلقائي في الخلفية ⚡" : "Send Automatically ⚡") 
+                            : (isAr ? "فتح وإرسال عبر واتساب" : "Send via WhatsApp")}
                     </button>
                 </div>
             )}
@@ -545,7 +753,7 @@ export default function WhatsAppPage() {
 
                         {/* Delay setting */}
                         <div className="flex items-center gap-3">
-                            <label className="text-sm text-slate-600 dark:text-zinc-400 font-bold">{isAr ? "التأخير بين كل رسالة:" : "Delay between messages:"}</label>
+                            <label className="text-sm text-slate-600 dark:text-zinc-400 font-bold">{isAr ? "الفاصل الزمني بين كل رسالة:" : "Delay between messages:"}</label>
                             <div className="flex items-center gap-1">
                                 <button onClick={() => setBulkDelay(Math.max(1, bulkDelay - 1))} className="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-zinc-800 rounded-lg text-slate-500 hover:bg-slate-200 transition">
                                     <ChevronDown className="w-4 h-4" />
@@ -577,7 +785,9 @@ export default function WhatsAppPage() {
                                         className="flex items-center gap-2 px-6 py-2.5 bg-[#25D366] hover:bg-[#128C7E] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-sm rounded-xl shadow-lg shadow-[#25D366]/20 transition active:scale-95"
                                     >
                                         <Play className="w-4 h-4" />
-                                        {isAr ? `إرسال لـ ${selectedCount} عميل` : `Send to ${selectedCount} customers`}
+                                        {isGatewayConfigured
+                                            ? (isAr ? `إرسال تلقائي لـ ${selectedCount} عميل ⚡` : `Auto-Send to ${selectedCount} customers ⚡`)
+                                            : (isAr ? `إرسال لـ ${selectedCount} عميل` : `Send to ${selectedCount} customers`)}
                                     </button>
                                 </>
                             )}
@@ -597,7 +807,7 @@ export default function WhatsAppPage() {
                                         className="flex items-center gap-2 px-6 py-2.5 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm rounded-xl transition active:scale-95"
                                     >
                                         <Play className="w-4 h-4" />
-                                        {isAr ? "استمرار" : "Resume"}
+                                        {isAr ? "استمرار الإرسال" : "Resume"}
                                     </button>
                                     <button
                                         onClick={resetBulkSend}
@@ -614,16 +824,20 @@ export default function WhatsAppPage() {
                                     className="flex items-center gap-2 px-6 py-2.5 bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold text-sm rounded-xl border border-emerald-200 dark:border-emerald-500/30 transition"
                                 >
                                     <RotateCcw className="w-4 h-4" />
-                                    {isAr ? "إرسال جديد" : "New Broadcast"}
+                                    {isAr ? "حملة إرسال جديدة" : "New Broadcast"}
                                 </button>
                             )}
                         </div>
 
-                        {/* Progress */}
+                        {/* Progress Bar */}
                         {bulkStatus !== "idle" && (
-                            <div className="space-y-3">
+                            <div className="space-y-3 pt-2">
                                 <div className="flex items-center justify-between text-sm">
-                                    <span className="text-slate-500 dark:text-zinc-400 font-bold">{isAr ? "التقدم" : "Progress"}</span>
+                                    <span className="text-slate-500 dark:text-zinc-400 font-bold">
+                                        {isGatewayConfigured 
+                                            ? (isAr ? "التقدم في الإرسال التلقائي:" : "Automated Sending Progress:")
+                                            : (isAr ? "التقدم:" : "Progress:")}
+                                    </span>
                                     <span className="font-extrabold text-slate-900 dark:text-white">{bulkIndex} / {bulkLogs.length}</span>
                                 </div>
                                 <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-3 overflow-hidden">
@@ -635,13 +849,15 @@ export default function WhatsAppPage() {
                                 {bulkStatus === "sending" && (
                                     <div className="flex items-center gap-2 text-sm text-[#25D366] font-bold animate-pulse">
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        {isAr ? "جاري الإرسال..." : "Sending..."}
+                                        {isGatewayConfigured 
+                                            ? (isAr ? "جاري الإرسال التلقائي في الخلفية بدون فتح نوافذ..." : "Sending automatically in background...")
+                                            : (isAr ? "جاري فتح المحادثات بالتتابع..." : "Sending...")}
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* Bulk Log */}
+                        {/* Bulk Logs */}
                         {bulkLogs.length > 0 && (
                             <div className="max-h-60 overflow-y-auto space-y-1.5 border-t border-slate-100 dark:border-zinc-800/50 pt-3">
                                 {bulkLogs.map((log, i) => (
@@ -657,7 +873,11 @@ export default function WhatsAppPage() {
                                             <span className="font-bold text-slate-700 dark:text-zinc-300">{log.name}</span>
                                             <span className="text-slate-400 dark:text-zinc-600" dir="ltr">{log.phone}</span>
                                         </div>
-                                        {log.timestamp && <span className="text-xs text-slate-400 dark:text-zinc-600">{log.timestamp}</span>}
+                                        <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-zinc-600">
+                                            {log.status === "opened" && <span className="text-emerald-500 font-bold">{isAr ? "تم الإرسال بنجاح" : "Sent"}</span>}
+                                            {log.status === "skipped" && <span className="text-red-500 font-bold">{log.error || (isAr ? "فشل" : "Failed")}</span>}
+                                            {log.timestamp && <span>{log.timestamp}</span>}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -746,8 +966,8 @@ export default function WhatsAppPage() {
                         </h3>
                         <p className="text-sm text-slate-500 dark:text-zinc-400">
                             {isAr
-                                ? "ارفع ملف Excel يحتوي على أعمدة \"الاسم\" و \"الهاتف\" لإرسال رسائل جماعية لأرقام جديدة"
-                                : "Upload an Excel file with 'Name' and 'Phone' columns to send bulk messages to new numbers"}
+                                ? "ارفع ملف Excel يحتوي على أعمدة \"الاسم\" و \"الهاتف\" لإرسال رسائل جماعية تلقائية لأرقام جديدة"
+                                : "Upload an Excel file with 'Name' and 'Phone' columns to send bulk messages automatically"}
                         </p>
                         <div className="flex flex-wrap gap-3">
                             <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} className="hidden" />
@@ -805,7 +1025,9 @@ export default function WhatsAppPage() {
                                         className="flex items-center gap-2 px-4 py-2 bg-[#25D366] hover:bg-[#128C7E] disabled:opacity-50 text-white font-bold text-sm rounded-lg transition active:scale-95"
                                     >
                                         <Send className="w-4 h-4" />
-                                        {isAr ? "إرسال جماعي" : "Send Bulk"}
+                                        {isGatewayConfigured 
+                                            ? (isAr ? "إرسال تلقائي دفعة واحدة ⚡" : "Auto-Send Bulk ⚡") 
+                                            : (isAr ? "إرسال جماعي" : "Send Bulk")}
                                     </button>
                                 </div>
                             </div>
@@ -838,88 +1060,104 @@ export default function WhatsAppPage() {
                             </div>
                         </div>
                     )}
-
-                    {/* Bulk progress for import tab */}
-                    {bulkStatus !== "idle" && activeTab === "import" && (
-                        <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5 space-y-3">
-                            <div className="flex items-center justify-between">
-                                <span className="font-bold text-slate-700 dark:text-zinc-300">{isAr ? "حالة الإرسال" : "Send Status"}</span>
-                                <div className="flex gap-2">
-                                    {bulkStatus === "sending" && (
-                                        <button onClick={pauseBulkSend} className="px-3 py-1.5 bg-amber-100 dark:bg-amber-500/20 text-amber-600 rounded-lg text-xs font-bold"><Pause className="w-3 h-3 inline me-1" />{isAr ? "إيقاف" : "Pause"}</button>
-                                    )}
-                                    {bulkStatus === "paused" && (
-                                        <button onClick={resumeBulkSend} className="px-3 py-1.5 bg-[#25D366]/10 text-[#25D366] rounded-lg text-xs font-bold"><Play className="w-3 h-3 inline me-1" />{isAr ? "استمرار" : "Resume"}</button>
-                                    )}
-                                    {(bulkStatus === "paused" || bulkStatus === "done") && (
-                                        <button onClick={resetBulkSend} className="px-3 py-1.5 bg-slate-100 dark:bg-zinc-800 text-slate-500 rounded-lg text-xs font-bold"><RotateCcw className="w-3 h-3 inline me-1" />{isAr ? "إعادة" : "Reset"}</button>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="w-full bg-slate-100 dark:bg-zinc-800 rounded-full h-2.5 overflow-hidden">
-                                <div className="bg-[#25D366] h-full rounded-full transition-all duration-500" style={{ width: `${bulkLogs.length > 0 ? (bulkIndex / bulkLogs.length) * 100 : 0}%` }} />
-                            </div>
-                            <p className="text-xs text-slate-500 dark:text-zinc-400">{bulkIndex} / {bulkLogs.length}</p>
-                        </div>
-                    )}
                 </div>
             )}
 
-            {/* ═══════════ TAB: Settings ═══════════ */}
+            {/* ═══════════ TAB: Settings (Auto-Send Configuration) ═══════════ */}
             {activeTab === "settings" && (
-                <div className="space-y-4">
-                    {/* Current WhatsApp Number */}
+                <div className="space-y-6">
+                    {/* Connection Banner */}
                     <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5 space-y-4">
-                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Phone className="w-5 h-5 text-[#25D366]" />
-                            {isAr ? "رقم واتساب الحالي" : "Current WhatsApp Number"}
-                        </h3>
-                        <div className="flex items-center gap-3 px-4 py-3 bg-[#25D366]/5 dark:bg-[#25D366]/10 rounded-xl border border-[#25D366]/20">
-                            <FaWhatsapp className="w-6 h-6 text-[#25D366]" />
-                            <span className="font-bold text-slate-900 dark:text-white text-lg" dir="ltr">
-                                {restaurant?.whatsapp_number || restaurant?.phone || (isAr ? "غير محدد" : "Not set")}
-                            </span>
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                            <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                <Zap className="w-5 h-5 text-amber-500" />
+                                {isAr ? "إعدادات الإرسال التلقائي المباشر (بدون الضغط على Send)" : "Automated Background Sending Settings"}
+                            </h3>
+                            {connectionStatus && (
+                                <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ${connectionStatus.connected ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30" : "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20"}`}>
+                                    {connectionStatus.connected ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                                    {connectionStatus.message}
+                                </span>
+                            )}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400">
-                            {isAr ? "لتغيير الرقم، اذهب إلى صفحة الإعدادات" : "To change this number, go to Settings page"}
+
+                        <p className="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
+                            {isAr 
+                                ? "للإرسال التلقائي في الخلفية بدون فتح نوافذ وبدون الضغط على Send في كل رسالة، قم بربط رقم واتساب الخاص بك عبر بوابة UltraMsg (أو أي بوابة متوافقة بمسح QR Code) وضع الـ Instance ID والـ Token هنا." 
+                                : "To send messages completely in the background without clicking Send, connect your WhatsApp via UltraMsg gateway (QR code scan) and enter your Instance ID & Token below."}
                         </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-xs text-slate-600 dark:text-zinc-400 font-bold mb-1.5 flex items-center gap-1.5">
+                                    <Key className="w-3.5 h-3.5 text-[#25D366]" />
+                                    {isAr ? "معرّف البوابة (Instance ID)" : "Instance ID / Phone Number ID"}
+                                </label>
+                                <input
+                                    value={instanceId}
+                                    onChange={e => setInstanceId(e.target.value)}
+                                    placeholder={isAr ? "مثال: instance12345" : "e.g. instance12345"}
+                                    dir="ltr"
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-[#25D366]/30 font-mono"
+                                />
+                                <span className="text-[11px] text-slate-400 mt-1 block">
+                                    {isAr ? "معرف الجلسة من لوحة تحكم بوابة الواتساب" : "Instance ID from WhatsApp gateway dashboard"}
+                                </span>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-slate-600 dark:text-zinc-400 font-bold mb-1.5 flex items-center gap-1.5">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-[#25D366]" />
+                                    {isAr ? "رمز الدخول السري (API Token)" : "API Token"}
+                                </label>
+                                <input
+                                    type="password"
+                                    value={apiToken}
+                                    onChange={e => setApiToken(e.target.value)}
+                                    placeholder="••••••••••••••••••••••••"
+                                    dir="ltr"
+                                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-[#25D366]/30 font-mono"
+                                />
+                                <span className="text-[11px] text-slate-400 mt-1 block">
+                                    {isAr ? "الرمز السري الخاص بالـ Instance للتحقق من الصلاحية" : "Secret API token to authenticate requests"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 pt-2">
+                            <button
+                                onClick={handleSaveSettings}
+                                disabled={savingSettings}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold text-sm rounded-xl shadow-md transition active:scale-95 disabled:opacity-50"
+                            >
+                                {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                {isAr ? "حفظ إعدادات البوابة" : "Save Gateway Settings"}
+                            </button>
+                            <button
+                                onClick={handleTestConnection}
+                                disabled={testingConnection || !isGatewayConfigured}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 font-bold text-sm rounded-xl border border-slate-200 dark:border-zinc-700 transition active:scale-95 disabled:opacity-50"
+                            >
+                                {testingConnection ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 text-amber-500" />}
+                                {isAr ? "اختبار الاتصال" : "Test Connection"}
+                            </button>
+                        </div>
                     </div>
 
-                    {/* API Configuration (Future) */}
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5 space-y-4 opacity-60">
-                        <h3 className="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Zap className="w-5 h-5 text-amber-500" />
-                            {isAr ? "WhatsApp Business API (قريباً)" : "WhatsApp Business API (Coming Soon)"}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-zinc-400">
-                            {isAr
-                                ? "للإرسال التلقائي بدون فتح واتساب في كل مرة، ستحتاج حساب WhatsApp Business API من Meta. هذه الخاصية قادمة قريباً."
-                                : "For automated sending without opening WhatsApp each time, you'll need a WhatsApp Business API account from Meta. This feature is coming soon."}
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-xs text-slate-500 dark:text-zinc-500 font-bold mb-1 block">API Token</label>
-                                <input disabled placeholder="Coming soon..." className="w-full px-4 py-2.5 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 cursor-not-allowed" />
-                            </div>
-                            <div>
-                                <label className="text-xs text-slate-500 dark:text-zinc-500 font-bold mb-1 block">Phone Number ID</label>
-                                <input disabled placeholder="Coming soon..." className="w-full px-4 py-2.5 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-400 cursor-not-allowed" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* How it works info box */}
+                    {/* How to setup steps */}
                     <div className="bg-[#25D366]/5 dark:bg-[#25D366]/10 border border-[#25D366]/20 dark:border-[#25D366]/30 rounded-2xl p-6 flex items-start gap-4">
-                        <FaWhatsapp className="w-6 h-6 text-[#25D366] shrink-0 mt-1" />
-                        <div>
-                            <h4 className="font-bold text-[#075E54] dark:text-[#25D366] mb-2">{isAr ? "كيف يعمل الإرسال؟" : "How does sending work?"}</h4>
-                            <ul className="text-sm text-[#075E54]/80 dark:text-[#25D366]/80 space-y-1.5">
-                                <li>{isAr ? "• عند الإرسال، يتم فتح واتساب بالرسالة جاهزة تلقائياً" : "• When sending, WhatsApp opens automatically with your message ready"}</li>
-                                <li>{isAr ? "• كل ما عليك هو الضغط على زرار Send في واتساب" : "• All you need to do is press Send in WhatsApp"}</li>
-                                <li>{isAr ? "• في الإرسال الجماعي، يتم فتح محادثة كل عميل بالتتابع" : "• In bulk sending, each customer's chat opens sequentially"}</li>
-                                <li>{isAr ? "• يمكنك إيقاف واستئناف الإرسال الجماعي في أي وقت" : "• You can pause and resume bulk sending at any time"}</li>
-                                <li>{isAr ? "• يمكنك استيراد أرقام من ملف Excel لإرسال لأرقام جديدة" : "• You can import numbers from Excel to send to new contacts"}</li>
-                            </ul>
+                        <FaWhatsapp className="w-7 h-7 text-[#25D366] shrink-0 mt-1" />
+                        <div className="space-y-3">
+                            <h4 className="font-bold text-[#075E54] dark:text-[#25D366] text-base">
+                                {isAr ? "كيف تفعل الإرسال التلقائي في دقيقة واحدة؟" : "How to enable automated sending in 1 minute?"}
+                            </h4>
+                            <ol className="text-sm text-[#075E54]/80 dark:text-[#25D366]/80 space-y-2 list-decimal list-inside">
+                                <li>{isAr ? "افتح موقع UltraMsg (أو أي بوابة واتساب بمسح QR) وسجل حساب مجاني." : "Open UltraMsg (or any QR WhatsApp gateway) and create an account."}</li>
+                                <li>{isAr ? "امسح الـ QR Code من تطبيق واتساب في هاتفك كما تفعل مع WhatsApp Web." : "Scan the QR code from WhatsApp on your phone just like WhatsApp Web."}</li>
+                                <li>{isAr ? "انسخ الـ Instance ID والـ Token من صفحة البوابة والصقهم في الحقول أعلاه." : "Copy your Instance ID & Token and paste them in the fields above."}</li>
+                                <li>{isAr ? "اضغط \"حفظ إعدادات البوابة\" ثم \"اختبار الاتصال\"." : "Click 'Save Gateway Settings' and then 'Test Connection'."}</li>
+                                <li>{isAr ? "مبروك! الآن كل رسائلك ستُرسل تلقائياً في الخلفية بنقرة واحدة وبدون فتح أي نافذة!" : "Congratulations! All messages will now send automatically in background!"}</li>
+                            </ol>
                         </div>
                     </div>
                 </div>

@@ -24,13 +24,52 @@ export async function POST(req: Request) {
         const { whatsapp_api_token, whatsapp_phone_number_id } = restaurant;
 
         if (!whatsapp_api_token || !whatsapp_phone_number_id) {
-            return NextResponse.json({ success: false, error: 'WhatsApp API not configured' });
+            return NextResponse.json({ 
+                success: false, 
+                error: 'لم يتم ضبط إعدادات بوابة واتساب. يرجى إدخال بيانات الربط في صفحة إعدادات الواتساب.' 
+            }, { status: 400 });
         }
 
-        // Clean phone number (remove +, spaces, etc. as required by Cloud API)
-        const cleanPhone = phone.replace(/[^\d]/g, '');
+        // Clean phone number (keep digits only)
+        let cleanPhone = phone.replace(/[^\d]/g, '');
+        // If Egyptian number starting with 01, add country code 20
+        if (cleanPhone.startsWith('01') && cleanPhone.length === 11) {
+            cleanPhone = '2' + cleanPhone;
+        }
 
-        // Call WhatsApp Cloud API
+        // Strip VS16 Unicode characters that can break message text
+        const cleanMessage = message.replace(/\uFE0F/g, '');
+
+        // 1. UltraMsg / QR Gateway Provider (when phone_number_id contains "instance")
+        if (whatsapp_phone_number_id.toLowerCase().includes('instance')) {
+            const url = `https://api.ultramsg.com/${whatsapp_phone_number_id}/messages/chat`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: whatsapp_api_token,
+                    to: cleanPhone,
+                    body: cleanMessage
+                })
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok || data.error) {
+                console.error('UltraMsg API error:', data);
+                return NextResponse.json({ 
+                    success: false, 
+                    error: data.error || data.message || 'فشل الإرسال عبر بوابة واتساب' 
+                }, { status: 500 });
+            }
+
+            return NextResponse.json({ 
+                success: true, 
+                messageId: String(data.id || data.messageId || 'sent') 
+            });
+        }
+
+        // 2. Meta WhatsApp Cloud API Provider
         const url = `https://graph.facebook.com/v18.0/${whatsapp_phone_number_id}/messages`;
         const response = await fetch(url, {
             method: 'POST',
@@ -42,24 +81,27 @@ export async function POST(req: Request) {
                 messaging_product: 'whatsapp',
                 to: cleanPhone,
                 type: 'text',
-                text: { body: message }
+                text: { body: cleanMessage }
             })
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('WhatsApp Cloud API error:', errorText);
-            return NextResponse.json({ error: 'Failed to send WhatsApp message via Cloud API' }, { status: 500 });
-        }
+        const responseData = await response.json().catch(() => ({}));
 
-        const responseData = await response.json();
+        if (!response.ok) {
+            console.error('WhatsApp Cloud API error:', responseData);
+            return NextResponse.json({ 
+                success: false, 
+                error: responseData.error?.message || 'فشل الإرسال عبر WhatsApp Cloud API' 
+            }, { status: 500 });
+        }
 
         return NextResponse.json({ 
             success: true, 
             messageId: responseData.messages?.[0]?.id 
         });
-    } catch (err) {
+    } catch (err: unknown) {
         console.error('API /whatsapp/send error:', err);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        const errorMessage = err instanceof Error ? err.message : 'Internal server error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

@@ -227,7 +227,7 @@ export default function SuperAdminClientsPage() {
             if (error) throw error;
             
             const perms: Record<string, boolean> = {};
-            ALL_PAGE_KEYS.forEach(k => { perms[k] = true });
+            ALL_PAGE_KEYS.forEach(k => { perms[k] = (k === 'whatsapp' ? false : true); });
             if (data && data.length > 0) {
                 (data as PageAccess[]).forEach(p => { perms[p.page_key] = p.enabled });
             }
