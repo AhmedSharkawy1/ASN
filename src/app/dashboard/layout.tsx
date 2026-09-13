@@ -13,7 +13,7 @@ import {
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
     Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud, Tag,
-    Smartphone, Download, UserCheck
+    Smartphone, Download, UserCheck, MessageCircle
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -618,6 +618,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/customers", icon: Users, labelAr: "العملاء", labelEn: "Customers", key: "customers" },
                 { href: "/dashboard/staff", icon: UserCog, labelAr: "الفريق", labelEn: "Staff", key: "team" },
                 { href: "/dashboard/notifications", icon: Bell, labelAr: "إشعارات العملاء", labelEn: "Notifications", key: "notifications" },
+                { href: "/dashboard/whatsapp", icon: MessageCircle, labelAr: "واتساب", labelEn: "WhatsApp", key: "whatsapp" },
             ]
         },
         {
@@ -645,7 +646,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         products: ['products', 'tables', 'delivery', 'promotions'],
         settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'qr'],
         team: ['team'],
-        customers: ['customers', 'notifications'],
+        customers: ['customers', 'notifications', 'whatsapp'],
         reports: ['reports'],
     };
 

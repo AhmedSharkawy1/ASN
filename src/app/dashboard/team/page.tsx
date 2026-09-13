@@ -57,6 +57,7 @@ const ALL_PAGE_PERMS = [
         { key: "customers", ar: "العملاء", en: "Customers" },
         { key: "team", ar: "الفريق", en: "Team" },
         { key: "notifications", ar: "الإشعارات", en: "Notifications" },
+        { key: "whatsapp", ar: "رسائل واتساب", en: "WhatsApp" },
     ]},
     { section: "الأدوات", sectionEn: "Tools", items: [
         { key: "printer", ar: "الطابعة", en: "Printer" },

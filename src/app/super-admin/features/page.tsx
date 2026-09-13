@@ -1,16 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Shield, Sparkles, MessageSquare, ShoppingBag, Globe } from "lucide-react";
+import { supabase } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export default function SuperAdminFeaturesPage() {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [features, setFeatures] = useState([
-        { id: 1, name: "AI Recommendations", description: "Enable smart product suggestions for end customers", icon: Sparkles, enabled: true },
-        { id: 2, name: "WhatsApp Integration", description: "Allow clients to connect their WhatsApp Business API", icon: MessageSquare, enabled: false },
-        { id: 3, name: "Advanced Inventory", description: "Multi-warehouse and supply chain tracking", icon: ShoppingBag, enabled: true },
-        { id: 4, name: "Multi-Language", description: "Allow clients to translate their menus dynamically", icon: Globe, enabled: true },
+        { id: 1, key: "ai_recommendations", name: "AI Recommendations", description: "Enable smart product suggestions for end customers", icon: Sparkles, enabled: true },
+        { id: 2, key: "whatsapp_integration", name: "WhatsApp Integration", description: "Allow clients to connect their WhatsApp Business API", icon: MessageSquare, enabled: true },
+        { id: 3, key: "advanced_inventory", name: "Advanced Inventory", description: "Multi-warehouse and supply chain tracking", icon: ShoppingBag, enabled: true },
+        { id: 4, key: "multi_language", name: "Multi-Language", description: "Allow clients to translate their menus dynamically", icon: Globe, enabled: true },
     ]);
+
+    useEffect(() => {
+        async function loadFeatures() {
+            try {
+                const { data, error } = await supabase
+                    .from('platform_settings')
+                    .select('key, value')
+                    .eq('type', 'feature_flag');
+                
+                if (error) {
+                    throw error;
+                }
+
+                if (data) {
+                    const settingsList = data as { key: string; value: string | boolean }[];
+                    setFeatures(prev => prev.map(f => {
+                        const setting = settingsList.find(d => d.key === f.key);
+                        if (setting) {
+                            return { ...f, enabled: setting.value === 'true' || setting.value === true };
+                        }
+                        return f;
+                    }));
+                }
+            } catch (error) {
+                console.error("Failed to load feature flags from DB, using defaults.", error);
+            }
+        }
+        
+        loadFeatures();
+    }, []);
+
+    const handleToggle = async (featureId: number, featureKey: string, currentEnabled: boolean) => {
+        const newEnabled = !currentEnabled;
+        
+        setFeatures(prev => prev.map(f => f.id === featureId ? { ...f, enabled: newEnabled } : f));
+        
+        try {
+            const { error } = await supabase
+                .from('platform_settings')
+                .upsert({ type: 'feature_flag', key: featureKey, value: newEnabled.toString() }, { onConflict: 'type, key' });
+            
+            if (error) {
+                throw error;
+            }
+            toast.success(`Feature ${newEnabled ? 'enabled' : 'disabled'} successfully`);
+        } catch (error) {
+            console.error("Failed to save feature toggle", error);
+            toast.warning("Persistence not available. Updated locally.");
+        }
+    };
 
     return (
         <div className="space-y-6 lg:space-y-8 max-w-7xl mx-auto w-full">
@@ -32,7 +83,12 @@ export default function SuperAdminFeaturesPage() {
                             <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">{f.description}</p>
                             
                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" defaultChecked={f.enabled} />
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={f.enabled} 
+                                    onChange={() => handleToggle(f.id, f.key, f.enabled)} 
+                                />
                                 <div className="w-11 h-6 bg-stone-200 dark:bg-stone-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
                                 <span className="ml-3 text-sm font-bold text-slate-700 dark:text-slate-300">
                                     {f.enabled ? 'Active Globally' : 'Disabled'}

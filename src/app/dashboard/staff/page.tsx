@@ -293,6 +293,7 @@ export default function StaffPage() {
         { key: 'customers', nameEn: 'Customers', nameAr: 'العملاء' },
         { key: 'team', nameEn: 'Team & Staff', nameAr: 'الفريق' },
         { key: 'notifications', nameEn: 'Customer Notifications', nameAr: 'إشعارات العملاء' },
+        { key: 'whatsapp', nameEn: 'WhatsApp Messaging', nameAr: 'رسائل واتساب' },
         { key: 'marketing_links', nameEn: 'Marketing Links', nameAr: 'روابط التسويق' },
         { key: 'printer', nameEn: 'Printer Settings', nameAr: 'إعدادات الطابعة' },
         { key: 'branches', nameEn: 'Branches', nameAr: 'الفروع' },

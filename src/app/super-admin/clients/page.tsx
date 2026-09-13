@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -40,6 +40,7 @@ export default function SuperAdminClientsPage() {
     const [savingAccess, setSavingAccess] = useState(false);
     const [showAsnBranding, setShowAsnBranding] = useState(true);
     const [highQualityImages, setHighQualityImages] = useState(false);
+    const [whatsappAccessMap, setWhatsappAccessMap] = useState<Record<string, boolean>>({});
 
     // Parent Link Modal Options
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -125,6 +126,7 @@ export default function SuperAdminClientsPage() {
                 { key: 'customers', nameEn: 'Customers database', nameAr: 'قاعدة بيانات العملاء' },
                 { key: 'team', nameEn: 'Staff & Roles', nameAr: 'إدارة الفريق' },
                 { key: 'notifications', nameEn: 'Client Notifications', nameAr: 'إشعارات العملاء' },
+                { key: 'whatsapp', nameEn: 'WhatsApp Messaging', nameAr: 'رسائل واتساب' },
             ]
         },
         {
@@ -178,6 +180,20 @@ export default function SuperAdminClientsPage() {
 
             if (result.error) throw result.error;
             setClients((result.data as Client[]) || []);
+
+            // Fetch whatsapp permission states for quick toggle
+            const { data: waData } = await supabase
+                .from('client_page_access')
+                .select('tenant_id, enabled')
+                .eq('page_key', 'whatsapp');
+
+            const waMap: Record<string, boolean> = {};
+            if (waData) {
+                (waData as { tenant_id: string; enabled: boolean }[]).forEach(item => {
+                    waMap[item.tenant_id] = item.enabled;
+                });
+            }
+            setWhatsappAccessMap(waMap);
         } catch (err: unknown) {
             console.error("Fetch clients error:", err);
             const message = err instanceof Error ? err.message : 'Failed to load clients';
@@ -211,10 +227,9 @@ export default function SuperAdminClientsPage() {
             if (error) throw error;
             
             const perms: Record<string, boolean> = {};
+            ALL_PAGE_KEYS.forEach(k => { perms[k] = true });
             if (data && data.length > 0) {
                 (data as PageAccess[]).forEach(p => { perms[p.page_key] = p.enabled });
-            } else {
-                ALL_PAGE_KEYS.forEach(k => { perms[k] = true });
             }
             setClientPermissions(perms);
 
@@ -245,6 +260,9 @@ export default function SuperAdminClientsPage() {
             if (formattedData.length > 0) {
                const { error } = await supabase.from('client_page_access').upsert(formattedData, { onConflict: 'tenant_id, page_key' });
                if (error) throw error;
+               if ('whatsapp' in clientPermissions) {
+                   setWhatsappAccessMap(prev => ({ ...prev, [selectedClient.id]: clientPermissions['whatsapp'] }));
+               }
             }
             
             toast.success(language === "ar" ? "تم حفظ صلاحيات الصفحات والإعدادات" : "Page access & settings updated successfully");
@@ -332,6 +350,34 @@ export default function SuperAdminClientsPage() {
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to toggle high quality setting");
+        }
+    };
+
+    const handleToggleWhatsApp = async (client: Client) => {
+        try {
+            const currentVal = whatsappAccessMap[client.id] !== false;
+            const newVal = !currentVal;
+
+            const { error } = await supabase
+                .from('client_page_access')
+                .upsert({
+                    tenant_id: client.id,
+                    page_key: 'whatsapp',
+                    enabled: newVal
+                }, { onConflict: 'tenant_id, page_key' });
+
+            if (error) throw error;
+
+            setWhatsappAccessMap(prev => ({ ...prev, [client.id]: newVal }));
+
+            toast.success(newVal
+                ? (language === "ar" ? `تم إظهار وتفعيل صفحة واتساب لمطعم ${client.name} ✅` : `WhatsApp enabled for ${client.name} ✅`)
+                : (language === "ar" ? `تم إخفاء صفحة واتساب عن مطعم ${client.name} ❌` : `WhatsApp hidden for ${client.name} ❌`)
+            );
+        } catch (err: unknown) {
+            console.error("Failed to toggle WhatsApp:", err);
+            const message = err instanceof Error ? err.message : 'Failed to toggle WhatsApp';
+            toast.error(message);
         }
     };
 
@@ -704,6 +750,20 @@ export default function SuperAdminClientsPage() {
                                                      >
                                                          <Sparkles className="w-4 h-4" />
                                                      </button>
+                                                     <button 
+                                                          onClick={() => handleToggleWhatsApp(client)} 
+                                                          className={`p-2 rounded-lg transition-colors ${
+                                                              whatsappAccessMap[client.id] !== false 
+                                                                  ? 'text-[#25D366] bg-[#25D366]/10 border border-[#25D366]/30' 
+                                                                  : 'text-stone-400 hover:text-[#25D366] hover:bg-[#25D366]/10'
+                                                          }`} 
+                                                          title={whatsappAccessMap[client.id] !== false 
+                                                              ? (language === 'ar' ? 'صفحة واتساب مفعلة وظاهرة للعميل (اضغط للإخفاء)' : 'WhatsApp is active (click to hide)') 
+                                                              : (language === 'ar' ? 'صفحة واتساب مخفية عن العميل (اضغط للإظهار والتفعيل)' : 'WhatsApp is hidden (click to show)')
+                                                          }
+                                                      >
+                                                          <MessageCircle className="w-4 h-4" />
+                                                      </button>
                                                     {/* Held red while the menu is off, so a paused client is
                                                         obvious at a glance rather than only inside a modal. */}
                                                     <button
