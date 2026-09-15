@@ -426,23 +426,56 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                         <div className="p-4 flex flex-col justify-between flex-1 min-h-[100px]">
                                             <h3 className="font-bold text-lg mb-1 leading-tight line-clamp-3">{itemName(item)}</h3>
                                             <div className="text-left mt-auto w-full pt-2" dir="ltr">
-                                                <div className="flex flex-col gap-1.5 w-full">
-                                                    {item.prices?.map((price, pIdx) => (
-                                                        <div key={pIdx} className="flex items-center justify-between w-full">
-                                                            <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
-                                                                {item.size_labels?.[pIdx] && (
-                                                                    <span className="text-xs font-bold opacity-70 truncate block">{item.size_labels[pIdx]}</span>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                                {item.old_prices?.[pIdx] ? (
-                                                                    <span className="text-sm line-through opacity-50">{item.old_prices[pIdx]}</span>
-                                                                ) : null}
-                                                                <span className="font-black text-lg">{price} {cur}</span>
-                                                            </div>
+                                                {item.prices && item.prices.length > 1 ? (
+                                                    <div className="grid grid-cols-2 gap-1.5 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                        {item.prices.map((price, pIdx) => {
+                                                            const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                            const oldPrice = item.old_prices?.[pIdx];
+                                                            const hasDiscount = Boolean(oldPrice && Number(oldPrice) > Number(price));
+                                                            const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
+                                                            return (
+                                                                <div 
+                                                                    key={pIdx} 
+                                                                    className={`flex flex-col items-center justify-center p-1.5 rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center ${
+                                                                        isOddLast ? 'col-span-2' : ''
+                                                                    }`}
+                                                                    style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
+                                                                >
+                                                                    <span className="text-[11px] font-bold text-foreground truncate max-w-full block leading-none">
+                                                                        {label}
+                                                                    </span>
+                                                                    <div className="flex items-center justify-center gap-1 mt-0.5 leading-none" dir="ltr">
+                                                                        {hasDiscount && (
+                                                                            <span className="line-through text-red-500 font-bold decoration-red-500 text-[9px]">
+                                                                                {oldPrice}
+                                                                            </span>
+                                                                        )}
+                                                                        <span style={{ color: primaryColor }} className="font-black text-xs whitespace-nowrap">
+                                                                            {price}
+                                                                        </span>
+                                                                        <span className="text-[8px] font-bold opacity-60 whitespace-nowrap">
+                                                                            {cur}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-between w-full">
+                                                        <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                            {item.size_labels?.[0] && (
+                                                                <span className="text-xs font-bold opacity-70 truncate block">{item.size_labels[0]}</span>
+                                                            )}
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                            {Boolean(item.old_prices?.[0] && Number(item.old_prices[0]) > Number(item.prices?.[0])) && (
+                                                                <span className="text-sm line-through text-red-500 font-bold decoration-red-500">{item.old_prices?.[0]}</span>
+                                                            )}
+                                                            <span className="font-black text-lg" style={{ color: primaryColor }}>{item.prices?.[0]} {cur}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -620,8 +653,8 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                             className="w-full h-full object-cover" 
                                                             highQuality={Boolean((config as any)?.high_quality_images)}
                                                         />
-                                                        {item.is_popular && (
-                                                            <div className="absolute top-1 right-1 bg-red-600/90 text-white rounded-full font-bold px-1.5 py-0.5 text-[8px] shadow-sm">
+                                                        {Boolean(item.is_popular || (item.old_prices && item.old_prices.some((op: any, idx: number) => op && item.prices?.[idx] && Number(op) > Number(item.prices[idx])))) && (
+                                                            <div className="absolute top-1 right-1 bg-red-600 text-white rounded-full font-bold px-1.5 py-0.5 text-[8px] shadow-sm">
                                                                 {isAr ? 'عرض' : 'Offer'}
                                                             </div>
                                                         )}
@@ -639,30 +672,47 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                         )}
 
                                                         {hasMultiSizes ? (
-                                                            <div className="flex flex-wrap items-center gap-1 mt-1.5" dir={isAr ? 'rtl' : 'ltr'}>
+                                                            <div className="grid grid-cols-2 gap-1 mt-1.5 w-full" dir={isAr ? 'rtl' : 'ltr'}>
                                                                 {item.prices.map((price, pIdx) => {
                                                                     const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                     const oldPrice = item.old_prices?.[pIdx];
+                                                                    const hasDiscount = Boolean(oldPrice && Number(oldPrice) > Number(price));
+                                                                    const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
                                                                     return (
-                                                                        <span 
+                                                                        <div 
                                                                             key={pIdx} 
-                                                                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-lg border border-black/5 dark:border-white/10"
+                                                                            className={`flex flex-col items-center justify-center px-1 py-0.5 rounded-lg border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors ${
+                                                                                isOddLast ? 'col-span-2' : ''
+                                                                            }`}
                                                                             style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                                                                         >
-                                                                            <span className="opacity-70">{label}:</span>
-                                                                            {oldPrice ? <span className="line-through opacity-40 text-[9px]">{oldPrice}</span> : null}
-                                                                            <span style={{ color: primaryColor }} className="font-black">{price} {cur}</span>
-                                                                        </span>
+                                                                            <span className="text-[10px] sm:text-[11px] font-bold text-foreground truncate max-w-full block leading-none">
+                                                                                {label}
+                                                                            </span>
+                                                                            <div className="flex items-center justify-center gap-1 mt-0.5 leading-none" dir="ltr">
+                                                                                {hasDiscount && (
+                                                                                    <span className="line-through text-red-500 font-bold decoration-red-500 text-[8px] sm:text-[9px]">
+                                                                                        {oldPrice}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span style={{ color: primaryColor }} className="font-black text-[10.5px] sm:text-[11px] whitespace-nowrap">
+                                                                                    {price}
+                                                                                </span>
+                                                                                <span className="text-[7.5px] sm:text-[8px] font-bold opacity-60 whitespace-nowrap">
+                                                                                    {cur}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
                                                                     );
                                                                 })}
                                                             </div>
                                                         ) : (
                                                             <div className="flex items-center gap-1.5 mt-1" dir="ltr">
-                                                                {item.old_prices?.[0] ? (
-                                                                    <span className="text-xs line-through opacity-50" style={{ color: textMuted }}>
-                                                                        {item.old_prices[0]}
+                                                                {Boolean(item.old_prices?.[0] && Number(item.old_prices[0]) > Number(item.prices?.[0])) && (
+                                                                    <span className="text-xs line-through text-red-500 font-bold decoration-red-500">
+                                                                        {item.old_prices?.[0]} {cur}
                                                                     </span>
-                                                                ) : null}
+                                                                )}
                                                                 <span className="font-black text-sm sm:text-base" style={{ color: primaryColor }}>
                                                                     {item.prices?.[0]} {cur}
                                                                 </span>
@@ -730,11 +780,11 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                     highQuality={Boolean((config as any)?.high_quality_images)}
                                                 />
                                                 {/* Special Offer Badge */}
-                                                {item.is_popular && (
-                                                    <div className={`absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white rounded-full font-bold ${
+                                                {Boolean(item.is_popular || (item.old_prices && item.old_prices.some((op: any, idx: number) => op && item.prices?.[idx] && Number(op) > Number(item.prices[idx])))) && (
+                                                    <div className={`absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white rounded-full font-bold shadow-sm ${
                                                         viewMode === 'single' ? 'px-3 py-1 text-xs shadow-md' : 'px-2 py-0.5 text-[10px]'
                                                     }`}>
-                                                        {isAr ? 'عرض خاص' : 'Offer'}
+                                                        {isAr ? 'عرض' : 'Offer'}
                                                     </div>
                                                 )}
                                             </div>
@@ -745,49 +795,84 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                     ? 'py-1 pr-1' 
                                                     : viewMode === 'single' 
                                                     ? 'p-4 sm:p-5' 
-                                                    : 'p-3'
+                                                    : 'p-2.5 sm:p-3'
                                             }`}>
                                                 <h3 className={`font-bold leading-tight ${
-                                                    viewMode === 'single' ? 'text-lg sm:text-xl font-extrabold mb-1.5' : 'text-[0.95rem] mb-1 line-clamp-2'
+                                                    viewMode === 'single' ? 'text-lg sm:text-xl font-extrabold mb-1.5' : 'text-sm sm:text-[0.95rem] mb-1 line-clamp-2'
                                                 }`}>{itemName(item)}</h3>
 
                                                 {(item.description_ar || item.desc_ar) && (
                                                     <p className={`${
-                                                        viewMode === 'single' ? 'text-xs sm:text-sm mb-3 line-clamp-3' : 'text-[11px] mb-2 line-clamp-2'
-                                                    }`} style={{ color: textMuted }}>
+                                                        viewMode === 'single' ? 'text-xs sm:text-sm mb-3 line-clamp-3' : 'text-[10.5px] sm:text-[11px] mb-1.5 line-clamp-1'
+                                                    } opacity-65 leading-tight`} style={{ color: textMuted }}>
                                                         {isAr ? (item.description_ar || item.desc_ar) : (item.description_en || item.desc_en || item.description_ar || item.desc_ar)}
                                                     </p>
                                                 )}
 
-                                                <div className="mt-auto flex flex-col w-full gap-1 pt-2" dir="ltr">
-                                                    {item.prices?.map((price, pIdx) => (
-                                                        <div key={pIdx} className="flex items-center justify-between w-full">
-                                                            <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
-                                                                {item.size_labels?.[pIdx] && (
-                                                                    <span className={`${viewMode === 'single' ? 'text-xs font-bold' : 'text-[10px] font-bold'} opacity-70 truncate block`}>
-                                                                        {item.size_labels[pIdx]}
+                                                {item.prices && item.prices.length > 1 ? (
+                                                    <div className={`mt-auto ${viewMode === 'single' ? 'grid grid-cols-2 sm:grid-cols-4 gap-2' : 'grid grid-cols-2 gap-1'} w-full pt-1.5 max-h-[140px] overflow-y-auto no-scrollbar`} dir={isAr ? 'rtl' : 'ltr'}>
+                                                        {item.prices.map((price, pIdx) => {
+                                                            const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                            const oldPrice = item.old_prices?.[pIdx];
+                                                            const hasDiscount = Boolean(oldPrice && Number(oldPrice) > Number(price));
+                                                            const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
+                                                            return (
+                                                                <div 
+                                                                    key={pIdx} 
+                                                                    className={`flex flex-col items-center justify-center rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors ${
+                                                                        isOddLast ? 'col-span-2' : ''
+                                                                    } ${
+                                                                        viewMode === 'single' ? 'p-2' : 'px-1 py-1'
+                                                                    }`}
+                                                                    style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
+                                                                >
+                                                                    <span className={`${viewMode === 'single' ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-[11px]'} font-bold text-foreground truncate max-w-full block leading-none`}>
+                                                                        {label}
                                                                     </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                                {item.old_prices?.[pIdx] ? (
-                                                                    <span className={`${viewMode === 'single' ? 'text-xs' : 'text-[10px]'} line-through`} style={{ color: textMuted }}>
-                                                                        {item.old_prices[pIdx]}
-                                                                    </span>
-                                                                ) : null}
-                                                                <span className={`font-black ${viewMode === 'single' ? 'text-xl sm:text-2xl' : 'text-[1.05rem]'}`} style={{ color: primaryColor }}>
-                                                                    {price} {cur}
+                                                                    <div className="flex items-center justify-center gap-1 mt-0.5 leading-none" dir="ltr">
+                                                                        {hasDiscount && (
+                                                                            <span className="line-through text-red-500 font-bold decoration-red-500 text-[8px] sm:text-[9px]">
+                                                                                {oldPrice}
+                                                                            </span>
+                                                                        )}
+                                                                        <span style={{ color: primaryColor }} className={`font-black ${viewMode === 'single' ? 'text-sm sm:text-base' : 'text-[10.5px] sm:text-[11.5px]'} whitespace-nowrap`}>
+                                                                            {price}
+                                                                        </span>
+                                                                        <span className="text-[7.5px] sm:text-[8px] font-bold opacity-60 whitespace-nowrap">
+                                                                            {cur}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="mt-auto flex items-center justify-between w-full pt-1.5" dir="ltr">
+                                                        <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                            {item.size_labels?.[0] && (
+                                                                <span className={`${viewMode === 'single' ? 'text-xs font-bold' : 'text-[10px] font-bold'} opacity-70 truncate block`}>
+                                                                    {item.size_labels[0]}
                                                                 </span>
-                                                            </div>
+                                                            )}
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                            {Boolean(item.old_prices?.[0] && Number(item.old_prices[0]) > Number(item.prices?.[0])) && (
+                                                                <span className={`${viewMode === 'single' ? 'text-sm' : 'text-xs'} line-through text-red-500 font-bold decoration-red-500`}>
+                                                                    {item.old_prices?.[0]} {cur}
+                                                                </span>
+                                                            )}
+                                                            <span className={`font-black ${viewMode === 'single' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'}`} style={{ color: primaryColor }}>
+                                                                {item.prices?.[0]} {cur}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {/* Add to Cart Button */}
                                                 {config.orders_enabled !== false && (
                                                     <button
-                                                        className={`mt-3 w-full rounded-2xl font-bold flex items-center justify-center gap-1.5 text-white transition-all active:scale-95 shadow-sm hover:opacity-90 ${
-                                                            viewMode === 'single' ? 'py-2.5 px-4 text-sm font-extrabold shadow-md' : 'py-2 px-3 text-xs'
+                                                        className={`w-full rounded-2xl font-bold flex items-center justify-center gap-1.5 text-white transition-all active:scale-95 shadow-sm hover:opacity-90 ${
+                                                            viewMode === 'single' ? 'mt-3 py-2.5 px-4 text-sm font-extrabold shadow-md' : 'mt-2 py-1.5 px-2.5 text-xs'
                                                         }`}
                                                         style={{ backgroundColor: primaryColor }}
                                                         onClick={(e) => {
