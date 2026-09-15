@@ -8,7 +8,7 @@ import { uploadImage, uploadImageWithThumb } from "@/lib/uploadImage";
 import { getBestImageFromClipboard, getBestImageFromPasteEvent } from "@/lib/clipboardImage";
 import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste, Eye, EyeOff } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
-import { exportMenuImages, importMenuImages } from "@/lib/menuImages";
+import { exportMenuImages, importMenuImages, smartImportMenuImages } from "@/lib/menuImages";
 import { parseCurrency } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -61,8 +61,10 @@ export default function MenuBuilderPage() {
     const [deletingItemObj, setDeletingItemObj] = useState<{ catId: string, itemId: string } | null>(null);
     const [isExportingImages, setIsExportingImages] = useState(false);
     const [isImportingImages, setIsImportingImages] = useState(false);
+    const [isSmartImporting, setIsSmartImporting] = useState(false);
     const [imageProgress, setImageProgress] = useState<string | null>(null);
     const importImagesRef = useRef<HTMLInputElement>(null);
+    const smartImportRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchMenuData = async () => {
@@ -297,6 +299,25 @@ export default function MenuBuilderPage() {
                             if (importImagesRef.current) importImagesRef.current.value = '';
                         }} />
                     </label>
+                    <label className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-teal-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-teal-500/60 transition-all cursor-pointer active:scale-95 text-sm">
+                        {isSmartImporting ? <Loader2 className="w-5 h-5 text-teal-500 animate-spin" /> : <span className="text-lg">🪄</span>}
+                        {language === "ar" ? "استيراد صور ذكي" : "Smart Import"}
+                        <input ref={smartImportRef} type="file" accept=".zip" className="hidden" disabled={isSmartImporting} onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !restaurantId) return;
+                            setIsSmartImporting(true);
+                            setImageProgress('جاري قراءة ملف ZIP...');
+                            const res = await smartImportMenuImages(restaurantId, file, (msg) => setImageProgress(msg));
+                            setImageProgress(res.message);
+                            if (res.success) {
+                                triggerRevalidate();
+                                setTimeout(() => { window.location.reload(); }, 4000);
+                            } else {
+                                setTimeout(() => { setIsSmartImporting(false); setImageProgress(null); }, 5000);
+                            }
+                            if (smartImportRef.current) smartImportRef.current.value = '';
+                        }} />
+                    </label>
                     <button onClick={() => { setShowAddCategory(true); setEditingCat(null); setEditingItem(null); setAddingItemToCat(null); }}
                         className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95 text-sm sm:text-base">
                         <Plus className="w-5 h-5" />
@@ -473,7 +494,7 @@ export default function MenuBuilderPage() {
 
             {/* IMAGE EXPORT/IMPORT PROGRESS MODAL */}
             <AnimatePresence>
-                {(isExportingImages || isImportingImages) && imageProgress && (
+                {(isExportingImages || isImportingImages || isSmartImporting) && imageProgress && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -486,9 +507,11 @@ export default function MenuBuilderPage() {
                             exit={{ scale: 0.9, opacity: 0 }}
                             className="bg-white dark:bg-card rounded-3xl shadow-2xl p-8 max-w-md w-full text-center"
                         >
-                            <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-orange-500/20 flex items-center justify-center">
+                            <div className={`w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center ${isSmartImporting ? 'bg-gradient-to-br from-teal-500/20 to-cyan-500/20' : 'bg-gradient-to-br from-purple-500/20 to-orange-500/20'}`}>
                                 {isExportingImages ? (
                                     <ImageDown className="w-8 h-8 text-purple-500 animate-pulse" />
+                                ) : isSmartImporting ? (
+                                    <span className="text-3xl animate-pulse">🪄</span>
                                 ) : (
                                     <ImageUp className="w-8 h-8 text-orange-500 animate-pulse" />
                                 )}
@@ -496,13 +519,15 @@ export default function MenuBuilderPage() {
                             <h3 className="text-lg font-bold text-foreground mb-3">
                                 {isExportingImages
                                     ? (language === "ar" ? "جاري تصدير صور المنيو" : "Exporting Menu Images")
+                                    : isSmartImporting
+                                    ? (language === "ar" ? "جاري الاستيراد الذكي للصور" : "Smart Importing Images")
                                     : (language === "ar" ? "جاري استيراد صور المنيو" : "Importing Menu Images")
                                 }
                             </h3>
-                            <p className="text-silver text-sm whitespace-pre-line leading-relaxed">{imageProgress}</p>
+                            <p className="text-silver text-sm whitespace-pre-line leading-relaxed max-h-60 overflow-y-auto">{imageProgress}</p>
                             <div className="mt-5">
                                 <div className="h-1.5 bg-slate-100 dark:bg-black/30 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-purple-500 to-orange-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+                                    <div className={`h-full rounded-full animate-pulse ${isSmartImporting ? 'bg-gradient-to-r from-teal-500 to-cyan-500' : 'bg-gradient-to-r from-purple-500 to-orange-500'}`} style={{ width: '60%' }} />
                                 </div>
                             </div>
                         </motion.div>
