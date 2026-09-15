@@ -621,7 +621,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                             highQuality={Boolean((config as any)?.high_quality_images)}
                                                         />
                                                         {item.is_popular && (
-                                                            <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white rounded-full font-bold px-1 py-0.2 text-[7.5px] shadow-sm">
+                                                            <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white rounded-full font-bold px-1.5 py-0.5 text-[8px] shadow-sm">
                                                                 {isAr ? 'عرض' : 'Offer'}
                                                             </div>
                                                         )}

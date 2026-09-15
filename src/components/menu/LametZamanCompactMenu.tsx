@@ -507,7 +507,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                     }}
                                     className="flex flex-col items-center gap-0.5 shrink-0 group transition-all"
                                 >
-                                    <div className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all border-2"
+                                    <div className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-all border-2"
                                          style={{ 
                                              backgroundColor: bgCard,
                                              borderColor: activeCategory === 'all' ? primaryColor : 'transparent',
@@ -540,7 +540,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                             }}
                                             className="flex flex-col items-center gap-0.5 shrink-0 group transition-all"
                                         >
-                                            <div className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
+                                            <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
                                                  style={{ 
                                                      borderColor: isActive ? primaryColor : 'transparent',
                                                      boxShadow: isActive ? `0 2px 8px ${primaryColor}35` : 'none'
@@ -548,7 +548,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                 <img 
                                                     src={catImg} 
                                                     alt={catName(cat)} 
-                                                    className="w-full h-full object-cover"
+                                                    className="w-full h-full object-cover shrink-0 pointer-events-none"
                                                     onError={(e) => {
                                                         (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
                                                     }}
@@ -566,11 +566,11 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
 
                     {/* View Mode Switcher with the new Extra Compact Option */}
                     {!searchQuery && (
-                        <div className="flex justify-between items-center mb-2 px-0.5">
-                            <span className="text-xs font-bold opacity-75">
+                        <div className="flex justify-between items-center mb-2 px-0.5 gap-1">
+                            <span className="text-xs font-bold opacity-75 shrink-0">
                                 {isAr ? 'طريقة العرض:' : 'View Mode:'}
                             </span>
-                            <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/10">
+                            <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/10 shrink-0">
                                 {/* Compact Rows (New Default Option) */}
                                 <button
                                     onClick={() => setViewMode('compact')}
@@ -675,7 +675,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                 highQuality={Boolean((config as any)?.high_quality_images)}
                                                             />
                                                             {item.is_popular && (
-                                                                <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white rounded-full font-bold px-1 py-0.2 text-[7.5px] shadow-sm">
+                                                                <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white rounded-full font-bold px-1.5 py-0.5 text-[8px] shadow-sm">
                                                                     {isAr ? 'عرض' : 'Offer'}
                                                                 </div>
                                                             )}

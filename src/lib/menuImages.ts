@@ -415,8 +415,12 @@ export type SmartMatchItem = {
     isCover: boolean;
     score: number;
     categoryScore: number;
-    status: 'confirmed' | 'uncertain' | 'no_match';
+    status: 'confirmed' | 'uncertain' | 'no_match' | 'already_exists';
     confirmed: boolean;
+};
+
+export type AnalyzeOptions = {
+    skipExistingImages?: boolean;
 };
 
 /**
@@ -427,9 +431,11 @@ export type SmartMatchItem = {
 export async function analyzeSmartImport(
     restaurantId: string,
     files: File | FileList | File[],
-    onProgress?: (msg: string) => void
-): Promise<{ success: boolean; message?: string; matches: SmartMatchItem[] }> {
+    onProgress?: (msg: string) => void,
+    options?: AnalyzeOptions
+): Promise<{ success: boolean; message?: string; matches: SmartMatchItem[]; alreadyExistsCount?: number }> {
     try {
+        const skipExisting = options?.skipExistingImages !== false;
         onProgress?.('جاري قراءة وتجهيز الملفات...');
 
         const fileArray: File[] = files instanceof FileList
@@ -666,6 +672,29 @@ export async function analyzeSmartImport(
             const isCover = fileItemName.toLowerCase() === 'cover';
             if (isCover) {
                 if (matchedCategory) {
+                    const currentCover = catById.get(matchedCategory.id)?.image_url;
+                    if (skipExisting && currentCover) {
+                        matchesResult[i] = {
+                            id: `match-${i}`,
+                            fileName: lastSegment,
+                            fileCategoryName,
+                            fileItemName,
+                            blob,
+                            previewUrl,
+                            matchedCategoryId: matchedCategory.id,
+                            matchedCategoryName: matchedCategory.name,
+                            matchedItemId: null,
+                            matchedItemName: 'صورة غلاف القسم',
+                            matchedItemCurrentImageUrl: currentCover,
+                            isCover: true,
+                            score: 1.0,
+                            categoryScore,
+                            status: 'already_exists',
+                            confirmed: false
+                        };
+                        continue;
+                    }
+
                     const isHigh = categoryScore >= 0.75;
                     matchesResult[i] = {
                         id: `match-${i}`,
@@ -795,6 +824,31 @@ export async function analyzeSmartImport(
                 assignedCandidateIds.add(pair.candidate.id);
 
                 const p = pendingMap.get(pair.itemIndex)!;
+                const hasExistingImage = Boolean(pair.candidate.image_url);
+
+                if (skipExisting && hasExistingImage) {
+                    // Item already has a confirmed photo in the menu -> mark as already_exists to exclude from proposals
+                    matchesResult[pair.itemIndex] = {
+                        id: `match-${pair.itemIndex}`,
+                        fileName: p.lastSegment,
+                        fileCategoryName: p.fileCategoryName,
+                        fileItemName: p.fileItemName,
+                        blob: p.blob,
+                        previewUrl: p.previewUrl,
+                        matchedCategoryId: pair.candidate.category_id,
+                        matchedCategoryName: pair.candidate.category_name,
+                        matchedItemId: pair.candidate.id,
+                        matchedItemName: pair.candidate.name,
+                        matchedItemCurrentImageUrl: pair.candidate.image_url,
+                        isCover: false,
+                        score: pair.score,
+                        categoryScore: p.categoryScore,
+                        status: 'already_exists',
+                        confirmed: false
+                    };
+                    continue;
+                }
+
                 const isHigh = p.categoryScore >= 0.75 && pair.score >= 0.82;
 
                 matchesResult[pair.itemIndex] = {
@@ -844,10 +898,12 @@ export async function analyzeSmartImport(
         });
 
         const matches = matchesResult.filter((m): m is SmartMatchItem => m !== null);
+        const alreadyExistsCount = matches.filter(m => m.status === 'already_exists').length;
 
         return {
             success: true,
-            matches
+            matches,
+            alreadyExistsCount
         };
     } catch (err) {
         console.error('Analyze smart import error:', err);

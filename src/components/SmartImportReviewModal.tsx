@@ -34,7 +34,7 @@ export function SmartImportReviewModal({
     onClose,
 }: SmartImportReviewModalProps) {
     const [matches, setMatches] = useState<SmartMatchItem[]>(initialMatches);
-    const [filter, setFilter] = useState<'all' | 'uncertain' | 'confirmed' | 'no_match'>('uncertain');
+    const [filter, setFilter] = useState<'all' | 'uncertain' | 'confirmed' | 'no_match' | 'already_exists'>('uncertain');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPreviewImage, setSelectedPreviewImage] = useState<string | null>(null);
 
@@ -43,33 +43,41 @@ export function SmartImportReviewModal({
         let confirmedCount = 0;
         let uncertainCount = 0;
         let noMatchCount = 0;
+        let alreadyExistsCount = 0;
         let activeSelectedCount = 0;
 
         for (const m of matches) {
-            if (m.status === 'confirmed') confirmedCount++;
+            if (m.status === 'already_exists') alreadyExistsCount++;
+            else if (m.status === 'confirmed') confirmedCount++;
             else if (m.status === 'uncertain') uncertainCount++;
-            else noMatchCount++;
+            else if (m.status === 'no_match') noMatchCount++;
 
             if (m.confirmed && (m.matchedItemId || (m.isCover && m.matchedCategoryId))) {
                 activeSelectedCount++;
             }
         }
 
+        const totalProposals = confirmedCount + uncertainCount + noMatchCount;
+
         return {
             total: matches.length,
+            totalProposals,
             confirmed: confirmedCount,
             uncertain: uncertainCount,
             noMatch: noMatchCount,
+            alreadyExists: alreadyExistsCount,
             activeSelected: activeSelectedCount,
         };
     }, [matches]);
 
-    // If there are no uncertain items at start, default filter to 'all'
+    // If there are no uncertain items at start, default filter to 'all' or 'confirmed'
     React.useEffect(() => {
         if (stats.uncertain === 0 && stats.confirmed > 0) {
-            setFilter('all');
+            setFilter('confirmed');
+        } else if (stats.totalProposals === 0 && stats.alreadyExists > 0) {
+            setFilter('already_exists');
         }
-    }, [stats.uncertain, stats.confirmed]);
+    }, [stats.uncertain, stats.confirmed, stats.totalProposals, stats.alreadyExists]);
 
     // Filtered items
     const filteredMatches = useMemo(() => {
@@ -77,6 +85,9 @@ export function SmartImportReviewModal({
             if (filter === 'uncertain' && m.status !== 'uncertain') return false;
             if (filter === 'confirmed' && m.status !== 'confirmed') return false;
             if (filter === 'no_match' && m.status !== 'no_match') return false;
+            if (filter === 'already_exists' && m.status !== 'already_exists') return false;
+            // In 'all' tab, show all active proposals (hide already_exists so it doesn't clutter)
+            if (filter === 'all' && m.status === 'already_exists') return false;
 
             if (searchTerm.trim()) {
                 const term = searchTerm.toLowerCase();
@@ -285,8 +296,26 @@ export function SmartImportReviewModal({
                                         : 'text-silver hover:text-foreground'
                                 }`}
                             >
-                                {language === 'ar' ? 'الكل' : 'All'} ({stats.total})
+                                {language === 'ar' ? 'كل المقترحات' : 'All Proposals'} ({stats.totalProposals})
                             </button>
+
+                            {stats.alreadyExists > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setFilter('already_exists')}
+                                    className={`px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                                        filter === 'already_exists'
+                                            ? 'bg-slate-600 text-white shadow-sm'
+                                            : 'text-silver hover:text-foreground'
+                                    }`}
+                                >
+                                    <span>📦</span>
+                                    {language === 'ar' ? 'مرفوعة مسبقاً' : 'Already Uploaded'}
+                                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/20 text-white font-mono">
+                                        {stats.alreadyExists}
+                                    </span>
+                                </button>
+                            )}
                         </div>
 
                         {/* Search Input */}
@@ -392,7 +421,12 @@ export function SmartImportReviewModal({
 
                                                 {/* Badge */}
                                                 <div>
-                                                    {item.status === 'confirmed' ? (
+                                                    {item.status === 'already_exists' ? (
+                                                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20">
+                                                            <span>📦</span>
+                                                            {language === 'ar' ? 'يمتلك صورة بالفعل (تم التخطي تلقائياً)' : 'Already has photo (Skipped)'}
+                                                        </span>
+                                                    ) : item.status === 'confirmed' ? (
                                                         <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                                                             <CheckCircle2 className="w-3 h-3" />
                                                             {language === 'ar' ? `مطابقة مؤكدة (${matchPercentage}%)` : `Confirmed (${matchPercentage}%)`}
@@ -506,8 +540,12 @@ export function SmartImportReviewModal({
                                             >
                                                 <Check className="w-4 h-4" />
                                                 {isConfirmed
-                                                    ? (language === 'ar' ? '✓ معتمد للرفع' : 'Confirmed')
-                                                    : (language === 'ar' ? 'نعم، هذه صورة الصنف' : 'Confirm Match')}
+                                                    ? (item.status === 'already_exists'
+                                                        ? (language === 'ar' ? '✓ معتمد للاستبدال' : 'Confirmed Replace')
+                                                        : (language === 'ar' ? '✓ معتمد للرفع' : 'Confirmed'))
+                                                    : (item.status === 'already_exists'
+                                                        ? (language === 'ar' ? 'استبدال الصورة الحالية' : 'Replace Photo')
+                                                        : (language === 'ar' ? 'نعم، هذه صورة الصنف' : 'Confirm Match'))}
                                             </button>
 
                                             {/* Reject / Skip Button */}
@@ -522,7 +560,9 @@ export function SmartImportReviewModal({
                                             >
                                                 <X className="w-4 h-4" />
                                                 {!isConfirmed
-                                                    ? (language === 'ar' ? 'لا ترفع (اترك فارغاً)' : 'Skip / Empty')
+                                                    ? (item.status === 'already_exists'
+                                                        ? (language === 'ar' ? 'تخطي (الإبقاء على الحالية)' : 'Keep Existing')
+                                                        : (language === 'ar' ? 'لا ترفع (اترك فارغاً)' : 'Skip / Empty'))
                                                     : (language === 'ar' ? 'إلغاء الاعتماد' : 'Unconfirm')}
                                             </button>
                                         </div>
