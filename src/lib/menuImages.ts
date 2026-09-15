@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import { supabase } from './supabase/client';
 import { uploadImage, uploadImageWithThumb } from './uploadImage';
 import { findBestMatch, calculateSimilarity, normalizeArabic } from './fuzzyMatch';
-import { calculateSmartItemSimilarity } from './arabicLinguisticMatch';
+import { calculateSmartItemSimilarity, calculateCategorySimilarity } from './arabicLinguisticMatch';
 
 /**
  * Sanitize a string to be used as part of a filename.
@@ -543,7 +543,7 @@ export async function analyzeSmartImport(
             };
         });
 
-        // Helper: Category matching
+        // Helper: Category matching with linguistic & culinary awareness
         const matchCategoryByName = (rawCatName: string) => {
             const norm = normalizeArabic(rawCatName);
             if (!norm) return null;
@@ -556,18 +556,11 @@ export async function analyzeSmartImport(
                     return { category: cat, score: 1.0 };
                 }
 
-                let containScore = 0;
-                if (norm.includes(cat.normName) || cat.normName.includes(norm)) {
-                    const shorter = norm.length < cat.normName.length ? norm : cat.normName;
-                    const longer  = norm.length < cat.normName.length ? cat.normName : norm;
-                    containScore = Math.max(0.70, shorter.length / longer.length);
-                }
+                // Enhanced category linguistic & plural & compound matching
+                const catScore = calculateCategorySimilarity(rawCatName, cat.name);
 
-                const simScore = calculateSimilarity(norm, cat.normName);
-                const score = Math.max(containScore, simScore);
-
-                if (score > bestScore) {
-                    bestScore = score;
+                if (catScore > bestScore) {
+                    bestScore = catScore;
                     bestCat = cat;
                 }
             }

@@ -444,3 +444,146 @@ export function calculateSmartItemSimilarity(
 
     return f1;
 }
+
+/**
+ * Known category aliases and root mappings (plural <-> singular, compound roots).
+ */
+const CATEGORY_CANONICAL_ALIASES: Record<string, string> = {
+    'كريب': 'كريب',
+    'كريبات': 'كريب',
+    'ساندوتش': 'ساندوتش',
+    'سندوتش': 'ساندوتش',
+    'ساندوتشات': 'ساندوتش',
+    'سندوتشات': 'ساندوتش',
+    'بيتزا': 'بيتزا',
+    'بيتزات': 'بيتزا',
+    'بيزا': 'بيتزا',
+    'برجر': 'برجر',
+    'برجرات': 'برجر',
+    'بورجر': 'برجر',
+    'بورجرات': 'برجر',
+    'اضافة': 'اضافات',
+    'اضافات': 'اضافات',
+    'اكسترا': 'اضافات',
+    'مشروب': 'مشروبات',
+    'مشروبات': 'مشروبات',
+    'عصير': 'مشروبات',
+    'عصائر': 'مشروبات',
+    'كانز': 'مشروبات',
+    'سلطة': 'سلطات',
+    'سلطات': 'سلطات',
+    'صوص': 'صوصات',
+    'صوصات': 'صوصات',
+    'وجبة': 'وجبات',
+    'وجبات': 'وجبات',
+    'حلو': 'حلويات',
+    'حلويات': 'حلويات',
+    'حلوى': 'حلويات',
+    'ديزرت': 'حلويات',
+    'طاجن': 'طواجن',
+    'طواجن': 'طواجن',
+    'مكرونة': 'مكرونات',
+    'مكرونه': 'مكرونات',
+    'مكرونات': 'مكرونات',
+    'باستا': 'مكرونات',
+    'فطيرة': 'فطائر',
+    'فطائر': 'فطائر',
+    'فطاير': 'فطائر',
+    'فطير': 'فطائر',
+    'حواوشي': 'حواوشي',
+    'حواوشى': 'حواوشي',
+    'شاورما': 'شاورما',
+    'بطاطس': 'بطاطس',
+    'مقبلات': 'مقبلات',
+    'مقبلة': 'مقبلات'
+};
+
+/**
+ * Normalize and stem a category word, handling plurals like "ات" and prefixes.
+ */
+export function stemCategoryWord(word: string): string {
+    let norm = normalizeArabic(word).trim();
+    if (!norm) return '';
+
+    if (CATEGORY_CANONICAL_ALIASES[norm]) {
+        return CATEGORY_CANONICAL_ALIASES[norm];
+    }
+
+    // Strip leading "ال"
+    if (norm.startsWith('ال') && norm.length > 3) {
+        norm = norm.substring(2);
+        if (CATEGORY_CANONICAL_ALIASES[norm]) {
+            return CATEGORY_CANONICAL_ALIASES[norm];
+        }
+    }
+
+    // Strip feminine plural suffix "ات" (e.g. كريبات -> كريب)
+    if (norm.endsWith('ات') && norm.length > 4) {
+        const base = norm.slice(0, -2);
+        if (CATEGORY_CANONICAL_ALIASES[base]) return CATEGORY_CANONICAL_ALIASES[base];
+        return base;
+    }
+
+    // Strip "ة" / "ه"
+    if ((norm.endsWith('ة') || norm.endsWith('ه')) && norm.length > 3) {
+        const base = norm.slice(0, -1);
+        if (CATEGORY_CANONICAL_ALIASES[base]) return CATEGORY_CANONICAL_ALIASES[base];
+        return base;
+    }
+
+    return norm;
+}
+
+/**
+ * Calculate category similarity supporting:
+ * 1. Plural / Singular variations (كريب ↔ كريبات).
+ * 2. Compound & Subset categories (الاضافات ↔ البطاطس والاضافات ↔ اضافات البيتزا).
+ * 3. Shared key category tokens (e.g. both have 'اضافات' or 'كريب').
+ */
+export function calculateCategorySimilarity(catA: string, catB: string): number {
+    const normA = normalizeArabic(catA).trim();
+    const normB = normalizeArabic(catB).trim();
+
+    if (normA === normB) return 1.0;
+    if (!normA || !normB) return 0.0;
+
+    // Single word stemmed check
+    const stemA = stemCategoryWord(normA);
+    const stemB = stemCategoryWord(normB);
+    if (stemA === stemB) return 0.98;
+
+    // Direct substring or inclusion
+    if (normA.includes(normB) || normB.includes(normA)) {
+        const shorter = normA.length < normB.length ? normA : normB;
+        const longer  = normA.length < normB.length ? normB : normA;
+        const ratio = shorter.length / longer.length;
+        return Math.max(0.85, ratio);
+    }
+
+    // Tokenized stems (e.g. "البطاطس والاضافات" -> ["بطاطس", "اضافات"], "اضافات البيتزا" -> ["اضافات", "بيتزا"])
+    const STOP_WORDS = new Set(['و', 'مع', 'في', 'من', 'او', 'قسم', 'القسم']);
+    const tokensA = normA.split(/\s+/).filter(w => !STOP_WORDS.has(w)).map(stemCategoryWord).filter(w => w.length >= 2);
+    const tokensB = normB.split(/\s+/).filter(w => !STOP_WORDS.has(w)).map(stemCategoryWord).filter(w => w.length >= 2);
+
+    if (tokensA.length === 0 || tokensB.length === 0) return 0.0;
+
+    // Check shared tokens
+    const setB = new Set(tokensB);
+    const sharedTokens = tokensA.filter(t => setB.has(t));
+
+    if (sharedTokens.length > 0) {
+        // If the shared token represents all tokens of one phrase, it's a direct category match!
+        if (sharedTokens.length === tokensA.length || sharedTokens.length === tokensB.length) {
+            return 0.92;
+        }
+        // Partial overlap of compound category
+        const overlapRatio = (2 * sharedTokens.length) / (tokensA.length + tokensB.length);
+        return Math.max(0.80, overlapRatio);
+    }
+
+    // Levenshtein & Dice fallback
+    const lev = wordLevenshteinSimilarity(stemA, stemB);
+    const dice = diceBigramSimilarity(stemA, stemB);
+    return Math.max(lev, dice);
+}
+
