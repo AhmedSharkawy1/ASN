@@ -8,7 +8,8 @@ import { uploadImage, uploadImageWithThumb } from "@/lib/uploadImage";
 import { getBestImageFromClipboard, getBestImageFromPasteEvent } from "@/lib/clipboardImage";
 import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste, Eye, EyeOff } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
-import { exportMenuImages, importMenuImages, smartImportMenuImages } from "@/lib/menuImages";
+import { exportMenuImages, importMenuImages, smartImportMenuImages, deleteAllMenuImages, analyzeSmartImport, executeConfirmedImport, SmartMatchItem } from "@/lib/menuImages";
+import { SmartImportReviewModal } from "@/components/SmartImportReviewModal";
 import { parseCurrency } from "@/lib/currency";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -63,6 +64,10 @@ export default function MenuBuilderPage() {
     const [isImportingImages, setIsImportingImages] = useState(false);
     const [isSmartImporting, setIsSmartImporting] = useState(false);
     const [showSmartImportModal, setShowSmartImportModal] = useState(false);
+    const [showDeleteAllImagesModal, setShowDeleteAllImagesModal] = useState(false);
+    const [isDeletingAllImages, setIsDeletingAllImages] = useState(false);
+    const [reviewMatches, setReviewMatches] = useState<SmartMatchItem[] | null>(null);
+    const [isUploadingConfirmed, setIsUploadingConfirmed] = useState(false);
     const [imageProgress, setImageProgress] = useState<string | null>(null);
     const importImagesRef = useRef<HTMLInputElement>(null);
     const smartImportRef = useRef<HTMLInputElement>(null);
@@ -161,21 +166,91 @@ export default function MenuBuilderPage() {
         triggerRevalidate();
     };
 
+    const handleDeleteAllImages = async () => {
+        if (!restaurantId) return;
+        setIsDeletingAllImages(true);
+        try {
+            const res = await deleteAllMenuImages(restaurantId);
+            if (res.success) {
+                setCategories(prev => prev.map(c => ({
+                    ...c,
+                    image_url: undefined,
+                    thumbnail_url: null,
+                    items: c.items.map(i => ({
+                        ...i,
+                        image_url: undefined,
+                        thumbnail_url: null
+                    }))
+                })));
+                triggerRevalidate();
+                setShowDeleteAllImagesModal(false);
+                alert(language === 'ar' ? 'تم تفريغ وحذف صور جميع الأصناف والأقسام بنجاح. يمكنك الآن البدء بالاستيراد النظيف.' : 'All menu images have been deleted successfully.');
+            } else {
+                alert(res.message);
+            }
+        } catch (e) {
+            console.error('Delete all images error:', e);
+            alert(language === 'ar' ? 'حدث خطأ أثناء حذف الصور.' : 'Error deleting images.');
+        } finally {
+            setIsDeletingAllImages(false);
+        }
+    };
+
     const runSmartImport = async (fileList: FileList | File[]) => {
         if (!fileList || fileList.length === 0 || !restaurantId) return;
         setIsSmartImporting(true);
-        setImageProgress(language === 'ar' ? 'جاري تجهيز وقراءة الصور...' : 'Preparing images...');
-        const res = await smartImportMenuImages(restaurantId, fileList, (msg) => setImageProgress(msg));
-        setImageProgress(res.message);
-        if (res.success) {
-            triggerRevalidate();
-            setTimeout(() => { window.location.reload(); }, 4000);
-        } else {
-            setTimeout(() => { 
-                setIsSmartImporting(false); 
-                setImageProgress(null); 
-            }, 8000);
+        setImageProgress(language === 'ar' ? 'جاري فحص وتصنيف الصور ومطابقتها مع الأقسام...' : 'Analyzing images and matching with categories...');
+        try {
+            const res = await analyzeSmartImport(restaurantId, fileList, (msg) => setImageProgress(msg));
+            if (!res.success) {
+                alert(res.message || (language === 'ar' ? 'حدث خطأ أثناء فحص الصور' : 'Failed to analyze images'));
+                return;
+            }
+            if (!res.matches || res.matches.length === 0) {
+                alert(language === 'ar' ? 'لم يتم العثور على أي صور في الملفات المحددة.' : 'No images found.');
+                return;
+            }
+            setReviewMatches(res.matches);
+        } catch (err) {
+            console.error('Smart import error:', err);
+            alert(language === 'ar' ? 'حدث خطأ أثناء فحص الصور.' : 'Error analyzing images.');
+        } finally {
+            setIsSmartImporting(false);
+            setImageProgress(null);
         }
+    };
+
+    const handleExecuteImport = async (confirmedList: SmartMatchItem[]) => {
+        if (!restaurantId) return;
+        if (confirmedList.length === 0) {
+            alert(language === 'ar' ? 'لم يتم اختيار أي صور للاعتماد والرفع.' : 'No images selected.');
+            return;
+        }
+        setIsUploadingConfirmed(true);
+        setImageProgress(language === 'ar' ? `جاري رفع وتحديث ${confirmedList.length} صورة...` : `Uploading ${confirmedList.length} images...`);
+        try {
+            const res = await executeConfirmedImport(restaurantId, confirmedList, (msg) => setImageProgress(msg));
+            alert(res.message);
+            if (res.success) {
+                triggerRevalidate();
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error('Execute confirmed import error:', err);
+            alert(language === 'ar' ? 'حدث خطأ أثناء رفع الصور.' : 'Error uploading images.');
+        } finally {
+            setIsUploadingConfirmed(false);
+            setImageProgress(null);
+        }
+    };
+
+    const handleCloseReview = () => {
+        if (reviewMatches) {
+            reviewMatches.forEach(m => {
+                try { URL.revokeObjectURL(m.previewUrl); } catch {}
+            });
+        }
+        setReviewMatches(null);
     };
 
     const handleDeleteCategory = (catId: string) => setDeletingCatId(catId);
@@ -326,6 +401,16 @@ export default function MenuBuilderPage() {
                     >
                         {isSmartImporting ? <Loader2 className="w-5 h-5 text-teal-500 animate-spin" /> : <span className="text-lg">🪄</span>}
                         {language === "ar" ? "استيراد صور ذكي" : "Smart Import"}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowDeleteAllImagesModal(true)}
+                        disabled={isDeletingAllImages}
+                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-red-500/30 text-red-500 font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50 active:scale-95 text-sm"
+                        title={language === "ar" ? "حذف وتفريغ جميع صور الأصناف والأقسام للبدء من جديد" : "Delete all menu photos to start fresh"}
+                    >
+                        {isDeletingAllImages ? <Loader2 className="w-5 h-5 text-red-500 animate-spin" /> : <Trash2 className="w-5 h-5 text-red-500" />}
+                        {language === "ar" ? "حذف جميع الصور" : "Delete All Images"}
                     </button>
                     <input
                         ref={folderImportRef}
@@ -693,6 +778,73 @@ export default function MenuBuilderPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* DELETE ALL IMAGES CONFIRMATION MODAL */}
+            <AnimatePresence>
+                {showDeleteAllImagesModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-card border border-red-500/30 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full text-center"
+                        >
+                            <div className="w-16 h-16 rounded-2xl bg-red-500/10 text-red-500 mx-auto mb-4 flex items-center justify-center">
+                                <Trash2 className="w-8 h-8" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2 text-foreground">
+                                {language === "ar" ? "حذف وتفريغ جميع صور المنيو" : "Delete All Menu Images"}
+                            </h3>
+                            <p className="text-sm text-silver mb-4 leading-relaxed">
+                                {language === "ar"
+                                    ? "هل أنت متأكد من حذف وإزالة جميع صور الأصناف والأقسام في هذا المنيو؟"
+                                    : "Are you sure you want to remove all item and category images in this menu?"}
+                            </p>
+                            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 text-xs text-red-600 dark:text-red-400 mb-6 text-right leading-relaxed font-medium">
+                                {language === "ar"
+                                    ? "⚠️ سيتم تفريغ صور جميع الأصناف والأقسام حتى تتمكن من البدء باستيراد ذكي ونظيف من الصفر بدون أي تداخل. هذا الإجراء لا يمكن التراجع عنه."
+                                    : "⚠️ All image URLs will be set to empty so you can start clean. This action cannot be undone."}
+                            </div>
+                            <div className="flex gap-3 justify-center">
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteAllImages}
+                                    disabled={isDeletingAllImages}
+                                    className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-red-500/20"
+                                >
+                                    {isDeletingAllImages ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                    {language === "ar" ? "نعم، احذف جميع الصور الآن" : "Yes, Delete All Images"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteAllImagesModal(false)}
+                                    disabled={isDeletingAllImages}
+                                    className="px-5 py-3 rounded-xl bg-slate-100 dark:bg-secondary text-gray-700 dark:text-gray-300 font-bold hover:opacity-80 transition cursor-pointer"
+                                >
+                                    {language === "ar" ? "إلغاء" : "Cancel"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* SMART IMPORT REVIEW & CONFIRM MODAL */}
+            {reviewMatches && (
+                <SmartImportReviewModal
+                    language={language}
+                    matches={reviewMatches}
+                    categories={categories}
+                    isUploading={isUploadingConfirmed}
+                    onConfirm={handleExecuteImport}
+                    onClose={handleCloseReview}
+                />
+            )}
             </div>
 
         </div>

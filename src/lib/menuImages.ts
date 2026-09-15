@@ -720,11 +720,32 @@ export async function analyzeSmartImport(
                 continue;
             }
 
-            // Available candidates in category
+            // If no category matched or recognized, DO NOT guess across random categories!
+            if (!matchedCategory) {
+                matches.push({
+                    id: `match-${i}`,
+                    fileName: lastSegment,
+                    fileCategoryName: fileCategoryName || 'غير محدد',
+                    fileItemName,
+                    blob,
+                    previewUrl,
+                    matchedCategoryId: null,
+                    matchedCategoryName: null,
+                    matchedItemId: null,
+                    matchedItemName: null,
+                    matchedItemCurrentImageUrl: null,
+                    isCover: false,
+                    score: 0,
+                    categoryScore: 0,
+                    status: 'no_match',
+                    confirmed: false
+                });
+                continue;
+            }
+
+            // Available candidates in category only
             const availableCandidates = candidates.filter(c => !assignedItemIds.has(c.id));
-            const candidatePool = matchedCategory
-                ? availableCandidates.filter(c => c.category_id === matchedCategory.id)
-                : availableCandidates;
+            const candidatePool = availableCandidates.filter(c => c.category_id === matchedCategory.id);
 
             // Strip category words from fileItemName
             let itemNameWithoutCat = fileItemName;
