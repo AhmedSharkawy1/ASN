@@ -600,7 +600,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                 <h3 className="font-black text-xl mb-4" style={{ color: isDark ? primaryColor : '#000000' }}>{catName(category)}</h3>
                                 
                                 {viewMode === 'compact' ? (
-                                    <div className="flex flex-col gap-2">
+                                    <div className="flex flex-col gap-1.5">
                                         {items.map((item) => {
                                             const desc = isAr ? (item.ingredients_ar || item.ingredients || item.description_ar || item.desc_ar) : (item.ingredients_en || item.ingredients || item.description_en || item.desc_en || item.description_ar || item.desc_ar);
                                             const hasMultiSizes = item.prices && item.prices.length > 1;
@@ -609,10 +609,10 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                 <div 
                                                     key={item.id}
                                                     onClick={() => openModal(item, catName(category), category.image_url)}
-                                                    className="flex flex-row items-center p-2 sm:p-2.5 gap-2.5 sm:gap-3 rounded-2xl border transition-all active:scale-[0.99] cursor-pointer hover:shadow-md"
+                                                    className="flex flex-row items-center p-1.5 sm:p-2 gap-2 sm:gap-2.5 rounded-xl border transition-all active:scale-[0.99] cursor-pointer hover:shadow-md"
                                                     style={{ backgroundColor: bgCard, borderColor }}
                                                 >
-                                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 relative bg-black/5 dark:bg-white/5">
+                                                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shrink-0 relative bg-black/5 dark:bg-white/5 self-center">
                                                         <OptimizedMenuImage 
                                                             thumbnailSrc={item.thumbnail_url} 
                                                             originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
@@ -621,45 +621,45 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                             highQuality={Boolean((config as any)?.high_quality_images)}
                                                         />
                                                         {item.is_popular && (
-                                                            <div className="absolute top-1 right-1 bg-red-600/90 text-white rounded-full font-bold px-1.5 py-0.5 text-[8px] shadow-sm">
+                                                            <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white rounded-full font-bold px-1 py-0.2 text-[7.5px] shadow-sm">
                                                                 {isAr ? 'عرض' : 'Offer'}
                                                             </div>
                                                         )}
                                                     </div>
 
                                                     <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                        <h4 className="font-bold text-sm sm:text-base leading-snug truncate">
+                                                        <h4 className="font-bold text-[13px] sm:text-sm leading-tight truncate">
                                                             {itemName(item)}
                                                         </h4>
 
                                                         {desc && (
-                                                            <p className="text-[11px] sm:text-xs line-clamp-1 mt-0.5 opacity-65 font-medium leading-tight">
+                                                            <p className="text-[10px] sm:text-[11px] line-clamp-1 mt-0.5 opacity-60 font-medium leading-tight">
                                                                 {desc}
                                                             </p>
                                                         )}
 
                                                         {hasMultiSizes ? (
-                                                            <div className="grid grid-cols-2 gap-1.5 mt-1.5 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                            <div className="grid grid-cols-2 gap-1 mt-1 w-full" dir={isAr ? 'rtl' : 'ltr'}>
                                                                 {item.prices.map((price, pIdx) => {
                                                                     const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                     const oldPrice = item.old_prices?.[pIdx];
                                                                     return (
                                                                         <div 
                                                                             key={pIdx} 
-                                                                            className="flex flex-col items-center justify-center px-1.5 py-1 rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors"
+                                                                            className="flex flex-col items-center justify-center px-1 py-0.5 rounded-lg border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors"
                                                                             style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                                                                         >
-                                                                            <span className="text-[11px] sm:text-xs font-bold text-foreground truncate max-w-full block leading-tight">
+                                                                            <span className="text-[10px] sm:text-[11px] font-bold text-foreground truncate max-w-full block leading-none">
                                                                                 {label}
                                                                             </span>
-                                                                            <div className="flex items-center justify-center gap-1 mt-0.5 leading-tight" dir="ltr">
+                                                                            <div className="flex items-center justify-center gap-0.5 mt-0.5 leading-none" dir="ltr">
                                                                                 {oldPrice ? (
-                                                                                    <span className="line-through opacity-40 text-[8px] sm:text-[9px]">{oldPrice}</span>
+                                                                                    <span className="line-through opacity-40 text-[7.5px] sm:text-[8px]">{oldPrice}</span>
                                                                                 ) : null}
-                                                                                <span style={{ color: primaryColor }} className="font-black text-[11px] sm:text-xs whitespace-nowrap">
+                                                                                <span style={{ color: primaryColor }} className="font-black text-[10.5px] sm:text-[11px] whitespace-nowrap">
                                                                                     {price}
                                                                                 </span>
-                                                                                <span className="text-[8.5px] sm:text-[9px] font-bold opacity-60 whitespace-nowrap">
+                                                                                <span className="text-[7.5px] sm:text-[8px] font-bold opacity-60 whitespace-nowrap">
                                                                                     {cur}
                                                                                 </span>
                                                                             </div>
@@ -668,17 +668,17 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                                 })}
                                                             </div>
                                                         ) : (
-                                                            <div className="flex items-center gap-1.5 mt-1" dir="ltr">
+                                                            <div className="flex items-center gap-1 mt-0.5" dir="ltr">
                                                                 {item.old_prices?.[0] ? (
-                                                                    <span className="text-xs line-through opacity-50" style={{ color: textMuted }}>
+                                                                    <span className="text-[11px] line-through opacity-50" style={{ color: textMuted }}>
                                                                         {item.old_prices[0]}
                                                                     </span>
                                                                 ) : null}
-                                                                <span className="font-black text-sm sm:text-base" style={{ color: primaryColor }}>
+                                                                <span className="font-black text-xs sm:text-sm" style={{ color: primaryColor }}>
                                                                     {item.prices?.[0]} {cur}
                                                                 </span>
                                                                 {item.size_labels?.[0] && (
-                                                                    <span className="text-[10px] font-bold opacity-60" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                    <span className="text-[9.5px] font-bold opacity-60" dir={isAr ? 'rtl' : 'ltr'}>
                                                                         ({item.size_labels[0]})
                                                                     </span>
                                                                 )}
@@ -693,11 +693,11 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                                 e.stopPropagation();
                                                                 openModal(item, catName(category), category.image_url);
                                                             }}
-                                                            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm active:scale-90 transition-all hover:opacity-90 self-center"
+                                                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm active:scale-90 transition-all hover:opacity-90 self-center"
                                                             style={{ backgroundColor: primaryColor }}
                                                             title={isAr ? 'أضف للسلة' : 'Add to cart'}
                                                         >
-                                                            <Plus className="w-4 h-4" />
+                                                            <Plus className="w-3.5 h-3.5" />
                                                         </button>
                                                     )}
                                                 </div>

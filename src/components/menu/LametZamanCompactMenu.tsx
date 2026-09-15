@@ -493,11 +493,11 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                 )}
 
                 {/* --- CATEGORIES & ITEMS --- */}
-                <div className="px-4 sm:px-5">
+                <div className="px-2.5 sm:px-4">
                     {/* Compact Categories Sticky Bar (Reduced Height) */}
                     {!searchQuery && (
-                        <div className="sticky top-0 z-30 py-1.5 -mx-4 sm:-mx-5 px-4 sm:px-5 mb-3 backdrop-blur-md border-b border-black/5 dark:border-white/5" style={{ backgroundColor: hasBgImage ? (isDark ? 'rgba(17, 17, 17, 0.88)' : 'rgba(249, 250, 251, 0.88)') : bgBody }}>
-                            <div className="flex gap-2.5 sm:gap-3 overflow-x-auto hide-scrollbar scrollbar-hide no-scrollbar px-1 py-1 items-center" dir={isAr ? 'rtl' : 'ltr'}>
+                        <div className="sticky top-0 z-30 py-1 -mx-2.5 sm:-mx-4 px-2.5 sm:px-4 mb-2 backdrop-blur-md border-b border-black/5 dark:border-white/5" style={{ backgroundColor: hasBgImage ? (isDark ? 'rgba(17, 17, 17, 0.88)' : 'rgba(249, 250, 251, 0.88)') : bgBody }}>
+                            <div className="flex gap-2 sm:gap-2.5 overflow-x-auto hide-scrollbar scrollbar-hide no-scrollbar px-0.5 py-0.5 items-center" dir={isAr ? 'rtl' : 'ltr'}>
                                 {/* All button */}
                                 <button 
                                     id="compact-nav-cat-all"
@@ -505,17 +505,17 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                         setActiveCategory('all');
                                         window.scrollTo({ top: 0, behavior: 'smooth' });
                                     }}
-                                    className="flex flex-col items-center gap-1 shrink-0 group transition-all"
+                                    className="flex flex-col items-center gap-0.5 shrink-0 group transition-all"
                                 >
-                                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-all border-2"
+                                    <div className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all border-2"
                                          style={{ 
                                              backgroundColor: bgCard,
                                              borderColor: activeCategory === 'all' ? primaryColor : 'transparent',
-                                             boxShadow: activeCategory === 'all' ? `0 3px 10px ${primaryColor}35` : 'none'
+                                             boxShadow: activeCategory === 'all' ? `0 2px 8px ${primaryColor}35` : 'none'
                                          }}>
-                                         <LayoutGrid className="w-5 h-5" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
+                                         <LayoutGrid className="w-4 h-4" style={{ color: activeCategory === 'all' ? primaryColor : textMuted }} />
                                     </div>
-                                    <span className="font-bold text-[11px] max-w-[56px] truncate text-center leading-tight" style={{ color: isDark ? (activeCategory === 'all' ? primaryColor : textMain) : '#000000' }}>
+                                    <span className="font-bold text-[10px] max-w-[52px] truncate text-center leading-none mt-0.5" style={{ color: isDark ? (activeCategory === 'all' ? primaryColor : textMain) : '#000000' }}>
                                         {isAr ? 'الكل' : 'All'}
                                     </span>
                                 </button>
@@ -538,12 +538,12 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                     window.scrollTo({ top: y, behavior: 'smooth' });
                                                 }
                                             }}
-                                            className="flex flex-col items-center gap-1 shrink-0 group transition-all"
+                                            className="flex flex-col items-center gap-0.5 shrink-0 group transition-all"
                                         >
-                                            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
+                                            <div className="w-9.5 h-9.5 sm:w-10 sm:h-10 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
                                                  style={{ 
                                                      borderColor: isActive ? primaryColor : 'transparent',
-                                                     boxShadow: isActive ? `0 3px 10px ${primaryColor}35` : 'none'
+                                                     boxShadow: isActive ? `0 2px 8px ${primaryColor}35` : 'none'
                                                  }}>
                                                 <img 
                                                     src={catImg} 
@@ -554,7 +554,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                     }}
                                                 />
                                             </div>
-                                            <span className="font-bold text-[11px] whitespace-nowrap max-w-[68px] truncate text-center leading-tight" style={{ color: isDark ? (isActive ? primaryColor : textMain) : '#000000' }}>
+                                            <span className="font-bold text-[10px] whitespace-nowrap max-w-[62px] truncate text-center leading-none mt-0.5" style={{ color: isDark ? (isActive ? primaryColor : textMain) : '#000000' }}>
                                                 {catName(cat)}
                                             </span>
                                         </button>
@@ -566,69 +566,69 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
 
                     {/* View Mode Switcher with the new Extra Compact Option */}
                     {!searchQuery && (
-                        <div className="flex justify-between items-center mb-4 px-1">
+                        <div className="flex justify-between items-center mb-2 px-0.5">
                             <span className="text-xs font-bold opacity-75">
                                 {isAr ? 'طريقة العرض:' : 'View Mode:'}
                             </span>
-                            <div className="flex items-center gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
+                            <div className="flex items-center gap-1 p-0.5 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/10">
                                 {/* Compact Rows (New Default Option) */}
                                 <button
                                     onClick={() => setViewMode('compact')}
                                     title={isAr ? "عرض مكثف أفقي (أصناف تحت بعض)" : "Dense Horizontal Rows"}
-                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all ${
                                         viewMode === 'compact' 
                                             ? 'bg-white dark:bg-zinc-800 shadow-sm' 
                                             : 'opacity-60 hover:opacity-100'
                                     }`}
                                     style={viewMode === 'compact' ? { color: primaryColor } : {}}
                                 >
-                                    <AlignJustify className="w-4 h-4" />
-                                    <span className="text-[11px] font-semibold">{isAr ? "مكثف" : "Compact"}</span>
+                                    <AlignJustify className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-semibold">{isAr ? "مكثف" : "Compact"}</span>
                                 </button>
 
                                 {/* Grid (2 Columns) */}
                                 <button
                                     onClick={() => setViewMode('grid')}
                                     title={isAr ? "صورتين (شبكة)" : "2 Columns (Grid)"}
-                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all ${
                                         viewMode === 'grid' 
                                             ? 'bg-white dark:bg-zinc-800 shadow-sm' 
                                             : 'opacity-60 hover:opacity-100'
                                     }`}
                                     style={viewMode === 'grid' ? { color: primaryColor } : {}}
                                 >
-                                    <LayoutGrid className="w-4 h-4" />
-                                    <span className="text-[11px] font-semibold">{isAr ? "صورتين" : "Grid"}</span>
+                                    <LayoutGrid className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-semibold">{isAr ? "صورتين" : "Grid"}</span>
                                 </button>
 
                                 {/* List (Horizontal Cards) */}
                                 <button
                                     onClick={() => setViewMode('list')}
                                     title={isAr ? "قائمة كروت" : "Card List"}
-                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all ${
                                         viewMode === 'list' 
                                             ? 'bg-white dark:bg-zinc-800 shadow-sm' 
                                             : 'opacity-60 hover:opacity-100'
                                     }`}
                                     style={viewMode === 'list' ? { color: primaryColor } : {}}
                                 >
-                                    <LayoutList className="w-4 h-4" />
-                                    <span className="text-[11px] font-semibold">{isAr ? "قائمة" : "List"}</span>
+                                    <LayoutList className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-semibold">{isAr ? "قائمة" : "List"}</span>
                                 </button>
 
                                 {/* Single Large Image */}
                                 <button
                                     onClick={() => setViewMode('single')}
                                     title={isAr ? "صورة كبيرة" : "Single Large Image"}
-                                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all ${
                                         viewMode === 'single' 
                                             ? 'bg-white dark:bg-zinc-800 shadow-sm' 
                                             : 'opacity-60 hover:opacity-100'
                                     }`}
                                     style={viewMode === 'single' ? { color: primaryColor } : {}}
                                 >
-                                    <Maximize2 className="w-4 h-4" />
-                                    <span className="text-[11px] font-semibold">{isAr ? "كبيرة" : "Large"}</span>
+                                    <Maximize2 className="w-3.5 h-3.5" />
+                                    <span className="text-[10px] font-semibold">{isAr ? "كبيرة" : "Large"}</span>
                                 </button>
                             </div>
                         </div>
@@ -641,19 +641,19 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                             if (items.length === 0) return null;
 
                             return (
-                                <div key={category.id} id={`cat-${category.id}`} className="mb-7 pt-1">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <h3 className="font-black text-lg sm:text-xl" style={{ color: isDark ? primaryColor : '#000000' }}>
+                                <div key={category.id} id={`cat-${category.id}`} className="mb-3.5 pt-0.5">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <h3 className="font-black text-base sm:text-lg" style={{ color: isDark ? primaryColor : '#000000' }}>
                                             {catName(category)}
                                         </h3>
-                                        <span className="text-xs font-bold opacity-60">
+                                        <span className="text-[11px] font-bold opacity-60">
                                             {items.length} {isAr ? 'صنف' : 'items'}
                                         </span>
                                     </div>
 
                                     {/* 1. COMPACT MODE (New Signature dense row layout for large menus) */}
                                     {viewMode === 'compact' && (
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-col gap-1.5">
                                             {items.map((item) => {
                                                 const descOrIng = getItemDescription(item);
                                                 const hasMultipleSizes = item.prices && item.prices.length > 1;
@@ -662,11 +662,11 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                     <div 
                                                         key={item.id}
                                                         onClick={() => openModal(item, catName(category), category.image_url)}
-                                                        className="flex flex-row items-center p-2 sm:p-2.5 gap-2.5 sm:gap-3 rounded-2xl border transition-all active:scale-[0.99] cursor-pointer hover:shadow-md"
+                                                        className="flex flex-row items-center p-1.5 sm:p-2 gap-2 sm:gap-2.5 rounded-xl border transition-all active:scale-[0.99] cursor-pointer hover:shadow-md"
                                                         style={{ backgroundColor: bgCard, borderColor }}
                                                     >
                                                         {/* Small Dimensions Thumbnail Image */}
-                                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 relative bg-black/5 dark:bg-white/5">
+                                                        <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg overflow-hidden shrink-0 relative bg-black/5 dark:bg-white/5 self-center">
                                                             <OptimizedMenuImage 
                                                                 thumbnailSrc={item.thumbnail_url} 
                                                                 originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
@@ -675,7 +675,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                 highQuality={Boolean((config as any)?.high_quality_images)}
                                                             />
                                                             {item.is_popular && (
-                                                                <div className="absolute top-1 right-1 bg-red-600/90 text-white rounded-full font-bold px-1.5 py-0.5 text-[8px] shadow-sm">
+                                                                <div className="absolute top-0.5 right-0.5 bg-red-600/90 text-white rounded-full font-bold px-1 py-0.2 text-[7.5px] shadow-sm">
                                                                     {isAr ? 'عرض' : 'Offer'}
                                                                 </div>
                                                             )}
@@ -684,41 +684,41 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                         {/* Details */}
                                                         <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                             <div className="flex items-center justify-between gap-1">
-                                                                <h4 className="font-bold text-sm sm:text-base leading-snug truncate">
+                                                                <h4 className="font-bold text-[13px] sm:text-sm leading-tight truncate">
                                                                     {itemName(item)}
                                                                 </h4>
                                                             </div>
 
                                                             {/* Ingredients / Description if available */}
                                                             {descOrIng && (
-                                                                <p className="text-[11px] sm:text-xs line-clamp-1 mt-0.5 opacity-65 font-medium leading-tight">
+                                                                <p className="text-[10px] sm:text-[11px] line-clamp-1 mt-0.5 opacity-60 font-medium leading-tight">
                                                                     {descOrIng}
                                                                 </p>
                                                             )}
 
                                                             {/* Multiple Sizes vs Single Size */}
                                                             {hasMultipleSizes ? (
-                                                                <div className="grid grid-cols-2 gap-1.5 mt-1.5 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                <div className="grid grid-cols-2 gap-1 mt-1 w-full" dir={isAr ? 'rtl' : 'ltr'}>
                                                                     {item.prices.map((price, pIdx) => {
                                                                         const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                         const oldPrice = item.old_prices?.[pIdx];
                                                                         return (
                                                                             <div 
                                                                                 key={pIdx} 
-                                                                                className="flex flex-col items-center justify-center px-1.5 py-1 rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors"
+                                                                                className="flex flex-col items-center justify-center px-1 py-0.5 rounded-lg border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors"
                                                                                 style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                                                                             >
-                                                                                <span className="text-[11px] sm:text-xs font-bold text-foreground truncate max-w-full block leading-tight">
+                                                                                <span className="text-[10px] sm:text-[11px] font-bold text-foreground truncate max-w-full block leading-none">
                                                                                     {label}
                                                                                 </span>
-                                                                                <div className="flex items-center justify-center gap-1 mt-0.5 leading-tight" dir="ltr">
+                                                                                <div className="flex items-center justify-center gap-0.5 mt-0.5 leading-none" dir="ltr">
                                                                                     {oldPrice ? (
-                                                                                        <span className="line-through opacity-40 text-[8px] sm:text-[9px]">{oldPrice}</span>
+                                                                                        <span className="line-through opacity-40 text-[7.5px] sm:text-[8px]">{oldPrice}</span>
                                                                                     ) : null}
-                                                                                    <span style={{ color: primaryColor }} className="font-black text-[11px] sm:text-xs whitespace-nowrap">
+                                                                                    <span style={{ color: primaryColor }} className="font-black text-[10.5px] sm:text-[11px] whitespace-nowrap">
                                                                                         {price}
                                                                                     </span>
-                                                                                    <span className="text-[8.5px] sm:text-[9px] font-bold opacity-60 whitespace-nowrap">
+                                                                                    <span className="text-[7.5px] sm:text-[8px] font-bold opacity-60 whitespace-nowrap">
                                                                                         {cur}
                                                                                     </span>
                                                                                 </div>
@@ -727,17 +727,17 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                     })}
                                                                 </div>
                                                             ) : (
-                                                                <div className="flex items-center gap-1.5 mt-1" dir="ltr">
+                                                                <div className="flex items-center gap-1 mt-0.5" dir="ltr">
                                                                     {item.old_prices?.[0] ? (
-                                                                        <span className="text-xs line-through opacity-50" style={{ color: textMuted }}>
+                                                                        <span className="text-[11px] line-through opacity-50" style={{ color: textMuted }}>
                                                                             {item.old_prices[0]}
                                                                         </span>
                                                                     ) : null}
-                                                                    <span className="font-black text-sm sm:text-base" style={{ color: primaryColor }}>
+                                                                    <span className="font-black text-xs sm:text-sm" style={{ color: primaryColor }}>
                                                                         {item.prices?.[0]} {cur}
                                                                     </span>
                                                                     {item.size_labels?.[0] && (
-                                                                        <span className="text-[10px] font-bold opacity-60" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                        <span className="text-[9.5px] font-bold opacity-60" dir={isAr ? 'rtl' : 'ltr'}>
                                                                             ({item.size_labels[0]})
                                                                         </span>
                                                                     )}
@@ -753,11 +753,11 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                     e.stopPropagation();
                                                                     openModal(item, catName(category), category.image_url);
                                                                 }}
-                                                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm active:scale-90 transition-all hover:opacity-90 self-center"
+                                                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm active:scale-90 transition-all hover:opacity-90 self-center"
                                                                 style={{ backgroundColor: primaryColor }}
                                                                 title={isAr ? 'أضف للسلة' : 'Add to cart'}
                                                             >
-                                                                <Plus className="w-4 h-4" />
+                                                                <Plus className="w-3.5 h-3.5" />
                                                             </button>
                                                         )}
                                                     </div>
