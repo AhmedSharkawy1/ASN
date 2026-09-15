@@ -64,6 +64,7 @@ export default function MenuBuilderPage() {
     const [isImportingImages, setIsImportingImages] = useState(false);
     const [isSmartImporting, setIsSmartImporting] = useState(false);
     const [showSmartImportModal, setShowSmartImportModal] = useState(false);
+    const [skipExistingImages, setSkipExistingImages] = useState(true);
     const [showDeleteAllImagesModal, setShowDeleteAllImagesModal] = useState(false);
     const [isDeletingAllImages, setIsDeletingAllImages] = useState(false);
     const [reviewMatches, setReviewMatches] = useState<SmartMatchItem[] | null>(null);
@@ -201,7 +202,12 @@ export default function MenuBuilderPage() {
         setIsSmartImporting(true);
         setImageProgress(language === 'ar' ? 'جاري فحص وتصنيف الصور ومطابقتها مع الأقسام...' : 'Analyzing images and matching with categories...');
         try {
-            const res = await analyzeSmartImport(restaurantId, fileList, (msg) => setImageProgress(msg));
+            const res = await analyzeSmartImport(
+                restaurantId,
+                fileList,
+                (msg) => setImageProgress(msg),
+                { skipExistingImages }
+            );
             if (!res.success) {
                 alert(res.message || (language === 'ar' ? 'حدث خطأ أثناء فحص الصور' : 'Failed to analyze images'));
                 return;
@@ -655,11 +661,33 @@ export default function MenuBuilderPage() {
                                 </button>
                             </div>
 
-                            <p className="text-xs text-silver mb-4 leading-relaxed">
+                            <p className="text-xs text-silver mb-3 leading-relaxed">
                                 {language === 'ar'
-                                    ? 'يمكنك اختيار مجلد صور كامل من جهازك أو ملف مضغوط ZIP، وسيقوم النظام بمطابقة وتحديث صور الأصناف بدقة حسب القسم (مثال: أصناف البيتزا من مجلد أو صور البيتزا فقط) واستبدال الصور القديمة تلقائياً.'
-                                    : 'Choose an image folder from your PC or a ZIP file. The system will match images strictly within their matching categories and update menu photos.'}
+                                    ? 'يمكنك اختيار مجلد صور كامل من جهازك أو ملف مضغوط ZIP، وسيقوم النظام بمطابقة وتحديث صور الأصناف بدقة حسب القسم واستبدال أو إضافة الصور بدقة عالية.'
+                                    : 'Choose an image folder from your PC or a ZIP file. The system will match images strictly within their matching categories.'}
                             </p>
+
+                            {/* Skip already uploaded photos toggle */}
+                            <label className="flex items-center gap-3 p-3 mb-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-glass-border hover:border-teal-500/40 transition cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={skipExistingImages}
+                                    onChange={(e) => setSkipExistingImages(e.target.checked)}
+                                    className="w-4 h-4 rounded text-teal-600 focus:ring-teal-500 cursor-pointer accent-teal-600"
+                                />
+                                <div className="flex-1 text-right">
+                                    <span className="text-xs font-bold text-foreground block">
+                                        {language === 'ar'
+                                            ? 'تخطي الأصناف التي تمتلك صوراً مسبقاً (مستحسن)'
+                                            : 'Skip items that already have images (Recommended)'}
+                                    </span>
+                                    <span className="text-[11px] text-silver block">
+                                        {language === 'ar'
+                                            ? 'الأصناف المؤكدة التي رُفعت صورها لن تظهر في المقترحات للتركيز على باقي الأصناف'
+                                            : 'Previously uploaded items will not clutter the proposals list'}
+                                    </span>
+                                </div>
+                            </label>
 
                             <div className="space-y-3">
                                 {/* Option 1: Full Folder (e.g. E:\Menu_Images) */}
