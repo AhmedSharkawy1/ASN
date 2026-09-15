@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import { supabase } from './supabase/client';
 import { uploadImage, uploadImageWithThumb } from './uploadImage';
 import { findBestMatch, calculateSimilarity, normalizeArabic } from './fuzzyMatch';
+import { calculateSmartItemSimilarity } from './arabicLinguisticMatch';
 
 /**
  * Sanitize a string to be used as part of a filename.
@@ -583,8 +584,18 @@ export async function analyzeSmartImport(
             };
         });
 
-        const matches: SmartMatchItem[] = [];
-        const assignedItemIds = new Set<string>();
+        const matchesResult: (SmartMatchItem | null)[] = new Array(imageEntries.length).fill(null);
+        interface PendingItem {
+            index: number;
+            lastSegment: string;
+            fileCategoryName: string;
+            fileItemName: string;
+            blob: Blob;
+            previewUrl: string;
+            matchedCategory: typeof catList[0];
+            categoryScore: number;
+        }
+        const pendingItems: PendingItem[] = [];
 
         for (let i = 0; i < imageEntries.length; i++) {
             const { path: rawPath, blob } = imageEntries[i];
@@ -656,7 +667,7 @@ export async function analyzeSmartImport(
             if (isCover) {
                 if (matchedCategory) {
                     const isHigh = categoryScore >= 0.75;
-                    matches.push({
+                    matchesResult[i] = {
                         id: `match-${i}`,
                         fileName: lastSegment,
                         fileCategoryName,
@@ -673,9 +684,9 @@ export async function analyzeSmartImport(
                         categoryScore,
                         status: isHigh ? 'confirmed' : 'uncertain',
                         confirmed: isHigh
-                    });
+                    };
                 } else {
-                    matches.push({
+                    matchesResult[i] = {
                         id: `match-${i}`,
                         fileName: lastSegment,
                         fileCategoryName,
@@ -692,37 +703,14 @@ export async function analyzeSmartImport(
                         categoryScore: 0,
                         status: 'no_match',
                         confirmed: false
-                    });
+                    };
                 }
-                continue;
-            }
-
-            // If a category was named in file but not found in menu:
-            if (fileCategoryName && !matchedCategory) {
-                matches.push({
-                    id: `match-${i}`,
-                    fileName: lastSegment,
-                    fileCategoryName,
-                    fileItemName,
-                    blob,
-                    previewUrl,
-                    matchedCategoryId: null,
-                    matchedCategoryName: null,
-                    matchedItemId: null,
-                    matchedItemName: null,
-                    matchedItemCurrentImageUrl: null,
-                    isCover: false,
-                    score: 0,
-                    categoryScore: 0,
-                    status: 'no_match',
-                    confirmed: false
-                });
                 continue;
             }
 
             // If no category matched or recognized, DO NOT guess across random categories!
             if (!matchedCategory) {
-                matches.push({
+                matchesResult[i] = {
                     id: `match-${i}`,
                     fileName: lastSegment,
                     fileCategoryName: fileCategoryName || 'غير محدد',
@@ -739,98 +727,123 @@ export async function analyzeSmartImport(
                     categoryScore: 0,
                     status: 'no_match',
                     confirmed: false
-                });
+                };
                 continue;
             }
 
-            // Available candidates in category only
-            const availableCandidates = candidates.filter(c => !assignedItemIds.has(c.id));
-            const candidatePool = availableCandidates.filter(c => c.category_id === matchedCategory.id);
-
-            // Strip category words from fileItemName
-            let itemNameWithoutCat = fileItemName;
-            if (matchedCategory) {
-                const catWords = normalizeArabic(matchedCategory.name).split(/\s+/);
-                const words = fileItemName.split(/\s+/).filter(w => {
-                    const nw = normalizeArabic(w);
-                    return !catWords.includes(nw);
-                });
-                if (words.length > 0) {
-                    itemNameWithoutCat = words.join(' ');
-                }
-            }
-
-            let bestCandidate: typeof candidates[0] | null = null;
-            let bestScore = 0;
-
-            for (const candidate of candidatePool) {
-                const s1 = calculateSimilarity(fileItemName, candidate.name);
-                const s2 = itemNameWithoutCat !== fileItemName ? calculateSimilarity(itemNameWithoutCat, candidate.name) : 0;
-                const s3 = calculateSimilarity(fileItemName, `${candidate.category_name} ${candidate.name}`);
-                const s4 = fileCategoryName ? calculateSimilarity(`${fileCategoryName} ${fileItemName}`, `${candidate.category_name} ${candidate.name}`) : 0;
-                const s5 = fileCategoryName ? calculateSimilarity(`${fileCategoryName} ${fileItemName}`, candidate.name) : 0;
-                const s6 = itemNameWithoutCat !== fileItemName ? calculateSimilarity(`${candidate.category_name} ${itemNameWithoutCat}`, `${candidate.category_name} ${candidate.name}`) : 0;
-
-                let score = Math.max(s1, s2, s3, s4, s5, s6);
-
-                if (matchedCategory && candidate.category_id === matchedCategory.id) {
-                    score = Math.min(1.0, score + 0.08);
-                }
-
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestCandidate = candidate;
-                }
-            }
-
-            const MIN_THRESHOLD = 0.35;
-            if (!bestCandidate || bestScore < MIN_THRESHOLD) {
-                matches.push({
-                    id: `match-${i}`,
-                    fileName: lastSegment,
-                    fileCategoryName,
-                    fileItemName,
-                    blob,
-                    previewUrl,
-                    matchedCategoryId: matchedCategory?.id || null,
-                    matchedCategoryName: matchedCategory?.name || null,
-                    matchedItemId: null,
-                    matchedItemName: null,
-                    matchedItemCurrentImageUrl: null,
-                    isCover: false,
-                    score: 0,
-                    categoryScore,
-                    status: 'no_match',
-                    confirmed: false
-                });
-                continue;
-            }
-
-            // High confidence ONLY if category score >= 0.75 AND item score >= 0.85
-            const isHighConfidence = categoryScore >= 0.75 && bestScore >= 0.85;
-
-            // Reserve item id
-            assignedItemIds.add(bestCandidate.id);
-
-            matches.push({
-                id: `match-${i}`,
-                fileName: lastSegment,
+            // Valid candidate for linguistic item matching within category
+            pendingItems.push({
+                index: i,
+                lastSegment,
                 fileCategoryName,
                 fileItemName,
                 blob,
                 previewUrl,
-                matchedCategoryId: bestCandidate.category_id,
-                matchedCategoryName: bestCandidate.category_name,
-                matchedItemId: bestCandidate.id,
-                matchedItemName: bestCandidate.name,
-                matchedItemCurrentImageUrl: bestCandidate.image_url,
-                isCover: false,
-                score: bestScore,
-                categoryScore,
-                status: isHighConfidence ? 'confirmed' : 'uncertain',
-                confirmed: isHighConfidence // default true ONLY if high confidence, otherwise false!
+                matchedCategory,
+                categoryScore
             });
         }
+
+        // Step 2: Intelligent linguistic matching per category
+        const pendingMap = new Map<number, PendingItem>();
+        pendingItems.forEach(p => pendingMap.set(p.index, p));
+
+        // Group pending items by category
+        const categoryGroups = new Map<string, PendingItem[]>();
+        for (const p of pendingItems) {
+            const catId = p.matchedCategory.id;
+            const list = categoryGroups.get(catId) || [];
+            list.push(p);
+            categoryGroups.set(catId, list);
+        }
+
+        // Process each category
+        categoryGroups.forEach((catPending, catId) => {
+            const catCandidates = candidates.filter(c => c.category_id === catId);
+
+            interface ScorePair {
+                itemIndex: number;
+                candidate: typeof candidates[0];
+                score: number;
+            }
+            const scorePairs: ScorePair[] = [];
+
+            for (let pi = 0; pi < catPending.length; pi++) {
+                const p = catPending[pi];
+                for (let ci = 0; ci < catCandidates.length; ci++) {
+                    const cand = catCandidates[ci];
+                    const score = calculateSmartItemSimilarity(p.fileItemName, cand.name, p.matchedCategory.name);
+                    // Only consider meaningful matches (>= 0.48)
+                    if (score >= 0.48) {
+                        scorePairs.push({ itemIndex: p.index, candidate: cand, score });
+                    }
+                }
+            }
+
+            // Sort matches descending by score so highest confidence matches claim items first!
+            scorePairs.sort((a, b) => b.score - a.score);
+
+            const assignedImageIndices = new Set<number>();
+            const assignedCandidateIds = new Set<string>();
+
+            for (let si = 0; si < scorePairs.length; si++) {
+                const pair = scorePairs[si];
+                if (assignedImageIndices.has(pair.itemIndex) || assignedCandidateIds.has(pair.candidate.id)) {
+                    continue;
+                }
+                assignedImageIndices.add(pair.itemIndex);
+                assignedCandidateIds.add(pair.candidate.id);
+
+                const p = pendingMap.get(pair.itemIndex)!;
+                const isHigh = p.categoryScore >= 0.75 && pair.score >= 0.82;
+
+                matchesResult[pair.itemIndex] = {
+                    id: `match-${pair.itemIndex}`,
+                    fileName: p.lastSegment,
+                    fileCategoryName: p.fileCategoryName,
+                    fileItemName: p.fileItemName,
+                    blob: p.blob,
+                    previewUrl: p.previewUrl,
+                    matchedCategoryId: pair.candidate.category_id,
+                    matchedCategoryName: pair.candidate.category_name,
+                    matchedItemId: pair.candidate.id,
+                    matchedItemName: pair.candidate.name,
+                    matchedItemCurrentImageUrl: pair.candidate.image_url,
+                    isCover: false,
+                    score: pair.score,
+                    categoryScore: p.categoryScore,
+                    status: isHigh ? 'confirmed' : 'uncertain',
+                    confirmed: isHigh
+                };
+            }
+
+            // Any remaining pending item with no match >= 0.48 is strictly marked as no_match!
+            for (let pi = 0; pi < catPending.length; pi++) {
+                const p = catPending[pi];
+                if (!assignedImageIndices.has(p.index)) {
+                    matchesResult[p.index] = {
+                        id: `match-${p.index}`,
+                        fileName: p.lastSegment,
+                        fileCategoryName: p.fileCategoryName,
+                        fileItemName: p.fileItemName,
+                        blob: p.blob,
+                        previewUrl: p.previewUrl,
+                        matchedCategoryId: p.matchedCategory.id,
+                        matchedCategoryName: p.matchedCategory.name,
+                        matchedItemId: null,
+                        matchedItemName: null,
+                        matchedItemCurrentImageUrl: null,
+                        isCover: false,
+                        score: 0,
+                        categoryScore: p.categoryScore,
+                        status: 'no_match',
+                        confirmed: false
+                    };
+                }
+            }
+        });
+
+        const matches = matchesResult.filter((m): m is SmartMatchItem => m !== null);
 
         return {
             success: true,
