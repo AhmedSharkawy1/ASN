@@ -558,7 +558,7 @@ export default function MenuBuilderPage() {
                                             {language === 'ar' ? 'استيراد الصور الذكي' : 'Smart Image Import'}
                                         </h3>
                                         <p className="text-[11px] sm:text-xs text-silver">
-                                            {language === 'ar' ? 'مطابقة ذكية بالتشابه للأصناف التي ليس لها صور فقط' : 'Auto-match images to items without images'}
+                                            {language === 'ar' ? 'مطابقة وتحديث الصور تلقائياً حسب القسم والصنف' : 'Auto-match & update images by category and item'}
                                         </p>
                                     </div>
                                 </div>
@@ -572,8 +572,8 @@ export default function MenuBuilderPage() {
 
                             <p className="text-xs text-silver mb-4 leading-relaxed">
                                 {language === 'ar'
-                                    ? 'يمكنك اختيار مجلد صور كامل من جهازك أو ملف مضغوط ZIP، وسيقوم النظام بمطابقة كل صورة تلقائياً مع الصنف المشابه بدون المساس بأي صور موجودة.'
-                                    : 'Choose an image folder from your PC or a ZIP file. The system will match images to similar menu items without affecting existing images.'}
+                                    ? 'يمكنك اختيار مجلد صور كامل من جهازك أو ملف مضغوط ZIP، وسيقوم النظام بمطابقة وتحديث صور الأصناف بدقة حسب القسم (مثال: أصناف البيتزا من مجلد أو صور البيتزا فقط) واستبدال الصور القديمة تلقائياً.'
+                                    : 'Choose an image folder from your PC or a ZIP file. The system will match images strictly within their matching categories and update menu photos.'}
                             </p>
 
                             <div className="space-y-3">

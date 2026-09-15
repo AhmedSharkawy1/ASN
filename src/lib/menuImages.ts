@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import { supabase } from './supabase/client';
 import { uploadImage, uploadImageWithThumb } from './uploadImage';
-import { findBestMatch, calculateSimilarity } from './fuzzyMatch';
+import { findBestMatch, calculateSimilarity, normalizeArabic } from './fuzzyMatch';
 
 /**
  * Sanitize a string to be used as part of a filename.
@@ -476,31 +476,36 @@ export async function smartImportMenuImages(
             return { success: false, message: `خطأ في تحميل الأصناف: ${itemsErr.message}` };
         }
 
-        // Build list of items WITHOUT images (candidates for matching)
+        // All items in the menu are candidates (including items that already have images)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const itemsWithoutImages: any[] = (items || []).filter((item: any) => !item.image_url || String(item.image_url).trim() === '');
-
-        if (itemsWithoutImages.length === 0) {
-            return { 
-                success: false, 
-                message: 'جميع أصناف المنيو لديها صور بالفعل! الاستيراد الذكي يطبق فقط على الأصناف التي ليس لها صور لتجنب مسح صورك الحالية.' 
+        const allItems: any[] = items || [];
+        if (allItems.length === 0) {
+            return {
+                success: false,
+                message: 'لا توجد أصناف في المنيو. أضف الأصناف أولاً ثم ارفع الصور.'
             };
         }
 
-        // Build category lookup
+        // Build category lookup and list with normalized names
         const catById = new Map<string, typeof cats[0]>();
-        cats.forEach(c => {
+        const catList = cats.map(c => {
             catById.set(c.id, c);
+            return {
+                id: c.id,
+                name: c.name_ar,
+                normName: normalizeArabic(c.name_ar)
+            };
         });
 
         // Build candidates list for fuzzy matching
-        const candidates = itemsWithoutImages.map(item => {
+        const candidates = allItems.map(item => {
             const cat = catById.get(item.category_id);
             return {
                 id: item.id as string,
                 name: item.title_ar as string,
                 category_id: item.category_id as string,
-                category_name: cat ? cat.name_ar : ''
+                category_name: cat ? cat.name_ar : '',
+                hasExistingImage: Boolean(item.image_url && String(item.image_url).trim() !== '')
             };
         });
 
@@ -549,31 +554,100 @@ export async function smartImportMenuImages(
 
                 const combinedQuery = parentFolder ? `${parentFolder} ${baseName}` : baseName;
 
-                // Candidates not yet assigned
+                // Candidates not yet assigned in this run
                 const availableCandidates = candidates.filter(c => !assignedItemIds.has(c.id));
                 if (availableCandidates.length === 0) {
-                    matchLog.push(`ℹ️ تم تعيين صور لجميع الأصناف المتاحة.`);
+                    matchLog.push(`ℹ️ تم الانتهاء من جميع الأصناف المتاحة.`);
                     break;
                 }
 
-                // Find best matching candidate using multi-angle matching
+                // ---- CATEGORY DETECTION & SCOPING ----
+                const normParent = parentFolder ? normalizeArabic(parentFolder) : '';
+                const normBase = normalizeArabic(baseName);
+
+                let matchedCategory: typeof catList[0] | null = null;
+
+                // Step 1: Check if parent folder matches a category
+                if (normParent) {
+                    for (const cat of catList) {
+                        if (normParent === cat.normName || normParent.includes(cat.normName) || cat.normName.includes(normParent)) {
+                            matchedCategory = cat;
+                            break;
+                        }
+                        if (calculateSimilarity(normParent, cat.normName) >= 0.5) {
+                            matchedCategory = cat;
+                            break;
+                        }
+                    }
+                }
+
+                // Step 2: If not found from folder, check if image name contains a category name
+                // Sort by longest category name first to prioritize specific categories
+                if (!matchedCategory) {
+                    const sortedCats = [...catList].sort((a, b) => b.normName.length - a.normName.length);
+                    for (const cat of sortedCats) {
+                        const tokens = normBase.split(/\s+/);
+                        if (
+                            tokens.includes(cat.normName) ||
+                            normBase.startsWith(cat.normName + ' ') ||
+                            normBase.includes(' ' + cat.normName + ' ') ||
+                            normBase.endsWith(' ' + cat.normName) ||
+                            normBase === cat.normName
+                        ) {
+                            matchedCategory = cat;
+                            break;
+                        }
+                        if (cat.normName.length >= 3 && normBase.includes(cat.normName)) {
+                            matchedCategory = cat;
+                            break;
+                        }
+                    }
+                }
+
+                // ---- SCOPE CANDIDATES ----
+                let candidatePool: typeof candidates = [];
+                if (matchedCategory) {
+                    // Strict category scoping: ONLY look at items inside this category so it NEVER crosses over into other categories!
+                    candidatePool = availableCandidates.filter(c => c.category_id === matchedCategory.id);
+                    if (candidatePool.length === 0) {
+                        matchLog.push(`⏭️ ${baseName} ← لم نجد صنفاً متاحاً في قسم [${matchedCategory.name}]`);
+                        skipped++;
+                        continue;
+                    }
+                } else {
+                    // If no specific category clue was detected, search across all categories
+                    candidatePool = availableCandidates;
+                }
+
+                // Prepare a variant of baseName with category word removed (e.g. "بيتزا فراخ" -> "فراخ")
+                let baseNameWithoutCat = baseName;
+                if (matchedCategory) {
+                    const catWords = normalizeArabic(matchedCategory.name).split(/\s+/);
+                    const words = baseName.split(/\s+/).filter(w => {
+                        const nw = normalizeArabic(w);
+                        return !catWords.includes(nw);
+                    });
+                    if (words.length > 0) {
+                        baseNameWithoutCat = words.join(' ');
+                    }
+                }
+
+                // Find best matching candidate in candidatePool
                 let bestCandidate: typeof candidates[0] | null = null;
                 let bestScore = 0;
 
-                for (const candidate of availableCandidates) {
+                for (const candidate of candidatePool) {
                     const s1 = calculateSimilarity(baseName, candidate.name);
-                    const s2 = calculateSimilarity(baseName, `${candidate.category_name} ${candidate.name}`);
-                    const s3 = combinedQuery !== baseName ? calculateSimilarity(combinedQuery, candidate.name) : 0;
-                    const s4 = combinedQuery !== baseName ? calculateSimilarity(combinedQuery, `${candidate.category_name} ${candidate.name}`) : 0;
+                    const s2 = calculateSimilarity(baseNameWithoutCat, candidate.name);
+                    const s3 = calculateSimilarity(baseName, `${candidate.category_name} ${candidate.name}`);
+                    const s4 = combinedQuery !== baseName ? calculateSimilarity(combinedQuery, candidate.name) : 0;
+                    const s5 = combinedQuery !== baseName ? calculateSimilarity(combinedQuery, `${candidate.category_name} ${candidate.name}`) : 0;
 
-                    let score = Math.max(s1, s2, s3, s4);
+                    let score = Math.max(s1, s2, s3, s4, s5);
 
-                    // Category boost if parentFolder matches candidate's category
-                    if (parentFolder && candidate.category_name) {
-                        const catSim = calculateSimilarity(parentFolder, candidate.category_name);
-                        if (catSim >= 0.5) {
-                            score = Math.min(1.0, score + 0.15);
-                        }
+                    // Category affinity bonus
+                    if (matchedCategory && candidate.category_id === matchedCategory.id) {
+                        score = Math.min(1.0, score + 0.10);
                     }
 
                     if (score > bestScore) {
@@ -582,14 +656,14 @@ export async function smartImportMenuImages(
                     }
                 }
 
-                const MIN_THRESHOLD = 0.40;
+                const MIN_THRESHOLD = 0.35;
                 if (!bestCandidate || bestScore < MIN_THRESHOLD) {
-                    matchLog.push(`⏭️ ${baseName} ← لم يتم العثور على صنف مطابق`);
+                    matchLog.push(`⏭️ ${baseName} ← لم يتم العثور على صنف مطابق${matchedCategory ? ` في قسم [${matchedCategory.name}]` : ''}`);
                     skipped++;
                     continue;
                 }
 
-                // Upload image and link to item
+                // Upload image and update/replace item image
                 const result = await uploadImageWithThumb(blob, `items/${bestCandidate.id}`);
                 if (result) {
                     await supabase.from('items')
@@ -598,7 +672,8 @@ export async function smartImportMenuImages(
 
                     assignedItemIds.add(bestCandidate.id);
                     const pct = Math.round(bestScore * 100);
-                    matchLog.push(`✅ ${baseName} ➜ [${bestCandidate.category_name}] ${bestCandidate.name} (${pct}%)`);
+                    const actionLabel = bestCandidate.hasExistingImage ? 'تم استبدال الصورة' : 'صورة جديدة';
+                    matchLog.push(`✅ ${baseName} ➜ [${bestCandidate.category_name}] ${bestCandidate.name} (${actionLabel}) (${pct}%)`);
                     uploaded++;
                 } else {
                     matchLog.push(`❌ ${baseName} ➜ فشل رفع الصورة للسيرفر`);
@@ -612,10 +687,10 @@ export async function smartImportMenuImages(
             }
         }
 
-        const summary = `🎉 تم رفع وربط ${uploaded} صورة بنجاح` +
-            (skipped > 0 ? `\n⏭️ تم تخطي ${skipped} صورة (لم نجد صنفاً مشابهاً بدون صورة)` : '') +
+        const summary = `🎉 تم رفع وتحديث ${uploaded} صورة بنجاح` +
+            (skipped > 0 ? `\n⏭️ تم تخطي ${skipped} صورة (لم نجد صنفاً مطابقاً)` : '') +
             (failed > 0 ? `\n❌ فشل رفع ${failed} صورة` : '') +
-            (matchLog.length > 0 ? `\n\n📋 تفاصيل المطابقة:\n${matchLog.join('\n')}` : '');
+            (matchLog.length > 0 ? `\n\n📋 تفاصيل المطابقة حسب القسم:\n${matchLog.join('\n')}` : '');
 
         return { success: uploaded > 0, message: summary };
     } catch (err) {
