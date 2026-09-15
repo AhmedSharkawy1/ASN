@@ -705,13 +705,22 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                         return (
                                                                             <div 
                                                                                 key={pIdx} 
-                                                                                className="flex items-center justify-between gap-1 text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-lg border border-black/5 dark:border-white/10 min-w-0"
+                                                                                className="flex flex-col items-center justify-center px-1.5 py-1 rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors"
                                                                                 style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                                                                             >
-                                                                                <span className="opacity-70 truncate min-w-0">{label}:</span>
-                                                                                <div className="flex items-center gap-0.5 shrink-0">
-                                                                                    {oldPrice ? <span className="line-through opacity-40 text-[8px]">{oldPrice}</span> : null}
-                                                                                    <span style={{ color: primaryColor }} className="font-black whitespace-nowrap">{price} {cur}</span>
+                                                                                <span className="text-[11px] sm:text-xs font-bold text-foreground truncate max-w-full block leading-tight">
+                                                                                    {label}
+                                                                                </span>
+                                                                                <div className="flex items-center justify-center gap-1 mt-0.5 leading-tight" dir="ltr">
+                                                                                    {oldPrice ? (
+                                                                                        <span className="line-through opacity-40 text-[8px] sm:text-[9px]">{oldPrice}</span>
+                                                                                    ) : null}
+                                                                                    <span style={{ color: primaryColor }} className="font-black text-[11px] sm:text-xs whitespace-nowrap">
+                                                                                        {price}
+                                                                                    </span>
+                                                                                    <span className="text-[8.5px] sm:text-[9px] font-bold opacity-60 whitespace-nowrap">
+                                                                                        {cur}
+                                                                                    </span>
                                                                                 </div>
                                                                             </div>
                                                                         );

@@ -354,39 +354,94 @@ export async function importMenuImages(
 }
 
 /**
- * Smart import: use fuzzy name matching to assign images from a ZIP,
- * a folder (e.g. E:\Menu_Images), or loose image files to menu items
- * that do NOT already have an image.
- *
- * File naming and structure is completely flexible:
- *   - "E:\Menu_Images\بيتزا فراخ.jpg"          → searches ALL items
- *   - "E:\Menu_Images\بيتزا\فراخ.jpg"          → combines "بيتزا فراخ" and scopes to category "بيتزا"
- *   - "بيتزا__بيتزا فراخ.jpg"                  → searches items in category "بيتزا"
- *   - "بيتزا بالفراخ" vs "بيتزا فراخ"          → normalized prefix matching (ال, بال, وال)
- *
- * Only items with no image_url are considered as candidates.
- * Existing images are NEVER overwritten.
+ * Delete/clear all item and category images for a given restaurant.
+ * Sets image_url and thumbnail_url to null.
  */
-export async function smartImportMenuImages(
+export async function deleteAllMenuImages(restaurantId: string): Promise<{ success: boolean; message: string; count: number }> {
+    try {
+        const { data: cats, error: catsErr } = await supabase
+            .from('categories')
+            .select('id')
+            .eq('restaurant_id', restaurantId);
+
+        if (catsErr) throw catsErr;
+        if (!cats || cats.length === 0) {
+            return { success: true, message: 'لا توجد أقسام في هذا المنيو.', count: 0 };
+        }
+
+        const catIds = cats.map(c => c.id);
+
+        // Clear images on items
+        const { error: itemsErr, count: itemsCount } = await supabase
+            .from('items')
+            .update({ image_url: null, thumbnail_url: null }, { count: 'exact' })
+            .in('category_id', catIds);
+
+        if (itemsErr) throw itemsErr;
+
+        // Clear images on categories
+        const { error: catUpdateErr } = await supabase
+            .from('categories')
+            .update({ image_url: null, thumbnail_url: null })
+            .eq('restaurant_id', restaurantId);
+
+        if (catUpdateErr) throw catUpdateErr;
+
+        return { 
+            success: true, 
+            message: `تم حذف وتفريغ صور جميع أصناف وأقسام هذا المنيو بنجاح.`, 
+            count: itemsCount || 0 
+        };
+    } catch (err) {
+        console.error('Delete all menu images error:', err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return { success: false, message: `حدث خطأ أثناء حذف الصور: ${errMsg}`, count: 0 };
+    }
+}
+
+export type SmartMatchItem = {
+    id: string;
+    fileName: string;
+    fileCategoryName: string;
+    fileItemName: string;
+    blob: Blob;
+    previewUrl: string;
+    matchedCategoryId: string | null;
+    matchedCategoryName: string | null;
+    matchedItemId: string | null;
+    matchedItemName: string | null;
+    matchedItemCurrentImageUrl: string | null;
+    isCover: boolean;
+    score: number;
+    categoryScore: number;
+    status: 'confirmed' | 'uncertain' | 'no_match';
+    confirmed: boolean;
+};
+
+/**
+ * Analyze images from a ZIP, folder, or file list.
+ * Matches each image using Category__Item format with strict category scoping.
+ * Returns matches with preview URLs for interactive user confirmation.
+ */
+export async function analyzeSmartImport(
     restaurantId: string,
     files: File | FileList | File[],
     onProgress?: (msg: string) => void
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message?: string; matches: SmartMatchItem[] }> {
     try {
-        onProgress?.('جاري تجهيز وقراءة الملفات...');
+        onProgress?.('جاري قراءة وتجهيز الملفات...');
 
         const fileArray: File[] = files instanceof FileList
             ? Array.from(files)
             : Array.isArray(files) ? files : [files];
 
         if (fileArray.length === 0) {
-            return { success: false, message: 'لم يتم اختيار أي ملفات.' };
+            return { success: false, message: 'لم يتم اختيار أي ملفات.', matches: [] };
         }
 
-        // Normalise input into an array of { path, blob }
         const imageEntries: { path: string; blob: Blob }[] = [];
 
-        // Check if the only file is a ZIP file
+        // Check if single zip
         const isZip = fileArray.length === 1 && (
             fileArray[0].name.toLowerCase().endsWith('.zip') ||
             fileArray[0].type === 'application/zip' ||
@@ -412,11 +467,11 @@ export async function smartImportMenuImages(
                 console.error('ZIP parse error:', zipErr);
                 return { 
                     success: false, 
-                    message: 'تعذر قراءة ملف ZIP. إذا كان لديك مجلد صور عادي، استخدم خيار "اختيار مجلد كامل (Folder)".' 
+                    message: 'تعذر قراءة ملف ZIP. تأكد من سلامة الملف أو اختر مجلد الصور مباشرة.',
+                    matches: [] 
                 };
             }
         } else {
-            // Loose image files or folder files
             for (const f of fileArray) {
                 if (f.name.toLowerCase().endsWith('.zip')) {
                     try {
@@ -432,10 +487,9 @@ export async function smartImportMenuImages(
                             }
                         }
                     } catch (e) {
-                        console.warn('Skipping unreadable zip entry:', f.name, e);
+                        console.warn('Skipping zip entry:', f.name, e);
                     }
                 } else if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(f.name)) {
-                    // Use webkitRelativePath if available (preserves folder structure), otherwise file.name
                     const relativePath = f.webkitRelativePath || f.name;
                     imageEntries.push({ path: relativePath, blob: f });
                 }
@@ -443,50 +497,35 @@ export async function smartImportMenuImages(
         }
 
         if (imageEntries.length === 0) {
-            return { 
-                success: false, 
-                message: 'لم يتم العثور على أي صور في الملفات المحددة. تأكد أن المجلد أو الملف يحتوي على صور بصيغة (JPG, PNG, WebP).' 
+            return {
+                success: false,
+                message: 'لم يتم العثور على أي صور في الملفات المحددة.',
+                matches: []
             };
         }
 
-        onProgress?.(`تم العثور على ${imageEntries.length} صورة، جاري تحميل بيانات المنيو...`);
+        onProgress?.(`تم العثور على ${imageEntries.length} صورة، جاري جلب بيانات المنيو...`);
 
-        // Fetch current categories and items
+        // Fetch categories & items
         const { data: cats, error: catsErr } = await supabase
             .from('categories')
             .select('*')
             .eq('restaurant_id', restaurantId);
 
-        if (catsErr) {
-            console.error('Fetch categories error:', catsErr);
-            return { success: false, message: `خطأ في تحميل الأقسام: ${catsErr.message}` };
-        }
-
-        if (!cats || cats.length === 0) {
-            return { success: false, message: 'لا توجد أقسام في المنيو. أضف الأقسام والأصناف أولاً ثم ارفع الصور.' };
+        if (catsErr || !cats || cats.length === 0) {
+            return { success: false, message: 'لا توجد أقسام في المنيو. أضف الأقسام والأصناف أولاً.', matches: [] };
         }
 
         const catIds = cats.map(c => c.id);
-        const { data: items, error: itemsErr } = catIds.length > 0
-            ? await supabase.from('items').select('*').in('category_id', catIds)
-            : { data: [], error: null };
+        const { data: items, error: itemsErr } = await supabase
+            .from('items')
+            .select('*')
+            .in('category_id', catIds);
 
-        if (itemsErr) {
-            console.error('Fetch items error:', itemsErr);
-            return { success: false, message: `خطأ في تحميل الأصناف: ${itemsErr.message}` };
+        if (itemsErr || !items || items.length === 0) {
+            return { success: false, message: 'لا توجد أصناف في المنيو. أضف الأصناف أولاً.', matches: [] };
         }
 
-        // All items in the menu are candidates (including items that already have images)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const allItems: any[] = items || [];
-        if (allItems.length === 0) {
-            return {
-                success: false,
-                message: 'لا توجد أصناف في المنيو. أضف الأصناف أولاً ثم ارفع الصور.'
-            };
-        }
-
-        // Build category lookup and list with normalized names
         const catById = new Map<string, typeof cats[0]>();
         const catList = cats.map(c => {
             catById.set(c.id, c);
@@ -497,7 +536,7 @@ export async function smartImportMenuImages(
             };
         });
 
-        // Helper to find the best matching category from a raw category name
+        // Helper: Category matching
         const matchCategoryByName = (rawCatName: string) => {
             const norm = normalizeArabic(rawCatName);
             if (!norm) return null;
@@ -506,12 +545,10 @@ export async function smartImportMenuImages(
             let bestScore = 0;
 
             for (const cat of catList) {
-                // Exact match
                 if (norm === cat.normName) {
                     return { category: cat, score: 1.0 };
                 }
 
-                // Containment
                 let containScore = 0;
                 if (norm.includes(cat.normName) || cat.normName.includes(norm)) {
                     const shorter = norm.length < cat.normName.length ? norm : cat.normName;
@@ -535,223 +572,351 @@ export async function smartImportMenuImages(
             return null;
         };
 
-        // Build candidates list for fuzzy matching
-        const candidates = allItems.map(item => {
+        const candidates = items.map((item: any) => {
             const cat = catById.get(item.category_id);
             return {
                 id: item.id as string,
                 name: item.title_ar as string,
                 category_id: item.category_id as string,
                 category_name: cat ? cat.name_ar : '',
-                hasExistingImage: Boolean(item.image_url && String(item.image_url).trim() !== '')
+                image_url: item.image_url || null
             };
         });
 
-        const totalImages = imageEntries.length;
-        let uploaded = 0;
-        let skipped = 0;
-        let failed = 0;
-        const matchLog: string[] = [];
-
-        // Track which items already got an image in this run to avoid duplicate assignments
+        const matches: SmartMatchItem[] = [];
         const assignedItemIds = new Set<string>();
 
         for (let i = 0; i < imageEntries.length; i++) {
             const { path: rawPath, blob } = imageEntries[i];
+            onProgress?.(`جاري فحص وتصنيف الصور... (${i + 1}/${imageEntries.length})`);
 
-            onProgress?.(`جاري فحص ومطابقة الصور... (${i + 1}/${totalImages})`);
+            const normalizedPath = rawPath.replace(/\\/g, '/');
+            const segments = normalizedPath.split('/').filter(s => s.trim().length > 0);
+            const lastSegment = segments[segments.length - 1] || '';
+            const baseName = lastSegment.replace(/\.[^/.]+$/, '').trim();
+
+            let fileCategoryName = '';
+            let fileItemName = '';
+
+            if (baseName.includes('__')) {
+                const parts = baseName.split('__');
+                fileCategoryName = parts[0].trim();
+                fileItemName = parts.slice(1).join('__').trim();
+            } else if (segments.length >= 2) {
+                const rawParent = segments[segments.length - 2].trim();
+                const isGeneric = /^(menu_images|menu|images|photos|صور|الصور|اصناف|الأصناف|items)$/i.test(rawParent);
+                if (!isGeneric) {
+                    fileCategoryName = rawParent;
+                }
+                fileItemName = baseName;
+            } else {
+                fileItemName = baseName;
+            }
+
+            if (!fileItemName) continue;
+
+            const previewUrl = URL.createObjectURL(blob);
+
+            // Step 1: Match category
+            let matchedCategory: typeof catList[0] | null = null;
+            let categoryScore = 0;
+
+            if (fileCategoryName) {
+                const catMatch = matchCategoryByName(fileCategoryName);
+                if (catMatch) {
+                    matchedCategory = catMatch.category;
+                    categoryScore = catMatch.score;
+                }
+            } else {
+                const sortedCats = [...catList].sort((a, b) => b.normName.length - a.normName.length);
+                const normItem = normalizeArabic(fileItemName);
+                for (const cat of sortedCats) {
+                    const tokens = normItem.split(/\s+/);
+                    if (
+                        tokens.includes(cat.normName) ||
+                        normItem.startsWith(cat.normName + ' ') ||
+                        normItem.includes(' ' + cat.normName + ' ') ||
+                        normItem.endsWith(' ' + cat.normName) ||
+                        normItem === cat.normName
+                    ) {
+                        matchedCategory = cat;
+                        categoryScore = 0.8;
+                        break;
+                    }
+                    if (cat.normName.length >= 3 && normItem.includes(cat.normName)) {
+                        matchedCategory = cat;
+                        categoryScore = 0.6;
+                        break;
+                    }
+                }
+            }
+
+            // Check if Cover
+            const isCover = fileItemName.toLowerCase() === 'cover';
+            if (isCover) {
+                if (matchedCategory) {
+                    const isHigh = categoryScore >= 0.75;
+                    matches.push({
+                        id: `match-${i}`,
+                        fileName: lastSegment,
+                        fileCategoryName,
+                        fileItemName,
+                        blob,
+                        previewUrl,
+                        matchedCategoryId: matchedCategory.id,
+                        matchedCategoryName: matchedCategory.name,
+                        matchedItemId: null,
+                        matchedItemName: 'صورة غلاف القسم',
+                        matchedItemCurrentImageUrl: catById.get(matchedCategory.id)?.image_url || null,
+                        isCover: true,
+                        score: categoryScore,
+                        categoryScore,
+                        status: isHigh ? 'confirmed' : 'uncertain',
+                        confirmed: isHigh
+                    });
+                } else {
+                    matches.push({
+                        id: `match-${i}`,
+                        fileName: lastSegment,
+                        fileCategoryName,
+                        fileItemName,
+                        blob,
+                        previewUrl,
+                        matchedCategoryId: null,
+                        matchedCategoryName: null,
+                        matchedItemId: null,
+                        matchedItemName: null,
+                        matchedItemCurrentImageUrl: null,
+                        isCover: true,
+                        score: 0,
+                        categoryScore: 0,
+                        status: 'no_match',
+                        confirmed: false
+                    });
+                }
+                continue;
+            }
+
+            // If a category was named in file but not found in menu:
+            if (fileCategoryName && !matchedCategory) {
+                matches.push({
+                    id: `match-${i}`,
+                    fileName: lastSegment,
+                    fileCategoryName,
+                    fileItemName,
+                    blob,
+                    previewUrl,
+                    matchedCategoryId: null,
+                    matchedCategoryName: null,
+                    matchedItemId: null,
+                    matchedItemName: null,
+                    matchedItemCurrentImageUrl: null,
+                    isCover: false,
+                    score: 0,
+                    categoryScore: 0,
+                    status: 'no_match',
+                    confirmed: false
+                });
+                continue;
+            }
+
+            // Available candidates in category
+            const availableCandidates = candidates.filter(c => !assignedItemIds.has(c.id));
+            const candidatePool = matchedCategory
+                ? availableCandidates.filter(c => c.category_id === matchedCategory.id)
+                : availableCandidates;
+
+            // Strip category words from fileItemName
+            let itemNameWithoutCat = fileItemName;
+            if (matchedCategory) {
+                const catWords = normalizeArabic(matchedCategory.name).split(/\s+/);
+                const words = fileItemName.split(/\s+/).filter(w => {
+                    const nw = normalizeArabic(w);
+                    return !catWords.includes(nw);
+                });
+                if (words.length > 0) {
+                    itemNameWithoutCat = words.join(' ');
+                }
+            }
+
+            let bestCandidate: typeof candidates[0] | null = null;
+            let bestScore = 0;
+
+            for (const candidate of candidatePool) {
+                const s1 = calculateSimilarity(fileItemName, candidate.name);
+                const s2 = itemNameWithoutCat !== fileItemName ? calculateSimilarity(itemNameWithoutCat, candidate.name) : 0;
+                const s3 = calculateSimilarity(fileItemName, `${candidate.category_name} ${candidate.name}`);
+                const s4 = fileCategoryName ? calculateSimilarity(`${fileCategoryName} ${fileItemName}`, `${candidate.category_name} ${candidate.name}`) : 0;
+                const s5 = fileCategoryName ? calculateSimilarity(`${fileCategoryName} ${fileItemName}`, candidate.name) : 0;
+                const s6 = itemNameWithoutCat !== fileItemName ? calculateSimilarity(`${candidate.category_name} ${itemNameWithoutCat}`, `${candidate.category_name} ${candidate.name}`) : 0;
+
+                let score = Math.max(s1, s2, s3, s4, s5, s6);
+
+                if (matchedCategory && candidate.category_id === matchedCategory.id) {
+                    score = Math.min(1.0, score + 0.08);
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestCandidate = candidate;
+                }
+            }
+
+            const MIN_THRESHOLD = 0.35;
+            if (!bestCandidate || bestScore < MIN_THRESHOLD) {
+                matches.push({
+                    id: `match-${i}`,
+                    fileName: lastSegment,
+                    fileCategoryName,
+                    fileItemName,
+                    blob,
+                    previewUrl,
+                    matchedCategoryId: matchedCategory?.id || null,
+                    matchedCategoryName: matchedCategory?.name || null,
+                    matchedItemId: null,
+                    matchedItemName: null,
+                    matchedItemCurrentImageUrl: null,
+                    isCover: false,
+                    score: 0,
+                    categoryScore,
+                    status: 'no_match',
+                    confirmed: false
+                });
+                continue;
+            }
+
+            // High confidence ONLY if category score >= 0.75 AND item score >= 0.85
+            const isHighConfidence = categoryScore >= 0.75 && bestScore >= 0.85;
+
+            // Reserve item id
+            assignedItemIds.add(bestCandidate.id);
+
+            matches.push({
+                id: `match-${i}`,
+                fileName: lastSegment,
+                fileCategoryName,
+                fileItemName,
+                blob,
+                previewUrl,
+                matchedCategoryId: bestCandidate.category_id,
+                matchedCategoryName: bestCandidate.category_name,
+                matchedItemId: bestCandidate.id,
+                matchedItemName: bestCandidate.name,
+                matchedItemCurrentImageUrl: bestCandidate.image_url,
+                isCover: false,
+                score: bestScore,
+                categoryScore,
+                status: isHighConfidence ? 'confirmed' : 'uncertain',
+                confirmed: isHighConfidence // default true ONLY if high confidence, otherwise false!
+            });
+        }
+
+        return {
+            success: true,
+            matches
+        };
+    } catch (err) {
+        console.error('Analyze smart import error:', err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        return { success: false, message: `حدث خطأ أثناء فحص الصور:\n${errMsg}`, matches: [] };
+    }
+}
+
+/**
+ * Uploads only the items confirmed by the user in the review screen.
+ */
+export async function executeConfirmedImport(
+    restaurantId: string,
+    confirmedMatches: SmartMatchItem[],
+    onProgress?: (msg: string) => void
+): Promise<{ success: boolean; message: string; uploadedCount: number }> {
+    try {
+        const total = confirmedMatches.length;
+        if (total === 0) {
+            return { success: false, message: 'لم تقم بتأكيد أي صورة لرفعها.', uploadedCount: 0 };
+        }
+
+        let uploaded = 0;
+        let failed = 0;
+        const matchLog: string[] = [];
+
+        for (let i = 0; i < total; i++) {
+            const item = confirmedMatches[i];
+            onProgress?.(`جاري رفع الصور وتحديث المنيو... (${i + 1}/${total})`);
 
             try {
-                // Normalize slashes
-                const normalizedPath = rawPath.replace(/\\/g, '/');
-                const segments = normalizedPath.split('/').filter(s => s.trim().length > 0);
-                const lastSegment = segments[segments.length - 1] || '';
-                const baseName = lastSegment.replace(/\.[^/.]+$/, '').trim();
-
-                let fileCategoryName = '';
-                let fileItemName = '';
-
-                // Primary rule: Category__Item format (e.g. "إضافات البيتزا__إضافات فراخ.jpg")
-                if (baseName.includes('__')) {
-                    const parts = baseName.split('__');
-                    fileCategoryName = parts[0].trim();
-                    fileItemName = parts.slice(1).join('__').trim();
-                } else if (segments.length >= 2) {
-                    // Check if image is inside a category folder: Folder/Category/Item.ext
-                    const rawParent = segments[segments.length - 2].trim();
-                    const isGeneric = /^(menu_images|menu|images|photos|صور|الصور|اصناف|الأصناف|items)$/i.test(rawParent);
-                    if (!isGeneric) {
-                        fileCategoryName = rawParent;
-                    }
-                    fileItemName = baseName;
-                } else {
-                    fileItemName = baseName;
-                }
-
-                if (!fileItemName) {
-                    skipped++;
-                    continue;
-                }
-
-                // ---- STEP 1: RESOLVE CATEGORY ----
-                let matchedCategory: typeof catList[0] | null = null;
-                let categoryScore = 0;
-
-                if (fileCategoryName) {
-                    const catMatch = matchCategoryByName(fileCategoryName);
-                    if (catMatch) {
-                        matchedCategory = catMatch.category;
-                        categoryScore = catMatch.score;
-                    }
-                } else {
-                    // If no explicit category before '__', check if category name is embedded in fileItemName
-                    const sortedCats = [...catList].sort((a, b) => b.normName.length - a.normName.length);
-                    const normItem = normalizeArabic(fileItemName);
-                    for (const cat of sortedCats) {
-                        const tokens = normItem.split(/\s+/);
-                        if (
-                            tokens.includes(cat.normName) ||
-                            normItem.startsWith(cat.normName + ' ') ||
-                            normItem.includes(' ' + cat.normName + ' ') ||
-                            normItem.endsWith(' ' + cat.normName) ||
-                            normItem === cat.normName
-                        ) {
-                            matchedCategory = cat;
-                            categoryScore = 0.8;
-                            break;
-                        }
-                        if (cat.normName.length >= 3 && normItem.includes(cat.normName)) {
-                            matchedCategory = cat;
-                            categoryScore = 0.6;
-                            break;
-                        }
-                    }
-                }
-
-                // If a category was specified in the file name but doesn't exist in the menu, skip to prevent false matches
-                if (fileCategoryName && !matchedCategory) {
-                    matchLog.push(`⏭️ [${fileCategoryName}] ${fileItemName} ← لم نجد قسماً مطابقاً لـ "${fileCategoryName}" في المنيو`);
-                    skipped++;
-                    continue;
-                }
-
-                // Handle Category Cover image (e.g. "CategoryName__COVER.jpg")
-                if (fileItemName.toLowerCase() === 'cover' && matchedCategory) {
-                    const result = await uploadImageWithThumb(blob, `categories/${matchedCategory.id}`);
+                if (item.isCover && item.matchedCategoryId) {
+                    const result = await uploadImageWithThumb(item.blob, `categories/${item.matchedCategoryId}`);
                     if (result) {
                         await supabase.from('categories')
                             .update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl })
-                            .eq('id', matchedCategory.id);
-                        matchLog.push(`🖼️ [قسم: ${matchedCategory.name}] (تم تحديث صورة الغلاف)`);
+                            .eq('id', item.matchedCategoryId);
+                        matchLog.push(`🖼️ [غلاف قسم: ${item.matchedCategoryName}]`);
                         uploaded++;
                     } else {
-                        matchLog.push(`❌ فشل رفع صورة غلاف قسم [${matchedCategory.name}]`);
                         failed++;
                     }
-                    continue;
-                }
-
-                // ---- STEP 2: SCOPE CANDIDATES BY CATEGORY ----
-                const availableCandidates = candidates.filter(c => !assignedItemIds.has(c.id));
-                if (availableCandidates.length === 0) {
-                    matchLog.push(`ℹ️ تم الانتهاء من جميع أصناف المنيو.`);
-                    break;
-                }
-
-                let candidatePool: typeof candidates = [];
-                if (matchedCategory) {
-                    // Strict category isolation: Only match items within the same category!
-                    candidatePool = availableCandidates.filter(c => c.category_id === matchedCategory.id);
-                    if (candidatePool.length === 0) {
-                        matchLog.push(`⏭️ [${matchedCategory.name}] ${fileItemName} ← لا توجد أصناف متبقية في هذا القسم`);
-                        skipped++;
-                        continue;
+                } else if (item.matchedItemId) {
+                    const result = await uploadImageWithThumb(item.blob, `items/${item.matchedItemId}`);
+                    if (result) {
+                        await supabase.from('items')
+                            .update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl })
+                            .eq('id', item.matchedItemId);
+                        const pct = Math.round(item.score * 100);
+                        matchLog.push(`✅ [${item.matchedCategoryName}] ${item.matchedItemName} (${pct}%)`);
+                        uploaded++;
+                    } else {
+                        failed++;
                     }
-                } else {
-                    // If no category was indicated, search across all items
-                    candidatePool = availableCandidates;
-                }
-
-                // ---- STEP 3: MATCH ITEM WITHIN CATEGORY ----
-                // Prepare variant of item name with category words removed (e.g. "إضافات فراخ" -> "فراخ")
-                let itemNameWithoutCat = fileItemName;
-                if (matchedCategory) {
-                    const catWords = normalizeArabic(matchedCategory.name).split(/\s+/);
-                    const words = fileItemName.split(/\s+/).filter(w => {
-                        const nw = normalizeArabic(w);
-                        return !catWords.includes(nw);
-                    });
-                    if (words.length > 0) {
-                        itemNameWithoutCat = words.join(' ');
-                    }
-                }
-
-                let bestCandidate: typeof candidates[0] | null = null;
-                let bestScore = 0;
-
-                for (const candidate of candidatePool) {
-                    const s1 = calculateSimilarity(fileItemName, candidate.name);
-                    const s2 = itemNameWithoutCat !== fileItemName ? calculateSimilarity(itemNameWithoutCat, candidate.name) : 0;
-                    const s3 = calculateSimilarity(fileItemName, `${candidate.category_name} ${candidate.name}`);
-                    const s4 = fileCategoryName ? calculateSimilarity(`${fileCategoryName} ${fileItemName}`, `${candidate.category_name} ${candidate.name}`) : 0;
-                    const s5 = fileCategoryName ? calculateSimilarity(`${fileCategoryName} ${fileItemName}`, candidate.name) : 0;
-                    const s6 = itemNameWithoutCat !== fileItemName ? calculateSimilarity(`${candidate.category_name} ${itemNameWithoutCat}`, `${candidate.category_name} ${candidate.name}`) : 0;
-
-                    let score = Math.max(s1, s2, s3, s4, s5, s6);
-
-                    // Category affinity bonus
-                    if (matchedCategory && candidate.category_id === matchedCategory.id) {
-                        score = Math.min(1.0, score + 0.10);
-                    }
-
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestCandidate = candidate;
-                    }
-                }
-
-                const MIN_ITEM_THRESHOLD = 0.35;
-                if (!bestCandidate || bestScore < MIN_ITEM_THRESHOLD) {
-                    matchLog.push(`⏭️ [${matchedCategory ? matchedCategory.name : 'عام'}] ${fileItemName} ← لم نجد صنفاً مشابهاً`);
-                    skipped++;
-                    continue;
-                }
-
-                // Upload image and update item image
-                const result = await uploadImageWithThumb(blob, `items/${bestCandidate.id}`);
-                if (result) {
-                    await supabase.from('items')
-                        .update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl })
-                        .eq('id', bestCandidate.id);
-
-                    assignedItemIds.add(bestCandidate.id);
-                    const pct = Math.round(bestScore * 100);
-                    const actionLabel = bestCandidate.hasExistingImage ? 'استبدال' : 'جديد';
-                    matchLog.push(`✅ [${bestCandidate.category_name}] ${bestCandidate.name} ⟵ ${baseName} (${actionLabel} ${pct}%)`);
-                    uploaded++;
-                } else {
-                    matchLog.push(`❌ [${bestCandidate.category_name}] ${bestCandidate.name} ➜ فشل رفع الصورة للسيرفر`);
-                    failed++;
                 }
             } catch (err) {
-                console.error(`Error processing ${rawPath}:`, err);
-                const errMsg = err instanceof Error ? err.message : 'خطأ غير معروف';
-                matchLog.push(`❌ ${rawPath} ➜ خطأ: ${errMsg}`);
+                console.error(`Failed to upload ${item.fileName}:`, err);
                 failed++;
+            } finally {
+                try {
+                    URL.revokeObjectURL(item.previewUrl);
+                } catch { /* ignore */ }
             }
         }
 
         const summary = `🎉 تم رفع وتحديث ${uploaded} صورة بنجاح` +
-            (skipped > 0 ? `\n⏭️ تم تخطي ${skipped} صورة (لم نجد قسماً/صنفاً مطابقاً)` : '') +
             (failed > 0 ? `\n❌ فشل رفع ${failed} صورة` : '') +
-            (matchLog.length > 0 ? `\n\n📋 تفاصيل المطابقة حسب القسم والصنف:\n${matchLog.join('\n')}` : '');
+            (matchLog.length > 0 ? `\n\n📋 تفاصيل الصور المرفوعة:\n${matchLog.join('\n')}` : '');
 
-        return { success: uploaded > 0, message: summary };
+        return {
+            success: uploaded > 0,
+            message: summary,
+            uploadedCount: uploaded
+        };
     } catch (err) {
-        console.error('Smart import menu images error:', err);
+        console.error('Execute confirmed import error:', err);
         const errMsg = err instanceof Error ? err.message : String(err);
-        return { success: false, message: `حدث خطأ أثناء الاستيراد الذكي:\n${errMsg}` };
+        return { success: false, message: `حدث خطأ أثناء الرفع:\n${errMsg}`, uploadedCount: 0 };
     }
+}
+
+/**
+ * Backward-compatible one-shot smart import function.
+ */
+export async function smartImportMenuImages(
+    restaurantId: string,
+    files: File | FileList | File[],
+    onProgress?: (msg: string) => void
+): Promise<{ success: boolean; message: string }> {
+    const analysis = await analyzeSmartImport(restaurantId, files, onProgress);
+    if (!analysis.success || analysis.matches.length === 0) {
+        return { success: false, message: analysis.message || 'لم يتم العثور على صور لمطابقتها.' };
+    }
+
+    const confirmed = analysis.matches.filter(m => m.confirmed);
+    if (confirmed.length === 0) {
+        return {
+            success: false,
+            message: 'تم فحص الصور ولكن لم نجد تطابقاً مؤكداً بنسبة عالية. يمكنك استخدام شاشة المراجعة لتأكيد الصور يدوياً.'
+        };
+    }
+
+    return await executeConfirmedImport(restaurantId, confirmed, onProgress);
 }
 
 /**
