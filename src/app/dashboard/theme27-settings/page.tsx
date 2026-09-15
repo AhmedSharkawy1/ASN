@@ -3,7 +3,8 @@
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { 
     Save, Loader2, ImagePlus, Trash2, Sun, Moon, Palette, Eye, 
-    Sparkles, Megaphone, Link2, Plus, X, Layers
+    Sparkles, Megaphone, Link2, Plus, X, Layers,
+    AlignJustify, LayoutGrid, LayoutList, Maximize2, LayoutTemplate
 } from "lucide-react";
 import { uploadImageWithThumb } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
@@ -31,6 +32,7 @@ interface Theme27Config {
     theme27_bg_light: string;
     theme27_bg_dark: string;
     primary_color: string;
+    theme27_default_view_mode: 'compact' | 'grid' | 'list' | 'single';
     theme27_popup: Theme27PopupConfig;
     theme27_category_addons: Record<string, string>; // { [parentCatId]: addonsCatId }
     theme_colors: any;
@@ -68,6 +70,7 @@ export default function Theme27SettingsPage() {
         theme27_bg_light: "",
         theme27_bg_dark: "",
         primary_color: "#f97316",
+        theme27_default_view_mode: "compact",
         theme27_popup: {
             enabled: false,
             title: "",
@@ -162,10 +165,15 @@ export default function Theme27SettingsPage() {
 
                     const catAddons = tc.theme27_category_addons || {};
 
+                    const defaultViewMode = (tc.theme27_default_view_mode === 'grid' || tc.theme27_default_view_mode === 'list' || tc.theme27_default_view_mode === 'single' || tc.theme27_default_view_mode === 'compact')
+                        ? tc.theme27_default_view_mode
+                        : 'compact';
+
                     setConfig({
                         theme27_bg_light: tc.theme27_bg_light || tc.lamet_zaman_bg_light || tc.bg_image_light || "",
                         theme27_bg_dark: tc.theme27_bg_dark || tc.lamet_zaman_bg_dark || tc.bg_image_dark || "",
                         primary_color: tc.primary || "#f97316",
+                        theme27_default_view_mode: defaultViewMode,
                         theme27_popup: popup,
                         theme27_category_addons: catAddons,
                         theme_colors: tc,
@@ -197,6 +205,7 @@ export default function Theme27SettingsPage() {
                 primary: config.primary_color,
                 theme27_bg_light: config.theme27_bg_light,
                 theme27_bg_dark: config.theme27_bg_dark,
+                theme27_default_view_mode: config.theme27_default_view_mode,
                 theme27_popup: config.theme27_popup,
                 theme27_category_addons: config.theme27_category_addons,
             };
@@ -482,6 +491,153 @@ export default function Theme27SettingsPage() {
                                 <input type="file" accept="image/*" className="hidden" onChange={e => handleBgUpload(e, 'dark')} disabled={uploadingBgDark} />
                             </label>
                         )}
+                    </div>
+                </div>
+            </div>
+
+            {/* SECTION: طريقة العرض الافتراضية للمنيو (Default View Mode) */}
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-slate-200 dark:border-zinc-800 shadow-sm space-y-6">
+                <div className="space-y-1">
+                    <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+                        <LayoutTemplate className="w-5 h-5 text-orange-500" />
+                        {isAr ? "طريقة العرض الافتراضية للمنيو (Default View Mode)" : "Default Menu View Mode"}
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">
+                        {isAr ? "حدد طريقة العرض التي تظهر تلقائياً للعميل أول ما يفتح المنيو (المكثف، صورتين، قائمة، أو صورة كاملة)." : "Choose the view mode shown by default when customers open your menu."}
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* 1. Compact */}
+                    <div 
+                        onClick={() => setConfig(prev => ({ ...prev, theme27_default_view_mode: 'compact' }))}
+                        className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex flex-col justify-between ${
+                            config.theme27_default_view_mode === 'compact'
+                                ? 'border-orange-500 bg-orange-500/5 shadow-md shadow-orange-500/10 scale-[1.02]'
+                                : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/30'
+                        }`}
+                    >
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                    config.theme27_default_view_mode === 'compact' ? 'bg-orange-500 text-white' : 'bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-zinc-300'
+                                }`}>
+                                    <AlignJustify className="w-5 h-5" />
+                                </div>
+                                {config.theme27_default_view_mode === 'compact' && (
+                                    <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد حالياً" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                                    {isAr ? "1. العرض المكثف (أفقي مضغوط)" : "1. Compact Rows"}
+                                </h3>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    {isAr ? "أصناف تحت بعض بمساحة صغيرة وأزرار أحجام 2x2 لتوفير مساحة التمرير (الافتراضي والموصى به للمنيوهات الكبيرة)." : "Dense rows with 2x2 size badges to maximize items on screen without long scrolling."}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. Grid */}
+                    <div 
+                        onClick={() => setConfig(prev => ({ ...prev, theme27_default_view_mode: 'grid' }))}
+                        className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex flex-col justify-between ${
+                            config.theme27_default_view_mode === 'grid'
+                                ? 'border-orange-500 bg-orange-500/5 shadow-md shadow-orange-500/10 scale-[1.02]'
+                                : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/30'
+                        }`}
+                    >
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                    config.theme27_default_view_mode === 'grid' ? 'bg-orange-500 text-white' : 'bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-zinc-300'
+                                }`}>
+                                    <LayoutGrid className="w-5 h-5" />
+                                </div>
+                                {config.theme27_default_view_mode === 'grid' && (
+                                    <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد حالياً" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                                    {isAr ? "2. صورتين في الصف (شبكة)" : "2. Two Columns Grid"}
+                                </h3>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    {isAr ? "عرض شبكي عمودين بجانب بعض بصور مربعة وتنسيق كروت أنيق وعصري." : "Two column grid layout with square images and modern cards."}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 3. List */}
+                    <div 
+                        onClick={() => setConfig(prev => ({ ...prev, theme27_default_view_mode: 'list' }))}
+                        className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex flex-col justify-between ${
+                            config.theme27_default_view_mode === 'list'
+                                ? 'border-orange-500 bg-orange-500/5 shadow-md shadow-orange-500/10 scale-[1.02]'
+                                : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/30'
+                        }`}
+                    >
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                    config.theme27_default_view_mode === 'list' ? 'bg-orange-500 text-white' : 'bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-zinc-300'
+                                }`}>
+                                    <LayoutList className="w-5 h-5" />
+                                </div>
+                                {config.theme27_default_view_mode === 'list' && (
+                                    <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد حالياً" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                                    {isAr ? "3. قائمة كروت (أفقي)" : "3. Card List"}
+                                </h3>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    {isAr ? "عرض الأصناف كقائمة أفقية مع صورة متوسطة على اليمين والبيانات والأسعار على اليسار." : "Horizontal card list with image and details side-by-side."}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. Single Large */}
+                    <div 
+                        onClick={() => setConfig(prev => ({ ...prev, theme27_default_view_mode: 'single' }))}
+                        className={`cursor-pointer rounded-2xl p-4 border-2 transition-all flex flex-col justify-between ${
+                            config.theme27_default_view_mode === 'single'
+                                ? 'border-orange-500 bg-orange-500/5 shadow-md shadow-orange-500/10 scale-[1.02]'
+                                : 'border-slate-200 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 bg-slate-50/50 dark:bg-zinc-800/30'
+                        }`}
+                    >
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                    config.theme27_default_view_mode === 'single' ? 'bg-orange-500 text-white' : 'bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-zinc-300'
+                                }`}>
+                                    <Maximize2 className="w-5 h-5" />
+                                </div>
+                                {config.theme27_default_view_mode === 'single' && (
+                                    <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد حالياً" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                                    {isAr ? "4. صورة كاملة كبيرة" : "4. Single Large Image"}
+                                </h3>
+                                <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                    {isAr ? "عرض صنف واحد عريض في كل سطر مع صورة بانورامية بارزة وتفاصيل كاملة." : "Full width panoramic item cards one below another."}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
