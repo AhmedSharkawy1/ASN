@@ -195,6 +195,17 @@ const ALL_THEMES = [
     { id: "lamet-zaman-bg-gold", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - ذهبي)", name_en: "Theme 26 (Lamet Zaman BG - Gold)", preview_color: "#d4af37" },
     { id: "lamet-zaman-bg-pink", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - وردي)", name_en: "Theme 26 (Lamet Zaman BG - Pink)", preview_color: "#ec4899" },
     { id: "lamet-zaman-bg-dark", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - داكن)", name_en: "Theme 26 (Lamet Zaman BG - Dark)", preview_color: "#1e293b" },
+
+    // ===== Theme 27: Large Menus Family =====
+    { id: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (برتقالي)", name_en: "Theme 27 (Large Menus - Orange)", preview_color: "#f97316" },
+    { id: "lamet-zaman-compact-red", name_ar: "ثيم 27 للمنيوهات الكبيرة (أحمر)", name_en: "Theme 27 (Large Menus - Red)", preview_color: "#ef4444" },
+    { id: "lamet-zaman-compact-emerald", name_ar: "ثيم 27 للمنيوهات الكبيرة (زمردي)", name_en: "Theme 27 (Large Menus - Emerald)", preview_color: "#10b981" },
+    { id: "lamet-zaman-compact-cyan", name_ar: "ثيم 27 للمنيوهات الكبيرة (سماوي)", name_en: "Theme 27 (Large Menus - Cyan)", preview_color: "#06b6d4" },
+    { id: "lamet-zaman-compact-sky", name_ar: "ثيم 27 للمنيوهات الكبيرة (أزرق sky)", name_en: "Theme 27 (Large Menus - Sky)", preview_color: "#0284c7" },
+    { id: "lamet-zaman-compact-purple", name_ar: "ثيم 27 للمنيوهات الكبيرة (بنفسجي)", name_en: "Theme 27 (Large Menus - Purple)", preview_color: "#8b5cf6" },
+    { id: "lamet-zaman-compact-gold", name_ar: "ثيم 27 للمنيوهات الكبيرة (ذهبي)", name_en: "Theme 27 (Large Menus - Gold)", preview_color: "#d4af37" },
+    { id: "lamet-zaman-compact-pink", name_ar: "ثيم 27 للمنيوهات الكبيرة (وردي)", name_en: "Theme 27 (Large Menus - Pink)", preview_color: "#ec4899" },
+    { id: "lamet-zaman-compact-dark", name_ar: "ثيم 27 للمنيوهات الكبيرة (داكن)", name_en: "Theme 27 (Large Menus - Dark)", preview_color: "#1e293b" },
 ];
 
 interface ThemeOverride {

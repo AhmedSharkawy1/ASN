@@ -302,12 +302,12 @@ export default function MenuBuilderPage() {
                     <label className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-teal-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-teal-500/60 transition-all cursor-pointer active:scale-95 text-sm">
                         {isSmartImporting ? <Loader2 className="w-5 h-5 text-teal-500 animate-spin" /> : <span className="text-lg">🪄</span>}
                         {language === "ar" ? "استيراد صور ذكي" : "Smart Import"}
-                        <input ref={smartImportRef} type="file" accept=".zip" className="hidden" disabled={isSmartImporting} onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file || !restaurantId) return;
+                        <input ref={smartImportRef} type="file" accept=".zip,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg" multiple className="hidden" disabled={isSmartImporting} onChange={async (e) => {
+                            const fileList = e.target.files;
+                            if (!fileList || fileList.length === 0 || !restaurantId) return;
                             setIsSmartImporting(true);
-                            setImageProgress('جاري قراءة ملف ZIP...');
-                            const res = await smartImportMenuImages(restaurantId, file, (msg) => setImageProgress(msg));
+                            setImageProgress('جاري تجهيز الملفات...');
+                            const res = await smartImportMenuImages(restaurantId, fileList, (msg) => setImageProgress(msg));
                             setImageProgress(res.message);
                             if (res.success) {
                                 triggerRevalidate();

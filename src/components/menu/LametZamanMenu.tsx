@@ -5,7 +5,7 @@ import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard, Maximize2, ExternalLink } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, X, FileText, Search, Share2, LogOut, ArrowRight, Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, LayoutGrid, LayoutList, CreditCard, Maximize2, ExternalLink, AlignJustify } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
 import 'swiper/css';
@@ -156,7 +156,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [navTab, setNavTab] = useState('menu'); // menu, cart, contact
-    const [viewMode, setViewMode] = useState<'grid'|'list'|'single'>('grid');
+    const [viewMode, setViewMode] = useState<'compact'|'grid'|'list'|'single'>('grid');
 
     // Scroll Spy
     useEffect(() => {
@@ -531,6 +531,20 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                         </span>
                         <div className="flex items-center gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
                             <button
+                                onClick={() => setViewMode('compact')}
+                                title={isAr ? "عرض مكثف (أصناف تحت بعض)" : "Dense Rows"}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    viewMode === 'compact' 
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
+                                        : 'opacity-60 hover:opacity-100'
+                                }`}
+                                style={viewMode === 'compact' ? { color: primaryColor } : {}}
+                            >
+                                <AlignJustify className="w-4 h-4" />
+                                <span className="text-[11px] font-semibold">{isAr ? "مكثف" : "Compact"}</span>
+                            </button>
+
+                            <button
                                 onClick={() => setViewMode('grid')}
                                 title={isAr ? "صورتين (شبكة)" : "2 Columns (Grid)"}
                                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -575,7 +589,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                     </div>
                 )}
 
-                {/* Items Grid/List/Single */}
+                {/* Items Grid/List/Single/Compact */}
                 <div>
                     {displayCategories.map((category) => {
                         const items = category.items || [];
@@ -584,6 +598,102 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                         return (
                             <div key={category.id} id={category.id.toString()} className="mb-8 pt-2">
                                 <h3 className="font-black text-xl mb-4" style={{ color: isDark ? primaryColor : '#000000' }}>{catName(category)}</h3>
+                                
+                                {viewMode === 'compact' ? (
+                                    <div className="flex flex-col gap-2">
+                                        {items.map((item) => {
+                                            const desc = isAr ? (item.ingredients_ar || item.ingredients || item.description_ar || item.desc_ar) : (item.ingredients_en || item.ingredients || item.description_en || item.desc_en || item.description_ar || item.desc_ar);
+                                            const hasMultiSizes = item.prices && item.prices.length > 1;
+
+                                            return (
+                                                <div 
+                                                    key={item.id}
+                                                    onClick={() => openModal(item, catName(category), category.image_url)}
+                                                    className="flex flex-row items-center p-2 sm:p-2.5 gap-2.5 sm:gap-3 rounded-2xl border transition-all active:scale-[0.99] cursor-pointer hover:shadow-md"
+                                                    style={{ backgroundColor: bgCard, borderColor }}
+                                                >
+                                                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden shrink-0 relative bg-black/5 dark:bg-white/5">
+                                                        <OptimizedMenuImage 
+                                                            thumbnailSrc={item.thumbnail_url} 
+                                                            originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
+                                                            alt={itemName(item)} 
+                                                            className="w-full h-full object-cover" 
+                                                            highQuality={Boolean((config as any)?.high_quality_images)}
+                                                        />
+                                                        {item.is_popular && (
+                                                            <div className="absolute top-1 right-1 bg-red-600/90 text-white rounded-full font-bold px-1.5 py-0.5 text-[8px] shadow-sm">
+                                                                {isAr ? 'عرض' : 'Offer'}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                        <h4 className="font-bold text-sm sm:text-base leading-snug truncate">
+                                                            {itemName(item)}
+                                                        </h4>
+
+                                                        {desc && (
+                                                            <p className="text-[11px] sm:text-xs line-clamp-1 mt-0.5 opacity-65 font-medium leading-tight">
+                                                                {desc}
+                                                            </p>
+                                                        )}
+
+                                                        {hasMultiSizes ? (
+                                                            <div className="flex flex-wrap items-center gap-1 mt-1.5" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                {item.prices.map((price, pIdx) => {
+                                                                    const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                    const oldPrice = item.old_prices?.[pIdx];
+                                                                    return (
+                                                                        <span 
+                                                                            key={pIdx} 
+                                                                            className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-lg border border-black/5 dark:border-white/10"
+                                                                            style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
+                                                                        >
+                                                                            <span className="opacity-70">{label}:</span>
+                                                                            {oldPrice ? <span className="line-through opacity-40 text-[9px]">{oldPrice}</span> : null}
+                                                                            <span style={{ color: primaryColor }} className="font-black">{price} {cur}</span>
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1.5 mt-1" dir="ltr">
+                                                                {item.old_prices?.[0] ? (
+                                                                    <span className="text-xs line-through opacity-50" style={{ color: textMuted }}>
+                                                                        {item.old_prices[0]}
+                                                                    </span>
+                                                                ) : null}
+                                                                <span className="font-black text-sm sm:text-base" style={{ color: primaryColor }}>
+                                                                    {item.prices?.[0]} {cur}
+                                                                </span>
+                                                                {item.size_labels?.[0] && (
+                                                                    <span className="text-[10px] font-bold opacity-60" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                        ({item.size_labels[0]})
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {config.orders_enabled !== false && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openModal(item, catName(category), category.image_url);
+                                                            }}
+                                                            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm active:scale-90 transition-all hover:opacity-90 self-center"
+                                                            style={{ backgroundColor: primaryColor }}
+                                                            title={isAr ? 'أضف للسلة' : 'Add to cart'}
+                                                        >
+                                                            <Plus className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
                                 <div className={
                                     viewMode === 'single'
                                         ? "grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
@@ -693,6 +803,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                         </div>
                                     ))}
                                 </div>
+                                )}
                             </div>
                         );
                     })}

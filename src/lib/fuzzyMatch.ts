@@ -12,7 +12,7 @@
  * - Lowercase (for any Latin chars)
  */
 export function normalizeArabic(text: string): string {
-    return text
+    const clean = text
         // Remove Arabic diacritics (tashkeel)
         .replace(/[\u064B-\u065F\u0670]/g, '')
         // Unify hamza on alef
@@ -23,12 +23,21 @@ export function normalizeArabic(text: string): string {
         .replace(/ى/g, 'ي')
         // Remove common punctuation
         .replace(/[_\-–—.,:;!?()[\]{}'"\/\\|+=#@&*~`]/g, ' ')
-        // Remove "ال" definite article as a standalone prefix
-        .replace(/\bال/g, '')
         // Collapse multiple spaces
         .replace(/\s+/g, ' ')
         .trim()
         .toLowerCase();
+
+    // Strip common Arabic prefixes (ال, بال, وال) from words
+    return clean
+        .split(/\s+/)
+        .map(w => {
+            if (w.startsWith('بال') && w.length > 4) return w.slice(3);
+            if (w.startsWith('وال') && w.length > 4) return w.slice(3);
+            if (w.startsWith('ال') && w.length > 3) return w.slice(2);
+            return w;
+        })
+        .join(' ');
 }
 
 /**

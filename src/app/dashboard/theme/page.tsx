@@ -194,6 +194,17 @@ const THEMES = [
     { id: "lamet-zaman-bg-gold", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - ذهبي)", name_en: "Theme 26 (Lamet Zaman BG - Gold)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الذهبي الدافئ.", description_en: "Lamet Zaman BG theme with gold accent.", preview_color: "#d4af37" },
     { id: "lamet-zaman-bg-pink", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - وردي)", name_en: "Theme 26 (Lamet Zaman BG - Pink)", description_ar: "ثيم لمة زمان بخلفية صورة باللون الوردي اللطيف.", description_en: "Lamet Zaman BG theme with pink accent.", preview_color: "#ec4899" },
     { id: "lamet-zaman-bg-dark", family: "lamet-zaman-bg", name_ar: "ثيم 26 (لمة زمان مع خلفية صورة - داكن)", name_en: "Theme 26 (Lamet Zaman BG - Dark)", description_ar: "ثيم لمة زمان بخلفية صورة بوضع داكن فاخر.", description_en: "Lamet Zaman BG theme with dark mode accent.", preview_color: "#1e293b" },
+
+    // ===== Theme 27: Large Menus Family =====
+    { id: "lamet-zaman-compact", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (برتقالي)", name_en: "Theme 27 (Large Menus - Orange)", description_ar: "ثيم للمنيوهات الكبيرة بعرض أفقي مكثف للأصناف وبار أقسام مصغر ليتسع لأكبر عدد من الأصناف.", description_en: "Theme for large menus with dense horizontal item rows and sleek category bar.", preview_color: "#f97316" },
+    { id: "lamet-zaman-compact-red", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (أحمر)", name_en: "Theme 27 (Large Menus - Red)", description_ar: "ثيم للمنيوهات الكبيرة باللون الأحمر الجذاب.", description_en: "Large menus theme with red accent.", preview_color: "#ef4444" },
+    { id: "lamet-zaman-compact-emerald", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (زمردي)", name_en: "Theme 27 (Large Menus - Emerald)", description_ar: "ثيم للمنيوهات الكبيرة باللون الأخضر الزمردي.", description_en: "Large menus theme with emerald green accent.", preview_color: "#10b981" },
+    { id: "lamet-zaman-compact-cyan", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (سماوي)", name_en: "Theme 27 (Large Menus - Cyan)", description_ar: "ثيم للمنيوهات الكبيرة باللون الأزرق السماوي.", description_en: "Large menus theme with cyan accent.", preview_color: "#06b6d4" },
+    { id: "lamet-zaman-compact-sky", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (أزرق sky)", name_en: "Theme 27 (Large Menus - Sky)", description_ar: "ثيم للمنيوهات الكبيرة باللون الأزرق النقي.", description_en: "Large menus theme with sky blue accent.", preview_color: "#0284c7" },
+    { id: "lamet-zaman-compact-purple", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (بنفسجي)", name_en: "Theme 27 (Large Menus - Purple)", description_ar: "ثيم للمنيوهات الكبيرة باللون البنفسجي الملكي.", description_en: "Large menus theme with purple accent.", preview_color: "#8b5cf6" },
+    { id: "lamet-zaman-compact-gold", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (ذهبي)", name_en: "Theme 27 (Large Menus - Gold)", description_ar: "ثيم للمنيوهات الكبيرة باللون الذهبي الدافئ.", description_en: "Large menus theme with gold accent.", preview_color: "#d4af37" },
+    { id: "lamet-zaman-compact-pink", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (وردي)", name_en: "Theme 27 (Large Menus - Pink)", description_ar: "ثيم للمنيوهات الكبيرة باللون الوردي اللطيف.", description_en: "Large menus theme with pink accent.", preview_color: "#ec4899" },
+    { id: "lamet-zaman-compact-dark", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (داكن)", name_en: "Theme 27 (Large Menus - Dark)", description_ar: "ثيم للمنيوهات الكبيرة بوضع داكن فاخر.", description_en: "Large menus theme with dark mode accent.", preview_color: "#1e293b" },
 ];
 
 const FAMILIES = [
@@ -224,6 +235,7 @@ const FAMILIES = [
     { id: 'usa-dual', name_ar: 'ثيم 24 (USA ثنائي)', name_en: 'Theme 24 (USA Dual)' },
     { id: 'lamet-zaman', name_ar: 'ثيم 25 (لمة زمان)', name_en: 'Theme 25 (Lamet Zaman)' },
     { id: 'lamet-zaman-bg', name_ar: 'ثيم 26 (لمة زمان مع خلفية صورة)', name_en: 'Theme 26 (Lamet Zaman BG)' },
+    { id: 'lamet-zaman-compact', name_ar: 'ثيم 27 (للمنيوهات الكبيرة)', name_en: 'Theme 27 (Large Menus)' },
 ];
 
 const DEFAULT_COLORS = {

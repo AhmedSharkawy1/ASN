@@ -165,7 +165,16 @@ const MarketingThemes = [
     { key: "lamet-zaman-bg-purple", nameEn: "Theme 26 (Lamet Zaman BG - Purple)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - بنفسجي)" },
     { key: "lamet-zaman-bg-gold", nameEn: "Theme 26 (Lamet Zaman BG - Gold)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - ذهبي)" },
     { key: "lamet-zaman-bg-pink", nameEn: "Theme 26 (Lamet Zaman BG - Pink)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - وردي)" },
-    { key: "lamet-zaman-bg-dark", nameEn: "Theme 26 (Lamet Zaman BG - Dark)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - داكن)" }
+    { key: "lamet-zaman-bg-dark", nameEn: "Theme 26 (Lamet Zaman BG - Dark)", nameAr: "ثيم 26 (لمة زمان مع خلفية صورة - داكن)" },
+    { key: "lamet-zaman-compact", nameEn: "Theme 27 (Large Menus - Orange)", nameAr: "ثيم 27 للمنيوهات الكبيرة (برتقالي)" },
+    { key: "lamet-zaman-compact-red", nameEn: "Theme 27 (Large Menus - Red)", nameAr: "ثيم 27 للمنيوهات الكبيرة (أحمر)" },
+    { key: "lamet-zaman-compact-emerald", nameEn: "Theme 27 (Large Menus - Emerald)", nameAr: "ثيم 27 للمنيوهات الكبيرة (زمردي)" },
+    { key: "lamet-zaman-compact-cyan", nameEn: "Theme 27 (Large Menus - Cyan)", nameAr: "ثيم 27 للمنيوهات الكبيرة (سماوي)" },
+    { key: "lamet-zaman-compact-sky", nameEn: "Theme 27 (Large Menus - Sky)", nameAr: "ثيم 27 للمنيوهات الكبيرة (أزرق sky)" },
+    { key: "lamet-zaman-compact-purple", nameEn: "Theme 27 (Large Menus - Purple)", nameAr: "ثيم 27 للمنيوهات الكبيرة (بنفسجي)" },
+    { key: "lamet-zaman-compact-gold", nameEn: "Theme 27 (Large Menus - Gold)", nameAr: "ثيم 27 للمنيوهات الكبيرة (ذهبي)" },
+    { key: "lamet-zaman-compact-pink", nameEn: "Theme 27 (Large Menus - Pink)", nameAr: "ثيم 27 للمنيوهات الكبيرة (وردي)" },
+    { key: "lamet-zaman-compact-dark", nameEn: "Theme 27 (Large Menus - Dark)", nameAr: "ثيم 27 للمنيوهات الكبيرة (داكن)" }
 ];
 
 export default function MarketingLinksPage() {
