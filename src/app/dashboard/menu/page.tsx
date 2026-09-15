@@ -62,9 +62,11 @@ export default function MenuBuilderPage() {
     const [isExportingImages, setIsExportingImages] = useState(false);
     const [isImportingImages, setIsImportingImages] = useState(false);
     const [isSmartImporting, setIsSmartImporting] = useState(false);
+    const [showSmartImportModal, setShowSmartImportModal] = useState(false);
     const [imageProgress, setImageProgress] = useState<string | null>(null);
     const importImagesRef = useRef<HTMLInputElement>(null);
     const smartImportRef = useRef<HTMLInputElement>(null);
+    const folderImportRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchMenuData = async () => {
@@ -157,6 +159,23 @@ export default function MenuBuilderPage() {
         setCategories(categories.map(c => c.id === deletingItemObj.catId ? { ...c, items: c.items.filter(i => i.id !== deletingItemObj.itemId) } : c));
         setDeletingItemObj(null);
         triggerRevalidate();
+    };
+
+    const runSmartImport = async (fileList: FileList | File[]) => {
+        if (!fileList || fileList.length === 0 || !restaurantId) return;
+        setIsSmartImporting(true);
+        setImageProgress(language === 'ar' ? 'جاري تجهيز وقراءة الصور...' : 'Preparing images...');
+        const res = await smartImportMenuImages(restaurantId, fileList, (msg) => setImageProgress(msg));
+        setImageProgress(res.message);
+        if (res.success) {
+            triggerRevalidate();
+            setTimeout(() => { window.location.reload(); }, 4000);
+        } else {
+            setTimeout(() => { 
+                setIsSmartImporting(false); 
+                setImageProgress(null); 
+            }, 8000);
+        }
     };
 
     const handleDeleteCategory = (catId: string) => setDeletingCatId(catId);
@@ -299,25 +318,47 @@ export default function MenuBuilderPage() {
                             if (importImagesRef.current) importImagesRef.current.value = '';
                         }} />
                     </label>
-                    <label className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-teal-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-teal-500/60 transition-all cursor-pointer active:scale-95 text-sm">
+                    <button
+                        type="button"
+                        onClick={() => setShowSmartImportModal(true)}
+                        disabled={isSmartImporting}
+                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-teal-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-teal-500/60 transition-all disabled:opacity-50 active:scale-95 text-sm"
+                    >
                         {isSmartImporting ? <Loader2 className="w-5 h-5 text-teal-500 animate-spin" /> : <span className="text-lg">🪄</span>}
                         {language === "ar" ? "استيراد صور ذكي" : "Smart Import"}
-                        <input ref={smartImportRef} type="file" accept=".zip,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg" multiple className="hidden" disabled={isSmartImporting} onChange={async (e) => {
-                            const fileList = e.target.files;
-                            if (!fileList || fileList.length === 0 || !restaurantId) return;
-                            setIsSmartImporting(true);
-                            setImageProgress('جاري تجهيز الملفات...');
-                            const res = await smartImportMenuImages(restaurantId, fileList, (msg) => setImageProgress(msg));
-                            setImageProgress(res.message);
-                            if (res.success) {
-                                triggerRevalidate();
-                                setTimeout(() => { window.location.reload(); }, 4000);
-                            } else {
-                                setTimeout(() => { setIsSmartImporting(false); setImageProgress(null); }, 5000);
+                    </button>
+                    <input
+                        ref={folderImportRef}
+                        type="file"
+                        // @ts-expect-error webkitdirectory is standard in browsers
+                        webkitdirectory=""
+                        directory=""
+                        multiple
+                        className="hidden"
+                        onChange={async (e) => {
+                            const files = e.target.files;
+                            if (files && files.length > 0) {
+                                setShowSmartImportModal(false);
+                                await runSmartImport(files);
+                            }
+                            if (folderImportRef.current) folderImportRef.current.value = '';
+                        }}
+                    />
+                    <input
+                        ref={smartImportRef}
+                        type="file"
+                        accept=".zip,.jpg,.jpeg,.png,.gif,.webp,.bmp,.svg"
+                        multiple
+                        className="hidden"
+                        onChange={async (e) => {
+                            const files = e.target.files;
+                            if (files && files.length > 0) {
+                                setShowSmartImportModal(false);
+                                await runSmartImport(files);
                             }
                             if (smartImportRef.current) smartImportRef.current.value = '';
-                        }} />
-                    </label>
+                        }}
+                    />
                     <button onClick={() => { setShowAddCategory(true); setEditingCat(null); setEditingItem(null); setAddingItemToCat(null); }}
                         className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95 text-sm sm:text-base">
                         <Plus className="w-5 h-5" />
@@ -492,6 +533,112 @@ export default function MenuBuilderPage() {
                 </div>
             )}
 
+            {/* SMART IMPORT CHOICE MODAL */}
+            <AnimatePresence>
+                {showSmartImportModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white dark:bg-card border border-glass-border rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg w-full relative"
+                        >
+                            <div className="flex items-center justify-between mb-5 border-b border-glass-border pb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-teal-500/10 text-teal-500 flex items-center justify-center text-2xl">
+                                        🪄
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-base sm:text-lg text-foreground">
+                                            {language === 'ar' ? 'استيراد الصور الذكي' : 'Smart Image Import'}
+                                        </h3>
+                                        <p className="text-[11px] sm:text-xs text-silver">
+                                            {language === 'ar' ? 'مطابقة ذكية بالتشابه للأصناف التي ليس لها صور فقط' : 'Auto-match images to items without images'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setShowSmartImportModal(false)}
+                                    className="p-1.5 rounded-lg text-silver hover:text-foreground hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <p className="text-xs text-silver mb-4 leading-relaxed">
+                                {language === 'ar'
+                                    ? 'يمكنك اختيار مجلد صور كامل من جهازك أو ملف مضغوط ZIP، وسيقوم النظام بمطابقة كل صورة تلقائياً مع الصنف المشابه بدون المساس بأي صور موجودة.'
+                                    : 'Choose an image folder from your PC or a ZIP file. The system will match images to similar menu items without affecting existing images.'}
+                            </p>
+
+                            <div className="space-y-3">
+                                {/* Option 1: Full Folder (e.g. E:\Menu_Images) */}
+                                <button
+                                    type="button"
+                                    onClick={() => folderImportRef.current?.click()}
+                                    className="w-full flex items-center gap-3.5 p-4 rounded-2xl border-2 border-dashed border-teal-500/40 hover:border-teal-500 hover:bg-teal-500/5 transition text-right group cursor-pointer"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-600 dark:text-teal-400 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition">
+                                        📁
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <h4 className="font-bold text-foreground text-sm">
+                                                {language === 'ar' ? 'اختيار مجلد كامل (Folder)' : 'Select Entire Folder'}
+                                            </h4>
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 font-bold">
+                                                {language === 'ar' ? 'مثل E:\\Menu_Images' : 'Folder'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-silver">
+                                            {language === 'ar'
+                                                ? 'اختر مجلد الصور من جهازك ليتم فحص جميع الصور والمجلدات الفرعية بداخله'
+                                                : 'Pick an entire directory from your drive to import all images inside'}
+                                        </p>
+                                    </div>
+                                </button>
+
+                                {/* Option 2: ZIP file or multiple loose files */}
+                                <button
+                                    type="button"
+                                    onClick={() => smartImportRef.current?.click()}
+                                    className="w-full flex items-center gap-3.5 p-4 rounded-2xl border border-glass-border hover:border-teal-500/50 hover:bg-slate-50 dark:hover:bg-black/20 transition text-right group cursor-pointer"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition">
+                                        🗜️
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-foreground text-sm mb-1">
+                                            {language === 'ar' ? 'ملف مضغوط (ZIP) أو صور فردية' : 'ZIP File or Image Files'}
+                                        </h4>
+                                        <p className="text-xs text-silver">
+                                            {language === 'ar'
+                                                ? 'اختر ملف .zip أو حدد مجموعة من الصور من جهازك مباشرة'
+                                                : 'Choose a .zip archive or select multiple image files'}
+                                        </p>
+                                    </div>
+                                </button>
+                            </div>
+
+                            <div className="mt-5 pt-3 border-t border-glass-border flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowSmartImportModal(false)}
+                                    className="px-4 py-2 text-silver font-bold text-xs hover:text-foreground transition"
+                                >
+                                    {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* IMAGE EXPORT/IMPORT PROGRESS MODAL */}
             <AnimatePresence>
                 {(isExportingImages || isImportingImages || isSmartImporting) && imageProgress && (
@@ -530,6 +677,18 @@ export default function MenuBuilderPage() {
                                     <div className={`h-full rounded-full animate-pulse ${isSmartImporting ? 'bg-gradient-to-r from-teal-500 to-cyan-500' : 'bg-gradient-to-r from-purple-500 to-orange-500'}`} style={{ width: '60%' }} />
                                 </div>
                             </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsSmartImporting(false);
+                                    setIsImportingImages(false);
+                                    setIsExportingImages(false);
+                                    setImageProgress(null);
+                                }}
+                                className="mt-5 px-5 py-2 bg-slate-100 dark:bg-black/40 hover:bg-slate-200 dark:hover:bg-black/60 rounded-xl text-xs font-bold text-foreground transition cursor-pointer"
+                            >
+                                {language === 'ar' ? 'إغلاق' : 'Close'}
+                            </button>
                         </motion.div>
                     </motion.div>
                 )}

@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import { supabase } from './supabase/client';
 import { uploadImage, uploadImageWithThumb } from './uploadImage';
-import { findBestMatch } from './fuzzyMatch';
+import { findBestMatch, calculateSimilarity } from './fuzzyMatch';
 
 /**
  * Sanitize a string to be used as part of a filename.
