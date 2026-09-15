@@ -9,7 +9,7 @@ import {
     ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, 
     Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, ArrowRight,
     LayoutGrid, LayoutList, CreditCard, Maximize2, ExternalLink,
-    AlignJustify
+    AlignJustify, Check, Sparkles, Megaphone
 } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
@@ -144,12 +144,31 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
             tc = {};
         }
     }
-    const bgImageLight = tc.lamet_zaman_bg_light || tc.bg_image_light || tc.bg_light || tc.aswan_bg_light || tc.background_image_light || config?.lamet_zaman_bg_light || config?.bg_image_light || config?.aswan_bg_light || '';
-    const bgImageDark = tc.lamet_zaman_bg_dark || tc.bg_image_dark || tc.bg_dark || tc.aswan_bg_dark || tc.background_image_dark || config?.lamet_zaman_bg_dark || config?.bg_image_dark || config?.aswan_bg_dark || '';
+    const bgImageLight = tc.theme27_bg_light || tc.lamet_zaman_bg_light || tc.bg_image_light || tc.bg_light || tc.aswan_bg_light || tc.background_image_light || config?.theme27_bg_light || config?.lamet_zaman_bg_light || config?.bg_image_light || config?.aswan_bg_light || '';
+    const bgImageDark = tc.theme27_bg_dark || tc.lamet_zaman_bg_dark || tc.bg_image_dark || tc.bg_dark || tc.aswan_bg_dark || tc.background_image_dark || config?.theme27_bg_dark || config?.lamet_zaman_bg_dark || config?.bg_image_dark || config?.aswan_bg_dark || '';
 
     let activeBgImage = isDark ? (bgImageDark || bgImageLight) : (bgImageLight || bgImageDark);
     activeBgImage = (activeBgImage || '').trim();
     const hasBgImage = Boolean(activeBgImage && activeBgImage.length > 0);
+
+    // Theme 27 Configurations: Promotional Popup & Category Add-ons Mapping
+    const popupConfig: { enabled: boolean; title?: string; description?: string; image_url?: string; button_text?: string; target_category_id?: string } | null = 
+        tc.theme27_popup || config?.theme27_popup || null;
+    const categoryAddonsMapping: Record<string, string> = 
+        tc.theme27_category_addons || config?.theme27_category_addons || {};
+
+    const [showPromoPopup, setShowPromoPopup] = useState(false);
+
+    useEffect(() => {
+        if (popupConfig?.enabled) {
+            const popupKey = `theme27_popup_${restaurantId || config?.id || 'dismissed'}`;
+            const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem(popupKey) : null;
+            if (!dismissed) {
+                const timer = setTimeout(() => setShowPromoPopup(true), 700);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [popupConfig, restaurantId, config?.id]);
 
     // Theme colors
     const bgBody = isDark ? '#111111' : '#f9fafb';
@@ -231,10 +250,22 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
     }, [activeCategory, categories, searchQuery]);
 
     // Modal & Cart State
-    const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string; catImg?: string } | null>(null);
+    const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string; catImg?: string; categoryId?: string | number } | null>(null);
     const [sizeIdx, setSizeIdx] = useState<number>(0);
     const [qty, setQty] = useState<number>(1);
-    const [cart, setCart] = useState<{ id: string | number; item: MenuItem; sizeIdx: number; sizeLabel: string; price: number; quantity: number; notes: string; catName: string }[]>([]);
+    const [selectedExtras, setSelectedExtras] = useState<{ name: string; price: number; qty: number }[]>([]);
+    const [cart, setCart] = useState<{ 
+        cKey: string;
+        id: string | number; 
+        item: MenuItem; 
+        sizeIdx: number; 
+        sizeLabel: string; 
+        price: number; 
+        quantity: number; 
+        notes: string; 
+        catName: string;
+        extras?: { name: string; price: number; qty: number }[];
+    }[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [showContactModal, setShowContactModal] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -253,29 +284,59 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
         return item.ingredients_en || item.ingredients || item.description_en || item.desc_en || item.description_ar || item.desc_ar || '';
     };
 
-    const openModal = (item: MenuItem, catNameStr: string, catImg?: string) => {
-        setSelectedItem({ item, catName: catNameStr, catImg });
+    const openModal = (item: MenuItem, catNameStr: string, catImg?: string, catId?: string | number) => {
+        setSelectedItem({ item, catName: catNameStr, catImg, categoryId: catId || item.category_id });
         setSizeIdx(0);
         setQty(1);
+        setSelectedExtras([]);
     };
 
     const closeModal = () => {
         setSelectedItem(null);
+        setSelectedExtras([]);
     };
+
+    const toggleExtra = (extraName: string, extraPrice: number) => {
+        setSelectedExtras(prev => {
+            const exists = prev.some(e => e.name === extraName);
+            if (exists) {
+                return prev.filter(e => e.name !== extraName);
+            } else {
+                return [...prev, { name: extraName, price: extraPrice, qty: 1 }];
+            }
+        });
+    };
+
+    // Linked category add-ons resolution
+    const linkedAddonsCatId = selectedItem?.categoryId 
+        ? categoryAddonsMapping[String(selectedItem.categoryId)] 
+        : null;
+    const addonsCategory = linkedAddonsCatId 
+        ? categories.find(c => String(c.id) === String(linkedAddonsCatId)) 
+        : null;
+    const availableAddons = addonsCategory?.items || [];
+
+    const extrasUnitTotal = selectedExtras.reduce((sum, e) => sum + e.price * (e.qty || 1), 0);
+    const modalBaseUnitPrice = selectedItem?.item.prices?.[sizeIdx] || 0;
+    const modalItemTotal = (modalBaseUnitPrice + extrasUnitTotal) * qty;
 
     const addToCart = () => {
         if (!selectedItem) return;
         const p = selectedItem.item.prices?.[sizeIdx] || 0;
         const lbl = selectedItem.item.size_labels?.[sizeIdx] || (isAr ? 'عادي' : 'Regular');
+        const itemExtras = selectedExtras.length > 0 ? [...selectedExtras] : undefined;
+        const extrasKey = (itemExtras || []).map(e => `${e.name}:${e.price}`).sort().join('|');
+        const uniqueKey = `${selectedItem.item.id}_${sizeIdx}_${extrasKey}`;
 
         setCart(prev => {
-            const existingIndex = prev.findIndex(c => c.id === selectedItem.item.id && c.sizeIdx === sizeIdx);
+            const existingIndex = prev.findIndex(c => c.cKey === uniqueKey);
             if (existingIndex > -1) {
                 const copy = [...prev];
                 copy[existingIndex].quantity += qty;
                 return copy;
             }
             return [...prev, {
+                cKey: uniqueKey,
                 id: selectedItem.item.id,
                 item: selectedItem.item,
                 sizeIdx,
@@ -283,16 +344,17 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                 price: p,
                 quantity: qty,
                 notes: '',
-                catName: selectedItem.catName
+                catName: selectedItem.catName,
+                extras: itemExtras
             }];
         });
         closeModal();
     };
 
-    const updateQty = (id: string | number, notes: string, delta: number) => {
+    const updateQty = (cKey: string, delta: number) => {
         setCart(prev => {
             return prev.map(c => {
-                if (c.id === id && c.notes === notes) {
+                if (c.cKey === cKey) {
                     const newQty = c.quantity + delta;
                     return newQty > 0 ? { ...c, quantity: newQty } : null;
                 }
@@ -301,7 +363,10 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
         });
     };
 
-    const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const cartTotal = cart.reduce((sum, c) => {
+        const extrasSum = (c.extras || []).reduce((eSum, e) => eSum + e.price * (e.qty || 1), 0);
+        return sum + (c.price + extrasSum) * c.quantity;
+    }, 0);
     const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
     const handleShare = async () => {
@@ -454,7 +519,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                         <div 
                                             className="rounded-2xl overflow-hidden shadow-sm cursor-pointer relative flex flex-col h-full border"
                                             style={{ backgroundColor: bgCard, borderColor }}
-                                            onClick={() => openModal(item, item.catName || '')}
+                                            onClick={() => openModal(item, item.catName || '', undefined, item.category_id)}
                                         >
                                             <div className="relative h-[135px] sm:h-[150px]">
                                                 <OptimizedMenuImage thumbnailSrc={item.thumbnail_url} originalSrc={item.image_url || item.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} alt={itemName(item)} className="w-full h-full object-cover" highQuality={Boolean((config as any)?.high_quality_images)} />
@@ -464,24 +529,43 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                             </div>
                                             <div className="p-3 flex flex-col justify-between flex-1">
                                                 <h3 className="font-bold text-sm sm:text-base mb-1 leading-tight line-clamp-2">{itemName(item)}</h3>
-                                                <div className="text-left mt-auto w-full pt-1" dir="ltr">
-                                                    <div className={`w-full ${item.prices && item.prices.length > 2 ? 'grid grid-cols-2 gap-1' : 'flex flex-col gap-1'}`}>
-                                                        {item.prices?.map((price, pIdx) => (
-                                                            <div key={pIdx} className="flex items-center justify-between w-full min-w-0">
-                                                                <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
-                                                                    {item.size_labels?.[pIdx] && (
-                                                                        <span className="text-[10px] font-bold opacity-70 truncate block">{item.size_labels[pIdx]}</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex items-center gap-1 shrink-0 ml-1">
-                                                                    {item.old_prices?.[pIdx] ? (
-                                                                        <span className="text-[10px] line-through opacity-50">{item.old_prices[pIdx]}</span>
-                                                                    ) : null}
-                                                                    <span className="font-black text-xs sm:text-sm" style={{ color: primaryColor }}>{price} {cur}</span>
-                                                                </div>
+                                                <div className="text-left mt-auto w-full pt-1">
+                                                    {item.prices && item.prices.length > 1 ? (
+                                                        <div className="grid grid-cols-2 gap-1 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                            {item.prices.map((price, pIdx) => {
+                                                                const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                const oldPrice = item.old_prices?.[pIdx];
+                                                                return (
+                                                                    <div 
+                                                                        key={pIdx} 
+                                                                        className="flex flex-col items-center justify-center px-1 py-0.5 rounded-lg border border-black/5 dark:border-white/10 min-w-0 text-center"
+                                                                        style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
+                                                                    >
+                                                                        <span className="text-[10px] font-bold text-foreground truncate max-w-full block leading-none">{label}</span>
+                                                                        <div className="flex items-center justify-center gap-0.5 mt-0.5 leading-none" dir="ltr">
+                                                                            {oldPrice ? <span className="line-through opacity-40 text-[7.5px]">{oldPrice}</span> : null}
+                                                                            <span style={{ color: primaryColor }} className="font-black text-[10.5px] whitespace-nowrap">{price}</span>
+                                                                            <span className="text-[7.5px] font-bold opacity-60 whitespace-nowrap">{cur}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-between w-full" dir="ltr">
+                                                            <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                {item.size_labels?.[0] && (
+                                                                    <span className="text-[10px] font-bold opacity-70 truncate block">{item.size_labels[0]}</span>
+                                                                )}
                                                             </div>
-                                                        ))}
-                                                    </div>
+                                                            <div className="flex items-center gap-1 shrink-0 ml-1">
+                                                                {item.old_prices?.[0] ? (
+                                                                    <span className="text-[10px] line-through opacity-50">{item.old_prices[0]}</span>
+                                                                ) : null}
+                                                                <span className="font-black text-xs sm:text-sm" style={{ color: primaryColor }}>{item.prices?.[0]} {cur}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -661,7 +745,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                 return (
                                                     <div 
                                                         key={item.id}
-                                                        onClick={() => openModal(item, catName(category), category.image_url)}
+                                                        onClick={() => openModal(item, catName(category), category.image_url, category.id)}
                                                         className="flex flex-row items-center p-1.5 sm:p-2 gap-2 sm:gap-2.5 rounded-xl border transition-all active:scale-[0.99] cursor-pointer hover:shadow-md"
                                                         style={{ backgroundColor: bgCard, borderColor }}
                                                     >
@@ -751,7 +835,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    openModal(item, catName(category), category.image_url);
+                                                                    openModal(item, catName(category), category.image_url, category.id);
                                                                 }}
                                                                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm active:scale-90 transition-all hover:opacity-90 self-center"
                                                                 style={{ backgroundColor: primaryColor }}
@@ -789,7 +873,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                 : 'flex-col shadow-sm'
                                                         }`}
                                                         style={{ backgroundColor: bgCard, borderColor }}
-                                                        onClick={() => openModal(item, catName(category), category.image_url)}
+                                                        onClick={() => openModal(item, catName(category), category.image_url, category.id)}
                                                     >
                                                         {/* Image container */}
                                                         <div className={`relative shrink-0 ${
@@ -835,29 +919,58 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                 </p>
                                                             )}
 
-                                                            <div className={`mt-auto ${item.prices && item.prices.length > 2 ? 'grid grid-cols-2 gap-x-2 gap-y-1' : 'flex flex-col gap-1'} w-full pt-2`} dir="ltr">
-                                                                {item.prices?.map((price, pIdx) => (
-                                                                    <div key={pIdx} className="flex items-center justify-between w-full min-w-0">
-                                                                        <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
-                                                                            {item.size_labels?.[pIdx] && (
-                                                                                <span className={`${viewMode === 'single' ? 'text-xs font-bold' : 'text-[10px] font-bold'} opacity-70 truncate block`}>
-                                                                                    {item.size_labels[pIdx]}
+                                                            {item.prices && item.prices.length > 1 ? (
+                                                                <div className={`mt-auto ${viewMode === 'single' ? 'grid grid-cols-2 sm:grid-cols-4 gap-2' : 'grid grid-cols-2 gap-1 sm:gap-1.5'} w-full pt-2`} dir={isAr ? 'rtl' : 'ltr'}>
+                                                                    {item.prices.map((price, pIdx) => {
+                                                                        const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                        const oldPrice = item.old_prices?.[pIdx];
+                                                                        return (
+                                                                            <div 
+                                                                                key={pIdx} 
+                                                                                className={`flex flex-col items-center justify-center rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors ${
+                                                                                    viewMode === 'single' ? 'p-2' : 'px-1 py-1'
+                                                                                }`}
+                                                                                style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
+                                                                            >
+                                                                                <span className={`${viewMode === 'single' ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-[11px]'} font-bold text-foreground truncate max-w-full block leading-none`}>
+                                                                                    {label}
                                                                                 </span>
-                                                                            )}
-                                                                        </div>
-                                                                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                                                                            {item.old_prices?.[pIdx] ? (
-                                                                                <span className={`${viewMode === 'single' ? 'text-xs' : 'text-[10px]'} line-through`} style={{ color: textMuted }}>
-                                                                                    {item.old_prices[pIdx]}
-                                                                                </span>
-                                                                            ) : null}
-                                                                            <span className={`font-black ${viewMode === 'single' ? 'text-xl sm:text-2xl' : 'text-[1.05rem]'}`} style={{ color: primaryColor }}>
-                                                                                {price} {cur}
+                                                                                <div className="flex items-center justify-center gap-0.5 mt-0.5 leading-none" dir="ltr">
+                                                                                    {oldPrice ? (
+                                                                                        <span className="line-through opacity-40 text-[7.5px] sm:text-[8px]">{oldPrice}</span>
+                                                                                    ) : null}
+                                                                                    <span style={{ color: primaryColor }} className={`font-black ${viewMode === 'single' ? 'text-sm sm:text-base' : 'text-[10.5px] sm:text-[11.5px]'} whitespace-nowrap`}>
+                                                                                        {price}
+                                                                                    </span>
+                                                                                    <span className="text-[7.5px] sm:text-[8px] font-bold opacity-60 whitespace-nowrap">
+                                                                                        {cur}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="mt-auto flex items-center justify-between w-full pt-2" dir="ltr">
+                                                                    <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                        {item.size_labels?.[0] && (
+                                                                            <span className={`${viewMode === 'single' ? 'text-xs font-bold' : 'text-[10px] font-bold'} opacity-70 truncate block`}>
+                                                                                {item.size_labels[0]}
                                                                             </span>
-                                                                        </div>
+                                                                        )}
                                                                     </div>
-                                                                ))}
-                                                            </div>
+                                                                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                                        {item.old_prices?.[0] ? (
+                                                                            <span className={`${viewMode === 'single' ? 'text-xs' : 'text-[10px]'} line-through`} style={{ color: textMuted }}>
+                                                                                {item.old_prices[0]}
+                                                                            </span>
+                                                                        ) : null}
+                                                                        <span className={`font-black ${viewMode === 'single' ? 'text-xl sm:text-2xl' : 'text-base sm:text-lg'}`} style={{ color: primaryColor }}>
+                                                                            {item.prices?.[0]} {cur}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             {config.orders_enabled !== false && (
                                                                 <button
@@ -868,7 +981,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                     style={{ backgroundColor: primaryColor }}
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        openModal(item, catName(category), category.image_url);
+                                                                        openModal(item, catName(category), category.image_url, category.id);
                                                                     }}
                                                                 >
                                                                     <ShoppingCart className={viewMode === 'single' ? "w-4 h-4" : "w-3.5 h-3.5"} />
@@ -988,10 +1101,28 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                             )}
                                             <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
                                                 <span className="font-bold">{isAr ? 'السعر' : 'Price'}</span>
-                                                <div className="flex gap-2 items-center" dir="ltr">
-                                                    <span className="text-2xl sm:text-3xl font-black" style={{ color: primaryColor }}>{selectedItem.item.prices?.[sizeIdx]} {cur}</span>
-                                                    {selectedItem.item.old_prices?.[sizeIdx] ? <span className="text-base sm:text-lg line-through" style={{ color: textMuted }}>{selectedItem.item.old_prices[sizeIdx]} {cur}</span> : null}
-                                                </div>
+                                                {extrasUnitTotal > 0 ? (
+                                                    <div className="flex flex-col items-end" dir="ltr">
+                                                        <div className="flex gap-2 items-center">
+                                                            <span className="text-2xl sm:text-3xl font-black" style={{ color: primaryColor }}>
+                                                                {modalBaseUnitPrice + extrasUnitTotal} {cur}
+                                                            </span>
+                                                            {selectedItem.item.old_prices?.[sizeIdx] ? (
+                                                                <span className="text-base sm:text-lg line-through" style={{ color: textMuted }}>
+                                                                    {selectedItem.item.old_prices[sizeIdx]} {cur}
+                                                                </span>
+                                                            ) : null}
+                                                        </div>
+                                                        <span className="text-[11px] font-bold opacity-60">
+                                                            ({modalBaseUnitPrice} + {extrasUnitTotal} {isAr ? 'إضافات' : 'extras'})
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-2 items-center" dir="ltr">
+                                                        <span className="text-2xl sm:text-3xl font-black" style={{ color: primaryColor }}>{selectedItem.item.prices?.[sizeIdx]} {cur}</span>
+                                                        {selectedItem.item.old_prices?.[sizeIdx] ? <span className="text-base sm:text-lg line-through" style={{ color: textMuted }}>{selectedItem.item.old_prices[sizeIdx]} {cur}</span> : null}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -1016,6 +1147,60 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                             >
                                                                 <span className="font-bold text-sm mb-1">{label}</span>
                                                                 <span className="text-xs font-black" style={{ color: primaryColor }}>{p} {cur}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Linked Category Add-ons Section */}
+                                        {availableAddons.length > 0 && (
+                                            <div className="mb-6">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <label className="text-sm font-bold flex items-center gap-1.5">
+                                                        <Plus className="w-4 h-4" style={{ color: primaryColor }} />
+                                                        <span>{isAr ? 'إضافات مقترحة (اختياري)' : 'Suggested Add-ons (Optional)'}</span>
+                                                    </label>
+                                                    <span className="text-[11px] font-bold opacity-60">
+                                                        {isAr ? 'اختر ما يناسبك' : 'Choose extras'}
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                    {availableAddons.map((addon) => {
+                                                        const aName = itemName(addon);
+                                                        const aPrice = addon.prices?.[0] || (addon as any).price || 0;
+                                                        const isSelected = selectedExtras.some(e => e.name === aName);
+                                                        return (
+                                                            <button
+                                                                key={addon.id}
+                                                                type="button"
+                                                                onClick={() => toggleExtra(aName, aPrice)}
+                                                                className={`flex items-center justify-between p-3 rounded-2xl border-2 transition-all ${
+                                                                    isSelected ? 'shadow-sm scale-[1.01]' : 'hover:bg-black/5 dark:hover:bg-white/5'
+                                                                }`}
+                                                                style={{
+                                                                    borderColor: isSelected ? primaryColor : borderColor,
+                                                                    backgroundColor: isSelected ? `${primaryColor}12` : bgCard
+                                                                }}
+                                                            >
+                                                                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                                                    <div 
+                                                                        className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-colors shrink-0 ${
+                                                                            isSelected ? 'text-white' : 'border-black/20 dark:border-white/20'
+                                                                        }`}
+                                                                        style={{
+                                                                            backgroundColor: isSelected ? primaryColor : 'transparent',
+                                                                            borderColor: isSelected ? primaryColor : undefined
+                                                                        }}
+                                                                    >
+                                                                        {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                                                                    </div>
+                                                                    <span className="text-xs sm:text-sm font-bold truncate block">{aName}</span>
+                                                                </div>
+                                                                <span className="text-xs font-black shrink-0 ml-2" style={{ color: primaryColor }} dir="ltr">
+                                                                    +{aPrice} {cur}
+                                                                </span>
                                                             </button>
                                                         );
                                                     })}
@@ -1061,7 +1246,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                     {isAr ? 'أضف للسلة' : 'Add to Cart'}
                                                 </div>
                                                 <div className="h-[44px] px-4 rounded-xl flex items-center justify-center bg-black/10 text-white font-bold" dir="ltr">
-                                                    {((selectedItem.item.prices?.[sizeIdx] || 0) * qty)} {cur}
+                                                    {modalItemTotal} {cur}
                                                 </div>
                                             </button>
                                         )}
@@ -1137,28 +1322,44 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                         </div>
                                     ) : (
                                         <div className="p-3.5 sm:p-4 space-y-3">
-                                            {cart.map((c, i) => (
-                                                <div key={i} className="flex gap-3 p-3 rounded-2xl shadow-sm border overflow-hidden" style={{ backgroundColor: bgCard, borderColor }}>
-                                                    <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0" highQuality={Boolean((config as any)?.high_quality_images)} />
-                                                    <div className="flex-1 min-w-0 flex flex-col justify-between">
-                                                        <div className="flex justify-between items-start gap-2">
-                                                            <div>
-                                                                <h4 className="font-bold text-sm line-clamp-1 leading-snug">{itemName(c.item)}</h4>
-                                                                {c.sizeLabel && <span className="text-[11px] font-bold opacity-60">({c.sizeLabel})</span>}
+                                            {cart.map((c, i) => {
+                                                const itemExtrasSum = (c.extras || []).reduce((s, e) => s + e.price * (e.qty || 1), 0);
+                                                const lineTotal = (c.price + itemExtrasSum) * c.quantity;
+
+                                                return (
+                                                    <div key={c.cKey || i} className="flex gap-3 p-3 rounded-2xl shadow-sm border overflow-hidden" style={{ backgroundColor: bgCard, borderColor }}>
+                                                        <OptimizedMenuImage src={c.item.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=200'} alt="" className="w-16 h-16 rounded-xl object-cover shrink-0" highQuality={Boolean((config as any)?.high_quality_images)} />
+                                                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                                            <div className="flex justify-between items-start gap-2">
+                                                                <div>
+                                                                    <h4 className="font-bold text-sm line-clamp-1 leading-snug">{itemName(c.item)}</h4>
+                                                                    <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                                                                        {c.sizeLabel && <span className="text-[11px] font-bold opacity-60">({c.sizeLabel})</span>}
+                                                                        {c.extras && c.extras.length > 0 && (
+                                                                            <div className="flex flex-wrap gap-1 mt-0.5">
+                                                                                {c.extras.map((ex, exIdx) => (
+                                                                                    <span key={exIdx} className="text-[10px] font-bold px-1.5 py-0.2 rounded-md" style={{ backgroundColor: `${primaryColor}15`, color: primaryColor }}>
+                                                                                        +{ex.name} ({ex.price} {cur})
+                                                                                    </span>
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <button onClick={() => updateQty(c.cKey, -c.quantity)} className="text-red-500 hover:text-red-600 p-1 shrink-0 active:scale-90 transition-transform"><Trash2 className="w-4 h-4" /></button>
                                                             </div>
-                                                            <button onClick={() => updateQty(c.id, c.notes, -c.quantity)} className="text-red-500 hover:text-red-600 p-1 shrink-0 active:scale-90 transition-transform"><Trash2 className="w-4 h-4" /></button>
-                                                        </div>
-                                                        <div className="flex justify-between items-center gap-2 mt-2 flex-wrap">
-                                                            <span className="font-black text-sm sm:text-base shrink-0" style={{ color: primaryColor }}>{(c.price * c.quantity).toFixed?.(0)} {cur}</span>
-                                                            <div className="flex items-center rounded-full h-7 px-1 border shrink-0 bg-black/5 dark:bg-white/5" style={{ borderColor }} dir="ltr">
-                                                                <button onClick={() => updateQty(c.id, c.notes, -1)} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-all"><Minus className="w-3 h-3" /></button>
-                                                                <span className="w-5 text-center text-xs font-bold">{c.quantity}</span>
-                                                                <button onClick={() => updateQty(c.id, c.notes, 1)} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-all"><Plus className="w-3 h-3" /></button>
+                                                            <div className="flex justify-between items-center gap-2 mt-2 flex-wrap">
+                                                                <span className="font-black text-sm sm:text-base shrink-0" style={{ color: primaryColor }}>{lineTotal.toFixed?.(0)} {cur}</span>
+                                                                <div className="flex items-center rounded-full h-7 px-1 border shrink-0 bg-black/5 dark:bg-white/5" style={{ borderColor }} dir="ltr">
+                                                                    <button onClick={() => updateQty(c.cKey, -1)} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-all"><Minus className="w-3 h-3" /></button>
+                                                                    <span className="w-5 text-center text-xs font-bold">{c.quantity}</span>
+                                                                    <button onClick={() => updateQty(c.cKey, 1)} className="w-5 h-5 flex items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10 active:scale-90 transition-all"><Plus className="w-3 h-3" /></button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
@@ -1473,6 +1674,129 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                     )}
                 </AnimatePresence>
 
+                {/* --- PROMOTIONAL OFFERS POP-UP MODAL --- */}
+                <AnimatePresence>
+                    {showPromoPopup && popupConfig?.enabled && (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[500] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
+                            onClick={() => {
+                                setShowPromoPopup(false);
+                                const popupKey = `theme27_popup_${restaurantId || config?.id || 'dismissed'}`;
+                                if (typeof window !== 'undefined') sessionStorage.setItem(popupKey, '1');
+                            }}
+                        >
+                            <motion.div 
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                className="w-full max-w-sm sm:max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl relative border border-white/10"
+                                style={{ backgroundColor: bgCard }}
+                                onClick={e => e.stopPropagation()}
+                                dir={isAr ? 'rtl' : 'ltr'}
+                            >
+                                {/* Close button */}
+                                <button
+                                    onClick={() => {
+                                        setShowPromoPopup(false);
+                                        const popupKey = `theme27_popup_${restaurantId || config?.id || 'dismissed'}`;
+                                        if (typeof window !== 'undefined') sessionStorage.setItem(popupKey, '1');
+                                    }}
+                                    className="absolute top-3.5 right-3.5 z-20 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors backdrop-blur-sm"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+
+                                {/* Banner Image or Gradient Header */}
+                                {popupConfig.image_url ? (
+                                    <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-black/10">
+                                        <img 
+                                            src={popupConfig.image_url} 
+                                            alt="Promo Offer" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                                        <div className="absolute bottom-3 right-4 left-4 text-white">
+                                            <span className="bg-red-600/90 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full inline-block shadow-sm">
+                                                {isAr ? 'عرض خاص لفترة محدودة' : 'Special Limited Offer'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5" />
+                                            <span className="font-black text-sm">{isAr ? 'عرض اليوم المميز' : 'Special Offer of the Day'}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Content */}
+                                <div className="p-5 sm:p-6 space-y-4 text-center">
+                                    <h3 className="font-black text-xl sm:text-2xl leading-snug" style={{ color: textMain }}>
+                                        {popupConfig.title || (isAr ? 'عروض خاصة بانتظارك!' : 'Special Offers Await You!')}
+                                    </h3>
+
+                                    {popupConfig.description && (
+                                        <p className="text-xs sm:text-sm leading-relaxed" style={{ color: textMuted }}>
+                                            {popupConfig.description}
+                                        </p>
+                                    )}
+
+                                    <div className="pt-2 flex flex-col gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowPromoPopup(false);
+                                                const popupKey = `theme27_popup_${restaurantId || config?.id || 'dismissed'}`;
+                                                if (typeof window !== 'undefined') sessionStorage.setItem(popupKey, '1');
+                                                if (popupConfig.target_category_id) {
+                                                    setActiveCategory(popupConfig.target_category_id);
+                                                    const el = document.getElementById(`cat-${popupConfig.target_category_id}`);
+                                                    if (el) {
+                                                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                                    }
+                                                }
+                                            }}
+                                            className="w-full py-3 px-5 rounded-2xl font-black text-sm text-white shadow-lg transition-transform active:scale-95"
+                                            style={{ backgroundColor: primaryColor }}
+                                        >
+                                            {popupConfig.button_text || (isAr ? 'تصفح العرض الآن' : 'View Offer Now')}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowPromoPopup(false);
+                                                const popupKey = `theme27_popup_${restaurantId || config?.id || 'dismissed'}`;
+                                                if (typeof window !== 'undefined') sessionStorage.setItem(popupKey, '1');
+                                            }}
+                                            className="text-xs font-bold py-1.5 opacity-60 hover:opacity-100 transition-opacity"
+                                            style={{ color: textMain }}
+                                        >
+                                            {isAr ? 'إغلاق ومتابعة التصفح' : 'Close and continue browsing'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* Floating Re-open Offers Pill */}
+                {popupConfig?.enabled && !showPromoPopup && (
+                    <button 
+                        onClick={() => setShowPromoPopup(true)} 
+                        className="fixed bottom-24 right-4 z-40 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full px-3.5 py-2 text-xs font-black shadow-xl flex items-center gap-1.5 active:scale-95 transition-transform"
+                        dir={isAr ? 'rtl' : 'ltr'}
+                    >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>{isAr ? 'العروض المميزة' : 'Offers'}</span>
+                    </button>
+                )}
+
                 <CheckoutModal 
                     isOpen={showCheckout} 
                     onClose={() => setShowCheckout(false)} 
@@ -1481,10 +1805,11 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                         title: itemName(c.item),
                         qty: c.quantity,
                         price: c.price,
-                        size: c.sizeLabel,
+                        size: c.sizeLabel !== (isAr ? 'عادي' : 'Regular') ? c.sizeLabel : undefined,
                         category: c.catName,
                         notes: c.notes,
-                        extras: []
+                        extras: c.extras || [],
+                        item: c.item
                     }))}
                     subtotal={cartTotal}
                     restaurantId={restaurantId}

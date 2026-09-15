@@ -631,6 +631,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/theme-vicino", icon: Palette, labelAr: "تعديل الصفحة الرئيسية (Vicino)", labelEn: "Vicino Landing Page Settings", key: "theme_vicino" },
                 { href: "/dashboard/theme-aswan", icon: Palette, labelAr: "إعدادات ثيم أسوان (ASWAN)", labelEn: "ASWAN Theme Settings", key: "theme_aswan" },
                 { href: "/dashboard/theme-lamet-zaman", icon: Palette, labelAr: "إعدادات ثيم لمة زمان (خلفية صورة)", labelEn: "Lamet Zaman BG Theme Settings", key: "theme_lamet_zaman" },
+                { href: "/dashboard/theme27-settings", icon: Palette, labelAr: "إعدادات ثيم 27 (المنيوهات الكبيرة)", labelEn: "Theme 27 (Large Menus) Settings", key: "theme27_settings" },
                 { href: "/dashboard/theme-usa", icon: Palette, labelAr: "إعدادات ثيم USA (الأمريكي)", labelEn: "USA Theme Settings", key: "theme_usa" },
                 { href: "/dashboard/theme-uae", icon: Palette, labelAr: "إعدادات ثيم الإمارات (UAE)", labelEn: "UAE Theme Settings", key: "theme_uae" },
                 { href: "/dashboard/theme-usa-dual", icon: Palette, labelAr: "إعدادات ثيم USA الثنائي (Bilingual)", labelEn: "USA Dual Theme Settings", key: "theme_usa_dual" },
@@ -644,7 +645,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const BROAD_TO_SPECIFIC: Record<string, string[]> = {
         orders: ['orders', 'pos', 'kitchen', 'cashier_shifts'],
         products: ['products', 'tables', 'delivery', 'promotions'],
-        settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'qr'],
+        settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme27_settings', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'qr'],
         team: ['team'],
         customers: ['customers', 'notifications', 'whatsapp'],
         reports: ['reports'],

@@ -23,6 +23,7 @@ type OrderItem = {
     size?: string;
     category?: string;
     weight_unit?: string;
+    extras?: { name: string; qty: number; price: number }[];
 };
 type Order = {
     id: string; order_number: number; status: string; items: OrderItem[];
@@ -865,8 +866,22 @@ export default function OrdersPage() {
                                                                     })()}
                                                                 </span>
                                                                 {item.category && <span className="text-xs text-slate-500 dark:text-zinc-500">🗂️ {item.category}</span>}
+                                                                {item.extras && item.extras.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                                                        {item.extras.map((ex: any, exIdx: number) => (
+                                                                            <span key={exIdx} className="text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 px-1.5 py-0.5 rounded">
+                                                                                + {ex.name} {ex.qty > 1 ? `(×${ex.qty})` : ''} ({formatOrderCurrency(ex.price * (ex.qty || 1))})
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <span className="text-slate-500 dark:text-zinc-400 font-bold">{formatOrderCurrency(item.price * item.qty)}</span>
+                                                            <span className="text-slate-500 dark:text-zinc-400 font-bold">
+                                                                {(() => {
+                                                                    const extrasTotal = (item.extras || []).reduce((s: number, e: any) => s + (e.price * (e.qty || 1)), 0);
+                                                                    return formatOrderCurrency((item.price + extrasTotal) * item.qty);
+                                                                })()}
+                                                            </span>
                                                         </div>
                                                     ))}
                                                     <div className="flex justify-between pt-2 mt-2 border-t border-slate-300 dark:border-zinc-700/50 text-base font-extrabold">
