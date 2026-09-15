@@ -211,11 +211,11 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
-    const openModal = (item: MenuItem, cName: string, cImg?: string) => {
+    const openModal = (item: MenuItem, cName: string, cImg?: string, initialSizeIdx = 0) => {
         if (config.orders_enabled === false) return;
         setSelectedItem({ item, catName: cName, catImg: cImg });
         setQty(1);
-        setSizeIdx(0);
+        setSizeIdx(initialSizeIdx);
         setSelectedExtras([]);
         setNotes('');
         document.body.style.overflow = 'hidden';
@@ -681,12 +681,16 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                                     return (
                                                                         <div 
                                                                             key={pIdx} 
-                                                                            className={`flex flex-col items-center justify-center px-1 py-0.5 rounded-lg border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors ${
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                openModal(item, catName(category), category.image_url, pIdx);
+                                                                            }}
+                                                                            className={`flex flex-col items-center justify-between px-1 py-1 rounded-lg border border-black/5 dark:border-white/10 min-w-0 text-center transition-all hover:scale-[1.02] cursor-pointer min-h-[38px] ${
                                                                                 isOddLast ? 'col-span-2' : ''
                                                                             }`}
                                                                             style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                                                                         >
-                                                                            <span className="text-[10px] sm:text-[11px] font-bold text-foreground truncate max-w-full block leading-none">
+                                                                            <span className="text-[9.5px] sm:text-[10.5px] font-bold text-foreground leading-tight text-center line-clamp-2 px-0.5 break-words w-full">
                                                                                 {label}
                                                                             </span>
                                                                             <div className="flex items-center justify-center gap-1 mt-0.5 leading-none" dir="ltr">
@@ -819,14 +823,18 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                             return (
                                                                 <div 
                                                                     key={pIdx} 
-                                                                    className={`flex flex-col items-center justify-center rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center transition-colors ${
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openModal(item, catName(category), category.image_url, pIdx);
+                                                                    }}
+                                                                    className={`flex flex-col items-center justify-between rounded-xl border border-black/5 dark:border-white/10 min-w-0 text-center transition-all hover:scale-[1.02] cursor-pointer ${
                                                                         isOddLast ? 'col-span-2' : ''
                                                                     } ${
-                                                                        viewMode === 'single' ? 'p-2' : 'px-1 py-1'
+                                                                        viewMode === 'single' ? 'p-2 min-h-[50px]' : 'px-1 py-1 min-h-[38px]'
                                                                     }`}
                                                                     style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                                                                 >
-                                                                    <span className={`${viewMode === 'single' ? 'text-xs sm:text-sm' : 'text-[10px] sm:text-[11px]'} font-bold text-foreground truncate max-w-full block leading-none`}>
+                                                                    <span className={`${viewMode === 'single' ? 'text-xs sm:text-sm' : 'text-[9.5px] sm:text-[10px]'} font-bold text-foreground leading-tight text-center line-clamp-2 px-0.5 break-words w-full`}>
                                                                         {label}
                                                                     </span>
                                                                     <div className="flex items-center justify-center gap-1 mt-0.5 leading-none" dir="ltr">
@@ -990,10 +998,23 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                         </p>
                                     )}
                                     <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
-                                        <span className="font-bold">{isAr ? 'السعر' : 'Price'}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold">{isAr ? 'السعر' : 'Price'}</span>
+                                            {Boolean(selectedItem.item.old_prices?.[sizeIdx] && Number(selectedItem.item.old_prices[sizeIdx]) > Number(selectedItem.item.prices?.[sizeIdx])) && (
+                                                <span className="bg-red-600 text-white rounded-full font-bold px-2 py-0.5 text-[10px] shadow-sm">
+                                                    {isAr ? 'عرض' : 'Offer'}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="flex gap-2 items-center" dir="ltr">
-                                            <span className="text-3xl font-black" style={{ color: primaryColor }}>{selectedItem.item.prices?.[sizeIdx]} {cur}</span>
-                                            {selectedItem.item.old_prices?.[sizeIdx] ? <span className="text-lg line-through" style={{ color: textMuted }}>{selectedItem.item.old_prices[sizeIdx]} {cur}</span> : null}
+                                            {Boolean(selectedItem.item.old_prices?.[sizeIdx] && Number(selectedItem.item.old_prices[sizeIdx]) > Number(selectedItem.item.prices?.[sizeIdx])) && (
+                                                <span className="text-base sm:text-lg line-through text-red-500 font-bold decoration-red-500">
+                                                    {selectedItem.item.old_prices[sizeIdx]} {cur}
+                                                </span>
+                                            )}
+                                            <span className="text-2xl sm:text-3xl font-black" style={{ color: primaryColor }}>
+                                                {selectedItem.item.prices?.[sizeIdx]} {cur}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -1001,68 +1022,40 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                 {/* Size Selection */}
                                 {selectedItem.item.prices && selectedItem.item.prices.length > 1 && (
                                     <div className="mb-6">
-                                        <label className="text-sm font-bold mb-3 block">{isAr ? 'اختر الحجم' : 'Choose Size'}</label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+                                        <label className="text-sm font-bold mb-3 block">{isAr ? 'اختر الحجم / طريقة التحضير' : 'Choose Size / Preparation'}</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-2.5">
                                             {selectedItem.item.prices.map((p, idx) => {
                                                 const label = selectedItem.item.size_labels?.[idx] || (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`);
+                                                const oldPrice = selectedItem.item.old_prices?.[idx];
+                                                const hasDiscount = Boolean(oldPrice && Number(oldPrice) > Number(p));
                                                 const isSelected = sizeIdx === idx;
                                                 return (
                                                     <button
                                                         key={idx}
+                                                        type="button"
                                                         onClick={() => setSizeIdx(idx)}
-                                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${isSelected ? 'shadow-md scale-[1.02]' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
+                                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${
+                                                            isSelected ? 'shadow-md scale-[1.02]' : 'hover:bg-black/5 dark:hover:bg-white/5'
+                                                        }`}
                                                         style={{
                                                             borderColor: isSelected ? primaryColor : 'transparent',
-                                                            backgroundColor: isSelected ? `${primaryColor}15` : 'var(--glass-dark)'
+                                                            backgroundColor: isSelected ? `${primaryColor}15` : isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'
                                                         }}
                                                     >
-                                                        <span className="font-bold text-sm mb-1">{label}</span>
-                                                        <span className="text-xs font-black" style={{ color: primaryColor }}>{p} {cur}</span>
+                                                        <span className={`font-bold text-xs sm:text-sm mb-1 text-center ${isSelected ? 'font-black' : 'opacity-85'}`}>{label}</span>
+                                                        <div className="flex items-center gap-1.5 leading-none" dir="ltr">
+                                                            {hasDiscount && (
+                                                                <span className="text-[11px] line-through text-red-500 font-bold decoration-red-500">
+                                                                    {oldPrice}
+                                                                </span>
+                                                            )}
+                                                            <span className="text-xs font-black" style={{ color: primaryColor }}>{p} {cur}</span>
+                                                        </div>
                                                     </button>
                                                 );
                                             })}
                                         </div>
                                     </div>
-                                )}
-
-                                {/* Quantity Selection */}
-                                {config.orders_enabled !== false && (
-                                    <div className="mb-8 flex items-center justify-between bg-black/5 dark:bg-white/5 p-4 rounded-2xl">
-                                        <span className="font-bold">{isAr ? 'الكمية' : 'Quantity'}</span>
-                                        <div className="flex items-center gap-4 bg-white dark:bg-black/40 rounded-xl px-2 py-1 shadow-sm border border-glass-border">
-                                            <button 
-                                                onClick={() => setQty(Math.max(1, qty - 1))}
-                                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                                style={{ color: textMain }}
-                                            >
-                                                <Minus className="w-4 h-4" />
-                                            </button>
-                                            <span className="font-bold w-6 text-center">{qty}</span>
-                                            <button 
-                                                onClick={() => setQty(qty + 1)}
-                                                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                                style={{ color: primaryColor }}
-                                            >
-                                                <Plus className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Add to Cart Huge Button */}
-                                {config.orders_enabled !== false && (
-                                    <button 
-                                        onClick={addToCart} 
-                                        className="w-full h-[64px] rounded-2xl flex items-center justify-between px-2 shadow-lg transition-transform active:scale-95 mb-8"
-                                        style={{ backgroundColor: primaryColor }}
-                                    >
-                                        <div className="flex-1 text-center font-bold text-xl text-white">
-                                            {isAr ? 'أضف للسلة' : 'Add to Cart'}
-                                        </div>
-                                        <div className="h-[48px] px-4 rounded-xl flex items-center justify-center bg-black/10 text-white font-bold" dir="ltr">
-                                            {((selectedItem.item.prices?.[sizeIdx] || 0) * qty)} {cur}
-                                        </div>
-                                    </button>
                                 )}
 
                                 {/* You might also like */}
@@ -1120,6 +1113,57 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                 )}
                             </div>
                         </div>
+
+                            {/* Sticky Footer Bar: Quantity & Add to Cart */}
+                            {config.orders_enabled !== false && (
+                                <div 
+                                    className="p-3 sm:p-4 border-t backdrop-blur-md flex items-center gap-3 shrink-0 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-20"
+                                    style={{ 
+                                        backgroundColor: isDark ? 'rgba(28,28,30,0.96)' : 'rgba(255,255,255,0.96)',
+                                        borderColor 
+                                    }}
+                                    dir={isAr ? 'rtl' : 'ltr'}
+                                >
+                                    {/* Quantity Controls */}
+                                    <div className="flex items-center gap-2 bg-black/5 dark:bg-white/10 rounded-2xl px-2 py-1.5 border border-black/5 dark:border-white/10 shrink-0" dir="ltr">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setQty(Math.max(1, qty - 1))}
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                            style={{ color: textMain }}
+                                            aria-label="Decrease quantity"
+                                        >
+                                            <Minus className="w-4 h-4" />
+                                        </button>
+                                        <span className="font-black text-sm w-5 text-center">{qty}</span>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setQty(qty + 1)}
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                            style={{ color: primaryColor }}
+                                            aria-label="Increase quantity"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    {/* Add to Cart Button */}
+                                    <button 
+                                        type="button"
+                                        onClick={addToCart} 
+                                        className="flex-1 h-12 sm:h-13 rounded-2xl flex items-center justify-between px-4 text-white font-bold text-sm sm:text-base shadow-lg transition-transform active:scale-95"
+                                        style={{ backgroundColor: primaryColor }}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                                            <span>{isAr ? 'أضف للسلة' : 'Add to Cart'}</span>
+                                        </div>
+                                        <div className="h-8 px-2.5 rounded-xl flex items-center justify-center bg-black/20 text-white font-black text-xs sm:text-sm" dir="ltr">
+                                            {((selectedItem.item.prices?.[sizeIdx] || 0) * qty)} {cur}
+                                        </div>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}
