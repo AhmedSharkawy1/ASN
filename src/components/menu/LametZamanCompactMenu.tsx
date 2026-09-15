@@ -465,9 +465,9 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                             <div className="p-3 flex flex-col justify-between flex-1">
                                                 <h3 className="font-bold text-sm sm:text-base mb-1 leading-tight line-clamp-2">{itemName(item)}</h3>
                                                 <div className="text-left mt-auto w-full pt-1" dir="ltr">
-                                                    <div className="flex flex-col gap-1 w-full">
+                                                    <div className={`w-full ${item.prices && item.prices.length > 2 ? 'grid grid-cols-2 gap-1' : 'flex flex-col gap-1'}`}>
                                                         {item.prices?.map((price, pIdx) => (
-                                                            <div key={pIdx} className="flex items-center justify-between w-full">
+                                                            <div key={pIdx} className="flex items-center justify-between w-full min-w-0">
                                                                 <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
                                                                     {item.size_labels?.[pIdx] && (
                                                                         <span className="text-[10px] font-bold opacity-70 truncate block">{item.size_labels[pIdx]}</span>
@@ -475,9 +475,9 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                 </div>
                                                                 <div className="flex items-center gap-1 shrink-0 ml-1">
                                                                     {item.old_prices?.[pIdx] ? (
-                                                                        <span className="text-xs line-through opacity-50">{item.old_prices[pIdx]}</span>
+                                                                        <span className="text-[10px] line-through opacity-50">{item.old_prices[pIdx]}</span>
                                                                     ) : null}
-                                                                    <span className="font-black text-sm sm:text-base" style={{ color: primaryColor }}>{price} {cur}</span>
+                                                                    <span className="font-black text-xs sm:text-sm" style={{ color: primaryColor }}>{price} {cur}</span>
                                                                 </div>
                                                             </div>
                                                         ))}
@@ -698,20 +698,22 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
 
                                                             {/* Multiple Sizes vs Single Size */}
                                                             {hasMultipleSizes ? (
-                                                                <div className="flex flex-wrap items-center gap-1 mt-1.5" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                <div className="grid grid-cols-2 gap-1.5 mt-1.5 w-full" dir={isAr ? 'rtl' : 'ltr'}>
                                                                     {item.prices.map((price, pIdx) => {
                                                                         const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                         const oldPrice = item.old_prices?.[pIdx];
                                                                         return (
-                                                                            <span 
+                                                                            <div 
                                                                                 key={pIdx} 
-                                                                                className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-lg border border-black/5 dark:border-white/10"
+                                                                                className="flex items-center justify-between gap-1 text-[10px] sm:text-[11px] font-bold px-1.5 py-0.5 rounded-lg border border-black/5 dark:border-white/10 min-w-0"
                                                                                 style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)' }}
                                                                             >
-                                                                                <span className="opacity-70">{label}:</span>
-                                                                                {oldPrice ? <span className="line-through opacity-40 text-[9px]">{oldPrice}</span> : null}
-                                                                                <span style={{ color: primaryColor }} className="font-black">{price} {cur}</span>
-                                                                            </span>
+                                                                                <span className="opacity-70 truncate min-w-0">{label}:</span>
+                                                                                <div className="flex items-center gap-0.5 shrink-0">
+                                                                                    {oldPrice ? <span className="line-through opacity-40 text-[8px]">{oldPrice}</span> : null}
+                                                                                    <span style={{ color: primaryColor }} className="font-black whitespace-nowrap">{price} {cur}</span>
+                                                                                </div>
+                                                                            </div>
                                                                         );
                                                                     })}
                                                                 </div>
@@ -824,9 +826,9 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                                 </p>
                                                             )}
 
-                                                            <div className="mt-auto flex flex-col w-full gap-1 pt-2" dir="ltr">
+                                                            <div className={`mt-auto ${item.prices && item.prices.length > 2 ? 'grid grid-cols-2 gap-x-2 gap-y-1' : 'flex flex-col gap-1'} w-full pt-2`} dir="ltr">
                                                                 {item.prices?.map((price, pIdx) => (
-                                                                    <div key={pIdx} className="flex items-center justify-between w-full">
+                                                                    <div key={pIdx} className="flex items-center justify-between w-full min-w-0">
                                                                         <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
                                                                             {item.size_labels?.[pIdx] && (
                                                                                 <span className={`${viewMode === 'single' ? 'text-xs font-bold' : 'text-[10px] font-bold'} opacity-70 truncate block`}>
