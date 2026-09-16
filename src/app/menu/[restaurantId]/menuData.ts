@@ -70,6 +70,8 @@ export type RestaurantConfig = {
   default_theme_mode?: "light" | "dark" | "system";
   show_asn_branding?: boolean;
   high_quality_images?: boolean;
+  /** Per-restaurant switch. false disables the menu views counter. */
+  views_tracking_enabled?: boolean;
   // Vicino landing page fields.
   // vicino_logo_url may hold a JSON string: {"light":"...","dark":"..."}.
   vicino_landing_enabled?: boolean;
@@ -83,7 +85,7 @@ export type RestaurantConfig = {
 };
 
 const RESTAURANT_COLUMNS =
-  "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, menu_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, show_asn_branding, high_quality_images, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images";
+  "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, menu_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, show_asn_branding, high_quality_images, views_tracking_enabled, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -173,9 +175,9 @@ export async function loadMenu(restaurantId: string, previewTheme?: string): Pro
 
   let { data: config, error: configError } = await runRestaurantQuery(RESTAURANT_COLUMNS);
 
-  if (configError && /menu_enabled/.test(configError.message || "")) {
+  if (configError && /menu_enabled|views_tracking_enabled/.test(configError.message || "")) {
     ({ data: config } = await runRestaurantQuery(
-      RESTAURANT_COLUMNS.replace(", menu_enabled", "")
+      RESTAURANT_COLUMNS.replace(", menu_enabled", "").replace(", views_tracking_enabled", "")
     ));
   }
 

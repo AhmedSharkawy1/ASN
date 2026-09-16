@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, EyeOff, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -19,6 +19,8 @@ interface Client {
     is_marketing_account: boolean;
     /** false = public menu switched off by a super admin. */
     menu_enabled: boolean;
+    /** false = views/مشاهدات tracking disabled for this restaurant. */
+    views_tracking_enabled?: boolean;
     high_quality_images?: boolean;
 }
 
@@ -159,11 +161,12 @@ export default function SuperAdminClientsPage() {
         try {
             const BASE = 'id, name, slug, email, subscription_plan, subscription_expires_at, created_at, parent_id, is_marketing_account, high_quality_images';
 
-            // menu_enabled comes from add_menu_enabled.sql. PostgREST rejects
-            // the whole query on an unknown column, so if the migration has not
-            // run yet this page would show nothing at all. Retried without it,
-            // which leaves the client list working and only the menu switch
-            // inactive until the migration is applied.
+            // menu_enabled comes from add_menu_enabled.sql, views_tracking_enabled
+            // from add_views_tracking_enabled.sql. PostgREST rejects the whole
+            // query on an unknown column, so if the migration has not run yet
+            // this page would show nothing at all. Retried without them, which
+            // leaves the client list working and only the switches inactive
+            // until the migrations are applied.
             // The two selects return different row shapes, so the result is held
             // loosely and narrowed once at the end.
             const run = (cols: string) => supabase
@@ -172,8 +175,11 @@ export default function SuperAdminClientsPage() {
                 .order('created_at', { ascending: false });
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let result: { data: any; error: any } = await run(`${BASE}, menu_enabled`);
+            let result: { data: any; error: any } = await run(`${BASE}, menu_enabled, views_tracking_enabled`);
 
+            if (result.error && /menu_enabled|views_tracking_enabled/.test(result.error.message || '')) {
+                result = await run(`${BASE}, menu_enabled`);
+            }
             if (result.error && /menu_enabled/.test(result.error.message || '')) {
                 result = await run(BASE);
             }
@@ -404,6 +410,28 @@ export default function SuperAdminClientsPage() {
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to toggle menu. Has add_menu_enabled.sql been run?");
+        }
+    };
+
+    // Toggle views/مشاهدات tracking per restaurant. No confirm needed since
+    // this does not affect the menu's availability for customers.
+    const handleToggleViewsTracking = async (client: Client) => {
+        const turningOff = client.views_tracking_enabled !== false;
+        try {
+            const newValue = !turningOff;
+            const { error } = await supabase
+                .from('restaurants')
+                .update({ views_tracking_enabled: newValue })
+                .eq('id', client.id);
+            if (error) throw error;
+            setClients(clients.map(c => c.id === client.id ? { ...c, views_tracking_enabled: newValue } : c));
+            toast.success(newValue
+                ? (language === 'ar' ? `تم تفعيل المشاهدات لـ ${client.name}` : `Views tracking enabled for ${client.name}`)
+                : (language === 'ar' ? `تم إيقاف المشاهدات لـ ${client.name}` : `Views tracking disabled for ${client.name}`)
+            );
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error("Failed to toggle views tracking. Has add_views_tracking_enabled.sql been run?");
         }
     };
 
@@ -764,6 +792,18 @@ export default function SuperAdminClientsPage() {
                                                       >
                                                           <MessageCircle className="w-4 h-4" />
                                                       </button>
+                                                    {/* Views tracking toggle — amber when on, gray when off */}
+                                                    <button
+                                                        onClick={() => handleToggleViewsTracking(client)}
+                                                        className={`p-2 rounded-lg transition-colors ${client.views_tracking_enabled === false
+                                                            ? 'text-stone-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10'
+                                                            : 'text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10'}`}
+                                                        title={client.views_tracking_enabled === false
+                                                            ? (language === 'ar' ? 'المشاهدات متوقفة — اضغط للتفعيل' : 'Views tracking OFF — click to enable')
+                                                            : (language === 'ar' ? 'المشاهدات مفعلة — اضغط للإيقاف' : 'Views tracking ON — click to disable')}
+                                                    >
+                                                        {client.views_tracking_enabled === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
                                                     {/* Held red while the menu is off, so a paused client is
                                                         obvious at a glance rather than only inside a modal. */}
                                                     <button

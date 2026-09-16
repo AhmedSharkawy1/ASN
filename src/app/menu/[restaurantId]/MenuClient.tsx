@@ -191,6 +191,9 @@ export default function MenuClient({
       const isPreview = urlParams.has("previewTheme") || urlParams.has("preview_theme");
       if (isPreview || config.id === "demo") return;
 
+      // Skip if views tracking is disabled for this restaurant
+      if (config.views_tracking_enabled === false) return;
+
       // 1-day (24 hours) protection cooldown per user/device
       const viewKey = `asn_menu_view_date_${config.id}`;
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;

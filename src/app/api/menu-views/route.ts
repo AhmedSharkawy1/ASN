@@ -71,6 +71,17 @@ export async function POST(req: Request) {
 
     const planKey = `menu_views_${restaurant_id}`;
 
+    // Check if views tracking is enabled for this restaurant
+    const { data: restaurant } = await supabaseAdmin
+      .from('restaurants')
+      .select('views_tracking_enabled')
+      .eq('id', restaurant_id)
+      .maybeSingle();
+
+    if (restaurant?.views_tracking_enabled === false) {
+      return NextResponse.json({ success: true, skipped: true }, { headers: CORS_HEADERS });
+    }
+
     // Get current views count
     const { data: existing } = await supabaseAdmin
       .from('subscription_plans')
