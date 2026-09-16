@@ -105,7 +105,9 @@ export default function middleware(req: NextRequest) {
         if (path === '/' || (!path.startsWith('/menu/') && !path.startsWith('/api'))) {
             const targetPath = path === '/' ? `/menu/${subdomain}` : `/menu/${subdomain}${path}`;
             console.log(`[Middleware] Subdomain ${subdomain} -> Dynamic Rewrite to ${targetPath}`);
-            return NextResponse.rewrite(new URL(`${targetPath}${url.search || ''}`, req.url));
+            const response = NextResponse.rewrite(new URL(`${targetPath}${url.search || ''}`, req.url));
+            response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+            return response;
         }
     }
 
