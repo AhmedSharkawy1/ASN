@@ -291,8 +291,6 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
 
     const displayCategories = searchQuery ? searchedCategories : activeCatList;
 
-    if (!mounted) return <div className="min-h-screen" style={{ backgroundColor: bgBody }} />;
-
     return (
         <div 
             className="min-h-screen font-cairo pb-32 relative transition-colors duration-300 antialiased" 

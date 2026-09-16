@@ -603,7 +603,7 @@ export default function ThemePage() {
                             </p>
                         </div>
                         <a
-                            href={restaurantId ? ((window as any).rSlug ? `https://${(window as any).rSlug}.asntechnology.net` : `/menu/${restaurantId}`) : "#"}
+                            href={restaurantId ? `/menu/${(window as any).rSlug || restaurantId}` : "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 bg-blue/10 hover:bg-blue/20 text-blue font-black px-4 py-2.5 rounded-xl text-xs transition-all shrink-0"

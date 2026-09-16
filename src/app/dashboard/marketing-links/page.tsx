@@ -231,7 +231,7 @@ export default function MarketingLinksPage() {
 
     const getThemeUrl = (themeKey: string) => {
         if (!restaurantSlug) return "#";
-        return `https://${restaurantSlug}.${ROOT_DOMAIN}?preview_theme=${themeKey}`;
+        return `https://${ROOT_DOMAIN}/menu/${restaurantSlug}?preview_theme=${themeKey}`;
     };
 
     const handleCopy = async (themeKey: string) => {

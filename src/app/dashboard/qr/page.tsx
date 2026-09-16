@@ -25,15 +25,12 @@ export default function QRPage() {
         supabase.from('tables').select('id, label').eq('restaurant_id', restaurantId).then(({ data }) => setTables((data as TableQR[]) || []));
     }, [restaurantId]);
 
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://asntechnology.net';
     const getQRUrl = () => {
-        if (slug) {
-            const domain = `https://${slug}.asntechnology.net`;
-            if (selectedItem === "menu") return domain;
-            return `${domain}?table=${selectedItem}`;
-        }
-        if (selectedItem === "menu") return `${baseUrl}/menu/${restaurantId}`;
-        return `${baseUrl}/menu/${restaurantId}?table=${selectedItem}`;
+        const identifier = slug || restaurantId;
+        const baseMenu = `${baseUrl}/menu/${identifier}`;
+        if (selectedItem === "menu") return baseMenu;
+        return `${baseMenu}?table=${selectedItem}`;
     };
 
     const downloadQR = (label: string) => {

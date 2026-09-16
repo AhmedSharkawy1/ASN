@@ -587,8 +587,8 @@ export default function SettingsPage() {
                             </div>
                             <p className="text-[10px] text-slate-500 px-1">
                                 {language === "ar" 
-                                    ? `سيصبح رابطك: ${profile.slug || "brand"}.asntechnology.net` 
-                                    : `Your link will be: ${profile.slug || "brand"}.asntechnology.net`}
+                                    ? `رابط المنيو: asntechnology.net/menu/${profile.slug || "brand"}` 
+                                    : `Your menu link: asntechnology.net/menu/${profile.slug || "brand"}`}
                             </p>
                         </div>
                         <div className="space-y-2">

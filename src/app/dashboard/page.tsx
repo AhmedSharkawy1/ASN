@@ -163,12 +163,8 @@ export default function UserDashboardPage() {
     useEffect(() => {
         if (restaurantId) {
             const slug = (window as any).rSlug;
-            const isLocal = origin.includes('localhost') || origin.includes('127.0.0.1');
-            if (slug && !isLocal) {
-                setMenuUrl(`https://${slug}.asntechnology.net`);
-            } else if (origin) {
-                setMenuUrl(`${origin}/menu/${slug || restaurantId}`);
-            }
+            const currentOrigin = origin || (typeof window !== "undefined" ? window.location.origin : "https://asntechnology.net");
+            setMenuUrl(`${currentOrigin}/menu/${slug || restaurantId}`);
         }
     }, [restaurantId, origin]);
 
