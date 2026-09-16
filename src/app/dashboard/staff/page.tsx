@@ -238,6 +238,9 @@ export default function StaffPage() {
         const { data: pp } = await supabase.from('page_permissions').select('page_key, can_view').eq('user_id', staff.id);
         const permMap: Record<string, boolean> = {};
         if (pp) pp.forEach(p => permMap[p.page_key] = p.can_view);
+        if (['cashier', 'staff', 'delivery', 'kitchen'].includes(staff.role)) {
+            permMap['orders_edit_delete'] = false;
+        }
         setPermissions(permMap);
         setIsPermissionsModalOpen(true);
     };
@@ -246,15 +249,21 @@ export default function StaffPage() {
         if (!selectedStaff) return;
         setSaving(true);
         try {
-            const ppPayload = Object.keys(permissions).map(key => ({
+            const isRestrictedRole = ['cashier', 'staff', 'delivery', 'kitchen'].includes(selectedStaff.role);
+            const sanitizedPerms = { ...permissions };
+            if (isRestrictedRole) {
+                sanitizedPerms['orders_edit_delete'] = false;
+            }
+
+            const ppPayload = Object.keys(sanitizedPerms).map(key => ({
                 user_id: selectedStaff.id,
                 page_key: key,
-                can_view: permissions[key]
+                can_view: sanitizedPerms[key]
             }));
             await supabase.from('page_permissions').upsert(ppPayload, { onConflict: 'user_id,page_key' });
 
             // Also sync to team_members.permissions (this is what dashboard layout reads for nav filtering)
-            await supabase.from('team_members').update({ permissions }).eq('id', selectedStaff.id);
+            await supabase.from('team_members').update({ permissions: sanitizedPerms }).eq('id', selectedStaff.id);
 
             toast.success(isAr ? "تم تحديث الصلاحيات بدقة للصفحات" : "Page permissions updated perfectly");
             setIsPermissionsModalOpen(false);
@@ -269,6 +278,7 @@ export default function StaffPage() {
     const AVAILABLE_PAGES = [
         { key: 'dashboard', nameEn: 'Dashboard (Main)', nameAr: 'الرئيسية' },
         { key: 'orders', nameEn: 'Orders System', nameAr: 'نظام الطلبيات' },
+        { key: 'orders_edit_delete', nameEn: 'Edit & Delete Orders (Manager & Owner Only)', nameAr: 'تعديل وحذف الطلبات (للمدير وصاحب المطعم فقط)' },
         { key: 'pos', nameEn: 'POS Terminal', nameAr: 'نقطة البيع (POS)' },
         { key: 'kitchen', nameEn: 'Kitchen Display', nameAr: 'شاشة المطبخ' },
         { key: 'reports', nameEn: 'Reports', nameAr: 'التقارير' },
@@ -387,10 +397,12 @@ export default function StaffPage() {
                                         <td className="px-6 py-4">
                                             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-extrabold bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300 uppercase">
                                                 <Shield className="w-3.5 h-3.5" /> 
-                                                {isAr && staff.role === 'admin' ? 'مدير' : 
-                                                 isAr && staff.role === 'cashier' ? 'كاشير' : 
-                                                 isAr && staff.role === 'delivery' ? 'دليفري' :
-                                                 isAr ? 'موظف' : staff.role}
+                                                {isAr && (staff.role === 'admin' || staff.role === 'manager') ? 'مدير' : 
+                                                 isAr && staff.role === 'cashier' ? 'كاشير محترف' : 
+                                                 isAr && staff.role === 'delivery' ? 'توصيل (دليفري)' :
+                                                 isAr && staff.role === 'staff' ? 'موظف عادي' :
+                                                 isAr && staff.role === 'kitchen' ? 'مطبخ' :
+                                                 isAr ? 'موظف عادي' : staff.role}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
@@ -552,25 +564,37 @@ export default function StaffPage() {
                             </p>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 overflow-y-auto max-h-[60vh] pr-2" style={{ scrollbarWidth: 'thin' }}>
-                                {filteredAvailablePages.map(page => (
-                                    <button key={page.key} 
-                                        onClick={() => setPermissions(p => ({ ...p, [page.key]: !p[page.key] }))}
-                                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 text-right ${
-                                            permissions[page.key]
-                                            ? 'bg-white dark:bg-[#131b26] border-indigo-500 shadow-md shadow-indigo-500/10 scale-[1.02]'
-                                            : 'bg-white/50 dark:bg-[#131b26]/50 border-stone-200 dark:border-stone-800 hover:border-indigo-300'
-                                        }`}
-                                    >
-                                        <span className={`font-extrabold transition-colors ${permissions[page.key] ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-zinc-500'}`}>
-                                            {isAr ? page.nameAr : page.nameEn}
-                                        </span>
-                                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
-                                            permissions[page.key] ? 'bg-indigo-500 shadow-lg shadow-indigo-500/30' : 'bg-stone-200 dark:bg-zinc-800'
-                                        }`}>
-                                            {permissions[page.key] && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
-                                        </div>
-                                    </button>
-                                ))}
+                                {filteredAvailablePages.map(page => {
+                                    const isEditDeleteLocked = page.key === 'orders_edit_delete' && selectedStaff && ['cashier', 'staff', 'delivery', 'kitchen'].includes(selectedStaff.role);
+                                    return (
+                                        <button key={page.key} 
+                                            onClick={() => {
+                                                if (isEditDeleteLocked) {
+                                                    toast.info(isAr ? "عذراً، تعديل وحذف الطلبات المنشأة متاح فقط للمدير وصاحب المطعم" : "Edit and delete orders is restricted to manager and owner only");
+                                                    return;
+                                                }
+                                                setPermissions(p => ({ ...p, [page.key]: !p[page.key] }));
+                                            }}
+                                            title={isEditDeleteLocked ? (isAr ? "متاح فقط للمدير وصاحب المطعم" : "Restricted to manager and owner") : undefined}
+                                            className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 text-right ${
+                                                isEditDeleteLocked
+                                                ? 'opacity-50 cursor-not-allowed bg-slate-100 dark:bg-zinc-900 border-dashed border-stone-300 dark:border-stone-700'
+                                                : permissions[page.key]
+                                                ? 'bg-white dark:bg-[#131b26] border-indigo-500 shadow-md shadow-indigo-500/10 scale-[1.02]'
+                                                : 'bg-white/50 dark:bg-[#131b26]/50 border-stone-200 dark:border-stone-800 hover:border-indigo-300'
+                                            }`}
+                                        >
+                                            <span className={`font-extrabold transition-colors ${isEditDeleteLocked ? 'text-slate-400 dark:text-zinc-500' : permissions[page.key] ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-zinc-500'}`}>
+                                                {isEditDeleteLocked ? "🔒 " : ""}{isAr ? page.nameAr : page.nameEn}
+                                            </span>
+                                            <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                                                isEditDeleteLocked ? 'bg-stone-200 dark:bg-zinc-800 opacity-50' : permissions[page.key] ? 'bg-indigo-500 shadow-lg shadow-indigo-500/30' : 'bg-stone-200 dark:bg-zinc-800'
+                                            }`}>
+                                                {!isEditDeleteLocked && permissions[page.key] && <Check className="w-4 h-4 text-white" strokeWidth={3} />}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 

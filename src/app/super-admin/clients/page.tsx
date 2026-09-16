@@ -147,6 +147,7 @@ export default function SuperAdminClientsPage() {
                 { key: 'theme_vicino', nameEn: 'Vicino Landing Page Settings', nameAr: 'تعديل الصفحة الرئيسية (Vicino)' },
                 { key: 'theme_aswan', nameEn: 'ASWAN Theme Settings', nameAr: 'إعدادات ثيم أسوان (ASWAN)' },
                 { key: 'theme_lamet_zaman', nameEn: 'Lamet Zaman BG Theme Settings', nameAr: 'إعدادات ثيم لمة زمان (خلفية صورة)' },
+                { key: 'theme27_settings', nameEn: 'Theme 27 (Large Menus) Settings', nameAr: 'إعدادات ثيم 27 (المنيوهات الكبيرة)' },
                 { key: 'theme_usa', nameEn: 'USA Theme Settings', nameAr: 'إعدادات ثيم USA (الأمريكي)' },
                 { key: 'theme_uae', nameEn: 'UAE Theme Settings', nameAr: 'إعدادات ثيم الإمارات (UAE)' },
                 { key: 'theme_usa_dual', nameEn: 'USA Dual Theme Settings', nameAr: 'إعدادات ثيم USA الثنائي (Bilingual)' },

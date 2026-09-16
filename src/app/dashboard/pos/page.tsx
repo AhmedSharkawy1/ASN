@@ -39,7 +39,7 @@ export default function POSPage() {
     const router = useRouter();
     const editId = searchParams.get("edit");
     const { language } = useLanguage();
-    const { restaurantId, restaurant } = useRestaurant();
+    const { restaurantId, restaurant, canEditOrders } = useRestaurant();
     const isAr = language === "ar";
 
     /* ── Data state ── */
@@ -260,6 +260,12 @@ export default function POSPage() {
         const loadOrderToEdit = async () => {
             if (!editId || !restaurantId || menuItems.length === 0) return;
             
+            if (canEditOrders === false) {
+                toast.error(isAr ? "عذراً، تعديل الطلبات المنشأة متاح فقط للمدير وصاحب المطعم" : "Editing created orders is restricted to manager and owner");
+                router.replace('/dashboard/pos');
+                return;
+            }
+
             // Avoid reloading same order
             if (editingOrderId === editId) return;
 
@@ -324,7 +330,7 @@ export default function POSPage() {
         };
 
         loadOrderToEdit();
-    }, [editId, restaurantId, menuItems, editingOrderId, isAr]);
+    }, [editId, restaurantId, menuItems, editingOrderId, isAr, canEditOrders, router]);
 
     /* ── Keyboard shortcuts ── */
     useEffect(() => {
@@ -511,6 +517,11 @@ export default function POSPage() {
 
             // 1. If editing, revert previous inventory deductions first
             if (editingOrderId) {
+                if (canEditOrders === false) {
+                    toast.error(isAr ? "عذراً، تعديل الطلبات متاح فقط للمدير وصاحب المطعم" : "Editing orders is restricted to manager and owner");
+                    setSubmitting(false);
+                    return;
+                }
                 await revertOrderInventory(restaurantId, editingOrderId);
             }
 

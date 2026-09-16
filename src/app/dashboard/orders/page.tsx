@@ -43,7 +43,7 @@ type Timeframe = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 export default function OrdersPage() {
     const router = useRouter();
     const { language } = useLanguage();
-    const { restaurantId, restaurant } = useRestaurant();
+    const { restaurantId, restaurant, canEditOrders, canDeleteOrders } = useRestaurant();
     const isAr = language === "ar";
 
     const formatOrderCurrency = useCallback((amount: number) => {
@@ -426,6 +426,11 @@ export default function OrdersPage() {
 
     // Delete order
     const deleteOrder = async (orderId: string) => {
+        if (!canDeleteOrders) {
+            toast.error(isAr ? "عذراً، حذف الطلبات متاح فقط للمدير وصاحب المطعم" : "Deleting orders is restricted to manager and owner");
+            return;
+        }
+
         if (!confirm(isAr ? "هل أنت متأكد من حذف هذا الطلب نهائياً؟ لا يمكن التراجع عن هذا الإجراء." : "Are you sure you want to permanently delete this order? This cannot be undone.")) return;
 
         const orderToDelete = orders.find(o => o.id === orderId);
@@ -831,13 +836,15 @@ export default function OrdersPage() {
                                             >
                                                 <Printer className="w-4 h-4" />
                                             </button>
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/pos?edit=${order.id}`); }}
-                                                title={isAr ? "تعديل الطلب" : "Edit Order"}
-                                                className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
+                                            {canEditOrders && (
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/pos?edit=${order.id}`); }}
+                                                    title={isAr ? "تعديل الطلب" : "Edit Order"}
+                                                    className="p-1.5 text-slate-500 dark:text-zinc-500 hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                             {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-500 dark:text-zinc-500" /> : <ChevronDown className="w-5 h-5 text-slate-500 dark:text-zinc-500" />}
                                         </div>
                                     </div>
@@ -935,16 +942,20 @@ export default function OrdersPage() {
                                                         <Printer className="w-4 h-4" />
                                                         {isAr ? "طباعة الفاتورة" : "Print Receipt"}
                                                     </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/pos?edit=${order.id}`); }}
-                                                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all active:scale-95 border border-blue-200 dark:border-zinc-800/20">
-                                                        <Edit2 className="w-4 h-4" />
-                                                        {isAr ? "تعديل الطلب" : "Edit Order"}
-                                                    </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); deleteOrder(order.id); }}
-                                                        className="flex items-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-xs rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-all active:scale-95 border border-red-200 dark:border-zinc-800/20">
-                                                        <Trash2 className="w-4 h-4" />
-                                                        {isAr ? "حذف نهائي" : "Delete"}
-                                                    </button>
+                                                    {canEditOrders && (
+                                                        <button onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/pos?edit=${order.id}`); }}
+                                                            className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs rounded-xl hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all active:scale-95 border border-blue-200 dark:border-zinc-800/20">
+                                                            <Edit2 className="w-4 h-4" />
+                                                            {isAr ? "تعديل الطلب" : "Edit Order"}
+                                                        </button>
+                                                    )}
+                                                    {canDeleteOrders && (
+                                                        <button onClick={(e) => { e.stopPropagation(); deleteOrder(order.id); }}
+                                                            className="flex items-center gap-2 px-4 py-2.5 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-xs rounded-xl hover:bg-red-100 dark:hover:bg-red-500/20 transition-all active:scale-95 border border-red-200 dark:border-zinc-800/20">
+                                                            <Trash2 className="w-4 h-4" />
+                                                            {isAr ? "حذف نهائي" : "Delete"}
+                                                        </button>
+                                                    )}
                                                 </div>
 
                                                 {/* Activity Log */}

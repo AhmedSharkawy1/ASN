@@ -24,6 +24,8 @@ type RestaurantData = {
 export function useRestaurant() {
     const [restaurant, setRestaurant] = useState<RestaurantData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState<string | null>(null);
+    const [isOwner, setIsOwner] = useState<boolean>(false);
 
     useEffect(() => {
         let isMounted = true;
@@ -43,6 +45,15 @@ export function useRestaurant() {
                         logo_url: cached.restaurant_logo || undefined,
                         theme: cached.theme || undefined,
                     } as RestaurantData);
+
+                    if (cached.permissions_json) {
+                        try {
+                            const p = JSON.parse(cached.permissions_json);
+                            if (p._role) setUserRole(p._role);
+                            if (p._isOwner !== undefined) setIsOwner(Boolean(p._isOwner));
+                            else if (p._isAdmin) setIsOwner(true);
+                        } catch {}
+                    }
                     setLoading(false);
                 }
             } catch {}
@@ -60,6 +71,12 @@ export function useRestaurant() {
                             subscription_plan: 'pro',
                             subscription_expires_at: null,
                         } as RestaurantData);
+                        if (parsed.user?.role) {
+                            setUserRole(parsed.user.role);
+                            if (parsed.user.role === 'admin' && !parsed.user.email?.endsWith('.asn')) {
+                                setIsOwner(true);
+                            }
+                        }
                         setLoading(false);
                     }
                 }
@@ -76,22 +93,47 @@ export function useRestaurant() {
 
                 const email = user.email || "";
                 let rId: string | null = null;
+                let resolvedRole: string | null = null;
+                let resolvedIsOwner = false;
 
                 const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
 
                 if (impersonatingTenant) {
                     rId = impersonatingTenant;
+                    resolvedRole = 'owner';
+                    resolvedIsOwner = true;
                 } else if (email.endsWith('.asn')) {
-                    const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).maybeSingle();
-                    if (staff) rId = staff.restaurant_id;
+                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, role').eq('auth_id', user.id).maybeSingle();
+                    if (staff) {
+                        rId = staff.restaurant_id;
+                        resolvedRole = staff.role || 'staff';
+                        resolvedIsOwner = false;
+                    }
                 } else {
                     const { data: rest } = await supabase.from('restaurants').select('id').eq('email', email).maybeSingle();
                     if (rest) {
                         rId = rest.id;
+                        resolvedRole = 'owner';
+                        resolvedIsOwner = true;
                     } else {
-                        const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).maybeSingle();
-                        if (staff) rId = staff.restaurant_id;
+                        const { data: staff } = await supabase.from('team_members').select('restaurant_id, role').eq('auth_id', user.id).maybeSingle();
+                        if (staff) {
+                            rId = staff.restaurant_id;
+                            resolvedRole = staff.role || 'staff';
+                            resolvedIsOwner = false;
+                        } else {
+                            const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+                            if (roleData?.role === 'super_admin') {
+                                resolvedRole = 'owner';
+                                resolvedIsOwner = true;
+                            }
+                        }
                     }
+                }
+
+                if (isMounted && resolvedRole) {
+                    setUserRole(resolvedRole);
+                    setIsOwner(resolvedIsOwner);
                 }
 
                 if (rId && isMounted) {
@@ -128,5 +170,20 @@ export function useRestaurant() {
         };
     }, []);
 
-    return { restaurant, loading, restaurantId: restaurant?.id || null, slug: restaurant?.slug || null };
+    const isManager = isOwner || userRole === 'admin' || userRole === 'manager';
+    const isRestrictedRole = userRole === 'cashier' || userRole === 'staff' || userRole === 'delivery' || userRole === 'kitchen';
+    const canEditOrders = isManager && !isRestrictedRole;
+    const canDeleteOrders = isManager && !isRestrictedRole;
+
+    return { 
+        restaurant, 
+        loading, 
+        restaurantId: restaurant?.id || null, 
+        slug: restaurant?.slug || null,
+        userRole,
+        isOwner,
+        isManager,
+        canEditOrders,
+        canDeleteOrders,
+    };
 }

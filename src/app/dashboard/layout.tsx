@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
     const [isOnline, setIsOnline] = useState(true);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
-    const [permissions, setPermissions] = useState<Record<string, boolean> | null>(null);
+    const [permissions, setPermissions] = useState<Record<string, any> | null>(null);
     const [isDesktopApp, setIsDesktopApp] = useState(false);
     const [syncStatus, setSyncStatus] = useState({ pending: 0, lastSync: null, deviceId: null });
     const restaurantIdRef = useRef<string | null>(null);
@@ -207,7 +207,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             let rName = "";
             let rTheme = "";
             let rLogo = null;
-            let tempPermissions: Record<string, boolean> = {};
+            let tempPermissions: Record<string, any> = {};
 
             // Check super_admin status
             const { data: roleData, error: roleError } = await supabase
@@ -238,6 +238,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
 
             let isStaffFlag = false;
+            let currentStaffRole = 'owner';
 
             if (!rId) {
                 if (email?.endsWith(".asn") || (roleData && roleData.role === 'staff')) {
@@ -247,6 +248,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     if (staffError) console.error("ASN_LOG: Staff Lookup Error:", staffError);
 
                     if (staff) {
+                        currentStaffRole = staff.role || 'staff';
                         if (!staff.is_active) {
                             await supabase.auth.signOut();
                             router.push("/login");
@@ -289,6 +291,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         
                         if (staffFallback) {
                             isStaffFlag = true;
+                            currentStaffRole = staffFallback.role || 'staff';
                             if (!staffFallback.is_active) {
                                 await supabase.auth.signOut();
                                 router.push("/login");
@@ -356,14 +359,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     cpa.forEach(p => { tenantPerms[p.page_key] = p.enabled; });
                 }
 
+                const isRestrictedRole = ['cashier', 'staff', 'delivery', 'kitchen'].includes(currentStaffRole);
+                const isManagerOrOwner = !isStaffFlag || currentStaffRole === 'admin' || currentStaffRole === 'manager';
+                const canEditDelete = isManagerOrOwner && !isRestrictedRole;
+
                 if (!isStaffFlag) {
-                    tempPermissions = { ...tenantPerms, _isAdmin: true };
+                    tempPermissions = { 
+                        ...tenantPerms, 
+                        _isAdmin: true, 
+                        _role: 'owner', 
+                        _isOwner: true, 
+                        orders_edit_delete: true 
+                    };
                 } else {
                     const merged = { ...tempPermissions };
                     Object.keys(tenantPerms).forEach(key => {
                         if (tenantPerms[key] === false) merged[key] = false;
                     });
-                    tempPermissions = { ...merged, _isAdmin: false };
+                    tempPermissions = { 
+                        ...merged, 
+                        _isAdmin: isManagerOrOwner, 
+                        _role: currentStaffRole, 
+                        _isOwner: false, 
+                        orders_edit_delete: canEditDelete 
+                    };
                 }
                 
                 try {
@@ -652,9 +671,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
 
     const expandedPermissions = useMemo(() => {
-        const p = permissions as Record<string, boolean> | null;
+        const p = permissions as Record<string, any> | null;
         if (!p) return p;
-        const expanded: Record<string, boolean> = { ...p };
+        const expanded: Record<string, any> = { ...p };
         // Expand broad keys to specific keys
         for (const [broadKey, specificKeys] of Object.entries(BROAD_TO_SPECIFIC)) {
             if (broadKey in expanded && expanded[broadKey]) {
@@ -670,7 +689,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const filteredNavSections = useMemo(() => {
         return navSections.map(section => {
-            const p = expandedPermissions as Record<string, boolean> | null;
+            const p = expandedPermissions as Record<string, any> | null;
             if (!p) return section;
             const filteredItems = section.items.filter((item: NavItem) => {
                 if (!item.key) return true; // Items without key always show

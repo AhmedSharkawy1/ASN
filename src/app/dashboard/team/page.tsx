@@ -12,17 +12,18 @@ import { formatCurrency } from "@/lib/helpers/formatters";
 type TeamMember = { id: string; auth_id?: string; name: string; username?: string; email?: string; phone?: string; role: string; permissions: Record<string, boolean>; is_active: boolean; created_at: string };
 
 const roles = [
-    { value: "admin", labelAr: "مسؤول", labelEn: "Admin" },
+    { value: "admin", labelAr: "مسؤول / مدير", labelEn: "Admin / Manager" },
     { value: "manager", labelAr: "مدير", labelEn: "Manager" },
+    { value: "cashier", labelAr: "كاشير محترف", labelEn: "Cashier" },
+    { value: "staff", labelAr: "موظف عادي", labelEn: "Staff" },
+    { value: "delivery", labelAr: "توصيل (دليفري)", labelEn: "Delivery" },
     { value: "kitchen", labelAr: "مطبخ", labelEn: "Kitchen" },
-    { value: "cashier", labelAr: "كاشير", labelEn: "Cashier" },
-    { value: "delivery", labelAr: "توصيل", labelEn: "Delivery" },
-    { value: "staff", labelAr: "موظف", labelEn: "Staff" },
 ];
 
 const ALL_PAGE_PERMS = [
     { section: "الطلبات", sectionEn: "Orders", items: [
         { key: "orders", ar: "نظام الطلبيات", en: "Orders" },
+        { key: "orders_edit_delete", ar: "تعديل وحذف الطلبات (مدير وصاحب مطعم فقط)", en: "Edit & Delete Orders (Manager & Owner Only)" },
         { key: "pos", ar: "نقطة البيع (POS)", en: "POS" },
         { key: "kitchen", ar: "شاشة المطبخ", en: "Kitchen" },
         { key: "reports", ar: "التقارير", en: "Reports" },
@@ -112,10 +113,15 @@ export default function TeamPage() {
         if (!restaurantId || !form.name.trim()) return;
         
         try {
+            const sanitizedPerms = { ...form.permissions };
+            if (['cashier', 'staff', 'delivery', 'kitchen'].includes(form.role)) {
+                sanitizedPerms['orders_edit_delete'] = false;
+            }
+
             if (editId) {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { username, password, ...restForm } = form;
-                await supabase.from('team_members').update(restForm).eq('id', editId);
+                await supabase.from('team_members').update({ ...restForm, permissions: sanitizedPerms }).eq('id', editId);
 
                 const member = members.find(m => m.id === editId);
                 if (member?.auth_id) {
@@ -139,7 +145,7 @@ export default function TeamPage() {
                 const res = await fetch("/api/team/create", {
                     method: "POST",
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...form, restaurant_id: restaurantId })
+                    body: JSON.stringify({ ...form, permissions: sanitizedPerms, restaurant_id: restaurantId })
                 });
                 const data = await res.json();
                 if (!res.ok) {
@@ -176,9 +182,34 @@ export default function TeamPage() {
         }
     };
     const handleToggleActive = async (m: TeamMember) => { await supabase.from('team_members').update({ is_active: !m.is_active }).eq('id', m.id); fetchMembers(); };
-    const startEdit = (m: TeamMember) => { setForm({ name: m.name, username: m.username || "", password: "", email: m.email || "", phone: m.phone || "", role: m.role, permissions: m.permissions }); setEditId(m.id); setShowForm(true); };
-    const resetForm = () => { setForm({ name: "", username: "", password: "", email: "", phone: "", role: "staff", permissions: { ...defaultPerms } }); setShowForm(false); setEditId(null); };
-    const togglePerm = (key: string) => setForm(p => ({ ...p, permissions: { ...p.permissions, [key]: !p.permissions[key] } }));
+    const startEdit = (m: TeamMember) => { 
+        const isRestricted = ['cashier', 'staff', 'delivery', 'kitchen'].includes(m.role);
+        const perms = { ...(m.permissions || {}) };
+        if (isRestricted) perms['orders_edit_delete'] = false;
+        setForm({ name: m.name, username: m.username || "", password: "", email: m.email || "", phone: m.phone || "", role: m.role, permissions: perms }); 
+        setEditId(m.id); 
+        setShowForm(true); 
+    };
+    const resetForm = () => { setForm({ name: "", username: "", password: "", email: "", phone: "", role: "staff", permissions: { ...defaultPerms, orders_edit_delete: false } }); setShowForm(false); setEditId(null); };
+    const togglePerm = (key: string) => {
+        if (key === 'orders_edit_delete' && ['cashier', 'staff', 'delivery', 'kitchen'].includes(form.role)) {
+            alert(isAr ? "عذراً، تعديل وحذف الطلبات المنشأة متاح فقط للمدير وصاحب المطعم" : "Edit and delete orders is restricted to manager and owner only");
+            return;
+        }
+        setForm(p => ({ ...p, permissions: { ...p.permissions, [key]: !p.permissions[key] } }));
+    };
+
+    const handleRoleSelect = (roleVal: string) => {
+        setForm(p => {
+            const nextPerms = { ...p.permissions };
+            if (['cashier', 'staff', 'delivery', 'kitchen'].includes(roleVal)) {
+                nextPerms['orders_edit_delete'] = false;
+            } else if (roleVal === 'admin' || roleVal === 'manager') {
+                nextPerms['orders_edit_delete'] = true;
+            }
+            return { ...p, role: roleVal, permissions: nextPerms };
+        });
+    };
 
     if (loading) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
 
@@ -224,7 +255,7 @@ export default function TeamPage() {
                                 <label className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase block mb-1">{isAr ? "الدور" : "Role"}</label>
                                 <div className="flex flex-wrap gap-2">
                                     {roles.map(r => (
-                                        <button key={r.value} onClick={() => setForm(p => ({ ...p, role: r.value }))}
+                                        <button key={r.value} onClick={() => handleRoleSelect(r.value)}
                                             className={`text-sm font-bold px-3 py-1.5 rounded-lg border transition ${form.role === r.value ? roleColors[r.value] : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"}`}>
                                             {isAr ? r.labelAr : r.labelEn}
                                         </button>
@@ -246,12 +277,22 @@ export default function TeamPage() {
                                             <div key={section.section}>
                                                 <p className="text-[10px] font-extrabold text-slate-400 dark:text-zinc-600 uppercase tracking-wider mb-1">{isAr ? section.section : section.sectionEn}</p>
                                                 <div className="flex flex-wrap gap-1.5">
-                                                    {visibleItems.map(p => (
-                                                        <button key={p.key} onClick={() => togglePerm(p.key)}
-                                                            className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition ${form.permissions[p.key] ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"}`}>
-                                                            {form.permissions[p.key] ? "✓ " : ""}{isAr ? p.ar : p.en}
-                                                        </button>
-                                                    ))}
+                                                    {visibleItems.map(p => {
+                                                        const isEditDeleteLocked = p.key === 'orders_edit_delete' && ['cashier', 'staff', 'delivery', 'kitchen'].includes(form.role);
+                                                        return (
+                                                            <button key={p.key} onClick={() => togglePerm(p.key)}
+                                                                title={isEditDeleteLocked ? (isAr ? "متاح فقط للمدير وصاحب المطعم" : "Restricted to manager and owner") : undefined}
+                                                                className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition ${
+                                                                    isEditDeleteLocked 
+                                                                        ? "opacity-50 cursor-not-allowed bg-slate-100 dark:bg-zinc-900 border-dashed border-slate-300 dark:border-zinc-700 text-slate-400"
+                                                                        : form.permissions[p.key] 
+                                                                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" 
+                                                                            : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"
+                                                                }`}>
+                                                                {isEditDeleteLocked ? "🔒 " : (form.permissions[p.key] ? "✓ " : "")}{isAr ? p.ar : p.en}
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         );
