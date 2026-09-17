@@ -26,6 +26,8 @@ export function useRestaurant() {
     const [loading, setLoading] = useState(true);
     const [userRole, setUserRole] = useState<string | null>(null);
     const [isOwner, setIsOwner] = useState<boolean>(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -62,6 +64,11 @@ export function useRestaurant() {
                 const offlineSession = typeof window !== 'undefined' ? localStorage.getItem('offline_session') : null;
                 if (offlineSession && isMounted) {
                     const parsed = JSON.parse(offlineSession);
+                    if (parsed.user?.id || parsed.id) {
+                        setCurrentUserId(parsed.user?.id || parsed.id);
+                    }
+                    const offName = parsed.user?.user_metadata?.name || parsed.user?.name || parsed.name || (parsed.user?.role === 'admin' ? "المدير" : "كاشير");
+                    if (offName) setCurrentUserName(offName);
                     if (parsed.restaurant_id) {
                         setRestaurant(prev => prev || {
                             id: parsed.restaurant_id,
@@ -90,11 +97,13 @@ export function useRestaurant() {
                 const { data: { session } } = await supabase.auth.getSession();
                 const user = session?.user;
                 if (!user) return;
+                if (isMounted) setCurrentUserId(user.id);
 
                 const email = user.email || "";
                 let rId: string | null = null;
                 let resolvedRole: string | null = null;
                 let resolvedIsOwner = false;
+                let resolvedName: string | null = user.user_metadata?.name || user.user_metadata?.full_name || null;
 
                 const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
 
@@ -102,38 +111,48 @@ export function useRestaurant() {
                     rId = impersonatingTenant;
                     resolvedRole = 'owner';
                     resolvedIsOwner = true;
+                    resolvedName = resolvedName || "المدير (مفوض)";
                 } else if (email.endsWith('.asn')) {
-                    const { data: staff } = await supabase.from('team_members').select('restaurant_id, role').eq('auth_id', user.id).maybeSingle();
+                    const { data: staff } = await supabase.from('team_members').select('id, auth_id, restaurant_id, role, name').eq('auth_id', user.id).maybeSingle();
                     if (staff) {
                         rId = staff.restaurant_id;
                         resolvedRole = staff.role || 'staff';
                         resolvedIsOwner = false;
+                        if (staff.name) resolvedName = staff.name;
                     }
                 } else {
-                    const { data: rest } = await supabase.from('restaurants').select('id').eq('email', email).maybeSingle();
+                    const { data: rest } = await supabase.from('restaurants').select('id, name').eq('email', email).maybeSingle();
                     if (rest) {
                         rId = rest.id;
                         resolvedRole = 'owner';
                         resolvedIsOwner = true;
+                        resolvedName = resolvedName || rest.name || "المدير";
                     } else {
-                        const { data: staff } = await supabase.from('team_members').select('restaurant_id, role').eq('auth_id', user.id).maybeSingle();
+                        const { data: staff } = await supabase.from('team_members').select('id, auth_id, restaurant_id, role, name').eq('auth_id', user.id).maybeSingle();
                         if (staff) {
                             rId = staff.restaurant_id;
                             resolvedRole = staff.role || 'staff';
                             resolvedIsOwner = false;
+                            if (staff.name) resolvedName = staff.name;
                         } else {
                             const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
                             if (roleData?.role === 'super_admin') {
                                 resolvedRole = 'owner';
                                 resolvedIsOwner = true;
+                                resolvedName = resolvedName || "مدير النظام";
                             }
                         }
                     }
                 }
 
-                if (isMounted && resolvedRole) {
-                    setUserRole(resolvedRole);
-                    setIsOwner(resolvedIsOwner);
+                if (isMounted) {
+                    if (resolvedRole) {
+                        setUserRole(resolvedRole);
+                        setIsOwner(resolvedIsOwner);
+                    }
+                    if (resolvedName) {
+                        setCurrentUserName(resolvedName);
+                    }
                 }
 
                 if (rId && isMounted) {
@@ -185,5 +204,7 @@ export function useRestaurant() {
         isManager,
         canEditOrders,
         canDeleteOrders,
+        currentUserId,
+        currentUserName,
     };
 }

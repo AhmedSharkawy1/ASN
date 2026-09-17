@@ -10,7 +10,7 @@ import {
     BarChart3, ShoppingCart, DollarSign,
     Package, Download, Users, CreditCard,
     Banknote, Smartphone, Calendar, ArrowUpRight,
-    ArrowUpDown
+    ArrowUpDown, Globe, Monitor
 } from "lucide-react";
 
 type DateRange = "today" | "yesterday" | "week" | "month" | "all" | "custom";
@@ -25,6 +25,7 @@ type OrderLike = {
     discount?: number;
     payment_method?: string;
     cashier_name?: string;
+    source?: string;
     items: { title: string; qty: number; price: number; category?: string; size?: string }[];
     created_at: string;
 };
@@ -51,7 +52,15 @@ type Stats = {
     topItems: ReportItem[];
     allItems: ReportItem[];
     categoryBreakdown: { name: string; items: number; revenue: number }[];
-    staffBreakdown: { name: string; orders: number; revenue: number }[];
+    staffBreakdown: {
+        name: string;
+        orders: number;
+        revenue: number;
+        posOrders: number;
+        posRevenue: number;
+        websiteOrders: number;
+        websiteRevenue: number;
+    }[];
     paymentBreakdown: { method: string; count: number; revenue: number }[];
     hourlyBreakdown: { hour: number; count: number; revenue: number }[];
 };
@@ -184,6 +193,7 @@ export default function ReportsPage() {
             discount: o.discount,
             payment_method: o.payment_method,
             cashier_name: o.cashier_name,
+            source: (o as any).source,
             items: (o.items || []).map((i: any) => ({
                 title: (i.title || "غير محدد").trim(),
                 qty: Number(i.qty ?? i.quantity) || 1,
@@ -202,7 +212,7 @@ export default function ReportsPage() {
             while (true) {
                 let query = supabase
                     .from('orders')
-                    .select('id, status, is_draft, total, deposit_amount, delivery_fee, discount, payment_method, cashier_name, items, created_at')
+                    .select('id, status, is_draft, total, deposit_amount, delivery_fee, discount, payment_method, cashier_name, source, items, created_at')
                     .eq('restaurant_id', restaurantId)
                     .eq('is_draft', false)
                     .neq('status', 'cancelled')
@@ -348,12 +358,21 @@ export default function ReportsPage() {
             .sort((a, b) => b.revenue - a.revenue);
 
         // Staff breakdown
-        const staffMap: Record<string, { orders: number; revenue: number }> = {};
+        const staffMap: Record<string, { orders: number; revenue: number; posOrders: number; posRevenue: number; websiteOrders: number; websiteRevenue: number }> = {};
         orders.forEach(o => {
             const name = o.cashier_name || "غير محدد";
-            if (!staffMap[name]) staffMap[name] = { orders: 0, revenue: 0 };
+            if (!staffMap[name]) {
+                staffMap[name] = { orders: 0, revenue: 0, posOrders: 0, posRevenue: 0, websiteOrders: 0, websiteRevenue: 0 };
+            }
             staffMap[name].orders++;
             staffMap[name].revenue += o.total || 0;
+            if (o.source === "website") {
+                staffMap[name].websiteOrders++;
+                staffMap[name].websiteRevenue += o.total || 0;
+            } else {
+                staffMap[name].posOrders++;
+                staffMap[name].posRevenue += o.total || 0;
+            }
         });
         const staffBreakdown = Object.entries(staffMap).map(([name, v]) => ({ name, ...v }))
             .sort((a, b) => b.revenue - a.revenue);
@@ -830,22 +849,38 @@ export default function ReportsPage() {
                             {activeTab === "staff" && (
                                 stats.staffBreakdown.length === 0 ? <EmptyState /> :
                                     <div className="overflow-x-auto" style={{ scrollbarWidth: "thin" }}>
-                                        <div className="min-w-[400px] space-y-1.5">
+                                        <div className="min-w-[420px] space-y-2.5">
                                             {stats.staffBreakdown.map((s, i) => {
                                                 const maxRev = stats.staffBreakdown[0]?.revenue || 1;
                                                 return (
-                                                    <div key={i} className="flex items-center gap-3 py-2.5 px-2 rounded-xl hover:bg-white/[0.02] transition">
-                                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20 flex-shrink-0">
-                                                            {s.name.charAt(0)}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-base font-bold text-slate-700 dark:text-zinc-200 mb-1">{s.name}</p>
-                                                            <div className="w-full bg-slate-100 dark:bg-zinc-800/50 rounded-full h-1.5">
-                                                                <div className="bg-amber-500/60 h-1.5 rounded-full transition-all duration-500" style={{ width: `${(s.revenue / maxRev) * 100}%` }} />
+                                                    <div key={i} className="p-3 rounded-xl border border-slate-200/80 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-800/20 hover:bg-slate-50 dark:hover:bg-zinc-800/40 transition">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-emerald-200 dark:shadow-emerald-500/20 flex-shrink-0">
+                                                                {s.name.charAt(0)}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center justify-between mb-1">
+                                                                    <p className="text-base font-bold text-slate-700 dark:text-zinc-200">{s.name}</p>
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="text-sm text-slate-500 dark:text-zinc-400 font-bold">{s.orders} طلب</span>
+                                                                        <span className="text-base font-extrabold text-amber-600 dark:text-amber-400 tabular-nums">{formatCurrency(s.revenue, restaurant?.currency)}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="w-full bg-slate-100 dark:bg-zinc-800/50 rounded-full h-1.5 mb-2">
+                                                                    <div className="bg-amber-500/60 h-1.5 rounded-full transition-all duration-500" style={{ width: `${(s.revenue / maxRev) * 100}%` }} />
+                                                                </div>
+                                                                <div className="flex items-center gap-2 flex-wrap text-xs">
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-medium">
+                                                                        <Monitor className="w-3 h-3" />
+                                                                        كاشير مباشر: {s.posOrders} طلب ({formatCurrency(s.posRevenue, restaurant?.currency)})
+                                                                    </span>
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20 font-medium">
+                                                                        <Globe className="w-3 h-3" />
+                                                                        مؤكد من الموقع: {s.websiteOrders} طلب ({formatCurrency(s.websiteRevenue, restaurant?.currency)})
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                        <span className="text-sm text-slate-500 dark:text-zinc-500 font-bold w-16 text-center flex-shrink-0">{s.orders} طلب</span>
-                                                        <span className="text-base font-extrabold text-amber-600 dark:text-amber-400 tabular-nums w-24 text-left flex-shrink-0">{formatCurrency(s.revenue, restaurant?.currency)}</span>
                                                     </div>
                                                 );
                                             })}

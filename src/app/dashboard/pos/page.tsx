@@ -23,7 +23,7 @@ import {
     PauseCircle, Play, StickyNote, Users, MapPin,
     LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
     Package, Truck, Wifi, WifiOff, Monitor, RefreshCw,
-    RotateCcw
+    RotateCcw, Globe, Check
 } from "lucide-react";
 
 /* ═══════════════════════════ TYPES ═══════════════════════════ */
@@ -39,7 +39,7 @@ export default function POSPage() {
     const router = useRouter();
     const editId = searchParams.get("edit");
     const { language } = useLanguage();
-    const { restaurantId, restaurant, canEditOrders } = useRestaurant();
+    const { restaurantId, restaurant, canEditOrders, currentUserId, currentUserName } = useRestaurant();
     const isAr = language === "ar";
 
     /* ── Data state ── */
@@ -94,8 +94,13 @@ export default function POSPage() {
     const [printModalHtml, setPrintModalHtml] = useState<string | null>(null);
     const [cashierId, setCashierId] = useState<string>("");
     const [cashierName, setCashierName] = useState<string>("");
+    const [showOnlineOrders, setShowOnlineOrders] = useState(false);
+    const [onlineOrders, setOnlineOrders] = useState<PosOrder[]>([]);
     const [showShiftReport, setShowShiftReport] = useState(false);
-    const [shiftStats, setShiftStats] = useState({ count: 0, revenue: 0, cash: 0, deposit: 0, delivery: 0, orderNumbers: [] as number[] });
+    const [shiftStats, setShiftStats] = useState({
+        count: 0, revenue: 0, cash: 0, deposit: 0, delivery: 0, orderNumbers: [] as number[],
+        posOrders: 0, posRevenue: 0, websiteOrders: 0, websiteRevenue: 0
+    });
     const searchRef = useRef<HTMLInputElement>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
@@ -106,6 +111,13 @@ export default function POSPage() {
 
     /* ── Fetch Cashier Details ── */
     useEffect(() => {
+        if (currentUserId) {
+            setCashierId(currentUserId);
+            if (currentUserName) {
+                setCashierName(currentUserName);
+                return;
+            }
+        }
         const fetchCashier = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -127,11 +139,11 @@ export default function POSPage() {
             if (team) {
                 setCashierName(team.name);
             } else {
-                setCashierName(isAr ? "المدير (كاشير)" : "Admin Cashier");
+                setCashierName(session.user.user_metadata?.name || restaurant?.name || (isAr ? "المدير (كاشير)" : "Admin Cashier"));
             }
         };
         fetchCashier();
-    }, [isAr]);
+    }, [isAr, currentUserId, currentUserName, restaurant?.name]);
 
     /* ── Clock ── */
     useEffect(() => {
@@ -190,6 +202,28 @@ export default function POSPage() {
 
         const held = allOrders.filter(o => o.is_draft === true);
         setHeldOrders(held);
+
+        const pendingOnline = allOrders.filter(o => o.created_at.startsWith(todayStr) && o.source === "website" && o.status === "pending");
+        setOnlineOrders(pendingOnline);
+
+        if (navigator.onLine) {
+            try {
+                const { data: remoteOnline } = await supabase
+                    .from("orders")
+                    .select("*")
+                    .eq("restaurant_id", restaurantId)
+                    .eq("source", "website")
+                    .eq("status", "pending")
+                    .gte("created_at", `${todayStr}T00:00:00.000Z`)
+                    .order("created_at", { ascending: false });
+                if (remoteOnline && remoteOnline.length > 0) {
+                    await posDb.orders.bulkPut(remoteOnline.map(o => ({ ...o, _dirty: false })));
+                    setOnlineOrders(remoteOnline as PosOrder[]);
+                }
+            } catch (err) {
+                console.warn("Could not fetch remote pending website orders:", err);
+            }
+        }
 
         let driverList = await posDb.pos_users
             .where("restaurant_id").equals(restaurantId)
@@ -254,6 +288,49 @@ export default function POSPage() {
             setPendingSyncCount(s.pendingCount);
         });
     }, []);
+
+    /* ── Realtime listener for website orders ── */
+    useEffect(() => {
+        if (!restaurantId) return;
+        const channel = supabase.channel(`pos-website-orders-${restaurantId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'orders',
+                filter: `restaurant_id=eq.${restaurantId}`
+            }, async (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    const newOrd = payload.new as PosOrder;
+                    await posDb.orders.put({ ...newOrd, _dirty: false });
+                    if (newOrd.source === 'website' && newOrd.status === 'pending') {
+                        setOnlineOrders(prev => {
+                            if (prev.some(o => o.id === newOrd.id)) return prev;
+                            return [newOrd, ...prev];
+                        });
+                        playBeep();
+                        toast.info(isAr ? `طلب أونلاين جديد #${newOrd.order_number || ''}` : `New Online Order #${newOrd.order_number || ''}`);
+                    }
+                } else if (payload.eventType === 'UPDATE') {
+                    const updated = payload.new as PosOrder;
+                    await posDb.orders.put({ ...updated, _dirty: false });
+                    if (updated.source === 'website') {
+                        if (updated.status !== 'pending') {
+                            setOnlineOrders(prev => prev.filter(o => o.id !== updated.id));
+                        } else {
+                            setOnlineOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+                        }
+                    }
+                } else if (payload.eventType === 'DELETE') {
+                    const oldOrd = payload.old as { id: string };
+                    await posDb.orders.delete(oldOrd.id);
+                    setOnlineOrders(prev => prev.filter(o => o.id !== oldOrd.id));
+                }
+            }).subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [restaurantId, isAr, playBeep]);
 
     /* ── Load existing order for editing ── */
     useEffect(() => {
@@ -699,26 +776,59 @@ export default function POSPage() {
         const myOrders = allOrders.filter(o => {
             if (!o.created_at.startsWith(todayStr)) return false;
             if (o.status === "cancelled" || o.is_draft) return false;
-            if (cashierId && o.cashier_id && o.cashier_id !== cashierId) return false;
+            
+            // Attribution check:
+            if (cashierId || cashierName) {
+                if (o.source === 'website') {
+                    // Website order MUST have been confirmed by this cashier
+                    const matchId = cashierId && o.cashier_id && o.cashier_id === cashierId;
+                    const matchName = cashierName && o.cashier_name && o.cashier_name === cashierName;
+                    if (!matchId && !matchName) return false;
+                } else {
+                    // POS order: exclude if explicitly assigned to another cashier
+                    if (cashierId && o.cashier_id && o.cashier_id !== cashierId) return false;
+                }
+            }
             if (lastReset && new Date(o.created_at) <= new Date(lastReset)) return false;
             return true;
         });
         
         let cash = 0, deposit = 0, deliveryFees = 0, collectedCashTotal = 0;
+        let posOrders = 0, posRevenue = 0, websiteOrders = 0, websiteRevenue = 0;
         const orderNumbers = myOrders.map(o => o.order_number).sort((a,b) => a-b);
 
         myOrders.forEach(o => {
+            const ordTotal = o.total || 0;
             if (o.status === "completed" || o.payment_method === "cash") {
-                collectedCashTotal += (o.total || 0);
-                cash += (o.total || 0);
+                collectedCashTotal += ordTotal;
+                cash += ordTotal;
             } else if (o.deposit_amount && o.deposit_amount > 0) {
                 collectedCashTotal += o.deposit_amount;
                 deposit += o.deposit_amount;
             }
             if (o.order_type === 'delivery' && o.delivery_fee) deliveryFees += o.delivery_fee;
+
+            if (o.source === 'website') {
+                websiteOrders++;
+                websiteRevenue += ordTotal;
+            } else {
+                posOrders++;
+                posRevenue += ordTotal;
+            }
         });
 
-        setShiftStats({ count: myOrders.length, revenue: collectedCashTotal, cash, deposit, delivery: deliveryFees, orderNumbers });
+        setShiftStats({
+            count: myOrders.length,
+            revenue: collectedCashTotal,
+            cash,
+            deposit,
+            delivery: deliveryFees,
+            orderNumbers,
+            posOrders,
+            posRevenue,
+            websiteOrders,
+            websiteRevenue
+        });
         setShowShiftReport(true);
     };
 
@@ -729,10 +839,91 @@ export default function POSPage() {
         if (typeof window !== 'undefined') {
             localStorage.setItem(resetKey, nowIso);
         }
-        setShiftStats({ count: 0, revenue: 0, cash: 0, deposit: 0, delivery: 0, orderNumbers: [] });
+        setShiftStats({
+            count: 0,
+            revenue: 0,
+            cash: 0,
+            deposit: 0,
+            delivery: 0,
+            orderNumbers: [],
+            posOrders: 0,
+            posRevenue: 0,
+            websiteOrders: 0,
+            websiteRevenue: 0
+        });
         setShowShiftReport(false);
         toast.success(isAr ? "تم تصفير الوردية بنجاح" : "Shift has been reset successfully");
     };
+
+    /* ── Confirm Online Order from POS ── */
+    const confirmWebsiteOrder = async (order: PosOrder) => {
+        if (!restaurantId) return;
+        const confirmedBy = cashierName || (isAr ? "كاشير" : "Cashier");
+        const updatedOrder: PosOrder = {
+            ...order,
+            status: 'in_progress',
+            cashier_id: cashierId || undefined,
+            cashier_name: confirmedBy,
+            updated_at: new Date().toISOString(),
+            _dirty: true
+        };
+
+        try {
+            await posDb.orders.put(updatedOrder);
+            setOnlineOrders(prev => prev.filter(o => o.id !== order.id));
+
+            if (navigator.onLine) {
+                await supabase.from('orders').update({
+                    status: 'in_progress',
+                    cashier_id: cashierId || null,
+                    cashier_name: confirmedBy,
+                    updated_at: new Date().toISOString()
+                }).eq('id', order.id);
+
+                await supabase.from('order_logs').insert({
+                    order_id: order.id,
+                    action: 'confirmed_by_cashier',
+                    details: `تم تأكيد الطلب بواسطة الكاشير: ${confirmedBy}`
+                });
+
+                fetch(`/api/orders/${order.id}/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cashier_id: cashierId, cashier_name: confirmedBy })
+                }).catch(() => {});
+            }
+
+            toast.success(isAr ? `تم تأكيد الطلب #${order.order_number} ونسبه لورديتك بنجاح` : `Order #${order.order_number} confirmed under your shift`);
+        } catch (err) {
+            console.error("Error confirming website order:", err);
+            toast.error(isAr ? "فشل تأكيد الطلب" : "Failed to confirm order");
+        }
+    };
+
+    const printWebsiteOrderReceipt = useCallback((order: PosOrder) => {
+        const orderForReceipt = {
+            order_number: order.order_number,
+            items: order.items || [],
+            customer_name: order.customer_name,
+            customer_phone: order.customer_phone,
+            customer_address: order.customer_address,
+            notes: order.notes,
+            delivery_fee: order.delivery_fee || 0,
+            delivery_driver_name: order.delivery_driver_name,
+            order_type: order.order_type || 'delivery',
+            discount: order.discount || 0,
+            total: order.total,
+            payment_method: order.payment_method || 'cash',
+            deposit_amount: order.deposit_amount || 0,
+            cashier_name: cashierName,
+            created_at: order.created_at
+        };
+        const html = renderReceiptHtml(orderForReceipt, restaurant, isAr);
+        const currentSettings = getPrinterSettings();
+        executePrint(html, currentSettings, (modalHtml) => {
+            setPrintModalHtml(modalHtml);
+        });
+    }, [restaurant, isAr, cashierName]);
 
     const printShiftReport = useCallback(() => {
         const html = renderShiftReceiptHtml({
@@ -817,6 +1008,21 @@ export default function POSPage() {
                     <button onClick={() => setShowHeld(!showHeld)}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${showHeld ? "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
                         <PauseCircle className="w-3.5 h-3.5" /> معلقة ({heldOrders.length})
+                    </button>
+
+                    <button onClick={() => setShowOnlineOrders(!showOnlineOrders)}
+                        className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition ${
+                            showOnlineOrders 
+                                ? "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/30" 
+                                : onlineOrders.length > 0
+                                    ? "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-500/30 shadow-sm"
+                                    : "bg-white dark:bg-card text-slate-500 dark:text-zinc-400 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"
+                        }`}>
+                        <Globe className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" /> 
+                        <span>{isAr ? "طلبات الأونلاين" : "Online"} ({onlineOrders.length})</span>
+                        {onlineOrders.length > 0 && (
+                            <span className="w-2 h-2 rounded-full bg-violet-500 animate-ping absolute -top-0.5 -right-0.5" />
+                        )}
                     </button>
                     <button onClick={() => setSoundEnabled(!soundEnabled)} className="w-9 h-9 flex items-center justify-center bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white transition">
                         {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
@@ -1129,6 +1335,88 @@ export default function POSPage() {
                         </div>
                     </div>
                 )}
+
+                {/* ONLINE ORDERS DRAWER */}
+                {showOnlineOrders && (
+                    <div className="absolute top-0 bottom-0 left-0 right-0 z-50 flex">
+                        <div className="flex-1 bg-slate-200 dark:bg-black/50 backdrop-blur-sm" onClick={() => setShowOnlineOrders(false)} />
+                        <div className="w-full max-w-md bg-slate-50 dark:bg-background border-r border-slate-200 dark:border-zinc-800/50 flex flex-col shadow-2xl">
+                            <div className="p-4 border-b border-slate-200 dark:border-zinc-800/50 flex items-center justify-between">
+                                <h3 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Globe className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                                    {isAr ? "طلبات الموقع المعلقة" : "Pending Online Orders"} ({onlineOrders.length})
+                                </h3>
+                                <button onClick={() => setShowOnlineOrders(false)} className="text-slate-500 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ scrollbarWidth: "none" }}>
+                                {onlineOrders.length === 0 ? (
+                                    <div className="text-center py-16 text-slate-400 dark:text-zinc-600">
+                                        <Globe className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                                        <p className="text-sm font-bold">{isAr ? "لا توجد طلبات أونلاين جديدة بالانتظار" : "No pending online orders"}</p>
+                                        <p className="text-xs text-slate-400 mt-1">{isAr ? "أي طلب جديد من الموقع سيظهر هنا فوراً" : "New website orders will appear here automatically"}</p>
+                                    </div>
+                                ) : (
+                                    onlineOrders.map(o => (
+                                        <div key={o.id} className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-2xl p-4 shadow-sm hover:border-violet-300 dark:hover:border-violet-500/40 transition">
+                                            <div className="flex items-start justify-between mb-2">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="text-sm font-extrabold text-slate-900 dark:text-white">#{o.order_number}</span>
+                                                        <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30">
+                                                            {isAr ? "في الانتظار" : "Pending"}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs font-bold text-slate-700 dark:text-zinc-300">{o.customer_name || (isAr ? "عميل الموقع" : "Website Customer")}</p>
+                                                    {o.customer_phone && <p className="text-[11px] text-slate-500 font-mono" dir="ltr">{o.customer_phone}</p>}
+                                                    {o.customer_address && <p className="text-[10px] text-slate-400 truncate max-w-[220px]">{o.customer_address}</p>}
+                                                </div>
+                                                <div className="text-left">
+                                                    <span className="text-base font-extrabold text-violet-600 dark:text-violet-400 tabular-nums">{formatCurrency(o.total)}</span>
+                                                    <p className="text-[10px] text-slate-400">{new Date(o.created_at).toLocaleTimeString(isAr ? "ar-EG" : "en-US", { hour: "2-digit", minute: "2-digit" })}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Items preview */}
+                                            <div className="bg-slate-50 dark:bg-zinc-800/40 rounded-xl p-2.5 my-2 space-y-1">
+                                                {o.items?.map((item, idx) => (
+                                                    <div key={idx} className="flex items-center justify-between text-xs text-slate-600 dark:text-zinc-300">
+                                                        <span className="font-medium truncate">• {item.title}</span>
+                                                        <span className="font-bold tabular-nums">×{item.qty}</span>
+                                                    </div>
+                                                ))}
+                                                {o.notes && (
+                                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 pt-1 border-t border-slate-200 dark:border-zinc-700/50">
+                                                        📝 {o.notes}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2 pt-1">
+                                                <button
+                                                    onClick={() => confirmWebsiteOrder(o)}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition shadow-md shadow-emerald-600/20 cursor-pointer"
+                                                >
+                                                    <Check className="w-4 h-4" />
+                                                    {isAr ? "✅ تأكيد واستلام في الوردية" : "Confirm in My Shift"}
+                                                </button>
+                                                <button
+                                                    onClick={() => printWebsiteOrderReceipt(o)}
+                                                    title={isAr ? "طباعة الفاتورة" : "Print Receipt"}
+                                                    className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl transition cursor-pointer"
+                                                >
+                                                    <Printer className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* SUCCESS */}
@@ -1302,6 +1590,25 @@ export default function POSPage() {
                                 <div className="bg-slate-50 dark:bg-black/30 p-4 rounded-2xl border border-slate-100 dark:border-zinc-800/50">
                                     <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mb-1">{isAr ? "رسوم الدليفري" : "Delivery Fees"}</div>
                                     <div className="text-lg font-black text-slate-800 dark:text-white">{formatCurrency(shiftStats.delivery)}</div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-500/20">
+                                    <div className="flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 mb-1">
+                                        <Monitor className="w-3.5 h-3.5" />
+                                        {isAr ? "كاشير مباشر" : "Direct POS"}
+                                    </div>
+                                    <div className="text-base font-black text-slate-800 dark:text-white">{shiftStats.posOrders || 0} {isAr ? "طلب" : "orders"}</div>
+                                    <div className="text-xs font-extrabold text-blue-700 dark:text-blue-300 tabular-nums">{formatCurrency(shiftStats.posRevenue || 0)}</div>
+                                </div>
+                                <div className="bg-violet-50 dark:bg-violet-500/10 p-3 rounded-2xl border border-violet-100 dark:border-violet-500/20">
+                                    <div className="flex items-center gap-1 text-[11px] font-bold text-violet-600 dark:text-violet-400 mb-1">
+                                        <Globe className="w-3.5 h-3.5" />
+                                        {isAr ? "مؤكد من الموقع" : "Online Confirmed"}
+                                    </div>
+                                    <div className="text-base font-black text-slate-800 dark:text-white">{shiftStats.websiteOrders || 0} {isAr ? "طلب" : "orders"}</div>
+                                    <div className="text-xs font-extrabold text-violet-700 dark:text-violet-300 tabular-nums">{formatCurrency(shiftStats.websiteRevenue || 0)}</div>
                                 </div>
                             </div>
 

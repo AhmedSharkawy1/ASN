@@ -34,16 +34,28 @@ export async function POST(
             return NextResponse.json({ error: "Order not found" }, { status: 404 });
         }
 
+        let body: any = null;
+        try {
+            body = await request.json();
+        } catch {}
+
         // Only finalize inventory if the order is currently 'preparing'
         // If it was already 'ready', everything was deducted instantly.
         if (order.status === 'preparing' && order.items && order.items.length > 0) {
             await finalizeDeferredInventory(order.restaurant_id, order.id, order.items, supabaseAdmin);
         }
 
-        // Update the status to completed
+        // Update the status to completed (and record cashier if provided)
+        const updatePayload: Record<string, any> = {
+            status: 'completed',
+            updated_at: new Date().toISOString()
+        };
+        if (body?.cashier_id) updatePayload.cashier_id = body.cashier_id;
+        if (body?.cashier_name) updatePayload.cashier_name = body.cashier_name;
+
         const { error: updateError } = await supabaseAdmin
             .from('orders')
-            .update({ status: 'completed', updated_at: new Date().toISOString() })
+            .update(updatePayload)
             .eq('id', orderId);
 
         if (updateError) {
@@ -56,7 +68,7 @@ export async function POST(
             action: 'status_change',
             old_status: order.status,
             new_status: 'completed',
-            performed_by: 'system_auto_complete',
+            performed_by: body?.cashier_name || 'system_auto_complete',
             notes: 'Completed via API and finalized deferred inventory.'
         });
 

@@ -11,7 +11,7 @@ import {
     Users, ShoppingCart, DollarSign, Download, Printer,
     Calendar, Banknote, Tag, Truck, CreditCard, Smartphone,
     Clock, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, ArrowUpRight,
-    UserCheck, Package, Eye, EyeOff, ClipboardList, X
+    UserCheck, Package, Eye, EyeOff, ClipboardList, X, Globe, Monitor
 } from "lucide-react";
 import { applyOrderSearchToSupabase, matchesOrderSearch, sortOrdersForSearch } from "@/lib/helpers/orderSearch";
 
@@ -67,6 +67,10 @@ type CashierStats = {
     completedOrders: number;
     cancelledOrders: number;
     pendingOrders: number;
+    posOrders: number;
+    posRevenue: number;
+    websiteOrders: number;
+    websiteRevenue: number;
     paymentBreakdown: Record<string, { count: number; revenue: number }>;
     orderTypeBreakdown: Record<string, { count: number; revenue: number }>;
 };
@@ -147,7 +151,8 @@ export default function CashierShiftsPage() {
     const [stats, setStats] = useState<CashierStats>({
         totalOrders: 0, totalRevenue: 0, totalCash: 0, totalDiscount: 0,
         totalDeliveryFees: 0, avgTicket: 0, completedOrders: 0, cancelledOrders: 0,
-        pendingOrders: 0, paymentBreakdown: {}, orderTypeBreakdown: {},
+        pendingOrders: 0, posOrders: 0, posRevenue: 0, websiteOrders: 0, websiteRevenue: 0,
+        paymentBreakdown: {}, orderTypeBreakdown: {},
     });
     const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
@@ -279,15 +284,41 @@ export default function CashierShiftsPage() {
         remoteOrders.forEach(o => mergedMap.set(o.id, o));
         let allOrders = Array.from(mergedMap.values());
 
+        // Automatically discover cashiers or accounts who confirmed/handled orders
+        setCashiers(prev => {
+            const existingKeys = new Set<string>();
+            prev.forEach(c => {
+                existingKeys.add(c.id);
+                if (c.auth_id) existingKeys.add(c.auth_id);
+                existingKeys.add(c.name.trim().toLowerCase());
+            });
+            const additions: CashierAccount[] = [];
+            allOrders.forEach(o => {
+                if (o.cashier_name && !existingKeys.has(o.cashier_name.trim().toLowerCase())) {
+                    const fallbackId = o.cashier_id || `acc_${o.cashier_name}`;
+                    if (!existingKeys.has(fallbackId)) {
+                        existingKeys.add(o.cashier_name.trim().toLowerCase());
+                        existingKeys.add(fallbackId);
+                        additions.push({
+                            id: fallbackId,
+                            auth_id: o.cashier_id || fallbackId,
+                            name: o.cashier_name,
+                            role: "staff"
+                        });
+                    }
+                }
+            });
+            return additions.length > 0 ? [...prev, ...additions] : prev;
+        });
+
         // 4. Cashier filter
         let filtered = allOrders;
         if (selectedCashierId !== "all") {
-            const selectedCashier = cashiers.find(c => c.id === selectedCashierId);
+            const selectedCashier = cashiers.find(c => c.id === selectedCashierId || c.auth_id === selectedCashierId);
             if (selectedCashier) {
                 filtered = allOrders.filter(o =>
-                    o.cashier_id === selectedCashier.auth_id ||
-                    o.cashier_id === selectedCashier.id ||
-                    o.cashier_name === selectedCashier.name
+                    (o.cashier_id && (o.cashier_id === selectedCashier.auth_id || o.cashier_id === selectedCashier.id)) ||
+                    (o.cashier_name && o.cashier_name.trim().toLowerCase() === selectedCashier.name.trim().toLowerCase())
                 );
             }
         }
@@ -315,6 +346,13 @@ export default function CashierShiftsPage() {
         const cancelledOrders = filtered.filter(o => o.status === "cancelled").length;
         const pendingOrders = filtered.filter(o => o.status === "pending" || o.status === "in_progress").length;
 
+        const posOrdersList = activeOrders.filter(o => o.source === "pos" || !o.source);
+        const websiteOrdersList = activeOrders.filter(o => o.source === "website");
+        const posOrders = posOrdersList.length;
+        const posRevenue = posOrdersList.reduce((s, o) => s + (o.total || 0), 0);
+        const websiteOrders = websiteOrdersList.length;
+        const websiteRevenue = websiteOrdersList.reduce((s, o) => s + (o.total || 0), 0);
+
         // Payment breakdown
         const paymentBreakdown: Record<string, { count: number; revenue: number }> = {};
         activeOrders.forEach(o => {
@@ -337,6 +375,7 @@ export default function CashierShiftsPage() {
         setStats({
             totalOrders: filtered.length, totalRevenue, totalCash, totalDiscount,
             totalDeliveryFees, avgTicket, completedOrders, cancelledOrders, pendingOrders,
+            posOrders, posRevenue, websiteOrders, websiteRevenue,
             paymentBreakdown, orderTypeBreakdown,
         });
         setLoading(false);
@@ -366,6 +405,7 @@ export default function CashierShiftsPage() {
             isAr ? "رقم الطلب" : "Order #",
             isAr ? "التاريخ" : "Date",
             isAr ? "الكاشير" : "Cashier",
+            isAr ? "المصدر" : "Source",
             isAr ? "العميل" : "Customer",
             isAr ? "الأصناف" : "Items",
             isAr ? "الإجمالي" : "Total",
@@ -380,6 +420,7 @@ export default function CashierShiftsPage() {
             o.order_number || o.id.split("-")[0],
             new Date(o.created_at).toLocaleString("ar-EG"),
             o.cashier_name || "-",
+            o.source === 'website' ? (isAr ? "أونلاين (مؤكد)" : "Online (Confirmed)") : "POS",
             o.customer_name || "-",
             (o.items || []).map(i => `${i.title} x${i.qty}`).join(" | "),
             o.total,
@@ -421,6 +462,7 @@ export default function CashierShiftsPage() {
             <tr>
                 <td style="padding:4px 6px;border-bottom:1px solid #ddd;font-size:12px;font-weight:700;text-align:center">${o.order_number || o.id.split("-")[0].toUpperCase()}</td>
                 <td style="padding:4px 6px;border-bottom:1px solid #ddd;font-size:11px;font-weight:700;text-align:center" dir="ltr">${new Date(o.created_at).toLocaleString("ar-EG", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}</td>
+                <td style="padding:4px 6px;border-bottom:1px solid #ddd;font-size:11px;font-weight:700;text-align:center">${o.source === 'website' ? (isAr ? "🌐 أونلاين" : "🌐 Online") : (isAr ? "🖥️ كاشير" : "POS")}</td>
                 <td style="padding:4px 6px;border-bottom:1px solid #ddd;font-size:12px;font-weight:700">${o.customer_name || "-"}</td>
                 <td style="padding:4px 6px;border-bottom:1px solid #ddd;font-size:12px;font-weight:700;text-align:center">${(o.items || []).reduce((s, i) => s + i.qty, 0)}</td>
                 <td style="padding:4px 6px;border-bottom:1px solid #ddd;font-size:12px;font-weight:700;text-align:center">${fmtPrice(o.total)}</td>
@@ -445,9 +487,11 @@ export default function CashierShiftsPage() {
         <div style="border-top:2px dashed #000;margin:15px 0"></div>
 
         <table style="width:100%;border-collapse:collapse;margin-bottom:15px;font-size:14px;font-weight:900">
-            <tr><td style="padding:6px 0">${isAr ? "عدد الطلبات:" : "Total Orders:"}</td><td style="text-align:left;padding:6px 0">${stats.totalOrders - stats.cancelledOrders}</td></tr>
+            <tr><td style="padding:6px 0">${isAr ? "عدد الطلبات الكلي:" : "Total Orders:"}</td><td style="text-align:left;padding:6px 0">${stats.totalOrders - stats.cancelledOrders}</td></tr>
+            <tr><td style="padding:6px 0">${isAr ? "🖥️ مبيعات الكاشير المباشرة (POS):" : "Direct POS Sales:"}</td><td style="text-align:left;padding:6px 0">${fmtPrice(stats.posRevenue)} (${stats.posOrders} ${isAr ? "طلب" : "orders"})</td></tr>
+            <tr><td style="padding:6px 0">${isAr ? "🌐 طلبات الأونلاين المؤكدة:" : "Confirmed Online Orders:"}</td><td style="text-align:left;padding:6px 0">${fmtPrice(stats.websiteRevenue)} (${stats.websiteOrders} ${isAr ? "طلب" : "orders"})</td></tr>
             <tr><td style="padding:6px 0">${isAr ? "إجمالي المبيعات:" : "Total Revenue:"}</td><td style="text-align:left;padding:6px 0">${fmtPrice(stats.totalRevenue)}</td></tr>
-            <tr><td style="padding:6px 0">${isAr ? "المحصلة النقدية:" : "Cash Collected:"}</td><td style="text-align:left;padding:6px 0">${fmtPrice(stats.totalCash)}</td></tr>
+            <tr><td style="padding:6px 0">${isAr ? "المحصلة النقدية الكلية:" : "Cash Collected:"}</td><td style="text-align:left;padding:6px 0">${fmtPrice(stats.totalCash)}</td></tr>
             <tr><td style="padding:6px 0">${isAr ? "إجمالي الخصومات:" : "Total Discounts:"}</td><td style="text-align:left;padding:6px 0;color:#dc2626">${fmtPrice(stats.totalDiscount)}</td></tr>
             <tr><td style="padding:6px 0">${isAr ? "رسوم التوصيل:" : "Delivery Fees:"}</td><td style="text-align:left;padding:6px 0">${fmtPrice(stats.totalDeliveryFees)}</td></tr>
             <tr><td style="padding:6px 0">${isAr ? "متوسط قيمة الطلب:" : "Avg Ticket:"}</td><td style="text-align:left;padding:6px 0">${fmtPrice(stats.avgTicket)}</td></tr>
@@ -461,6 +505,7 @@ export default function CashierShiftsPage() {
                 <tr style="background:#f3f4f6">
                     <th style="padding:6px;border-bottom:2px solid #000;font-size:12px;text-align:center">#</th>
                     <th style="padding:6px;border-bottom:2px solid #000;font-size:12px;text-align:center">${isAr ? "الوقت" : "Time"}</th>
+                    <th style="padding:6px;border-bottom:2px solid #000;font-size:12px;text-align:center">${isAr ? "المصدر" : "Source"}</th>
                     <th style="padding:6px;border-bottom:2px solid #000;font-size:12px">${isAr ? "العميل" : "Customer"}</th>
                     <th style="padding:6px;border-bottom:2px solid #000;font-size:12px;text-align:center">${isAr ? "أصناف" : "Items"}</th>
                     <th style="padding:6px;border-bottom:2px solid #000;font-size:12px;text-align:center">${isAr ? "الإجمالي" : "Total"}</th>
@@ -613,6 +658,39 @@ export default function CashierShiftsPage() {
                         ))}
                     </div>
 
+                    {/* Source Breakdown (POS vs Confirmed Website) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="bg-white dark:bg-card border border-violet-200/60 dark:border-violet-500/20 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 flex items-center justify-center text-violet-600 dark:text-violet-400">
+                                    <Monitor className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 font-bold">{isAr ? "مبيعات الكاشير المباشرة (POS)" : "Direct POS Sales"}</p>
+                                    <p className="text-lg font-black text-violet-600 dark:text-violet-400 tabular-nums">{formatCurrency(stats.posRevenue, restaurant?.currency)}</p>
+                                </div>
+                            </div>
+                            <span className="text-xs font-extrabold px-3 py-1.5 rounded-lg bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300">
+                                {stats.posOrders} {isAr ? "طلب" : "orders"}
+                            </span>
+                        </div>
+
+                        <div className="bg-white dark:bg-card border border-sky-200/60 dark:border-sky-500/20 rounded-xl p-4 flex items-center justify-between shadow-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-500/10 border border-sky-200 dark:border-sky-500/20 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                                    <Globe className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 font-bold">{isAr ? "طلبات الويب سايت المؤكدة" : "Confirmed Website Orders"}</p>
+                                    <p className="text-lg font-black text-sky-600 dark:text-sky-400 tabular-nums">{formatCurrency(stats.websiteRevenue, restaurant?.currency)}</p>
+                                </div>
+                            </div>
+                            <span className="text-xs font-extrabold px-3 py-1.5 rounded-lg bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300">
+                                {stats.websiteOrders} {isAr ? "طلب" : "orders"}
+                            </span>
+                        </div>
+                    </div>
+
                     {/* Status & Payment Breakdown */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {/* Order Status Summary */}
@@ -754,7 +832,23 @@ export default function CashierShiftsPage() {
                                                 </td>
                                                 {/* Cashier */}
                                                 <td className="px-4 py-3">
-                                                    <span className="text-xs font-bold text-violet-600 dark:text-violet-400">{order.cashier_name || (isAr ? "غير محدد" : "N/A")}</span>
+                                                    <div className="flex flex-col gap-1 items-start">
+                                                        <span className="text-xs font-extrabold text-violet-700 dark:text-violet-300 flex items-center gap-1">
+                                                            <UserCheck className="w-3.5 h-3.5 text-violet-500" />
+                                                            {order.cashier_name || (isAr ? "غير محدد" : "N/A")}
+                                                        </span>
+                                                        {order.source === 'website' ? (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-500/20">
+                                                                <Globe className="w-2.5 h-2.5" />
+                                                                {isAr ? "مؤكد من الموقع" : "Web Confirmed"}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 dark:text-zinc-500">
+                                                                <Monitor className="w-2.5 h-2.5" />
+                                                                {isAr ? "كاشير مباشر" : "Direct POS"}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 {/* Customer */}
                                                 <td className="px-4 py-3">

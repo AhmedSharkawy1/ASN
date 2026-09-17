@@ -33,6 +33,7 @@ type Order = {
     order_type?: string;
     created_at: string; updated_at: string;
     source?: string; // 'pos' for cashier, null/undefined for website
+    cashier_id?: string;
     cashier_name?: string;
     _offline?: boolean; // from Dexie but not yet synced
 };
@@ -43,7 +44,7 @@ type Timeframe = "today" | "yesterday" | "week" | "month" | "all" | "custom";
 export default function OrdersPage() {
     const router = useRouter();
     const { language } = useLanguage();
-    const { restaurantId, restaurant, canEditOrders, canDeleteOrders } = useRestaurant();
+    const { restaurantId, restaurant, canEditOrders, canDeleteOrders, currentUserId, currentUserName } = useRestaurant();
     const isAr = language === "ar";
 
     const formatOrderCurrency = useCallback((amount: number) => {
@@ -253,6 +254,7 @@ export default function OrdersPage() {
                             order_type: o.order_type,
                             notes: o.notes,
                             source: o.source || 'pos',
+                            cashier_id: o.cashier_id,
                             cashier_name: o.cashier_name,
                             created_at: o.created_at,
                             updated_at: o.updated_at || o.created_at,
@@ -374,8 +376,22 @@ export default function OrdersPage() {
         const oldStatus = order.status;
         const updatedTime = new Date().toISOString();
 
+        // Determine if this action should assign or confirm cashier:
+        // When confirming or progressing a website order, or when an unassigned order is claimed/completed
+        const isConfirmingOrClaiming = (!order.cashier_id || order.source !== 'pos') &&
+            (newStatus === 'in_progress' || newStatus === 'completed' || oldStatus === 'pending');
+
+        const assignedCashierId = isConfirmingOrClaiming ? (currentUserId || undefined) : order.cashier_id;
+        const assignedCashierName = isConfirmingOrClaiming ? (currentUserName || (isAr ? "المدير" : "Admin")) : order.cashier_name;
+
+        const orderPatches: Partial<Order> = {
+            status: newStatus,
+            updated_at: updatedTime,
+            ...(isConfirmingOrClaiming && assignedCashierName ? { cashier_id: assignedCashierId, cashier_name: assignedCashierName } : {}),
+        };
+
         // 1. Optimistic local update
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus, updated_at: updatedTime } : o));
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...orderPatches } : o));
 
         setStats(prev => {
             const next = { ...prev };
@@ -393,7 +409,12 @@ export default function OrdersPage() {
 
         // 2. Local Dexie update
         try {
-            await posDb.orders.update(orderId, { status: newStatus, updated_at: updatedTime, _dirty: true });
+            await posDb.orders.update(orderId, {
+                status: newStatus,
+                updated_at: updatedTime,
+                ...(isConfirmingOrClaiming && assignedCashierName ? { cashier_id: assignedCashierId, cashier_name: assignedCashierName } : {}),
+                _dirty: true
+            });
         } catch (dexieErr) {
             console.warn("Could not update Dexie order:", dexieErr);
         }
@@ -401,10 +422,20 @@ export default function OrdersPage() {
         // 3. Remote Supabase update
         if (newStatus === 'completed') {
             try {
-                const res = await fetch(`/api/orders/${orderId}/complete`, { method: 'POST' });
+                const res = await fetch(`/api/orders/${orderId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        cashier_id: assignedCashierId,
+                        cashier_name: assignedCashierName,
+                    })
+                });
                 if (res.ok) {
                     await posDb.orders.update(orderId, { _dirty: false }).catch(() => {});
                     fetchStats();
+                    if (isConfirmingOrClaiming && assignedCashierName) {
+                        toast.success(isAr ? `تم إكمال الطلب #${order.order_number} بواسطة ${assignedCashierName}` : `Order #${order.order_number} completed by ${assignedCashierName}`);
+                    }
                     return;
                 }
             } catch (err) {
@@ -413,11 +444,26 @@ export default function OrdersPage() {
         }
 
         try {
-            const { error } = await supabase.from('orders').update({ status: newStatus, updated_at: updatedTime }).eq('id', orderId);
+            const updatePayload: any = { status: newStatus, updated_at: updatedTime };
+            if (isConfirmingOrClaiming && assignedCashierName) {
+                if (assignedCashierId) updatePayload.cashier_id = assignedCashierId;
+                updatePayload.cashier_name = assignedCashierName;
+            }
+
+            const { error } = await supabase.from('orders').update(updatePayload).eq('id', orderId);
             if (!error) {
                 await posDb.orders.update(orderId, { _dirty: false }).catch(() => {});
-                await supabase.from('order_logs').insert({ order_id: orderId, action: `status_change`, old_status: oldStatus, new_status: newStatus, performed_by: 'admin' });
+                await supabase.from('order_logs').insert({
+                    order_id: orderId,
+                    action: (newStatus === 'in_progress' && order.source !== 'pos') ? 'order_confirmed' : `status_change`,
+                    old_status: oldStatus,
+                    new_status: newStatus,
+                    performed_by: assignedCashierName || 'admin'
+                });
                 fetchStats();
+                if (newStatus === 'in_progress' && order.source !== 'pos') {
+                    toast.success(isAr ? `تم تأكيد الطلب #${order.order_number} بنجاح بواسطة ${assignedCashierName}` : `Order #${order.order_number} confirmed by ${assignedCashierName}`);
+                }
             }
         } catch (err) {
             console.error("Direct update failed:", err);
@@ -805,7 +851,18 @@ export default function OrdersPage() {
                                     )}
 
                                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-                                        <p className="text-base font-bold text-slate-700 dark:text-zinc-300 truncate">{order.customer_name || (isAr ? "عميل" : "Customer")}</p>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="text-base font-bold text-slate-700 dark:text-zinc-300 truncate">{order.customer_name || (isAr ? "عميل" : "Customer")}</p>
+                                            {order.cashier_name ? (
+                                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/20">
+                                                    👤 {order.cashier_name}
+                                                </span>
+                                            ) : order.source !== 'pos' && order.status === 'pending' ? (
+                                                <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                                                    ⏳ {isAr ? "بانتظار التأكيد" : "Pending Confirmation"}
+                                                </span>
+                                            ) : null}
+                                        </div>
                                         <div className="flex items-center gap-3">
                                             <p className="text-xs text-slate-500 dark:text-zinc-500">{order.items.length} {isAr ? "أصناف" : "items"}</p>
                                             <div className={`flex items-center gap-1 text-xs font-bold ${elapsed.isDelayed && !["completed", "cancelled"].includes(order.status) ? "text-red-600 dark:text-red-400" : "text-slate-500 dark:text-zinc-500"}`}>
@@ -829,6 +886,16 @@ export default function OrdersPage() {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            {order.status === 'pending' && (
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); updateStatus(order.id, 'in_progress'); }}
+                                                    title={order.source !== 'pos' ? (isAr ? "تأكيد الطلب واستلامه" : "Confirm order") : (isAr ? "بدء التحضير" : "Start")}
+                                                    className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-sm hover:shadow transition-all active:scale-95"
+                                                >
+                                                    <span>✅</span>
+                                                    <span className="hidden sm:inline">{order.source !== 'pos' ? (isAr ? "تأكيد الطلب" : "Confirm") : (isAr ? "تأكيد" : "Confirm")}</span>
+                                                </button>
+                                            )}
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); printOrderReceipt(order); }}
                                                 title={isAr ? "طباعة الفاتورة" : "Print Receipt"}
@@ -920,6 +987,25 @@ export default function OrdersPage() {
                                                         </span>
                                                     </div>
                                                     <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "التاريخ" : "Date"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold">{formatDate(order.created_at)}</span></div>
+                                                    {order.cashier_name ? (
+                                                        <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-200/60 dark:border-violet-500/20 p-2.5 rounded-lg">
+                                                            <span className="text-violet-600 dark:text-violet-400 block mb-0.5 text-xs font-bold">
+                                                                {order.source === 'pos' ? (isAr ? "الكاشير المسؤول" : "Cashier") : (isAr ? "قام بالتأكيد" : "Confirmed By")}
+                                                            </span>
+                                                            <span className="text-slate-800 dark:text-zinc-200 font-extrabold flex items-center gap-1">
+                                                                👤 {order.cashier_name}
+                                                            </span>
+                                                        </div>
+                                                    ) : order.source !== 'pos' ? (
+                                                        <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200/60 dark:border-amber-500/20 p-2.5 rounded-lg">
+                                                            <span className="text-amber-600 dark:text-amber-400 block mb-0.5 text-xs font-bold">
+                                                                {isAr ? "حالة التأكيد" : "Confirmation"}
+                                                            </span>
+                                                            <span className="text-amber-700 dark:text-amber-300 font-bold text-xs">
+                                                                {isAr ? "بانتظار تأكيد الكاشير" : "Awaiting staff confirmation"}
+                                                            </span>
+                                                        </div>
+                                                    ) : null}
                                                     {order.notes && <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg col-span-2"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "ملاحظات" : "Notes"}</span><span className="text-slate-700 dark:text-zinc-300">{order.notes}</span></div>}
                                                 </div>
 

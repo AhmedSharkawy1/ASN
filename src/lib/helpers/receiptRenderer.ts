@@ -110,6 +110,16 @@ export function renderShiftReceiptHtml(data: { cashierName: string, shiftStats: 
                     <td style="padding:6px 0;font-weight:900">${isAr ? 'إجمالي عدد الطلبات:' : 'Total Orders:'}</td>
                     <td style="text-align:left;padding:6px 0;font-weight:900">${shiftStats.count}</td>
                 </tr>
+                ${(shiftStats.websiteOrders !== undefined && shiftStats.websiteOrders > 0) ? `
+                <tr>
+                    <td style="padding:2px 0;font-size:12px;color:#444;">${isAr ? '• طلبات كاشير مباشر:' : '• Direct POS Orders:'}</td>
+                    <td style="text-align:left;padding:2px 0;font-size:12px;color:#444;">${shiftStats.posOrders || 0} (${fmtPrice(shiftStats.posRevenue || 0)})</td>
+                </tr>
+                <tr>
+                    <td style="padding:2px 0;font-size:12px;color:#444;">${isAr ? '• طلبات أونلاين مؤكدة:' : '• Confirmed Online Orders:'}</td>
+                    <td style="text-align:left;padding:2px 0;font-size:12px;color:#444;">${shiftStats.websiteOrders} (${fmtPrice(shiftStats.websiteRevenue || 0)})</td>
+                </tr>
+                ` : ''}
             </table>
 
             <div style="border-top:2px dashed #000;margin:12px 0"></div>
