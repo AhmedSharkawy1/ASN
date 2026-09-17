@@ -28,21 +28,29 @@ const SUPABASE_STORAGE_PREFIX = '/storage/v1/object/public/menu-images/';
 export function getProxiedImageUrl(url: string | undefined | null): string {
   if (!url) return '';
 
-  // Only rewrite Supabase Storage URLs
+  // Already proxied
+  if (url.startsWith('/api/img/')) return url;
+
+  // 1. Rewrite Supabase Storage URLs
   const idx = url.indexOf(SUPABASE_STORAGE_PREFIX);
-  if (idx === -1) return url;
+  if (idx !== -1) {
+    const storagePath = url.substring(idx + SUPABASE_STORAGE_PREFIX.length);
+    if (storagePath) return `/api/img/${storagePath}`;
+  }
 
-  // Extract the path after the bucket name, e.g. "thumbs/abc.webp"
-  const storagePath = url.substring(idx + SUPABASE_STORAGE_PREFIX.length);
-  if (!storagePath) return url;
+  // 2. Rewrite Cloudflare R2 public URLs (.r2.dev)
+  const r2Match = url.match(/^https:\/\/[^/]+\.r2\.dev\/(.+)$/);
+  if (r2Match && r2Match[1]) {
+    return `/api/img/${r2Match[1]}`;
+  }
 
-  return `/api/img/${storagePath}`;
+  return url;
 }
 
 /**
- * Check whether a URL points to our Supabase Storage bucket.
+ * Check whether a URL points to our storage bucket (Supabase or Cloudflare R2).
  */
 export function isSupabaseImageUrl(url: string | undefined | null): boolean {
   if (!url) return false;
-  return url.includes(SUPABASE_STORAGE_PREFIX);
+  return url.includes(SUPABASE_STORAGE_PREFIX) || url.includes('.r2.dev/') || url.startsWith('/api/img/');
 }

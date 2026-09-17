@@ -39,7 +39,11 @@ const isAllowedHost = (url: string) => {
   if (url.startsWith('data:')) return true;
   try {
     const parsed = new URL(url);
-    return parsed.hostname === 'images.unsplash.com' || parsed.hostname.endsWith('.supabase.co');
+    return (
+      parsed.hostname === 'images.unsplash.com' ||
+      parsed.hostname.endsWith('.supabase.co') ||
+      parsed.hostname.endsWith('.r2.dev')
+    );
   } catch (_e) {
     return false;
   }

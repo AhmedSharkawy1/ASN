@@ -36,69 +36,26 @@ export function extractFileName(urlOrPath: string): string {
 
 
 /**
- * Convert any Supabase image URL to its original version.
- * 
- * Strategy:
- * - Extract filename from the URL
- * - Construct original path: menu-images/original/{filename}.webp
- * - If URL is not from Supabase Storage, return it unchanged
- * - For legacy URLs (not in original/ or thumbs/), return as-is
- *   since the original IS the legacy path
+ * Convert any menu image URL to its original version.
+ * Works seamlessly with Supabase, Cloudflare R2, and proxied URLs.
  */
 export function getOriginalUrl(imageUrl: string | undefined | null): string {
   if (!imageUrl) return '';
-  if (!isSupabaseStorageUrl(imageUrl)) return imageUrl;
-
-  const storagePath = extractStoragePath(imageUrl);
-  if (!storagePath) return imageUrl;
-
-  // If it's a thumbnail, convert to original
-  if (storagePath.startsWith('thumbs/')) {
-    const fileName = extractFileName(storagePath);
-    const baseUrl = imageUrl.substring(
-      0,
-      imageUrl.indexOf(SUPABASE_STORAGE_PATH) + SUPABASE_STORAGE_PATH.length
-    );
-    return `${baseUrl}original/${fileName}.webp`;
+  if (imageUrl.includes('/thumbs/')) {
+    return imageUrl.replace('/thumbs/', '/original/');
   }
-
-  // If it's already in original/, return as-is
-  if (storagePath.startsWith('original/')) return imageUrl;
-
-  // Legacy URL — the original IS at this path
   return imageUrl;
 }
 
 /**
- * Convert any Supabase image URL to its thumbnail (400px) version.
- *
- * Strategy:
- * - Extract filename from the URL
- * - Construct thumbnail path: menu-images/thumbs/{filename}.webp
- * - If URL is not from Supabase Storage, return it unchanged
- * - For legacy URLs (not in original/ or thumbs/), return as-is
+ * Convert any menu image URL to its thumbnail (400px) version.
+ * Works seamlessly with Supabase, Cloudflare R2, and proxied URLs.
  */
 export function getThumbnailUrl(imageUrl: string | undefined | null): string {
   if (!imageUrl) return '';
-  if (!isSupabaseStorageUrl(imageUrl)) return imageUrl;
-
-  const storagePath = extractStoragePath(imageUrl);
-  if (!storagePath) return imageUrl;
-
-  // If it's an original, convert to thumbnail
-  if (storagePath.startsWith('original/')) {
-    const fileName = extractFileName(storagePath);
-    const baseUrl = imageUrl.substring(
-      0,
-      imageUrl.indexOf(SUPABASE_STORAGE_PATH) + SUPABASE_STORAGE_PATH.length
-    );
-    return `${baseUrl}thumbs/${fileName}.webp`;
+  if (imageUrl.includes('/original/')) {
+    return imageUrl.replace('/original/', '/thumbs/');
   }
-
-  // If it's already in thumbs/, return as-is
-  if (storagePath.startsWith('thumbs/')) return imageUrl;
-
-  // Legacy URL — return as-is
   return imageUrl;
 }
 
