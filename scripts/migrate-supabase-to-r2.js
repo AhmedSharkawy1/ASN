@@ -74,7 +74,9 @@ async function checkR2Exists(key) {
 async function listAllFilesRecursive(folder = '') {
   let allFiles = [];
   let offset = 0;
-  const limit = 100;
+  const limit = 1000;
+
+  console.log(`[SCAN] Scanning folder "${folder || '(root)'}"...`);
 
   while (true) {
     const { data, error } = await supabaseAdmin.storage
@@ -103,6 +105,7 @@ async function listAllFilesRecursive(folder = '') {
       }
     }
 
+    console.log(`[SCAN] "${folder || '(root)'}": scanned ${data.length} entries (running total: ${allFiles.length})`);
     if (data.length < limit) break;
     offset += limit;
   }
@@ -126,32 +129,39 @@ async function transferSingleFile(file, idx, total) {
     return { status: 'dry-run', size: file.size };
   }
 
-  // 2. Download from Supabase
-  try {
-    const { data: blob, error } = await supabaseAdmin.storage
-      .from(SUPABASE_BUCKET)
-      .download(file.path);
+  // 2. Download from Supabase and upload to R2 (with retry on connection limits)
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const { data: blob, error } = await supabaseAdmin.storage
+        .from(SUPABASE_BUCKET)
+        .download(file.path);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    const buffer = Buffer.from(await blob.arrayBuffer());
+      const buffer = Buffer.from(await blob.arrayBuffer());
 
-    // 3. Upload to Cloudflare R2 with 1-year immutable caching
-    await r2Client.send(
-      new PutObjectCommand({
-        Bucket: R2_BUCKET_NAME,
-        Key: file.path,
-        Body: buffer,
-        ContentType: file.contentType || 'image/webp',
-        CacheControl: 'public, max-age=31536000, immutable',
-      })
-    );
+      // 3. Upload to Cloudflare R2 with 1-year immutable caching
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: file.path,
+          Body: buffer,
+          ContentType: file.contentType || 'image/webp',
+          CacheControl: 'public, max-age=31536000, immutable',
+        })
+      );
 
-    console.log(`${prefix} ✅ Migrated: ${file.path} (${(buffer.length / 1024).toFixed(1)} KB)`);
-    return { status: 'transferred', size: buffer.length };
-  } catch (err) {
-    console.error(`${prefix} ❌ Failed to migrate ${file.path}:`, err.message);
-    return { status: 'error', error: err.message };
+      console.log(`${prefix} ✅ Migrated: ${file.path} (${(buffer.length / 1024).toFixed(1)} KB)`);
+      return { status: 'transferred', size: buffer.length };
+    } catch (err) {
+      if (attempt < 3) {
+        console.warn(`${prefix} ⚠️ Attempt ${attempt} failed for ${file.path} (${err.message}). Retrying in ${attempt}s...`);
+        await new Promise(res => setTimeout(res, 1000 * attempt));
+      } else {
+        console.error(`${prefix} ❌ Failed to migrate ${file.path}:`, err.message);
+        return { status: 'error', error: err.message };
+      }
+    }
   }
 }
 
