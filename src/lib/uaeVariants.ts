@@ -1,3 +1,5 @@
+import { getProxiedImageUrl } from '@/lib/imageProxy';
+
 export interface UaeThemeColors {
     primaryColor: string;
     bgBody: string;
@@ -53,7 +55,7 @@ export function getUaeColors(config: any, isDark: boolean): UaeThemeColors {
 
     // Determine active background image with fallback
     let activeBgImage = isDark ? (bgImageDark || bgImageLight) : (bgImageLight || bgImageDark);
-    activeBgImage = (activeBgImage || '').trim();
+    activeBgImage = getProxiedImageUrl((activeBgImage || '').trim());
 
     const hasBgImage = Boolean(activeBgImage && activeBgImage.length > 0);
 

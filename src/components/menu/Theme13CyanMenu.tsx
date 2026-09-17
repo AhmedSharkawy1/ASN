@@ -15,6 +15,7 @@ import { FreeMode } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/free-mode';
 import ASNFooter from '@/components/menu/ASNFooter';
+import { getProxiedImageUrl } from '@/lib/imageProxy';
 
 type MenuItem = {
     id: string | number;
@@ -298,7 +299,7 @@ export default function Theme13CyanMenu({ config, categories, restaurantId }: Th
             <div className="relative h-[160px] md:h-24 mb-[15px] rounded-b-2xl md:rounded-b-3xl shadow-[0_4px_15px_rgba(0,0,0,0.1)] overflow-hidden">
                 <div
                     className="absolute inset-0 bg-cover bg-center transition-transform duration-500 hover:scale-105"
-                    style={{ backgroundImage: `url(${config.cover_url || config.cover_images?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000'})` }}
+                    style={{ backgroundImage: `url(${getProxiedImageUrl(config.cover_url || config.cover_images?.[0] || 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000')})` }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 

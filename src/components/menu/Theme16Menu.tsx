@@ -27,6 +27,7 @@ import { Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
 import ASNFooter from '@/components/menu/ASNFooter';
+import { getProxiedImageUrl } from '@/lib/imageProxy';
 
 // Local Types to avoid import issues
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -560,7 +561,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                     <div className="store-branding">
                         {config.logo_url && (
                             <div className="store-logo">
-                                <Image quality={95} src={config.logo_url} alt="Logo" width={40} height={40} />
+                                <Image quality={95} src={getProxiedImageUrl(config.logo_url)} alt="Logo" width={40} height={40} />
                             </div>
                         )}
                         <div className="store-info">
@@ -617,12 +618,12 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                     >
                         {config.cover_images.map((img: string, idx: number) => (
                             <SwiperSlide key={idx}>
-                                <div className="cover-image" style={{ backgroundImage: `url('${img}')` }}></div>
+                                <div className="cover-image" style={{ backgroundImage: `url('${getProxiedImageUrl(img)}')` }}></div>
                             </SwiperSlide>
                         ))}
                     </Swiper>
                 ) : (
-                    <div className="cover-image" style={{ backgroundImage: `url('${config.cover_url || ''}')` }}></div>
+                    <div className="cover-image" style={{ backgroundImage: `url('${getProxiedImageUrl(config.cover_url || '')}')` }}></div>
                 )}
                 <div className="hero-overlay">
                     <div className="z-10 relative">
@@ -782,7 +783,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                         </div>
                         <div className="p-5 flex flex-col gap-4">
                             <div className="flex gap-4 p-4 bg-gray-50 rounded-lg items-center">
-                                <Image quality={95} src={config.logo_url || ''} width={50} height={50} alt="Logo" className="rounded-md object-cover" />
+                                <Image quality={95} src={getProxiedImageUrl(config.logo_url || '')} width={50} height={50} alt="Logo" className="rounded-md object-cover" />
                                 <div>
                                     <h4 className="font-bold">{config.name}</h4>
                                     <p className="text-xs text-gray-500">{window.location.href}</p>
@@ -966,7 +967,7 @@ export default function Theme16Menu({ config, categories, restaurantId }: { conf
                                         {cart.map((c, i) => (
                                             <div key={i} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex gap-4 relative">
                                                 <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                                    <Image quality={95} src={c.item.image_url || '/placeholder.jpg'} alt="Item" width={64} height={64} className="object-cover w-full h-full" />
+                                                    <Image quality={95} src={getProxiedImageUrl(c.item.thumbnail_url || c.item.image_url || '/placeholder.jpg')} alt="Item" width={64} height={64} className="object-cover w-full h-full" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex justify-between items-start mb-1">

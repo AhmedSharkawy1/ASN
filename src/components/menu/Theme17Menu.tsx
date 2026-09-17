@@ -1,5 +1,6 @@
 "use client";
 import OptimizedMenuImage from "@/components/menu/OptimizedMenuImage";
+import { getProxiedImageUrl } from "@/lib/imageProxy";
 
 import { parseCurrency } from '@/lib/currency';
 import React, {  useState, useEffect, useRef  } from 'react';
@@ -241,7 +242,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
         <div id="dark-footer" className="bg-[#0a0f16] w-full pt-14 pb-14 rounded-t-[40px] px-6 text-white shadow-[0_-10px_40px_rgba(0,0,0,0.15)] mt-6">
             <div className="flex flex-col items-center border-b border-white/10 pb-8 mb-8">
                 <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center p-2 mb-4 overflow-hidden relative shadow-lg">
-                    {config.logo_url && <Image quality={95} src={config.logo_url} fill className="object-contain p-1" alt="Logo"/>}
+                    {config.logo_url && <Image quality={95} src={getProxiedImageUrl(config.logo_url)} fill className="object-contain p-1" alt="Logo"/>}
                 </div>
                 <h2 className="text-[20px] font-black mb-5 tracking-wide text-center">
                     {isRTL ? 'مطعم' : 'Restaurant'} {config.name}
@@ -403,7 +404,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                 <div className="flex flex-col items-center pt-16 px-4 pb-8">
                     {/* Logo */}
                     <div className="w-32 h-32 bg-white rounded-full shadow-[0_5px_15px_rgba(211,47,47,0.15)] flex items-center justify-center p-2 mb-5 relative z-10 overflow-hidden">
-                        {config.logo_url ? <Image quality={95} src={config.logo_url} fill className="object-contain p-1" alt="Logo"/> : <div className="text-gray-400 font-bold text-xs">{config.name}</div>}
+                        {config.logo_url ? <Image quality={95} src={getProxiedImageUrl(config.logo_url)} fill className="object-contain p-1" alt="Logo"/> : <div className="text-gray-400 font-bold text-xs">{config.name}</div>}
                     </div>
                     <h1 className="text-[22px] font-black text-gray-900 mb-6 tracking-wide text-center leading-tight flex items-center justify-center gap-1.5 flex-wrap">
                         <span className="text-red-500">{isRTL ? 'مطعم' : 'Restaurant'}</span>
@@ -452,12 +453,12 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                         <Swiper modules={[Autoplay, EffectFade]} effect="fade" autoplay={{ delay: 3500 }} loop className="w-full h-full">
                             {config.cover_images.map((img, idx) => (
                                 <SwiperSlide key={idx}>
-                                    <Image quality={95} src={img} alt="Cover" fill className="object-cover" />
+                                    <Image quality={95} src={getProxiedImageUrl(img)} alt="Cover" fill className="object-cover" />
                                 </SwiperSlide>
                             ))}
                         </Swiper>
                     ) : (
-                        <Image quality={95} src={config.cover_url || '/placeholder.jpg'} alt="Cover" fill className="object-cover" />
+                        <Image quality={95} src={getProxiedImageUrl(config.cover_url || '/placeholder.jpg')} alt="Cover" fill className="object-cover" />
                     )}
                 </div>
 
@@ -511,7 +512,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
 
                 {/* Order Now (Second image slice) */}
                 <div className="w-full relative h-[250px] sm:h-[350px] bg-gray-100 mt-2 mb-10">
-                    <Image quality={95} src={config.cover_images?.[1] || config.cover_url || '/placeholder.jpg'} alt="Cover 2" fill className="object-cover" />
+                    <Image quality={95} src={getProxiedImageUrl(config.cover_images?.[1] || config.cover_url || '/placeholder.jpg')} alt="Cover 2" fill className="object-cover" />
                 </div>
                 
                 <div className="flex justify-center -mt-10 relative z-10 mb-12 px-4 text-center">
@@ -659,12 +660,12 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                         <Swiper modules={[Autoplay, EffectFade]} effect="fade" autoplay={{ delay: 3500 }} loop className="w-full h-full">
                             {config.cover_images.map((img, idx) => (
                                 <SwiperSlide key={idx}>
-                                    <Image quality={95} src={img} alt="Cover" fill className="object-cover" />
+                                    <Image quality={95} src={getProxiedImageUrl(img)} alt="Cover" fill className="object-cover" />
                                 </SwiperSlide>
                             ))}
                         </Swiper>
                     ) : (
-                        <Image quality={95} src={config.cover_url || '/placeholder.jpg'} alt="Cover" fill className="object-cover" />
+                        <Image quality={95} src={getProxiedImageUrl(config.cover_url || '/placeholder.jpg')} alt="Cover" fill className="object-cover" />
                     )}
                 </div>
                 

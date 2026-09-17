@@ -16,6 +16,7 @@ import "swiper/css";
 import "swiper/css/effect-fade";
 import ASNFooter from '@/components/menu/ASNFooter';
 import { parseCurrency } from '@/lib/currency';
+import { getProxiedImageUrl } from '@/lib/imageProxy';
 
 // ─── Types (same interface as other themes) ───
 type Item = {
@@ -251,13 +252,13 @@ export default function BabAlHaraEmeraldMenu({ config, categories, language, res
                             {config.cover_images.map((img: string, idx: number) => (
                                 <SwiperSlide key={idx}>
                                     <div className="w-full h-full bg-cover bg-center transition-transform duration-1000 scale-105"
-                                        style={{ backgroundImage: `url(${img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop'})` }} />
+                                        style={{ backgroundImage: `url(${getProxiedImageUrl(img || 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop')})` }} />
                                 </SwiperSlide>
                             ))}
                         </Swiper>
                     ) : config.cover_url ? (
                         <div className="absolute inset-0 z-0 bg-cover bg-center transition-transform duration-1000 scale-105"
-                            style={{ backgroundImage: `url(${config.cover_url})` }} />
+                            style={{ backgroundImage: `url(${getProxiedImageUrl(config.cover_url)})` }} />
                     ) : null}
                     {/* Overlay */}
                     <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/40 via-black/20 to-[#f8f9fa] dark:to-[#0a0a0a]" />

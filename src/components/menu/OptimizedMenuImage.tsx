@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { parseCurrency } from '@/lib/currency';
 import React, { useMemo, useRef, useCallback } from 'react';
 import { getOriginalUrl, getThumbnailUrl } from '@/lib/imageUtils';
+import { getProxiedImageUrl } from '@/lib/imageProxy';
 import { logImageDebug, logImageFallback, logImageMount } from '@/lib/imageDebug';
 
 interface OptimizedMenuImageProps {
@@ -95,17 +96,20 @@ export default function OptimizedMenuImage({
       targetUrl = getThumbnailUrl(bestSrc);
     }
     
-    logImageMount(targetUrl);
+    // Route through Vercel edge CDN to avoid Supabase egress
+    const proxiedUrl = getProxiedImageUrl(targetUrl);
+    
+    logImageMount(proxiedUrl);
     logImageDebug({
       imageSource: bestSrc,
       thumbnailAvailable: !!thumbnailSrc && !isHQ,
-      finalSrc: targetUrl,
+      finalSrc: proxiedUrl,
       fallbackTriggered: false,
       fallbackStage: 0,
     });
 
-    currentSrcRef.current = targetUrl;
-    return targetUrl;
+    currentSrcRef.current = proxiedUrl;
+    return proxiedUrl;
   }, [src, thumbnailSrc, originalSrc, useOriginal, highQuality, isHQ]);
 
   // One-shot error handler — each stage fires at most once
@@ -126,12 +130,15 @@ export default function OptimizedMenuImage({
         targetFallbackUrl = originalSrc || thumbnailSrc || src || '';
       }
       
-      if (targetFallbackUrl && targetFallbackUrl !== currentSrcRef.current) {
+      // Route fallback through Vercel CDN proxy too
+      const proxiedFallback = getProxiedImageUrl(targetFallbackUrl);
+      
+      if (proxiedFallback && proxiedFallback !== currentSrcRef.current) {
         fallbackStageRef.current = 1;
-        currentSrcRef.current = targetFallbackUrl;
+        currentSrcRef.current = proxiedFallback;
         img.srcset = '';
-        img.src = targetFallbackUrl;
-        logImageFallback(primarySrc, targetFallbackUrl, 1);
+        img.src = proxiedFallback;
+        logImageFallback(primarySrc, proxiedFallback, 1);
         return;
       }
       fallbackStageRef.current = 1;

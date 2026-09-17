@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { isR2Configured, uploadBufferToR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
 // Encoding a large photo can outlast the default limit on a cold start.
@@ -150,43 +151,56 @@ export async function POST(req: NextRequest) {
     const originalFileName = `original/${fileId}.webp`;
     const thumbFileName = `thumbs/${fileId}.webp`;
 
-    // Buffer is a valid FileBody, so it goes up as-is — the previous
-    // .buffer.slice() round-trip copied every byte for nothing.
-    stage = 'storage-original';
-    const { error: originalUploadError } = await supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .upload(originalFileName, originalBuffer, {
-        contentType,
-        cacheControl: '31536000',
-        upsert: true,
-      });
+    let originalUrl = '';
+    let thumbUrl = '';
 
-    if (originalUploadError) {
-      return NextResponse.json({ error: `Upload failed: ${originalUploadError.message}`, stage }, { status: 500 });
+    if (isR2Configured()) {
+      stage = 'storage-r2-upload';
+      const [r2Original, r2Thumb] = await Promise.all([
+        uploadBufferToR2(originalFileName, originalBuffer, contentType),
+        uploadBufferToR2(thumbFileName, thumbBuffer, contentType),
+      ]);
+      originalUrl = r2Original.publicUrl;
+      thumbUrl = r2Thumb.publicUrl;
+    } else {
+      // Fallback to Supabase Storage if R2 is not yet configured
+      stage = 'storage-original';
+      const { error: originalUploadError } = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .upload(originalFileName, originalBuffer, {
+          contentType,
+          cacheControl: '31536000',
+          upsert: true,
+        });
+
+      if (originalUploadError) {
+        return NextResponse.json({ error: `Upload failed: ${originalUploadError.message}`, stage }, { status: 500 });
+      }
+
+      stage = 'storage-thumbnail';
+      const { error: thumbUploadError } = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .upload(thumbFileName, thumbBuffer, {
+          contentType,
+          cacheControl: '31536000',
+          upsert: true,
+        });
+
+      stage = 'public-url';
+      const { data: originalUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(originalFileName);
+      const { data: thumbUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(thumbUploadError ? originalFileName : thumbFileName);
+      originalUrl = originalUrlData.publicUrl;
+      thumbUrl = thumbUrlData.publicUrl;
     }
-
-    stage = 'storage-thumbnail';
-    const { error: thumbUploadError } = await supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .upload(thumbFileName, thumbBuffer, {
-        contentType,
-        cacheControl: '31536000',
-        upsert: true,
-      });
-
-    stage = 'public-url';
-    const { data: originalUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(originalFileName);
-    const { data: thumbUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(thumbUploadError ? originalFileName : thumbFileName);
 
     stage = 'response';
     return NextResponse.json({
       success: true,
-      originalUrl: originalUrlData.publicUrl,
-      thumbUrl: thumbUrlData.publicUrl,
+      originalUrl,
+      thumbUrl,
       originalSize: originalBuffer.byteLength,
       thumbSize: thumbBuffer.byteLength,
-      // "passthrough" means sharp failed and this upload was stored unresized.
-      // Worth watching: a run of these is how the bypass went unnoticed before.
+      storageEngine: isR2Configured() ? 'cloudflare-r2' : 'supabase',
       diagnostic: rendered.mode,
       ...(rendered.reason ? { sharpError: rendered.reason } : {})
     });

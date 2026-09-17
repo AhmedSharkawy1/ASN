@@ -1,5 +1,6 @@
 'use client';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
+import { getProxiedImageUrl } from '@/lib/imageProxy';
 
 import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect, useRef } from 'react';
@@ -302,7 +303,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                 <div 
                     className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
                     style={{
-                        backgroundImage: `url("${activeBgImage}")`
+                        backgroundImage: `url("${getProxiedImageUrl(activeBgImage)}")`
                     }}
                 />
             )}
@@ -536,7 +537,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                              boxShadow: activeCategory === cat.id.toString() ? `0 4px 12px ${primaryColor}40` : 'none'
                                          }}>
                                         <img 
-                                            src={cat.image_url || cat.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c"} 
+                                            src={getProxiedImageUrl(cat.image_url || cat.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c")} 
                                             alt={catName(cat)} 
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
@@ -1499,7 +1500,7 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
                                                     }}>
                                                     {catImg ? (
                                                         <img 
-                                                            src={catImg} 
+                                                            src={getProxiedImageUrl(catImg)} 
                                                             alt={catName(cat)} 
                                                             className="w-full h-full object-cover" 
                                                             onError={(e) => {

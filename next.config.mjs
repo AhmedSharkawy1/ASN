@@ -26,6 +26,12 @@ const nextConfig = {
                 port: '',
                 pathname: '/storage/**',
             },
+            {
+                protocol: 'https',
+                hostname: '*.r2.dev',
+                port: '',
+                pathname: '/**',
+            },
         ],
     },
     experimental: {

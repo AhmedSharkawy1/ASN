@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Phone, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { getVicinoColors } from '@/lib/vicinoVariants';
+import { getProxiedImageUrl } from '@/lib/imageProxy';
 
 interface CustomerLeadPopupProps {
     config: any;
@@ -121,7 +122,7 @@ export default function CustomerLeadPopup({
                         {/* Logo */}
                         <div className="flex justify-center mb-6">
                             {logoUrl ? (
-                                <img src={logoUrl} alt="Logo" className="w-24 h-24 object-contain rounded-full shadow-lg border-4 border-white/10" />
+                                <img src={getProxiedImageUrl(logoUrl)} alt="Logo" className="w-24 h-24 object-contain rounded-full shadow-lg border-4 border-white/10" />
                             ) : (
                                 <div className="w-24 h-24 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: themePrimary, color: '#fff' }}>
                                     <span className="text-2xl font-bold">{config.name?.charAt(0)}</span>

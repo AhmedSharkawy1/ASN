@@ -1,3 +1,5 @@
+import { getProxiedImageUrl } from '@/lib/imageProxy';
+
 export interface AswanThemeColors {
     primaryColor: string;
     bgBody: string;
@@ -68,7 +70,7 @@ export function getAswanColors(config: any, isDark: boolean): AswanThemeColors {
 
     // Determine active background image with fallback if only one mode image is provided
     let activeBgImage = isDark ? (bgImageDark || bgImageLight) : (bgImageLight || bgImageDark);
-    activeBgImage = (activeBgImage || '').trim();
+    activeBgImage = getProxiedImageUrl((activeBgImage || '').trim());
 
     const hasBgImage = Boolean(activeBgImage && activeBgImage.length > 0);
 

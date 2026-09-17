@@ -1,5 +1,6 @@
 'use client';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
+import { getProxiedImageUrl } from '@/lib/imageProxy';
 
 import { parseCurrency } from '@/lib/currency';
 import React, { useState, useEffect } from 'react';
@@ -419,7 +420,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
             {hasBgImage && (
                 <div 
                     className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-500"
-                    style={{ backgroundImage: `url("${activeBgImage}")` }}
+                    style={{ backgroundImage: `url("${getProxiedImageUrl(activeBgImage)}")` }}
                 />
             )}
 
@@ -641,7 +642,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                      boxShadow: isActive ? `0 2px 8px ${primaryColor}35` : 'none'
                                                  }}>
                                                 <img 
-                                                    src={catImg} 
+                                                    src={getProxiedImageUrl(catImg)} 
                                                     alt={catName(cat)} 
                                                     className="w-full h-full object-cover shrink-0 pointer-events-none"
                                                     onError={(e) => {
@@ -1704,7 +1705,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                                         }}>
                                                         {catImg ? (
                                                             <img 
-                                                                src={catImg} 
+                                                                src={getProxiedImageUrl(catImg)} 
                                                                 alt={catName(cat)} 
                                                                 className="w-full h-full object-cover" 
                                                                 onError={(e) => {
@@ -1770,7 +1771,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                 {popupConfig.image_url ? (
                                     <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-black/10">
                                         <img 
-                                            src={popupConfig.image_url} 
+                                            src={getProxiedImageUrl(popupConfig.image_url)} 
                                             alt="Promo Offer" 
                                             className="w-full h-full object-cover"
                                         />
