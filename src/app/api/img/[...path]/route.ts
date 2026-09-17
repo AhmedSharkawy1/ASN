@@ -71,7 +71,8 @@ export async function GET(
           status: 200,
           headers: {
             'Content-Type': r2Object.contentType,
-            'Cache-Control': r2Object.cacheControl,
+            'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+            'CDN-Cache-Control': 'public, max-age=31536000, immutable',
             'Access-Control-Allow-Origin': '*',
             'Vary': 'Accept-Encoding',
             'X-Storage-Source': 'cloudflare-r2',
