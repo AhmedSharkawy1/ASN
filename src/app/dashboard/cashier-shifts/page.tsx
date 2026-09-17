@@ -138,9 +138,10 @@ const getDateBounds = (range: DateRange, customStart: string, customEnd: string)
 
 export default function CashierShiftsPage() {
     const { language } = useLanguage();
-    const { restaurant, restaurantId } = useRestaurant();
+    const { restaurant, restaurantId, isOwner, isManager } = useRestaurant();
     const isAr = language === "ar";
 
+    const [hasAccess, setHasAccess] = useState<boolean | null>(null);
     const [range, setRange] = useState<DateRange>("today");
     const [customStart, setCustomStart] = useState("");
     const [customEnd, setCustomEnd] = useState("");
@@ -168,6 +169,43 @@ export default function CashierShiftsPage() {
         }, 300);
         return () => clearTimeout(timer);
     }, [searchQuery]);
+
+    // Check permission for cashier shifts
+    useEffect(() => {
+        if (isOwner || isManager) {
+            setHasAccess(true);
+            return;
+        }
+        const verifyPerm = async () => {
+            try {
+                const cached = await posDb.settings.get('current_config');
+                if (cached?.permissions_json) {
+                    const p = JSON.parse(cached.permissions_json);
+                    if (p._isAdmin || p.cashier_shifts === true) {
+                        setHasAccess(true);
+                        return;
+                    }
+                    setHasAccess(false);
+                    return;
+                }
+            } catch {}
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                const { data: staff } = await supabase.from('team_members').select('role, permissions').eq('auth_id', session.user.id).maybeSingle();
+                if (staff) {
+                    if (staff.role === 'admin' || staff.role === 'manager') {
+                        setHasAccess(true);
+                    } else {
+                        const perms = typeof staff.permissions === 'string' ? JSON.parse(staff.permissions) : (staff.permissions || {});
+                        setHasAccess(perms.cashier_shifts === true);
+                    }
+                    return;
+                }
+            }
+            setHasAccess(true);
+        };
+        verifyPerm();
+    }, [isOwner, isManager]);
 
     // Fetch cashier accounts
     useEffect(() => {
@@ -553,6 +591,22 @@ export default function CashierShiftsPage() {
             setCustomEnd(`${yyyy}-${mm}-${dd}T23:59`);
         }
     };
+
+    if (hasAccess === false) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
+                <div className="w-16 h-16 rounded-2xl bg-red-100 dark:bg-red-500/10 flex items-center justify-center text-red-600 dark:text-red-400 mb-4">
+                    <UserCheck className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-white mb-2">
+                    {isAr ? "غير مصرح لك بالوصول" : "Access Denied"}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-zinc-400 max-w-md">
+                    {isAr ? "ليس لديك صلاحية لعرض صفحة ورديات الكاشير. يرجى التواصل مع مدير المطعم." : "You do not have permission to view cashier shifts. Please contact your restaurant manager."}
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-6 w-full mx-auto pb-20">

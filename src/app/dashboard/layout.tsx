@@ -662,7 +662,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Backward-compat: expand old broad permission keys to specific nav keys
     const BROAD_TO_SPECIFIC: Record<string, string[]> = {
-        orders: ['orders', 'pos', 'kitchen', 'cashier_shifts'],
+        orders: ['orders', 'pos', 'kitchen'], // cashier_shifts has its own granular permission
         products: ['products', 'tables', 'delivery', 'promotions'],
         settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme27_settings', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'qr'],
         team: ['team'],
@@ -717,16 +717,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }).filter(section => section.items.length > 0);
     }, [expandedPermissions, navSections]);
 
-    // Auto-redirect staff away from /dashboard if they don't have 'dashboard' permission
+    // Auto-redirect staff away from forbidden pages they don't have permission to view
     useEffect(() => {
         if (loading || !permissions || (permissions as any)._isAdmin) return;
-        if (pathname === '/dashboard' && permissions['dashboard'] !== true) {
-            const firstAllowed = filteredNavSections.flatMap(s => s.items)[0];
-            if (firstAllowed && firstAllowed.href !== '/dashboard') {
-                router.replace(firstAllowed.href);
+        
+        const allItems = navSections.flatMap(s => s.items);
+        const currentItem = allItems.find(item => {
+            if (item.exact) return pathname === item.href;
+            return pathname === item.href || pathname.startsWith(item.href + '/');
+        });
+
+        if (currentItem && currentItem.key) {
+            const hasAccess = expandedPermissions && expandedPermissions[currentItem.key] === true;
+            if (!hasAccess) {
+                const firstAllowed = filteredNavSections.flatMap(s => s.items)[0];
+                if (firstAllowed && firstAllowed.href !== pathname) {
+                    router.replace(firstAllowed.href);
+                }
             }
         }
-    }, [loading, permissions, pathname, router, filteredNavSections]);
+    }, [loading, permissions, pathname, router, filteredNavSections, navSections, expandedPermissions]);
 
     if (loading) {
         return (

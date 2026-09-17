@@ -78,10 +78,20 @@ export default function StaffPage() {
             if(!session) return;
             
             let activeResId = sessionStorage.getItem('impersonating_tenant');
-            const { data: myRest } = await supabase.from('restaurants').select('id, parent_id').eq('email', session.user.email).maybeSingle();
-
-            if (!activeResId && myRest) {
-                activeResId = myRest.id;
+            
+            if (!activeResId) {
+                if (session.user.email) {
+                    const { data: myRest } = await supabase.from('restaurants').select('id, parent_id').ilike('email', session.user.email).maybeSingle();
+                    if (myRest) {
+                        activeResId = myRest.id;
+                    }
+                }
+                if (!activeResId) {
+                    const { data: myMember } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', session.user.id).maybeSingle();
+                    if (myMember) {
+                        activeResId = myMember.restaurant_id;
+                    }
+                }
             }
 
             if (activeResId) {
@@ -89,15 +99,21 @@ export default function StaffPage() {
                 fetchStaff(activeResId);
                 
                 // Fetch branch list for the dropdown
-                const rootId = myRest?.parent_id || myRest?.id || activeResId;
+                const { data: currentRest } = await supabase.from('restaurants').select('id, name, parent_id').eq('id', activeResId).maybeSingle();
+                const rootId = currentRest?.parent_id || activeResId;
                 const { data: allBranches } = await supabase.from('restaurants').select('id, name').or(`id.eq.${rootId},parent_id.eq.${rootId}`);
                 if (allBranches) setTenantLinks(allBranches);
                 
-                // Fetch tenant page access bypassing RLS
                 // Fetch tenant page access
-                const { data: pageAccess } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rootId);
+                let { data: pageAccess } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', activeResId);
+                if ((!pageAccess || pageAccess.length === 0) && rootId !== activeResId) {
+                    const { data: rootAccess } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rootId);
+                    if (rootAccess && rootAccess.length > 0) {
+                        pageAccess = rootAccess;
+                    }
+                }
                 const map: Record<string, boolean> = {};
-                if (pageAccess) {
+                if (pageAccess && pageAccess.length > 0) {
                     pageAccess.forEach(p => { map[p.page_key] = p.enabled; });
                     map['_loaded'] = true;
                 }
@@ -235,9 +251,21 @@ export default function StaffPage() {
         setSelectedStaff(staff);
         
         // Fetch current permissions
-        const { data: pp } = await supabase.from('page_permissions').select('page_key, can_view').eq('user_id', staff.id);
         const permMap: Record<string, boolean> = {};
-        if (pp) pp.forEach(p => permMap[p.page_key] = p.can_view);
+
+        // Pre-fill from team_members.permissions
+        const { data: tm } = await supabase.from('team_members').select('permissions').eq('id', staff.id).maybeSingle();
+        if (tm?.permissions) {
+            const tmPerms = typeof tm.permissions === 'string' ? JSON.parse(tm.permissions) : tm.permissions;
+            Object.assign(permMap, tmPerms);
+        }
+
+        // Overlay with page_permissions if any
+        const { data: pp } = await supabase.from('page_permissions').select('page_key, can_view').eq('user_id', staff.id);
+        if (pp && pp.length > 0) {
+            pp.forEach(p => permMap[p.page_key] = p.can_view);
+        }
+
         if (['cashier', 'staff', 'delivery', 'kitchen'].includes(staff.role)) {
             permMap['orders_edit_delete'] = false;
         }
@@ -260,13 +288,16 @@ export default function StaffPage() {
                 page_key: key,
                 can_view: sanitizedPerms[key]
             }));
-            await supabase.from('page_permissions').upsert(ppPayload, { onConflict: 'user_id,page_key' });
+            if (ppPayload.length > 0) {
+                await supabase.from('page_permissions').upsert(ppPayload, { onConflict: 'user_id,page_key' });
+            }
 
             // Also sync to team_members.permissions (this is what dashboard layout reads for nav filtering)
             await supabase.from('team_members').update({ permissions: sanitizedPerms }).eq('id', selectedStaff.id);
 
             toast.success(isAr ? "تم تحديث الصلاحيات بدقة للصفحات" : "Page permissions updated perfectly");
             setIsPermissionsModalOpen(false);
+            if (restaurantId) fetchStaff(restaurantId);
         } catch (err) {
             console.error(err);
             toast.error("Failed to save permissions");
@@ -282,6 +313,7 @@ export default function StaffPage() {
         { key: 'pos', nameEn: 'POS Terminal', nameAr: 'نقطة البيع (POS)' },
         { key: 'kitchen', nameEn: 'Kitchen Display', nameAr: 'شاشة المطبخ' },
         { key: 'reports', nameEn: 'Reports', nameAr: 'التقارير' },
+        { key: 'cashier_shifts', nameEn: 'Cashier Shifts', nameAr: 'ورديات الكاشير' },
         { key: 'products', nameEn: 'Products (Menu)', nameAr: 'المنتجات والقائمة' },
         { key: 'tables', nameEn: 'Tables', nameAr: 'الطاولات' },
         { key: 'delivery', nameEn: 'Delivery', nameAr: 'الدليفري' },
@@ -313,11 +345,19 @@ export default function StaffPage() {
     ];
 
     const filteredAvailablePages = AVAILABLE_PAGES.filter(p => {
+        if (p.key === 'orders_edit_delete') {
+            const realKeys = Object.keys(tenantPageAccess).filter(k => k !== '_loaded');
+            if (realKeys.length === 0) return true;
+            return tenantPageAccess['orders'] === true;
+        }
         const isLoaded = tenantPageAccess['_loaded'] === true;
-        const hasTenantData = Object.keys(tenantPageAccess).length > 1; // more than just _loaded
+        const realKeys = Object.keys(tenantPageAccess).filter(k => k !== '_loaded');
+        const hasTenantData = realKeys.length > 0;
         if (!isLoaded || !hasTenantData) return true;
         return tenantPageAccess[p.key] === true;
     });
+
+    const displayPages = filteredAvailablePages.length > 0 ? filteredAvailablePages : AVAILABLE_PAGES;
 
     const filtered = staffList.filter(s => 
         s.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -564,7 +604,7 @@ export default function StaffPage() {
                             </p>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 overflow-y-auto max-h-[60vh] pr-2" style={{ scrollbarWidth: 'thin' }}>
-                                {filteredAvailablePages.map(page => {
+                                {displayPages.map(page => {
                                     const isEditDeleteLocked = page.key === 'orders_edit_delete' && selectedStaff && ['cashier', 'staff', 'delivery', 'kitchen'].includes(selectedStaff.role);
                                     return (
                                         <button key={page.key} 

@@ -27,6 +27,7 @@ const ALL_PAGE_PERMS = [
         { key: "pos", ar: "نقطة البيع (POS)", en: "POS" },
         { key: "kitchen", ar: "شاشة المطبخ", en: "Kitchen" },
         { key: "reports", ar: "التقارير", en: "Reports" },
+        { key: "cashier_shifts", ar: "ورديات الكاشير", en: "Cashier Shifts" },
     ]},
     { section: "القائمة", sectionEn: "Menu", items: [
         { key: "products", ar: "المنتجات", en: "Products" },
@@ -268,6 +269,11 @@ export default function TeamPage() {
                                     {ALL_PAGE_PERMS.map(section => {
                                         // Filter items: only show pages the super admin has enabled (or not restricted)
                                         const visibleItems = section.items.filter(p => {
+                                            if (p.key === 'orders_edit_delete') {
+                                                const hasTenantData = Object.keys(tenantPageAccess).length > 0;
+                                                if (!hasTenantData) return true;
+                                                return tenantPageAccess['orders'] === true;
+                                            }
                                             const hasTenantData = Object.keys(tenantPageAccess).length > 0;
                                             if (!hasTenantData) return true; // No restrictions set = show all
                                             return tenantPageAccess[p.key] === true;
