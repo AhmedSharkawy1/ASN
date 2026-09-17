@@ -2,20 +2,71 @@
 
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { timeAgo } from "@/lib/helpers/formatters";
-import { Bell, Plus, Trash2, CheckCheck, X, Send, Eye, EyeOff } from "lucide-react";
+import { Bell, Plus, Trash2, CheckCheck, X, Send, Eye, EyeOff, RefreshCw, ShoppingBag, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Notification = { id: string; title: string; body?: string; type: string; target: string; is_read: boolean; scheduled_at?: string; created_at: string };
+type Notification = {
+    id: string;
+    restaurant_id: string;
+    title: string;
+    body?: string;
+    type: string;
+    target: string;
+    is_read: boolean;
+    scheduled_at?: string;
+    created_at: string;
+};
 
-const typeMap: Record<string, { color: string; icon: string }> = {
-    info: { color: "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30", icon: "ℹ" },
-    success: { color: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border", icon: "✓" },
-    warning: { color: "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30", icon: "⚠" },
-    error: { color: "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30", icon: "✕" },
-    order: { color: "bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-500/30", icon: "📦" },
+const typeMap: Record<string, { color: string; icon: string; labelAr: string; labelEn: string }> = {
+    order: {
+        color: "bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-500/30",
+        icon: "📦",
+        labelAr: "طلب جديد",
+        labelEn: "New Order"
+    },
+    info: {
+        color: "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30",
+        icon: "ℹ",
+        labelAr: "معلومات",
+        labelEn: "Info"
+    },
+    success: {
+        color: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30",
+        icon: "✓",
+        labelAr: "نجاح",
+        labelEn: "Success"
+    },
+    warning: {
+        color: "bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30",
+        icon: "⚠",
+        labelAr: "تنبيه",
+        labelEn: "Warning"
+    },
+    error: {
+        color: "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30",
+        icon: "✕",
+        labelAr: "خطأ",
+        labelEn: "Error"
+    },
+};
+
+const targetLabelsAr: Record<string, string> = {
+    broadcast: "للجميع",
+    admin: "الإدارة والمسؤولين",
+    staff: "فريق العمل",
+    team: "فريق العمل",
+    kitchen: "المطبخ",
+};
+
+const targetLabelsEn: Record<string, string> = {
+    broadcast: "Everyone",
+    admin: "Admins & Management",
+    staff: "Staff & Team",
+    team: "Staff & Team",
+    kitchen: "Kitchen",
 };
 
 export default function NotificationsPage() {
@@ -25,103 +76,372 @@ export default function NotificationsPage() {
 
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [filter, setFilter] = useState<"all" | "unread">("all");
+    const [sending, setSending] = useState(false);
+    const [activeTab, setActiveTab] = useState<"all" | "unread" | "order" | "team">("all");
     const [form, setForm] = useState({ title: "", body: "", type: "info", target: "broadcast" });
 
-    const fetchNotifications = useCallback(async () => {
+    const fetchNotifications = useCallback(async (isManualRefresh = false) => {
         if (!restaurantId) return;
-        let query = supabase.from('notifications').select('*').eq('restaurant_id', restaurantId).order('created_at', { ascending: false });
-        if (filter === "unread") query = query.eq('is_read', false);
-        const { data } = await query;
-        setNotifications((data as Notification[]) || []);
-        setLoading(false);
-    }, [restaurantId, filter]);
+        if (isManualRefresh) setRefreshing(true);
+        try {
+            const res = await fetch(`/api/notifications?restaurant_id=${encodeURIComponent(restaurantId)}`);
+            if (!res.ok) throw new Error("Failed to fetch notifications");
+            const data = await res.json();
+            if (data && Array.isArray(data.notifications)) {
+                setNotifications(data.notifications as Notification[]);
+            }
+        } catch (err) {
+            console.error("fetchNotifications error:", err);
+        } finally {
+            setLoading(false);
+            if (isManualRefresh) setRefreshing(false);
+        }
+    }, [restaurantId]);
 
-    useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+    // Initial fetch when restaurantId is ready
+    useEffect(() => {
+        if (restaurantId) {
+            fetchNotifications();
+        }
+    }, [restaurantId, fetchNotifications]);
 
-    // Realtime
+    // Supabase Realtime subscription + auto-polling fallback
     useEffect(() => {
         if (!restaurantId) return;
-        const ch = supabase.channel('notif-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'notifications', filter: `restaurant_id=eq.${restaurantId}` }, () => fetchNotifications()).subscribe();
-        return () => { supabase.removeChannel(ch); };
+
+        const channel = supabase.channel(`notif-realtime-${restaurantId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'notifications',
+                    filter: `restaurant_id=eq.${restaurantId}`
+                },
+                () => {
+                    fetchNotifications();
+                }
+            )
+            .subscribe();
+
+        // 20-second background poll fallback
+        const pollInterval = setInterval(() => {
+            fetchNotifications();
+        }, 20000);
+
+        return () => {
+            supabase.removeChannel(channel);
+            clearInterval(pollInterval);
+        };
     }, [restaurantId, fetchNotifications]);
 
     const handleSend = async () => {
-        if (!restaurantId || !form.title.trim()) return;
-        await supabase.from('notifications').insert({ ...form, restaurant_id: restaurantId });
-        setForm({ title: "", body: "", type: "info", target: "broadcast" }); setShowForm(false);
-        fetchNotifications();
+        if (!restaurantId || !form.title.trim() || sending) return;
+        setSending(true);
+        try {
+            const res = await fetch('/api/notifications', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    restaurant_id: restaurantId,
+                    title: form.title.trim(),
+                    body: form.body.trim(),
+                    type: form.type,
+                    target: form.target,
+                }),
+            });
+            if (res.ok) {
+                setForm({ title: "", body: "", type: "info", target: "broadcast" });
+                setShowForm(false);
+                await fetchNotifications();
+            }
+        } catch (err) {
+            console.error("handleSend error:", err);
+        } finally {
+            setSending(false);
+        }
     };
 
-    const handleDelete = async (id: string) => { await supabase.from('notifications').delete().eq('id', id); fetchNotifications(); };
-    const handleToggleRead = async (n: Notification) => { await supabase.from('notifications').update({ is_read: !n.is_read }).eq('id', n.id); fetchNotifications(); };
-    const handleMarkAllRead = async () => { if (!restaurantId) return; await supabase.from('notifications').update({ is_read: true }).eq('restaurant_id', restaurantId).eq('is_read', false); fetchNotifications(); };
+    const handleDelete = async (id: string) => {
+        // Optimistic UI update
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        try {
+            await fetch(`/api/notifications?id=${encodeURIComponent(id)}`, {
+                method: 'DELETE',
+            });
+        } catch (err) {
+            console.error("handleDelete error:", err);
+            fetchNotifications();
+        }
+    };
 
-    const unreadCount = notifications.filter(n => !n.is_read).length;
+    const handleToggleRead = async (n: Notification) => {
+        const nextState = !n.is_read;
+        // Optimistic UI update
+        setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, is_read: nextState } : item));
+        try {
+            await fetch('/api/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: n.id, is_read: nextState }),
+            });
+        } catch (err) {
+            console.error("handleToggleRead error:", err);
+            fetchNotifications();
+        }
+    };
 
-    if (loading) return <div className="p-8 text-center text-slate-500 dark:text-zinc-500 animate-pulse">{isAr ? "جاري التحميل..." : "Loading..."}</div>;
+    const handleMarkAllRead = async () => {
+        if (!restaurantId) return;
+        // Optimistic UI update
+        setNotifications(prev => prev.map(item => ({ ...item, is_read: true })));
+        try {
+            await fetch('/api/notifications', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mark_all_read: true, restaurant_id: restaurantId }),
+            });
+        } catch (err) {
+            console.error("handleMarkAllRead error:", err);
+            fetchNotifications();
+        }
+    };
+
+    const unreadCount = useMemo(() => notifications.filter(n => !n.is_read).length, [notifications]);
+    const orderCount = useMemo(() => notifications.filter(n => n.type === 'order').length, [notifications]);
+    const teamCount = useMemo(() => notifications.filter(n => n.target === 'staff' || n.target === 'team' || n.target === 'kitchen' || (n.type !== 'order' && n.target === 'broadcast')).length, [notifications]);
+
+    const filteredNotifications = useMemo(() => {
+        return notifications.filter(n => {
+            if (activeTab === "unread") return !n.is_read;
+            if (activeTab === "order") return n.type === "order";
+            if (activeTab === "team") return n.target === "staff" || n.target === "team" || n.target === "kitchen" || (n.type !== "order" && n.target === "broadcast");
+            return true;
+        });
+    }, [notifications, activeTab]);
+
+    if (loading) {
+        return (
+            <div className="p-12 text-center text-slate-500 dark:text-zinc-500 animate-pulse flex flex-col items-center gap-3">
+                <Bell className="w-8 h-8 text-emerald-500 animate-bounce" />
+                <p className="font-bold text-sm">{isAr ? "جاري تحميل إشعارات المطعم..." : "Loading restaurant notifications..."}</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col gap-6 w-full mx-auto pb-20">
-            <div className="flex items-center justify-between">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-                        <Bell className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
-                        {isAr ? "مركز الإشعارات" : "Notification Center"}
-                        {unreadCount > 0 && <span className="text-xs font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">{unreadCount}</span>}
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                            <Bell className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        </div>
+                        <span>{isAr ? "مركز الإشعارات" : "Notification Center"}</span>
+                        {unreadCount > 0 && (
+                            <span className="text-xs font-black bg-red-500 text-white px-2.5 py-0.5 rounded-full shadow-sm">
+                                {unreadCount}
+                            </span>
+                        )}
                     </h1>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+                        {isAr ? "متابعة طلبات المطعم وإشعارات الإدارة وفريق العمل لحظياً" : "Real-time updates for restaurant orders, team announcements & alerts"}
+                    </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                        onClick={() => fetchNotifications(true)}
+                        title={isAr ? "تحديث الآن" : "Refresh"}
+                        disabled={refreshing}
+                        className="p-2.5 text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-card border border-slate-200 dark:border-zinc-800 rounded-xl transition hover:bg-slate-50 dark:hover:bg-zinc-800 active:scale-95 disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-emerald-500" : ""}`} />
+                    </button>
                     {unreadCount > 0 && (
-                        <button onClick={handleMarkAllRead} className="flex items-center gap-1 px-3 py-2 text-xs text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white border border-slate-300 dark:border-zinc-700/50 rounded-xl transition">
-                            <CheckCheck className="w-3.5 h-3.5" /> {isAr ? "قراءة الكل" : "Mark all read"}
+                        <button
+                            onClick={handleMarkAllRead}
+                            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-zinc-300 bg-white dark:bg-card hover:bg-slate-50 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 rounded-xl transition active:scale-95 shadow-sm"
+                        >
+                            <CheckCheck className="w-4 h-4 text-emerald-500" />
+                            <span>{isAr ? "تحديد الكل كمقروء" : "Mark all as read"}</span>
                         </button>
                     )}
-                    <button onClick={() => setShowForm(!showForm)}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-sm rounded-xl shadow-lg transition active:scale-95">
-                        <Plus className="w-4 h-4" /> {isAr ? "إشعار جديد" : "New Notification"}
+                    <button
+                        onClick={() => setShowForm(!showForm)}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs rounded-xl shadow-md hover:from-emerald-600 hover:to-teal-700 transition active:scale-95"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>{isAr ? "إشعار جديد" : "New Notification"}</span>
                     </button>
                 </div>
             </div>
 
             {/* Filter tabs */}
-            <div className="flex gap-2">
-                {(["all", "unread"] as const).map(f => (
-                    <button key={f} onClick={() => setFilter(f)}
-                        className={`text-xs font-bold px-4 py-2 rounded-xl border transition ${filter === f ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
-                        {f === "all" ? (isAr ? "الكل" : "All") : (isAr ? "غير مقروءة" : "Unread")}
-                    </button>
-                ))}
+            <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-zinc-800/80 pb-3">
+                <button
+                    onClick={() => setActiveTab("all")}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl border transition flex items-center gap-2 ${
+                        activeTab === "all"
+                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-sm"
+                            : "bg-white dark:bg-card text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                >
+                    <Bell className="w-3.5 h-3.5" />
+                    <span>{isAr ? "الكل" : "All"}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300">
+                        {notifications.length}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => setActiveTab("unread")}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl border transition flex items-center gap-2 ${
+                        activeTab === "unread"
+                            ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 shadow-sm"
+                            : "bg-white dark:bg-card text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>{isAr ? "غير مقروءة" : "Unread"}</span>
+                    {unreadCount > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-red-500 text-white font-black">
+                            {unreadCount}
+                        </span>
+                    )}
+                </button>
+
+                <button
+                    onClick={() => setActiveTab("order")}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl border transition flex items-center gap-2 ${
+                        activeTab === "order"
+                            ? "bg-violet-50 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/30 shadow-sm"
+                            : "bg-white dark:bg-card text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                >
+                    <ShoppingBag className="w-3.5 h-3.5 text-violet-500" />
+                    <span>{isAr ? "طلبات الزبائن" : "Orders"}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300">
+                        {orderCount}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => setActiveTab("team")}
+                    className={`text-xs font-bold px-4 py-2 rounded-xl border transition flex items-center gap-2 ${
+                        activeTab === "team"
+                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30 shadow-sm"
+                            : "bg-white dark:bg-card text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800 hover:text-slate-900 dark:hover:text-white"
+                    }`}
+                >
+                    <Users className="w-3.5 h-3.5 text-blue-500" />
+                    <span>{isAr ? "فريق العمل والإدارة" : "Team & Staff"}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300">
+                        {teamCount}
+                    </span>
+                </button>
             </div>
 
-            {/* Create Form */}
+            {/* Create Notification Form */}
             <AnimatePresence>
                 {showForm && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl p-5 space-y-3">
-                            <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} placeholder={isAr ? "عنوان الإشعار" : "Notification title"} className="w-full px-3 py-2 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none" />
-                            <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={2} placeholder={isAr ? "محتوى الإشعار..." : "Notification body..."} className="w-full px-3 py-2 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-600 outline-none resize-none" />
-                            <div className="flex flex-wrap gap-2">
-                                {Object.keys(typeMap).map(t => (
-                                    <button key={t} onClick={() => setForm(p => ({ ...p, type: t }))}
-                                        className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition ${form.type === t ? typeMap[t].color : "bg-slate-100 dark:bg-zinc-800/50 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30"}`}>
-                                        {typeMap[t].icon} {t}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="flex gap-2">
-                                <select value={form.target} onChange={e => setForm(p => ({ ...p, target: e.target.value }))}
-                                    className="px-3 py-2 bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-zinc-800 rounded-lg text-xs text-slate-900 dark:text-white outline-none appearance-none cursor-pointer">
-                                    <option value="broadcast">{isAr ? "للجميع" : "Broadcast"}</option>
-                                    <option value="admin">{isAr ? "المسؤولين" : "Admins"}</option>
-                                    <option value="kitchen">{isAr ? "المطبخ" : "Kitchen"}</option>
-                                    <option value="staff">{isAr ? "الموظفين" : "Staff"}</option>
-                                </select>
-                                <button onClick={handleSend} className="flex items-center gap-1 px-6 py-2 bg-emerald-500 text-white font-bold text-sm rounded-lg hover:bg-emerald-600 transition">
-                                    <Send className="w-4 h-4" /> {isAr ? "إرسال" : "Send"}
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="bg-white dark:bg-card border border-emerald-500/30 rounded-2xl p-5 space-y-4 shadow-sm">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-zinc-800/80">
+                                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <Plus className="w-4 h-4 text-emerald-500" />
+                                    <span>{isAr ? "إرسال إشعار جديد لفريق العمل أو الإدارة" : "Create & Send Notification"}</span>
+                                </h3>
+                                <button
+                                    onClick={() => setShowForm(false)}
+                                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200"
+                                >
+                                    <X className="w-4 h-4" />
                                 </button>
-                                <button onClick={() => setShowForm(false)} className="px-3 py-2 text-slate-500 dark:text-zinc-400"><X className="w-4 h-4" /></button>
+                            </div>
+
+                            <input
+                                value={form.title}
+                                onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                                placeholder={isAr ? "عنوان الإشعار (مثال: تنبيه بخصوص الوردية، انتهاء صنف معين...)" : "Notification title..."}
+                                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none focus:border-emerald-500"
+                            />
+
+                            <textarea
+                                value={form.body}
+                                onChange={e => setForm(p => ({ ...p, body: e.target.value }))}
+                                rows={3}
+                                placeholder={isAr ? "اكتب نص الإشعار والتفاصيل التي تريد إيصالها..." : "Write notification content & details..."}
+                                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none focus:border-emerald-500 resize-none"
+                            />
+
+                            {/* Type selector */}
+                            <div>
+                                <label className="block text-[11px] font-bold text-slate-500 dark:text-zinc-400 mb-1.5">
+                                    {isAr ? "نوع الإشعار:" : "Notification Type:"}
+                                </label>
+                                <div className="flex flex-wrap gap-2">
+                                    {Object.entries(typeMap).map(([t, info]) => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => setForm(p => ({ ...p, type: t }))}
+                                            className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition flex items-center gap-1.5 ${
+                                                form.type === t
+                                                    ? `${info.color} shadow-sm ring-2 ring-emerald-500/20`
+                                                    : "bg-slate-50 dark:bg-zinc-900/40 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-800"
+                                            }`}
+                                        >
+                                            <span>{info.icon}</span>
+                                            <span>{isAr ? info.labelAr : info.labelEn}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Target & Action */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                                <div className="flex items-center gap-2">
+                                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">
+                                        {isAr ? "الموجّه إليه:" : "Target:"}
+                                    </label>
+                                    <select
+                                        value={form.target}
+                                        onChange={e => setForm(p => ({ ...p, target: e.target.value }))}
+                                        className="px-3 py-2 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer"
+                                    >
+                                        <option value="broadcast">{isAr ? "للجميع (عام)" : "Everyone (Broadcast)"}</option>
+                                        <option value="staff">{isAr ? "فريق العمل والموظفين" : "Staff & Team"}</option>
+                                        <option value="admin">{isAr ? "الإدارة والمسؤولين" : "Admins & Management"}</option>
+                                        <option value="kitchen">{isAr ? "المطبخ" : "Kitchen"}</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowForm(false)}
+                                        className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition"
+                                    >
+                                        {isAr ? "إلغاء" : "Cancel"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleSend}
+                                        disabled={sending || !form.title.trim()}
+                                        className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50 active:scale-95"
+                                    >
+                                        <Send className="w-3.5 h-3.5" />
+                                        <span>{sending ? (isAr ? "جاري الإرسال..." : "Sending...") : (isAr ? "إرسال الإشعار" : "Send")}</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -129,28 +449,89 @@ export default function NotificationsPage() {
             </AnimatePresence>
 
             {/* Notifications List */}
-            {notifications.length === 0 ? (
-                <div className="text-center py-16 text-slate-500 dark:text-zinc-500"><Bell className="w-16 h-16 mx-auto mb-3 opacity-20" /><p className="font-bold">{isAr ? "لا توجد إشعارات" : "No notifications"}</p></div>
+            {filteredNotifications.length === 0 ? (
+                <div className="text-center py-20 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/60 rounded-2xl p-8">
+                    <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-zinc-800/60 flex items-center justify-center mx-auto mb-3">
+                        <Bell className="w-8 h-8 text-slate-400 dark:text-zinc-500" />
+                    </div>
+                    <p className="font-bold text-slate-800 dark:text-white text-base">
+                        {isAr ? "لا توجد إشعارات في هذا القسم حالياً" : "No notifications in this category"}
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-zinc-500 mt-1 max-w-sm mx-auto">
+                        {isAr
+                            ? "أي طلب جديد من العملاء أو إشعار يتم إرساله لفريق العمل سيظهر هنا فوراً."
+                            : "New customer orders and team notifications will appear here in real-time."}
+                    </p>
+                </div>
             ) : (
-                <div className="flex flex-col gap-2">
-                    {notifications.map(n => {
+                <div className="flex flex-col gap-2.5">
+                    {filteredNotifications.map(n => {
                         const tm = typeMap[n.type] || typeMap.info;
+                        const targetLabel = isAr ? (targetLabelsAr[n.target] || n.target) : (targetLabelsEn[n.target] || n.target);
+
                         return (
-                            <div key={n.id} className={`bg-white dark:bg-card border rounded-xl p-4 flex items-start gap-3 transition ${n.is_read ? "border-slate-200 dark:border-zinc-800/30 opacity-60" : "border-slate-200 dark:border-zinc-800/50"}`}>
-                                <div className={`w-8 h-8 rounded-lg border flex items-center justify-center text-sm shrink-0 ${tm.color}`}>{tm.icon}</div>
+                            <div
+                                key={n.id}
+                                className={`bg-white dark:bg-card border rounded-2xl p-4 flex items-start gap-3.5 transition-all shadow-sm hover:shadow ${
+                                    n.is_read
+                                        ? "border-slate-200 dark:border-zinc-800/40 opacity-70 bg-slate-50/50 dark:bg-zinc-900/20"
+                                        : "border-slate-200 dark:border-zinc-800 ring-1 ring-emerald-500/10"
+                                }`}
+                            >
+                                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-base shrink-0 shadow-sm ${tm.color}`}>
+                                    {tm.icon}
+                                </div>
+
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-bold text-slate-900 dark:text-white text-sm">{n.title}</p>
-                                    {n.body && <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 line-clamp-2">{n.body}</p>}
-                                    <div className="flex gap-2 mt-1 text-[9px] text-slate-500 dark:text-zinc-500">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="font-bold text-slate-900 dark:text-white text-sm">
+                                            {n.title}
+                                        </p>
+                                        {!n.is_read && (
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
+                                        )}
+                                    </div>
+
+                                    {n.body && (
+                                        <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1 leading-relaxed whitespace-pre-wrap">
+                                            {n.body}
+                                        </p>
+                                    )}
+
+                                    <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-400 dark:text-zinc-500 font-medium">
                                         <span>{timeAgo(n.created_at, isAr)}</span>
-                                        <span>• {n.target}</span>
+                                        <span>•</span>
+                                        <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400">
+                                            {targetLabel}
+                                        </span>
+                                        {n.type && (
+                                            <>
+                                                <span>•</span>
+                                                <span className="capitalize">{isAr ? tm.labelAr : tm.labelEn}</span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="flex gap-1 shrink-0">
-                                    <button onClick={() => handleToggleRead(n)} className={`p-1 ${n.is_read ? "text-slate-500 dark:text-zinc-500" : "text-emerald-600 dark:text-emerald-400"}`}>
-                                        {n.is_read ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                        onClick={() => handleToggleRead(n)}
+                                        title={n.is_read ? (isAr ? "تحديد كغير مقروء" : "Mark as unread") : (isAr ? "تحديد كمقروء" : "Mark as read")}
+                                        className={`p-2 rounded-xl transition hover:bg-slate-100 dark:hover:bg-zinc-800 ${
+                                            n.is_read
+                                                ? "text-slate-400 dark:text-zinc-500 hover:text-slate-700"
+                                                : "text-emerald-600 dark:text-emerald-400 hover:text-emerald-700"
+                                        }`}
+                                    >
+                                        {n.is_read ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                     </button>
-                                    <button onClick={() => handleDelete(n.id)} className="p-1 text-slate-500 dark:text-zinc-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                                    <button
+                                        onClick={() => handleDelete(n.id)}
+                                        title={isAr ? "حذف" : "Delete"}
+                                        className="p-2 rounded-xl text-slate-400 dark:text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
                             </div>
                         );

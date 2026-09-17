@@ -334,7 +334,7 @@ export default function StaffPage() {
         { key: 'hr_reports', nameEn: 'HR Reports', nameAr: 'تقارير HR' },
         { key: 'customers', nameEn: 'Customers', nameAr: 'العملاء' },
         { key: 'team', nameEn: 'Team & Staff', nameAr: 'الفريق' },
-        { key: 'notifications', nameEn: 'Customer Notifications', nameAr: 'إشعارات العملاء' },
+        { key: 'notifications', nameEn: 'Notifications', nameAr: 'الإشعارات' },
         { key: 'whatsapp', nameEn: 'WhatsApp Messaging', nameAr: 'رسائل واتساب' },
         { key: 'marketing_links', nameEn: 'Marketing Links', nameAr: 'روابط التسويق' },
         { key: 'printer', nameEn: 'Printer Settings', nameAr: 'إعدادات الطابعة' },

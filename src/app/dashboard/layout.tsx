@@ -636,7 +636,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/marketing-links", icon: Megaphone, labelAr: "روابط العرض للتسويق", labelEn: "Marketing Links", key: "marketing_links" },
                 { href: "/dashboard/customers", icon: Users, labelAr: "العملاء", labelEn: "Customers", key: "customers" },
                 { href: "/dashboard/staff", icon: UserCog, labelAr: "الفريق", labelEn: "Staff", key: "team" },
-                { href: "/dashboard/notifications", icon: Bell, labelAr: "إشعارات العملاء", labelEn: "Notifications", key: "notifications" },
+                { href: "/dashboard/notifications", icon: Bell, labelAr: "الإشعارات", labelEn: "Notifications", key: "notifications" },
                 { href: "/dashboard/whatsapp", icon: MessageCircle, labelAr: "واتساب", labelEn: "WhatsApp", key: "whatsapp" },
             ]
         },
