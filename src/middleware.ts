@@ -98,17 +98,15 @@ export default function middleware(req: NextRequest) {
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 3. السبدومين (Rewrite)
+    // 3. السبدومين (Redirect to main domain for SSL)
     // ═══════════════════════════════════════════════════════════════
     if (subdomain && !RESERVED_SUBDOMAINS.includes(subdomain) && !THEME_SUBDOMAINS.includes(subdomain)) {
-        // توجيه السبدومين داخلياً لصفحة المنيو باستخدام الـ subdomain كـ slug
-        if (path === '/' || (!path.startsWith('/menu/') && !path.startsWith('/api'))) {
-            const targetPath = path === '/' ? `/menu/${subdomain}` : `/menu/${subdomain}${path}`;
-            console.log(`[Middleware] Subdomain ${subdomain} -> Dynamic Rewrite to ${targetPath}`);
-            const response = NextResponse.rewrite(new URL(`${targetPath}${url.search || ''}`, req.url));
-            response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
-            return response;
-        }
+        // إعادة توجيه السبدومين للدومين الرئيسي عشان شهادة SSL
+        // مثال: hamzaa.asntechnology.net -> https://www.asntechnology.net/menu/hamzaa
+        const targetPath = path === '/' ? `/menu/${subdomain}` : `/menu/${subdomain}${path}`;
+        const redirectUrl = `https://www.asntechnology.net${targetPath}${url.search || ''}`;
+        console.log(`[Middleware] Subdomain ${subdomain} -> Redirect to ${redirectUrl}`);
+        return NextResponse.redirect(redirectUrl, 301);
     }
 
     return NextResponse.next();
