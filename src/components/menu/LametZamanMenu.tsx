@@ -153,11 +153,12 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
         return list;
     })();
 
-    // State
     const [activeCategory, setActiveCategory] = useState<string>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [navTab, setNavTab] = useState('menu'); // menu, cart, contact
-    const [viewMode, setViewMode] = useState<'compact'|'grid'|'list'|'single'>('grid');
+    const initialViewMode = (tc.default_view_mode || tc.lamet_zaman_default_view_mode || (config as any)?.default_view_mode || 'grid') as 'compact'|'grid'|'list'|'single';
+    const validViewMode = (['compact', 'grid', 'list', 'single'].includes(initialViewMode)) ? initialViewMode : 'grid';
+    const [viewMode, setViewMode] = useState<'compact'|'grid'|'list'|'single'>(validViewMode);
 
     // Scroll Spy
     useEffect(() => {
@@ -557,65 +558,66 @@ export default function LametZamanMenu({ config, categories, restaurantId }: Lam
 
                 {/* View Mode Toggle */}
                 {!searchQuery && (
-                    <div className="flex justify-between items-center mb-4 px-2">
-                        <span className="text-xs font-bold opacity-75">
+                    <div className="flex items-center justify-between gap-1.5 sm:gap-3 mb-4 w-full">
+                        <span className="text-[11px] sm:text-xs font-bold opacity-75 shrink-0 select-none">
                             {isAr ? 'طريقة العرض:' : 'View Mode:'}
                         </span>
-                        <div className="flex items-center gap-1 p-1 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
+                        <div className="grid grid-cols-4 sm:flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 bg-black/5 dark:bg-white/5 rounded-xl sm:rounded-2xl border border-black/5 dark:border-white/10 flex-1 sm:flex-none max-w-[285px] sm:max-w-none">
                             <button
                                 onClick={() => setViewMode('compact')}
                                 title={isAr ? "عرض مكثف (أصناف تحت بعض)" : "Dense Rows"}
-                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                className={`flex items-center justify-center gap-0.5 sm:gap-1.5 py-1 sm:py-1.5 px-1 sm:px-2.5 rounded-lg sm:rounded-xl transition-all min-w-0 ${
                                     viewMode === 'compact' 
-                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
-                                        : 'opacity-60 hover:opacity-100'
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm font-bold' 
+                                        : 'opacity-60 hover:opacity-100 font-medium'
                                 }`}
                                 style={viewMode === 'compact' ? { color: primaryColor } : {}}
                             >
-                                <AlignJustify className="w-4 h-4" />
-                                <span className="text-[11px] font-semibold">{isAr ? "مكثف" : "Compact"}</span>
+                                <AlignJustify className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                <span className="text-[10px] sm:text-[11px] truncate">{isAr ? "مكثف" : "Compact"}</span>
                             </button>
 
                             <button
                                 onClick={() => setViewMode('grid')}
                                 title={isAr ? "صورتين (شبكة)" : "2 Columns (Grid)"}
-                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                className={`flex items-center justify-center gap-0.5 sm:gap-1.5 py-1 sm:py-1.5 px-1 sm:px-2.5 rounded-lg sm:rounded-xl transition-all min-w-0 ${
                                     viewMode === 'grid' 
-                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
-                                        : 'opacity-60 hover:opacity-100'
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm font-bold' 
+                                        : 'opacity-60 hover:opacity-100 font-medium'
                                 }`}
                                 style={viewMode === 'grid' ? { color: primaryColor } : {}}
                             >
-                                <LayoutGrid className="w-4 h-4" />
-                                <span className="text-[11px] font-semibold">{isAr ? "صورتين" : "Grid"}</span>
+                                <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                <span className="text-[10px] sm:text-[11px] truncate">{isAr ? "صورتين" : "Grid"}</span>
                             </button>
 
                             <button
                                 onClick={() => setViewMode('list')}
                                 title={isAr ? "قائمة بالعرض" : "Horizontal List"}
-                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                className={`flex items-center justify-center gap-0.5 sm:gap-1.5 py-1 sm:py-1.5 px-1 sm:px-2.5 rounded-lg sm:rounded-xl transition-all min-w-0 ${
                                     viewMode === 'list' 
-                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
-                                        : 'opacity-60 hover:opacity-100'
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm font-bold' 
+                                        : 'opacity-60 hover:opacity-100 font-medium'
                                 }`}
                                 style={viewMode === 'list' ? { color: primaryColor } : {}}
                             >
-                                <LayoutList className="w-4 h-4" />
-                                <span className="text-[11px] font-semibold">{isAr ? "قائمة" : "List"}</span>
+                                <LayoutList className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                <span className="text-[10px] sm:text-[11px] truncate">{isAr ? "قائمة" : "List"}</span>
                             </button>
 
                             <button
                                 onClick={() => setViewMode('single')}
                                 title={isAr ? "صورة واحدة كبيرة" : "Single Large Image"}
-                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                className={`flex items-center justify-center gap-0.5 sm:gap-1.5 py-1 sm:py-1.5 px-1 sm:px-2.5 rounded-lg sm:rounded-xl transition-all min-w-0 ${
                                     viewMode === 'single' 
-                                        ? 'bg-white dark:bg-zinc-800 shadow-sm' 
-                                        : 'opacity-60 hover:opacity-100'
+                                        ? 'bg-white dark:bg-zinc-800 shadow-sm font-bold' 
+                                        : 'opacity-60 hover:opacity-100 font-medium'
                                 }`}
                                 style={viewMode === 'single' ? { color: primaryColor } : {}}
                             >
-                                <Maximize2 className="w-4 h-4" />
-                                <span className="text-[11px] font-semibold">{isAr ? "صورة كبيرة" : "Large"}</span>
+                                <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                                <span className="text-[10px] sm:text-[11px] truncate sm:hidden">{isAr ? "كبيرة" : "Large"}</span>
+                                <span className="text-[11px] truncate hidden sm:inline">{isAr ? "صورة كبيرة" : "Large"}</span>
                             </button>
                         </div>
                     </div>
