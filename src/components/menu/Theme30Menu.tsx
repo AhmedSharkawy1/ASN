@@ -951,7 +951,7 @@ export default function Theme30Menu({ config, categories, restaurantId }: Theme3
                 <div className="relative px-4 py-2 space-y-2">
                     {/* Search Input Bar */}
                     <div className="relative flex items-center">
-                        <Search className="w-4 h-4 absolute inset-y-0 my-auto text-slate-400 pointer-events-none" style={{ [isAr ? 'right' : 'left']: '14px' }} />
+                        <Search className="w-4 h-4 absolute inset-y-0 my-auto text-slate-400 pointer-events-none" style={isAr ? { right: 14 } : { left: 14 }} />
                         <input 
                             type="text"
                             value={searchQuery}
