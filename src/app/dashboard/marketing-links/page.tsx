@@ -174,7 +174,16 @@ const MarketingThemes = [
     { key: "lamet-zaman-compact-purple", nameEn: "Theme 27 (Large Menus - Purple)", nameAr: "ثيم 27 للمنيوهات الكبيرة (بنفسجي)" },
     { key: "lamet-zaman-compact-gold", nameEn: "Theme 27 (Large Menus - Gold)", nameAr: "ثيم 27 للمنيوهات الكبيرة (ذهبي)" },
     { key: "lamet-zaman-compact-pink", nameEn: "Theme 27 (Large Menus - Pink)", nameAr: "ثيم 27 للمنيوهات الكبيرة (وردي)" },
-    { key: "lamet-zaman-compact-dark", nameEn: "Theme 27 (Large Menus - Dark)", nameAr: "ثيم 27 للمنيوهات الكبيرة (داكن)" }
+    { key: "lamet-zaman-compact-dark", nameEn: "Theme 27 (Large Menus - Dark)", nameAr: "ثيم 27 للمنيوهات الكبيرة (داكن)" },
+
+    // Theme 28: Universal Modern 2026
+    { key: "theme28", nameEn: "Theme 28 (Universal Luxury - Emerald)", nameAr: "ثيم 28 (عصري شامل - زمردي فاخر)" },
+    { key: "theme28-amber", nameEn: "Theme 28 (Amber & Specialty Coffee)", nameAr: "ثيم 28 (عنبري وقهوة مختصة)" },
+    { key: "theme28-red", nameEn: "Theme 28 (Crimson Red)", nameAr: "ثيم 28 (أحمر قرمزي ناري)" },
+    { key: "theme28-cyan", nameEn: "Theme 28 (Ocean Cyan)", nameAr: "ثيم 28 (سماوي بحري)" },
+    { key: "theme28-purple", nameEn: "Theme 28 (Royal Purple)", nameAr: "ثيم 28 (بنفسجي ملكي)" },
+    { key: "theme28-dark", nameEn: "Theme 28 (Midnight Dark)", nameAr: "ثيم 28 (أسود ليلي ملوكي)" },
+    { key: "theme28-pink", nameEn: "Theme 28 (Rose Pink)", nameAr: "ثيم 28 (وردي ناعم)" }
 ];
 
 export default function MarketingLinksPage() {

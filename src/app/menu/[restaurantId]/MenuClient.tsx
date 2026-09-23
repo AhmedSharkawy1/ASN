@@ -38,6 +38,8 @@ const Theme18Menu = dynamic(() => import("@/components/menu/Theme18Menu"));
 const Theme19Menu = dynamic(() => import("@/components/menu/Theme19Menu"));
 const LametZamanMenu = dynamic(() => import("@/components/menu/LametZamanMenu"));
 const LametZamanCompactMenu = dynamic(() => import("@/components/menu/LametZamanCompactMenu"));
+const Theme28Menu = dynamic(() => import("@/components/menu/Theme28Menu"));
+const Theme29Menu = dynamic(() => import("@/components/menu/Theme29Menu"));
 const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
 const ThemeAswanMenu = dynamic(() => import("@/components/menu/ThemeAswanMenu"));
 const ThemeAswanArMenu = dynamic(() => import("@/components/menu/ThemeAswanArMenu"));
@@ -459,6 +461,12 @@ export default function MenuClient({
   }
   if (config?.theme?.startsWith("lamet-zaman-compact") || config?.theme?.startsWith("theme27")) {
     return <LametZamanCompactMenu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme?.startsWith("theme28")) {
+    return <Theme28Menu config={config} categories={categories} restaurantId={config.id} />;
+  }
+  if (config?.theme?.startsWith("theme29")) {
+    return <Theme29Menu config={config} categories={categories} restaurantId={config.id} language={language} />;
   }
   if (config?.theme?.startsWith("lamet-zaman")) {
     return <LametZamanMenu config={config} categories={categories} restaurantId={config.id} />;

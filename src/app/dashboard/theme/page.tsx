@@ -205,10 +205,29 @@ const THEMES = [
     { id: "lamet-zaman-compact-gold", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (ذهبي)", name_en: "Theme 27 (Large Menus - Gold)", description_ar: "ثيم للمنيوهات الكبيرة باللون الذهبي الدافئ.", description_en: "Large menus theme with gold accent.", preview_color: "#d4af37" },
     { id: "lamet-zaman-compact-pink", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (وردي)", name_en: "Theme 27 (Large Menus - Pink)", description_ar: "ثيم للمنيوهات الكبيرة باللون الوردي اللطيف.", description_en: "Large menus theme with pink accent.", preview_color: "#ec4899" },
     { id: "lamet-zaman-compact-dark", family: "lamet-zaman-compact", name_ar: "ثيم 27 للمنيوهات الكبيرة (داكن)", name_en: "Theme 27 (Large Menus - Dark)", description_ar: "ثيم للمنيوهات الكبيرة بوضع داكن فاخر.", description_en: "Large menus theme with dark mode accent.", preview_color: "#1e293b" },
+
+    // ===== Theme 28: Universal Modern 2026 Family (All Restaurants & Cafes) =====
+    { id: "theme28", family: "theme28", name_ar: "ثيم 28 (عصري شامل - زمردي فاخر)", name_en: "Theme 28 (Universal Luxury - Emerald)", description_ar: "أحدث وأفضل ثيم لكافة المطاعم والكافيهات مع شريط ستوري و4 أنماط عرض وسلة عائمة.", description_en: "Next-gen universal theme for all restaurants & cafes with stories bar and 4 view modes.", preview_color: "#059669" },
+    { id: "theme28-amber", family: "theme28", name_ar: "ثيم 28 (عنبري وقهوة مختصة)", name_en: "Theme 28 (Amber & Specialty Coffee)", description_ar: "تصميم ثيم 28 باللون العنبري الذهبي الدافئ المناسب للكافيهات ومحامص القهوة والحلويات.", description_en: "Theme 28 design with warm amber & specialty coffee palette.", preview_color: "#d97706" },
+    { id: "theme28-red", family: "theme28", name_ar: "ثيم 28 (أحمر قرمزي ناري)", name_en: "Theme 28 (Crimson Red)", description_ar: "تصميم ثيم 28 باللون الأحمر للمشويات والبرجر والبيتزا.", description_en: "Theme 28 design with crimson red accent.", preview_color: "#dc2626" },
+    { id: "theme28-cyan", family: "theme28", name_ar: "ثيم 28 (سماوي بحري)", name_en: "Theme 28 (Ocean Cyan)", description_ar: "تصميم ثيم 28 باللون الأزرق السماوي للمأكولات البحرية والمشروبات المنعشة.", description_en: "Theme 28 design with cyan blue accent.", preview_color: "#0891b2" },
+    { id: "theme28-purple", family: "theme28", name_ar: "ثيم 28 (بنفسجي ملكي)", name_en: "Theme 28 (Royal Purple)", description_ar: "تصميم ثيم 28 باللون البنفسجي الملكي الفاخر للحلويات واللاونجات.", description_en: "Theme 28 design with royal purple accent.", preview_color: "#7c3aed" },
+    { id: "theme28-dark", family: "theme28", name_ar: "ثيم 28 (أسود ليلي ملوكي)", name_en: "Theme 28 (Midnight Dark)", description_ar: "تصميم ثيم 28 بوضع داكن فاخر للستيك هاوس والأجواء الليلية.", description_en: "Theme 28 design with midnight dark mode.", preview_color: "#0f172a" },
+    { id: "theme28-pink", family: "theme28", name_ar: "ثيم 28 (وردي ناعم)", name_en: "Theme 28 (Rose Pink)", description_ar: "تصميم ثيم 28 بلون وردي ناعم للمخابز وحلويات البوتيك.", description_en: "Theme 28 design with soft rose pink accent.", preview_color: "#ec4899" },
+
+    // ===== Theme 29: Shopify Store & Restaurant Family (Products, Goods, Restaurants & Cafes) =====
+    { id: "theme29", family: "theme29", name_ar: "ثيم 29 (شوبيفاي العصري - أخضر زمردي)", name_en: "Theme 29 (Shopify Modern - Emerald)", description_ar: "تصميم شوبيفاي المتطور لبيع المنتجات والسلع والمطاعم والكافيهات مع سلة منزلقة ومفضلة ومعاينة سريعة وفلاتر ذكية.", description_en: "Advanced Shopify-style theme for products, retail, restaurants & cafes with slide-out cart and quick view.", preview_color: "#008060" },
+    { id: "theme29-dark", family: "theme29", name_ar: "ثيم 29 (شوبيفاي داكن فاخر)", name_en: "Theme 29 (Shopify Luxury Dark)", description_ar: "تصميم شوبيفاي العصري بوضع داكن فاخر مع لمسات ملوكية.", description_en: "Shopify modern theme with luxury dark aesthetic.", preview_color: "#18181b" },
+    { id: "theme29-blue", family: "theme29", name_ar: "ثيم 29 (شوبيفاي أزرق ملكي)", name_en: "Theme 29 (Shopify Royal Blue)", description_ar: "تصميم شوبيفاي العصري باللون الأزرق الجذاب للإلكترونيات والمتاجر العامة.", description_en: "Shopify modern theme with royal blue accent.", preview_color: "#2563eb" },
+    { id: "theme29-red", family: "theme29", name_ar: "ثيم 29 (شوبيفاي أحمر قرمزي)", name_en: "Theme 29 (Shopify Crimson Red)", description_ar: "تصميم شوبيفاي العصري باللون الأحمر المميز للأزياء والمطاعم والبرجر.", description_en: "Shopify modern theme with crimson red accent.", preview_color: "#e11d48" },
+    { id: "theme29-purple", family: "theme29", name_ar: "ثيم 29 (شوبيفاي بنفسجي بوتيك)", name_en: "Theme 29 (Shopify Boutique Purple)", description_ar: "تصميم شوبيفاي العصري باللون البنفسجي للمستحضرات والعطور والكافيهات.", description_en: "Shopify modern theme with boutique purple accent.", preview_color: "#7c3aed" },
+    { id: "theme29-amber", family: "theme29", name_ar: "ثيم 29 (شوبيفاي ذهبي عنبري)", name_en: "Theme 29 (Shopify Warm Amber)", description_ar: "تصميم شوبيفاي العصري باللون الذهبي الدافئ للمخابز ومحامص القهوة والمطاعم الفاخرة.", description_en: "Shopify modern theme with warm amber accent.", preview_color: "#d97706" },
 ];
 
 const FAMILIES = [
     { id: 'all', name_ar: 'الكل', name_en: 'All Themes' },
+    { id: 'theme29', name_ar: 'ثيم 29 (طراز شوبيفاي للمنتجات والمطاعم)', name_en: 'Theme 29 (Shopify Multi-Store)' },
+    { id: 'theme28', name_ar: 'ثيم 28 (الأحدث لكافة المطاعم والكافيهات)', name_en: 'Theme 28 (Universal Next-Gen)' },
     { id: 'pizzapasta', name_ar: 'ثيم 1 (بيتزا باستا)', name_en: 'Theme 1 (PizzaPasta)' },
     { id: 'atyab-oriental', name_ar: 'ثيم 2 (أطياب أورينتال)', name_en: 'Theme 2 (Atyab Oriental)' },
     { id: 'bab-alhara', name_ar: 'ثيم 3 (باب الحارة)', name_en: 'Theme 3 (Bab Al-Hara)' },

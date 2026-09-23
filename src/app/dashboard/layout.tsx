@@ -13,7 +13,7 @@ import {
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
     Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud, Tag,
-    Smartphone, Download, UserCheck, MessageCircle
+    Smartphone, Download, UserCheck, MessageCircle, Sparkles
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -651,6 +651,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/theme-aswan", icon: Palette, labelAr: "إعدادات ثيم أسوان (ASWAN)", labelEn: "ASWAN Theme Settings", key: "theme_aswan" },
                 { href: "/dashboard/theme-lamet-zaman", icon: Palette, labelAr: "إعدادات ثيم لمة زمان (خلفية صورة)", labelEn: "Lamet Zaman BG Theme Settings", key: "theme_lamet_zaman" },
                 { href: "/dashboard/theme27-settings", icon: Palette, labelAr: "إعدادات ثيم 27 (المنيوهات الكبيرة)", labelEn: "Theme 27 (Large Menus) Settings", key: "theme27_settings" },
+                { href: "/dashboard/theme28-settings", icon: Sparkles, labelAr: "إعدادات ثيم 28 (العصري الشامل)", labelEn: "Theme 28 (Universal) Settings", key: "theme28_settings" },
                 { href: "/dashboard/theme-usa", icon: Palette, labelAr: "إعدادات ثيم USA (الأمريكي)", labelEn: "USA Theme Settings", key: "theme_usa" },
                 { href: "/dashboard/theme-uae", icon: Palette, labelAr: "إعدادات ثيم الإمارات (UAE)", labelEn: "UAE Theme Settings", key: "theme_uae" },
                 { href: "/dashboard/theme-usa-dual", icon: Palette, labelAr: "إعدادات ثيم USA الثنائي (Bilingual)", labelEn: "USA Dual Theme Settings", key: "theme_usa_dual" },

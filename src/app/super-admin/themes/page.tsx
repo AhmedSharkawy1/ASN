@@ -206,6 +206,23 @@ const ALL_THEMES = [
     { id: "lamet-zaman-compact-gold", name_ar: "ثيم 27 للمنيوهات الكبيرة (ذهبي)", name_en: "Theme 27 (Large Menus - Gold)", preview_color: "#d4af37" },
     { id: "lamet-zaman-compact-pink", name_ar: "ثيم 27 للمنيوهات الكبيرة (وردي)", name_en: "Theme 27 (Large Menus - Pink)", preview_color: "#ec4899" },
     { id: "lamet-zaman-compact-dark", name_ar: "ثيم 27 للمنيوهات الكبيرة (داكن)", name_en: "Theme 27 (Large Menus - Dark)", preview_color: "#1e293b" },
+
+    // ===== Theme 28: Universal Modern 2026 Family (All Restaurants & Cafes) =====
+    { id: "theme28", name_ar: "ثيم 28 (عصري شامل - زمردي فاخر)", name_en: "Theme 28 (Universal Luxury - Emerald)", preview_color: "#059669" },
+    { id: "theme28-amber", name_ar: "ثيم 28 (عنبري وقهوة مختصة)", name_en: "Theme 28 (Amber & Specialty Coffee)", preview_color: "#d97706" },
+    { id: "theme28-red", name_ar: "ثيم 28 (أحمر قرمزي ناري)", name_en: "Theme 28 (Crimson Red)", preview_color: "#dc2626" },
+    { id: "theme28-cyan", name_ar: "ثيم 28 (سماوي بحري)", name_en: "Theme 28 (Ocean Cyan)", preview_color: "#0891b2" },
+    { id: "theme28-purple", name_ar: "ثيم 28 (بنفسجي ملكي)", name_en: "Theme 28 (Royal Purple)", preview_color: "#7c3aed" },
+    { id: "theme28-dark", name_ar: "ثيم 28 (أسود ليلي ملوكي)", name_en: "Theme 28 (Midnight Dark)", preview_color: "#0f172a" },
+    { id: "theme28-pink", name_ar: "ثيم 28 (وردي ناعم)", name_en: "Theme 28 (Rose Pink)", preview_color: "#ec4899" },
+
+    // ===== Theme 29: Shopify Store & Restaurant Family (Products, Goods, Restaurants & Cafes) =====
+    { id: "theme29", name_ar: "ثيم 29 (شوبيفاي العصري - أخضر زمردي)", name_en: "Theme 29 (Shopify Modern - Emerald)", preview_color: "#008060" },
+    { id: "theme29-dark", name_ar: "ثيم 29 (شوبيفاي داكن فاخر)", name_en: "Theme 29 (Shopify Luxury Dark)", preview_color: "#18181b" },
+    { id: "theme29-blue", name_ar: "ثيم 29 (شوبيفاي أزرق ملكي)", name_en: "Theme 29 (Shopify Royal Blue)", preview_color: "#2563eb" },
+    { id: "theme29-red", name_ar: "ثيم 29 (شوبيفاي أحمر قرمزي)", name_en: "Theme 29 (Shopify Crimson Red)", preview_color: "#e11d48" },
+    { id: "theme29-purple", name_ar: "ثيم 29 (شوبيفاي بنفسجي بوتيك)", name_en: "Theme 29 (Shopify Boutique Purple)", preview_color: "#7c3aed" },
+    { id: "theme29-amber", name_ar: "ثيم 29 (شوبيفاي ذهبي عنبري)", name_en: "Theme 29 (Shopify Warm Amber)", preview_color: "#d97706" },
 ];
 
 interface ThemeOverride {
