@@ -640,7 +640,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                 </div>
 
                                 {(config.slogan_ar || config.slogan_en) && (
-                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 line-clamp-1 font-medium">
+                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 font-medium leading-relaxed">
                                         {isAr ? (config.slogan_ar || config.slogan_en) : (config.slogan_en || config.slogan_ar)}
                                     </p>
                                 )}
@@ -660,26 +660,29 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                             </div>
                         </div>
 
-                        {/* Location / Address Row */}
+                        {/* Location / Address Row (Clickable to open registered location or address in Google Maps) */}
                         {(config.address || locationUrl) && (
-                            <div className="mt-3.5 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 flex-wrap text-xs">
-                                <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-300 min-w-0">
-                                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                                    <span className="truncate font-semibold text-[11px] sm:text-xs">
-                                        {config.address || (isAr ? 'الموقع الجغرافي للمطعم' : 'Restaurant Location')}
-                                    </span>
-                                </div>
-                                {locationUrl && (
-                                    <a 
-                                        href={locationUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline shrink-0"
-                                    >
+                            <div className="mt-3.5 pt-3 border-t border-black/5 dark:border-white/5">
+                                <a 
+                                    href={locationUrl || (config.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config.address)}` : '#')}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center justify-between gap-2 p-2 -mx-2 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all group/loc cursor-pointer"
+                                    title={isAr ? 'اضغط لفتح الموقع على خرائط جوجل' : 'Click to open location in Google Maps'}
+                                >
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-colors">
+                                            <MapPin className="w-3.5 h-3.5" />
+                                        </div>
+                                        <span className="font-semibold text-xs text-slate-700 dark:text-zinc-200 group-hover/loc:text-rose-500 transition-colors leading-relaxed">
+                                            {config.address || (isAr ? 'الموقع الجغرافي للمطعم' : 'Restaurant Location')}
+                                        </span>
+                                    </div>
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-black text-rose-500 group-hover/loc:translate-x-[-2px] transition-transform shrink-0">
                                         <span>{isAr ? 'عرض اللوكيشن' : 'Open Map'}</span>
                                         <ArrowUpRight className="w-3 h-3" />
-                                    </a>
-                                )}
+                                    </span>
+                                </a>
                             </div>
                         )}
 
@@ -900,17 +903,17 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                     </div>
                 )}
 
-                {/* 4. STICKY SEARCH & VIEW MODE SWITCHER */}
-                <div className="sticky top-0 z-30 px-4 py-2 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-xl border-y border-black/5 dark:border-white/10 shadow-sm">
+                {/* 4. SEARCH & VIEW MODE SWITCHER (Non-sticky, scrolls with content) */}
+                <div className="relative px-4 py-2 space-y-2">
                     {/* Search Input Bar */}
                     <div className="relative flex items-center">
-                        <Search className="w-4 h-4 absolute inset-y-0 my-auto right-3.5 text-slate-400 pointer-events-none" style={{ [isAr ? 'right' : 'left']: '14px' }} />
+                        <Search className="w-4 h-4 absolute inset-y-0 my-auto text-slate-400 pointer-events-none" style={{ [isAr ? 'right' : 'left']: '14px' }} />
                         <input 
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder={isAr ? 'ابحث عن وجبة، مشروب، حلى...' : 'Search meals, drinks, dessert...'}
-                            className={`w-full h-11 rounded-2xl bg-slate-100/90 dark:bg-zinc-900/90 text-sm font-semibold border-none focus:ring-2 focus:ring-emerald-500/50 transition-all ${isAr ? 'pr-11 pl-10' : 'pl-11 pr-10'}`}
+                            className={`w-full h-11 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md text-sm font-semibold border border-black/5 dark:border-white/10 focus:ring-2 focus:ring-emerald-500/50 transition-all ${isAr ? 'pr-11 pl-10' : 'pl-11 pr-10'}`}
                         />
                         {searchQuery && (
                             <button
@@ -923,7 +926,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                     </div>
 
                     {/* View Modes & Quick Filter Pills */}
-                    <div className="flex items-center justify-between gap-2 mt-2 pt-1">
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
                         {/* Filter Tags */}
                         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                             <button
@@ -931,7 +934,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                 className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-all ${
                                     activeFilter === 'all'
                                         ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                                        : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800'
+                                        : 'bg-white/80 dark:bg-zinc-900/80 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-black/5 dark:border-white/5'
                                 }`}
                             >
                                 {isAr ? 'الكل' : 'All'}
@@ -941,7 +944,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                 className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-all flex items-center gap-1 ${
                                     activeFilter === 'popular'
                                         ? 'bg-amber-500 text-white shadow-sm'
-                                        : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800'
+                                        : 'bg-white/80 dark:bg-zinc-900/80 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-black/5 dark:border-white/5'
                                 }`}
                             >
                                 <Flame className="w-3 h-3 text-amber-300" />
@@ -952,7 +955,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                 className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-all flex items-center gap-1 ${
                                     activeFilter === 'offers'
                                         ? 'bg-rose-500 text-white shadow-sm'
-                                        : 'bg-slate-100 dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-800'
+                                        : 'bg-white/80 dark:bg-zinc-900/80 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-black/5 dark:border-white/5'
                                 }`}
                             >
                                 <Tag className="w-3 h-3 text-rose-300" />
@@ -961,42 +964,44 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                         </div>
 
                         {/* View Switcher Controls (4 Modes) */}
-                        <div className="flex items-center bg-slate-100 dark:bg-zinc-900 p-0.5 rounded-xl shrink-0">
+                        <div className="flex items-center bg-white/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/10 p-0.5 rounded-xl shrink-0 backdrop-blur-md">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
                                 title={isAr ? 'عرض شبكي' : 'Grid View'}
                             >
                                 <LayoutGrid className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
                                 title={isAr ? 'قائمة تفصيلية' : 'List View'}
                             >
                                 <LayoutList className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('compact')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
                                 title={isAr ? 'عرض مكثف سريع' : 'Compact Rows'}
                             >
                                 <AlignJustify className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('showcase')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'showcase' ? 'bg-white dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'showcase' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
                                 title={isAr ? 'عرض استعراضي فاخر' : 'Showcase Mode'}
                             >
                                 <Maximize2 className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
+                </div>
 
-                    {/* Category Scroll Spy Navigation */}
+                {/* 5. STICKY CATEGORY NAVIGATION (Only category bar sticks at top) */}
+                <div className="sticky top-0 z-30 px-4 py-2 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-y border-black/5 dark:border-white/10 shadow-xs">
                     <div 
                         ref={categoryNavRef}
-                        className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-2 pb-1"
+                        className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5"
                     >
                         <button
                             id="nav-cat-all"
@@ -1068,7 +1073,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 )}
 
                 {/* 6. MAIN MENU CATEGORIES & ITEMS */}
-                <main className="px-4 pt-3 space-y-7">
+                <main className="px-4 pt-3 pb-24 space-y-7">
                     {processedCategories.map((category) => (
                         <section 
                             key={`cat-section-${category.id}`} 
@@ -1549,46 +1554,46 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                     ))}
                 </main>
 
-                {/* 7. FLOATING ACTION DOCK / BOTTOM BAR */}
+                {/* 7. FLOATING ACTION DOCK / BOTTOM BAR (Ultra-compact & sleek) */}
                 {cartCount > 0 && (
-                    <div className="fixed bottom-5 inset-x-4 max-w-lg mx-auto z-40">
+                    <div className="fixed bottom-3 inset-x-4 max-w-xs sm:max-w-sm mx-auto z-40">
                         <motion.div 
-                            initial={{ y: 50, opacity: 0, scale: 0.95 }}
+                            initial={{ y: 30, opacity: 0, scale: 0.95 }}
                             animate={{ y: 0, opacity: 1, scale: 1 }}
-                            className="p-3 rounded-full bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-950 backdrop-blur-2xl shadow-2xl flex items-center justify-between gap-3 border border-white/10 dark:border-black/10"
+                            className="py-1.5 px-3 rounded-full bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-950 backdrop-blur-xl shadow-xl flex items-center justify-between gap-2.5 border border-white/10 dark:border-black/10"
                         >
                             {/* Left: Cart badge & total */}
                             <div 
                                 onClick={() => setIsCartOpen(true)}
-                                className="flex items-center gap-3 cursor-pointer pl-2 pr-1"
+                                className="flex items-center gap-2 cursor-pointer pl-1"
                             >
                                 <div 
-                                    className="w-10 h-10 rounded-full flex items-center justify-center relative text-white"
+                                    className="w-8 h-8 rounded-full flex items-center justify-center relative text-white shrink-0 shadow-sm"
                                     style={{ backgroundColor: primaryColor }}
                                 >
-                                    <ShoppingCart className="w-5 h-5" />
-                                    <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center border-2 border-slate-900 dark:border-white">
+                                    <ShoppingCart className="w-4 h-4" />
+                                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center border border-slate-900 dark:border-white">
                                         {cartCount}
                                     </span>
                                 </div>
-                                <div>
-                                    <div className="text-[11px] text-slate-400 dark:text-zinc-500 font-bold">
-                                        {isAr ? 'إجمالي الطلب' : 'Total Price'}
-                                    </div>
-                                    <div className="text-sm font-black">
-                                        {cartTotal} {cur}
-                                    </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold leading-none">
+                                        {cartCount} {isAr ? 'أصناف' : 'items'}
+                                    </span>
+                                    <span className="text-xs font-black leading-tight text-white dark:text-slate-950 mt-0.5">
+                                        {cartTotal} <span className="text-[10px] font-bold opacity-80">{cur}</span>
+                                    </span>
                                 </div>
                             </div>
 
                             {/* Right: View Cart Button */}
                             <button
                                 onClick={() => setIsCartOpen(true)}
-                                className="px-5 py-2.5 rounded-full text-white text-xs font-black flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+                                className="px-3.5 py-1.5 rounded-full text-white text-[11px] font-black flex items-center gap-1 transition-all shadow-sm active:scale-95 shrink-0"
                                 style={{ backgroundColor: primaryColor }}
                             >
                                 <span>{isAr ? 'عرض السلة' : 'View Cart'}</span>
-                                {isAr ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                {isAr ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                             </button>
                         </motion.div>
                     </div>
