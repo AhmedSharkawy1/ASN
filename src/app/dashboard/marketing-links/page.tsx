@@ -183,7 +183,15 @@ const MarketingThemes = [
     { key: "theme28-cyan", nameEn: "Theme 28 (Ocean Cyan)", nameAr: "ثيم 28 (سماوي بحري)" },
     { key: "theme28-purple", nameEn: "Theme 28 (Royal Purple)", nameAr: "ثيم 28 (بنفسجي ملكي)" },
     { key: "theme28-dark", nameEn: "Theme 28 (Midnight Dark)", nameAr: "ثيم 28 (أسود ليلي ملوكي)" },
-    { key: "theme28-pink", nameEn: "Theme 28 (Rose Pink)", nameAr: "ثيم 28 (وردي ناعم)" }
+    { key: "theme28-pink", nameEn: "Theme 28 (Rose Pink)", nameAr: "ثيم 28 (وردي ناعم)" },
+
+    // Theme 29: Shopify Multi-Store
+    { key: "theme29", nameEn: "Theme 29 (Shopify Modern - Emerald)", nameAr: "ثيم 29 (شوبيفاي العصري - زمردي)" },
+    { key: "theme29-dark", nameEn: "Theme 29 (Shopify Luxury Dark)", nameAr: "ثيم 29 (شوبيفاي داكن فاخر)" },
+    { key: "theme29-blue", nameEn: "Theme 29 (Shopify Royal Blue)", nameAr: "ثيم 29 (شوبيفاي أزرق ملكي)" },
+    { key: "theme29-red", nameEn: "Theme 29 (Shopify Crimson Red)", nameAr: "ثيم 29 (شوبيفاي أحمر قرمزي)" },
+    { key: "theme29-purple", nameEn: "Theme 29 (Shopify Boutique Purple)", nameAr: "ثيم 29 (شوبيفاي بنفسجي بوتيك)" },
+    { key: "theme29-amber", nameEn: "Theme 29 (Shopify Warm Amber)", nameAr: "ثيم 29 (شوبيفاي ذهبي عنبري)" }
 ];
 
 export default function MarketingLinksPage() {

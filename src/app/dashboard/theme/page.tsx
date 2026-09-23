@@ -1,8 +1,8 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Palette, Check, Save, Loader2, ExternalLink, Filter, Search, X, RotateCcw, Sparkles } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Palette, Check, Save, Loader2, ExternalLink, Filter, Search, X, RotateCcw, Sparkles, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
 import { motion } from "framer-motion";
@@ -225,9 +225,9 @@ const THEMES = [
 ];
 
 const FAMILIES = [
-    { id: 'all', name_ar: 'الكل', name_en: 'All Themes' },
-    { id: 'theme29', name_ar: 'ثيم 29 (طراز شوبيفاي للمنتجات والمطاعم)', name_en: 'Theme 29 (Shopify Multi-Store)' },
-    { id: 'theme28', name_ar: 'ثيم 28 (الأحدث لكافة المطاعم والكافيهات)', name_en: 'Theme 28 (Universal Next-Gen)' },
+    { id: 'all', name_ar: 'الكل (جميع الثيمات)', name_en: 'All Themes' },
+    { id: 'theme28', name_ar: 'ثيم 28 (الأحدث للمطاعم والكافيهات) 🔥 جديد', name_en: 'Theme 28 (Universal Next-Gen) 🔥 New' },
+    { id: 'theme29', name_ar: 'ثيم 29 (شوبيفاي للمنتجات والمطاعم) 🛍️ جديد', name_en: 'Theme 29 (Shopify Multi-Store) 🛍️ New' },
     { id: 'pizzapasta', name_ar: 'ثيم 1 (بيتزا باستا)', name_en: 'Theme 1 (PizzaPasta)' },
     { id: 'atyab-oriental', name_ar: 'ثيم 2 (أطياب أورينتال)', name_en: 'Theme 2 (Atyab Oriental)' },
     { id: 'bab-alhara', name_ar: 'ثيم 3 (باب الحارة)', name_en: 'Theme 3 (Bab Al-Hara)' },
@@ -278,6 +278,80 @@ export default function ThemePage() {
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [themeOverrides, setThemeOverrides] = useState<Record<string, { custom_name_ar?: string; custom_name_en?: string; is_hidden?: boolean }>>({});
+
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+    const isMouseDownRef = useRef(false);
+    const startXRef = useRef(0);
+    const scrollLeftRef = useRef(0);
+    const dragDistanceRef = useRef(0);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleScroll = (direction: 'left' | 'right') => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        const scrollAmount = 300;
+        const delta = direction === 'left' ? -scrollAmount : scrollAmount;
+        el.scrollBy({ left: delta, behavior: 'smooth' });
+    };
+
+    // Horizontal scroll with mouse wheel
+    useEffect(() => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+
+        const onWheel = (e: WheelEvent) => {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.preventDefault();
+                el.scrollLeft += (isArabic ? -e.deltaY : e.deltaY);
+            }
+        };
+
+        el.addEventListener('wheel', onWheel, { passive: false });
+        return () => el.removeEventListener('wheel', onWheel);
+    }, [isArabic]);
+
+    // Auto-scroll active tab into view when selectedFamily changes
+    useEffect(() => {
+        const el = tabRefs.current[selectedFamily];
+        if (el && scrollContainerRef.current) {
+            el.scrollIntoView({
+                behavior: 'smooth',
+                inline: 'center',
+                block: 'nearest'
+            });
+        }
+    }, [selectedFamily]);
+
+    // Mouse Drag handlers
+    const handleMouseDown = (e: React.MouseEvent) => {
+        const el = scrollContainerRef.current;
+        if (!el) return;
+        isMouseDownRef.current = true;
+        startXRef.current = e.pageX - el.offsetLeft;
+        scrollLeftRef.current = el.scrollLeft;
+        dragDistanceRef.current = 0;
+    };
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        if (!isMouseDownRef.current || !scrollContainerRef.current) return;
+        e.preventDefault();
+        const x = e.pageX - scrollContainerRef.current.offsetLeft;
+        const walk = (x - startXRef.current) * 1.5;
+        dragDistanceRef.current = Math.abs(x - startXRef.current);
+        if (dragDistanceRef.current > 5) {
+            setIsDragging(true);
+        }
+        scrollContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+    };
+
+    const handleMouseUpOrLeave = () => {
+        isMouseDownRef.current = false;
+        setTimeout(() => {
+            setIsDragging(false);
+            dragDistanceRef.current = 0;
+        }, 50);
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -481,7 +555,75 @@ export default function ThemePage() {
             )}
 
             {/* Search & Family Filters */}
-            <div className="space-y-3 bg-card border border-border p-4 rounded-3xl">
+            <div className="space-y-4 bg-card border border-border p-4 sm:p-5 rounded-3xl shadow-sm">
+                
+                {/* 🌟 Pinned Top Bar for Themes 28 & 29 (Always Visible) */}
+                <div className="bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-blue/10 border border-emerald-500/25 dark:border-emerald-500/35 p-3 sm:p-3.5 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-emerald-500 flex items-center justify-center text-white shadow-sm shrink-0">
+                            <Sparkles className="w-4 h-4 animate-pulse" />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h4 className="font-black text-xs sm:text-sm text-foreground">
+                                    {isArabic ? "ثيمات 2026 الحصرية الأحدث" : "Latest 2026 Exclusive Themes"}
+                                </h4>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500 text-white font-black animate-pulse shadow-xs">
+                                    {isArabic ? "جديد ✨" : "NEW ✨"}
+                                </span>
+                            </div>
+                            <p className="text-[11px] text-silver hidden sm:block mt-0.5">
+                                {isArabic ? "اختر أحدث تصميمين عالميين للمطاعم والكافيهات والمتاجر بنقرة واحدة" : "Select the newest modern designs for dining, cafes & stores in 1 click"}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* Theme 28 Quick Select */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedFamily('theme28');
+                                const t28 = THEMES.find(t => t.family === 'theme28');
+                                if (t28) setSelectedTheme(t28.id);
+                            }}
+                            className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 border shadow-sm active:scale-95 ${
+                                selectedFamily === 'theme28'
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-emerald-500/30 ring-2 ring-emerald-400'
+                                    : 'bg-card border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10'
+                            }`}
+                        >
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                            <span>{isArabic ? "ثيم 28 (مطاعم وكافيهات)" : "Theme 28 (Cafes & Dining)"}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-500/20 font-black">
+                                {getFamilyCount('theme28')}
+                            </span>
+                        </button>
+
+                        {/* Theme 29 Quick Select */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedFamily('theme29');
+                                const t29 = THEMES.find(t => t.family === 'theme29');
+                                if (t29) setSelectedTheme(t29.id);
+                            }}
+                            className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 border shadow-sm active:scale-95 ${
+                                selectedFamily === 'theme29'
+                                    ? 'bg-amber-600 text-white border-amber-600 shadow-amber-500/30 ring-2 ring-amber-400'
+                                    : 'bg-card border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10'
+                            }`}
+                        >
+                            <ShoppingBag className="w-3.5 h-3.5 shrink-0" />
+                            <span>{isArabic ? "ثيم 29 (شوبيفاي ومتاجر)" : "Theme 29 (Shopify Store)"}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/20 font-black">
+                                {getFamilyCount('theme29')}
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Search & Direct Dropdown Picker */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                     {/* Search Input */}
                     <div className="relative flex-1">
@@ -503,33 +645,107 @@ export default function ThemePage() {
                         )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-silver font-bold shrink-0">
-                        <Filter className="w-3.5 h-3.5 text-blue" />
-                        <span>{isArabic ? `عرض ${visibleThemes.length} ثيم` : `Showing ${visibleThemes.length} themes`}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {/* Direct Mobile & Desktop Dropdown Picker */}
+                        <div className="relative">
+                            <select
+                                value={selectedFamily}
+                                onChange={(e) => setSelectedFamily(e.target.value)}
+                                className="bg-background border border-border rounded-xl text-xs py-2 px-3 font-bold text-foreground focus:outline-none focus:border-blue cursor-pointer shadow-xs max-w-[180px] sm:max-w-[220px]"
+                                title={isArabic ? "قائمة اختيار سريعة للعائلات" : "Quick family selector"}
+                            >
+                                {FAMILIES.map(f => (
+                                    <option key={f.id} value={f.id}>
+                                        {isArabic ? f.name_ar : f.name_en} ({getFamilyCount(f.id)})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Count Pill */}
+                        <div className="flex items-center gap-1.5 text-xs text-silver font-bold shrink-0 bg-background/60 px-3 py-2 rounded-xl border border-border">
+                            <Filter className="w-3.5 h-3.5 text-blue" />
+                            <span>{isArabic ? `عرض ${visibleThemes.length} ثيم` : `${visibleThemes.length} themes`}</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Family Navigation Tabs */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 pt-1 no-scrollbar">
-                    {FAMILIES.map((f) => {
-                        const count = getFamilyCount(f.id);
-                        return (
-                            <button
-                                key={f.id}
-                                onClick={() => setSelectedFamily(f.id)}
-                                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border ${
-                                    selectedFamily === f.id
-                                        ? 'bg-blue text-white border-blue shadow-md'
-                                        : 'bg-background border-border hover:border-blue/40 text-foreground'
-                                }`}
-                            >
-                                <span>{isArabic ? f.name_ar : f.name_en}</span>
-                                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${selectedFamily === f.id ? 'bg-white/20 text-white' : 'bg-card text-silver'}`}>
-                                    {count}
-                                </span>
-                            </button>
-                        );
-                    })}
+                {/* 🎮 Interactive Mouse & Touch Controller Bar */}
+                <div className="relative flex items-center gap-1.5 pt-1">
+                    {/* Right Arrow (Scrolls Right / towards start in RTL) */}
+                    <button
+                        type="button"
+                        onClick={() => handleScroll('right')}
+                        className="w-8 h-8 rounded-xl bg-card hover:bg-background border border-border shadow-sm flex items-center justify-center text-foreground hover:text-blue hover:border-blue transition-all z-10 shrink-0 hover:scale-105 active:scale-95"
+                        title={isArabic ? "تمرير لليمين (تحكم بالماوس)" : "Scroll Right (Mouse control)"}
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+
+                    {/* Draggable & Touch-Scrollable Container */}
+                    <div
+                        ref={scrollContainerRef}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUpOrLeave}
+                        onMouseLeave={handleMouseUpOrLeave}
+                        className={`flex-1 flex items-center gap-2 overflow-x-auto py-1.5 px-1 no-scrollbar scroll-smooth touch-pan-x select-none ${
+                            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+                        }`}
+                        title={isArabic ? "اسحب بالماوس أو مرر بعجلة الماوس / اللمس للتنقل" : "Drag with mouse or roll wheel / swipe to navigate"}
+                    >
+                        {FAMILIES.map((f) => {
+                            const count = getFamilyCount(f.id);
+                            const isSelected = selectedFamily === f.id;
+                            const isT28 = f.id === 'theme28';
+                            const isT29 = f.id === 'theme29';
+
+                            return (
+                                <button
+                                    key={f.id}
+                                    ref={(el) => { tabRefs.current[f.id] = el; }}
+                                    onClick={(e) => {
+                                        if (dragDistanceRef.current > 5) {
+                                            e.preventDefault();
+                                            return;
+                                        }
+                                        setSelectedFamily(f.id);
+                                    }}
+                                    className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shrink-0 ${
+                                        isSelected
+                                            ? isT28 
+                                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400' 
+                                                : isT29
+                                                    ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400'
+                                                    : 'bg-blue text-white border-blue shadow-md'
+                                            : isT28
+                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                                                : isT29
+                                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                                                    : 'bg-background border-border hover:border-blue/40 text-foreground'
+                                    }`}
+                                >
+                                    {(isT28 || isT29) && <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />}
+                                    <span>{isArabic ? f.name_ar : f.name_en}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
+                                        isSelected ? 'bg-white/20 text-white' : 'bg-card text-silver'
+                                    }`}>
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Left Arrow (Scrolls Left / towards end in RTL) */}
+                    <button
+                        type="button"
+                        onClick={() => handleScroll('left')}
+                        className="w-8 h-8 rounded-xl bg-card hover:bg-background border border-border shadow-sm flex items-center justify-center text-foreground hover:text-blue hover:border-blue transition-all z-10 shrink-0 hover:scale-105 active:scale-95"
+                        title={isArabic ? "تمرير لليسار (تحكم بالماوس)" : "Scroll Left (Mouse control)"}
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
