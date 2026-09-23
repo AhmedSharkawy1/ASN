@@ -9,7 +9,8 @@ import {
     Sun, Moon, Globe, ChevronRight, ChevronLeft, Check,
     LayoutGrid, LayoutList, Tag, Heart, Info, Eye, 
     Truck, ShieldCheck, CreditCard, Headphones, Star, 
-    SlidersHorizontal, CheckCircle2, AlertCircle, ShoppingBag, ArrowRight, ArrowLeft
+    SlidersHorizontal, CheckCircle2, AlertCircle, ShoppingBag, ArrowRight, ArrowLeft,
+    Ticket, Gift, Percent
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaInstagram, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
@@ -17,6 +18,16 @@ import { parseCurrency } from '@/lib/currency';
 import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from '@/components/menu/CheckoutModal';
 import SharedMarquee from '@/components/menu/SharedMarquee';
+import { 
+    fetchActivePromotions, 
+    evaluatePromotions, 
+    hasPromoCodeOffers, 
+    requiresPromoCode, 
+    isAllItemsPromotion,
+    AppliedPromotion, 
+    Promotion,
+    CartItemForPromo 
+} from '@/lib/helpers/promotionEngine';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
 import 'swiper/css';
@@ -40,6 +51,7 @@ export type MenuItem = {
     prices: number[];
     size_labels?: string[];
     old_prices?: number[];
+    old_price?: number;
     extras?: { id?: number | string; name_ar: string; name_en?: string; price: number }[];
     is_available?: boolean;
     is_popular?: boolean;
@@ -95,6 +107,28 @@ const PRESET_COLORS: Record<string, { primary: string; secondary: string; lightB
     amber:   { primary: '#d97706', secondary: '#b45309', lightBg: '#fffbeb' },
 };
 
+// ================= ITEM DISCOUNT HELPERS =================
+export const getItemOldPrice = (item: MenuItem, sizeIdx: number = 0): number => {
+    if (item.old_prices && typeof item.old_prices[sizeIdx] === 'number' && item.old_prices[sizeIdx] > 0) {
+        return item.old_prices[sizeIdx];
+    }
+    if (item.old_price && typeof item.old_price === 'number' && item.old_price > 0 && sizeIdx === 0) {
+        return item.old_price;
+    }
+    const label = item.size_labels?.[sizeIdx];
+    if (label && typeof label === 'string' && label.includes('::')) {
+        const parsed = parseFloat(label.split('::')[1]);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    return 0;
+};
+
+export const hasItemDiscount = (item: MenuItem, sizeIdx: number = 0): boolean => {
+    const oldP = getItemOldPrice(item, sizeIdx);
+    const currP = item.prices?.[sizeIdx] || 0;
+    return oldP > currP && currP > 0;
+};
+
 export default function Theme29Menu({ config, categories = [], restaurantId, language: initialLanguage }: Theme29MenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -148,6 +182,27 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const [cartNotes, setCartNotes] = useState('');
     const [selectedBranch, setSelectedBranch] = useState(config?.branches?.[0] || '');
 
+    // State: Promotions & Coupons
+    const [promotions, setPromotions] = useState<Promotion[]>([]);
+    const [promoCodeInput, setPromoCodeInput] = useState('');
+    const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+    const [promoCodeError, setPromoCodeError] = useState('');
+
+    // Fetch active promotions on load
+    useEffect(() => {
+        if (!restaurantId) return;
+        let isMounted = true;
+        (async () => {
+            try {
+                const activePromos = await fetchActivePromotions(restaurantId);
+                if (isMounted) setPromotions(activePromos);
+            } catch (err) {
+                console.error('Error fetching promotions in Theme 29:', err);
+            }
+        })();
+        return () => { isMounted = false; };
+    }, [restaurantId]);
+
     // State: Wishlist
     const [wishlist, setWishlist] = useState<(string | number)[]>([]);
     const [isWishlistOpen, setIsWishlistOpen] = useState(false);
@@ -188,6 +243,14 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const itemName = (item: MenuItem) => isAr ? item.title_ar : (item.title_en || item.title_ar);
     const itemDesc = (item: MenuItem) => isAr ? (item.desc_ar || item.description_ar || '') : (item.desc_en || item.description_en || item.desc_ar || item.description_ar || '');
     const catName = (cat: CategoryWithItemsType) => isAr ? cat.name_ar : (cat.name_en || cat.name_ar);
+
+    // Check if item is included in any active promotion
+    const getItemActivePromotions = (itemId: string | number): Promotion[] => {
+        return promotions.filter(p => {
+            if (isAllItemsPromotion(p)) return true;
+            return (p.required_items || []).some(ri => String(ri.item_id) === String(itemId));
+        });
+    };
 
     // Phones list
     const phoneList: { label: string; number: string }[] = useMemo(() => {
@@ -253,10 +316,11 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                     const matchIngredients = (item.ingredients_ar || item.ingredients_en || item.ingredients || '').toLowerCase().includes(query);
                     if (!matchTitle && !matchDesc && !matchIngredients) return false;
                 }
-                // Offer filter (must have old price)
+                // Offer filter (item has discount or is in an active promotion)
                 if (filterOfferOnly) {
-                    const hasDiscount = item.old_prices && item.old_prices.some((op: number, idx: number) => op > (item.prices?.[idx] || 0));
-                    if (!hasDiscount) return false;
+                    const hasItemDisc = hasItemDiscount(item, 0);
+                    const inPromo = getItemActivePromotions(item.id).length > 0;
+                    if (!hasItemDisc && !inPromo) return false;
                 }
                 // Popular filter
                 if (filterPopularOnly && !item.is_popular) return false;
@@ -281,16 +345,79 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
 
             return { ...cat, items };
         }).filter(cat => (cat.items && cat.items.length > 0));
-    }, [categories, activeCategory, searchQuery, filterOfferOnly, filterPopularOnly, filterInStockOnly, filterSpicyOnly, sortBy, isAr]);
+    }, [categories, activeCategory, searchQuery, filterOfferOnly, filterPopularOnly, filterInStockOnly, filterSpicyOnly, sortBy, promotions, isAr]);
 
     // Cart calculations
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
     const cartTotal = cart.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
 
-    // Free shipping threshold simulation (e.g. 300 EGP / SAR)
+    // Prepare cart items for promotion evaluation
+    const cartForPromo: CartItemForPromo[] = useMemo(() => {
+        return cart.map(line => ({
+            id: String(line.item.id),
+            title: itemName(line.item),
+            qty: line.quantity,
+            price: line.price
+        }));
+    }, [cart, isAr]);
+
+    // Best applicable promotion (either automatic or unlocked by applied coupon code)
+    const activeAppliedPromo: AppliedPromotion | null = useMemo(() => {
+        if (promotions.length === 0 || cart.length === 0) return null;
+        return evaluatePromotions(
+            cartForPromo,
+            promotions,
+            cartTotal,
+            0,
+            appliedPromoCode
+        );
+    }, [cartForPromo, promotions, cartTotal, appliedPromoCode]);
+
+    const promoDiscountAmount = activeAppliedPromo?.discountAmount || 0;
+    const isFreeShippingApplied = activeAppliedPromo?.freeShipping || false;
+    const finalDiscountedTotal = Math.max(0, cartTotal - promoDiscountAmount);
+
+    // Free shipping threshold simulation (or from free_shipping promo)
     const freeShippingThreshold = 250;
-    const progressToFreeShipping = Math.min(100, Math.round((cartTotal / freeShippingThreshold) * 100));
-    const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - cartTotal);
+    const progressToFreeShipping = isFreeShippingApplied 
+        ? 100 
+        : Math.min(100, Math.round((cartTotal / freeShippingThreshold) * 100));
+    const amountNeededForFreeShipping = isFreeShippingApplied 
+        ? 0 
+        : Math.max(0, freeShippingThreshold - cartTotal);
+
+    // Apply Coupon Code
+    const handleApplyPromoCode = () => {
+        const code = promoCodeInput.trim();
+        if (!code) return;
+
+        const match = evaluatePromotions(
+            cartForPromo,
+            promotions.filter(requiresPromoCode),
+            cartTotal,
+            0,
+            code
+        );
+
+        if (match) {
+            setAppliedPromoCode(code);
+            setPromoCodeError('');
+            if (navigator.vibrate) navigator.vibrate(25);
+        } else {
+            const codeExists = promotions.some(p => p.promo_code && p.promo_code.trim().toLowerCase() === code.toLowerCase());
+            if (codeExists) {
+                setPromoCodeError(isAr ? 'كود الخصم متاح لكن لا تنطبق شروطه على محتويات السلة أو الحد الأدنى' : 'Code valid but does not meet requirements or minimum order');
+            } else {
+                setPromoCodeError(isAr ? 'كود الخصم غير صحيح أو غير متاح' : 'Invalid or expired coupon code');
+            }
+        }
+    };
+
+    const handleRemovePromoCode = () => {
+        setAppliedPromoCode(null);
+        setPromoCodeInput('');
+        setPromoCodeError('');
+    };
 
     // Quick Add directly to cart (first variant)
     const handleQuickAdd = (item: MenuItem, cName: string, e?: React.MouseEvent) => {
@@ -463,7 +590,17 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         if (cartNotes.trim()) {
             lines.push(`📝 *${isAr ? 'ملاحظات الطلب العامة' : 'General Notes'}:* ${cartNotes.trim()}`);
         }
-        lines.push(`💰 *${isAr ? 'الإجمالي الكلي' : 'Total Amount'}:* *${cartTotal} ${cur}*`);
+        lines.push(`💰 *${isAr ? 'المجموع الفرعي' : 'Subtotal'}:* ${cartTotal} ${cur}`);
+
+        // If a promotion or coupon is applied
+        if (activeAppliedPromo && promoDiscountAmount > 0) {
+            const promoName = isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar);
+            lines.push(`🎉 *${isAr ? 'الخصم المطبق' : 'Discount Applied'}:* -${promoDiscountAmount} ${cur} (${promoName}${appliedPromoCode ? ' | كود: ' + appliedPromoCode : ''})`);
+        }
+        if (isFreeShippingApplied) {
+            lines.push(`🚚 *${isAr ? 'الشحن والتوصيل' : 'Shipping'}:* ${isAr ? 'مجاني (عرض ترويجي)' : 'FREE'}`);
+        }
+        lines.push(`✨ *${isAr ? 'الإجمالي النهائي المطلوب' : 'Final Total'}:* *${finalDiscountedTotal} ${cur}*`);
         lines.push(`━━━━━━━━━━━━━━━━━━━━`);
         lines.push(isAr ? `شكراً لاختياركم متجرنا! ✨` : `Thank you for shopping with us! ✨`);
 
@@ -491,6 +628,23 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         }
     };
 
+    // Find best promotion highlight for top bar
+    const promoHighlightText = useMemo(() => {
+        if (promotions.length === 0) return null;
+        const coded = promotions.find(p => p.promo_code);
+        if (coded) {
+            const val = coded.discount_type === 'percentage' ? `${coded.discount_value}%` : `${coded.discount_value} ${cur}`;
+            return isAr 
+                ? `🏷️ كود الخصم: ${coded.promo_code} | احصل على خصم ${val}!`
+                : `🏷️ Promo Code: ${coded.promo_code} | Get ${val} OFF!`;
+        }
+        const auto = promotions[0];
+        if (auto) {
+            return `🎉 ${isAr ? auto.name_ar : (auto.name_en || auto.name_ar)}`;
+        }
+        return null;
+    }, [promotions, isAr, cur]);
+
     if (!mounted) return <div className="min-h-screen" style={{ backgroundColor: bgBody }} />;
 
     return (
@@ -499,7 +653,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
             style={{ backgroundColor: bgBody, color: textMain }} 
             dir={isAr ? 'rtl' : 'ltr'}
         >
-            {/* 1. TOP ANNOUNCEMENT BAR (Shopify Style) */}
+            {/* 1. TOP ANNOUNCEMENT BAR (Shopify Style with Promotions Support) */}
             <div 
                 className="py-2 px-4 text-xs font-medium text-white flex items-center justify-between shadow-sm relative z-30"
                 style={{ backgroundColor: primaryColor }}
@@ -510,6 +664,10 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                         <div className="flex-1 overflow-hidden">
                             <SharedMarquee text={isAr ? (config?.marquee_text_ar || 'أهلاً بكم في متجرنا! تسوقوا أفضل المنتجات والعروض الحصرية') : (config?.marquee_text_en || 'Welcome to our store! Shop exclusive deals and offers')} />
                         </div>
+                    ) : promoHighlightText ? (
+                        <p className="truncate font-bold tracking-wide">
+                            {promoHighlightText}
+                        </p>
                     ) : (
                         <p className="truncate">
                             {isAr 
@@ -645,7 +803,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                         {isAr ? 'السلة' : 'Cart'}
                                     </span>
                                     <span className="text-xs sm:text-sm font-extrabold leading-tight">
-                                        {cartTotal} {cur}
+                                        {finalDiscountedTotal} {cur}
                                     </span>
                                 </div>
                             </button>
@@ -686,6 +844,36 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
 
             {/* 3. HERO PROMOTIONAL BANNER & TRUST BADGES */}
             <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
+                {/* Active Promotions Alert Banner (Shopify Style) */}
+                {promotions.length > 0 && (
+                    <div className="mb-3 p-3 rounded-2xl border bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-rose-500/10 flex items-center justify-between gap-3 shadow-sm" style={{ borderColor: borderColor }}>
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                            <div className="p-2 rounded-xl text-white shrink-0 shadow-sm" style={{ backgroundColor: primaryColor }}>
+                                <Gift className="w-4 h-4" />
+                            </div>
+                            <div>
+                                <span className="font-extrabold text-xs block leading-tight">
+                                    {isAr ? 'عروض وتخفيضات نشطة الآن! 🎁' : 'Active Promotions & Deals! 🎁'}
+                                </span>
+                                <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5" style={{ color: textMuted }}>
+                                    {promotions.map(p => {
+                                        const title = isAr ? p.name_ar : (p.name_en || p.name_ar);
+                                        const codePart = p.promo_code ? ` [كود: ${p.promo_code}]` : '';
+                                        return `${title}${codePart}`;
+                                    }).join(' • ')}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => setIsCartOpen(true)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-white shadow-sm shrink-0 whitespace-nowrap"
+                            style={{ backgroundColor: primaryColor }}
+                        >
+                            {isAr ? 'استفد من العرض' : 'Claim Offer'}
+                        </button>
+                    </div>
+                )}
+
                 {/* Cover Carousel (if available) */}
                 {config?.cover_images && config.cover_images.length > 0 ? (
                     <div className="rounded-2xl overflow-hidden shadow-lg mb-4 border" style={{ borderColor: borderColor }}>
@@ -988,12 +1176,14 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                         const title = itemName(item);
                                         const desc = itemDesc(item);
                                         const price = item.prices?.[0] || 0;
-                                        const oldPrice = item.old_prices?.[0] || 0;
-                                        const hasDiscount = oldPrice > price;
+                                        const oldPrice = getItemOldPrice(item, 0);
+                                        const hasDiscount = oldPrice > price && price > 0;
                                         const discountPercent = hasDiscount ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
                                         const isFav = wishlist.includes(item.id);
                                         const inCartQty = getItemCartQty(item.id);
                                         const isAvailable = item.is_available !== false;
+                                        const activePromosForItem = getItemActivePromotions(item.id);
+                                        const isPromotional = activePromosForItem.length > 0;
 
                                         return (
                                             <div 
@@ -1027,6 +1217,12 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                         {hasDiscount && (
                                                             <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-500 text-white shadow-md">
                                                                 {isAr ? `خصم ${discountPercent}%` : `-${discountPercent}%`}
+                                                            </span>
+                                                        )}
+                                                        {isPromotional && (
+                                                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-purple-600 text-white shadow-md flex items-center gap-0.5">
+                                                                <Gift className="w-2.5 h-2.5" />
+                                                                {isAr ? 'مشمول بالعرض' : 'Promo'}
                                                             </span>
                                                         )}
                                                         {item.is_popular && (
@@ -1107,15 +1303,18 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                     {/* Multiple size indicators if any */}
                                                     {item.size_labels && item.size_labels.length > 1 && (
                                                         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar mb-2 mt-auto">
-                                                            {item.size_labels.map((lbl: string, idx: number) => (
-                                                                <span 
-                                                                    key={idx} 
-                                                                    className="px-1.5 py-0.5 rounded text-[9px] font-bold border whitespace-nowrap bg-slate-50 dark:bg-slate-800"
-                                                                    style={{ borderColor: borderColor }}
-                                                                >
-                                                                    {lbl}
-                                                                </span>
-                                                            ))}
+                                                            {item.size_labels.map((lbl: string, idx: number) => {
+                                                                const cleanLabel = lbl.includes('::') ? lbl.split('::')[0] : lbl;
+                                                                return (
+                                                                    <span 
+                                                                        key={idx} 
+                                                                        className="px-1.5 py-0.5 rounded text-[9px] font-bold border whitespace-nowrap bg-slate-50 dark:bg-slate-800"
+                                                                        style={{ borderColor: borderColor }}
+                                                                    >
+                                                                        {cleanLabel}
+                                                                    </span>
+                                                                );
+                                                            })}
                                                         </div>
                                                     )}
 
@@ -1185,11 +1384,12 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                         const title = itemName(item);
                                         const desc = itemDesc(item);
                                         const price = item.prices?.[0] || 0;
-                                        const oldPrice = item.old_prices?.[0] || 0;
-                                        const hasDiscount = oldPrice > price;
+                                        const oldPrice = getItemOldPrice(item, 0);
+                                        const hasDiscount = oldPrice > price && price > 0;
                                         const isFav = wishlist.includes(item.id);
                                         const inCartQty = getItemCartQty(item.id);
                                         const isAvailable = item.is_available !== false;
+                                        const isPromotional = getItemActivePromotions(item.id).length > 0;
 
                                         return (
                                             <div 
@@ -1219,6 +1419,11 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                     {hasDiscount && (
                                                         <span className="absolute top-1 start-1 px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white">
                                                             {isAr ? 'خصم' : 'Sale'}
+                                                        </span>
+                                                    )}
+                                                    {isPromotional && !hasDiscount && (
+                                                        <span className="absolute top-1 start-1 px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-600 text-white">
+                                                            {isAr ? 'عرض' : 'Promo'}
                                                         </span>
                                                     )}
                                                 </div>
@@ -1353,7 +1558,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                     <div className="flex items-center justify-between mb-1.5">
                                         <span className="font-bold flex items-center gap-1.5">
                                             <Truck className="w-3.5 h-3.5 text-emerald-500" />
-                                            {amountNeededForFreeShipping === 0 
+                                            {progressToFreeShipping >= 100 
                                                 ? (isAr ? '🎉 مبروك! لقد حصلت على شحن مجاني' : '🎉 You unlocked Free Shipping!') 
                                                 : (isAr ? `أضف بـ ${amountNeededForFreeShipping} ${cur} للشحن المجاني!` : `Add ${amountNeededForFreeShipping} ${cur} for Free Shipping!`)}
                                         </span>
@@ -1364,7 +1569,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                             className="h-full rounded-full transition-all duration-500"
                                             style={{ 
                                                 width: `${progressToFreeShipping}%`,
-                                                backgroundColor: progressToFreeShipping === 100 ? '#10b981' : primaryColor 
+                                                backgroundColor: progressToFreeShipping >= 100 ? '#10b981' : primaryColor 
                                             }}
                                         />
                                     </div>
@@ -1473,9 +1678,64 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                     )}
                                 </div>
 
-                                {/* Drawer Footer: Order Type & Checkout Buttons */}
+                                {/* Drawer Footer: Coupon Code, Order Type & Checkout Buttons */}
                                 {cart.length > 0 && (
                                     <div className="p-4 border-t bg-slate-50/50 dark:bg-slate-900/50 space-y-3" style={{ borderColor: borderColor }}>
+                                        {/* COUPON / PROMO CODE INPUT (Shopify Style) */}
+                                        <div className="p-2.5 rounded-xl border bg-white dark:bg-black/50" style={{ borderColor: borderColor }}>
+                                            {!appliedPromoCode ? (
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Ticket className="w-3.5 h-3.5 text-emerald-500" />
+                                                        <span className="text-[11px] font-bold">{isAr ? 'لديك كود خصم أو كوبون؟' : 'Have a coupon code?'}</span>
+                                                    </div>
+                                                    <div className="flex gap-1.5">
+                                                        <input 
+                                                            type="text"
+                                                            value={promoCodeInput}
+                                                            onChange={(e) => setPromoCodeInput(e.target.value)}
+                                                            placeholder={isAr ? 'أدخل الكود هنا...' : 'Enter promo code...'}
+                                                            className="flex-1 px-3 py-1.5 text-xs rounded-lg border uppercase tracking-wider font-mono font-bold bg-slate-50 dark:bg-slate-900"
+                                                            style={{ borderColor: borderColor }}
+                                                            onKeyDown={(e) => { if (e.key === 'Enter') handleApplyPromoCode(); }}
+                                                        />
+                                                        <button
+                                                            onClick={handleApplyPromoCode}
+                                                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm shrink-0 transition-opacity hover:opacity-90 active:scale-95"
+                                                            style={{ backgroundColor: primaryColor }}
+                                                        >
+                                                            {isAr ? 'تطبيق' : 'Apply'}
+                                                        </button>
+                                                    </div>
+                                                    {promoCodeError && (
+                                                        <p className="text-[10px] text-rose-500 font-semibold">{promoCodeError}</p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                                                    <div className="flex items-center gap-2">
+                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                        <div>
+                                                            <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                                                                {isAr ? 'تم تفعيل كود الخصم:' : 'Active Code:'} <span className="font-mono">{appliedPromoCode}</span>
+                                                            </span>
+                                                            {activeAppliedPromo && (
+                                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                                                                    {isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={handleRemovePromoCode}
+                                                        className="text-xs text-rose-500 hover:underline font-bold"
+                                                    >
+                                                        {isAr ? 'إلغاء' : 'Remove'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {/* Order Type Toggle (Specialized for Goods AND Restaurants/Cafes) */}
                                         <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-[11px] font-bold">
                                             <button
@@ -1551,9 +1811,42 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                 <span>{isAr ? 'المجموع الفرعي' : 'Subtotal'}</span>
                                                 <span className="font-mono font-bold">{cartTotal} {cur}</span>
                                             </div>
+
+                                            {/* Promotion Discount Breakdown */}
+                                            {activeAppliedPromo && promoDiscountAmount > 0 && (
+                                                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                                                    <span className="flex items-center gap-1">
+                                                        <Tag className="w-3.5 h-3.5" />
+                                                        {isAr ? 'الخصم المطبق' : 'Discount'} ({isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)})
+                                                    </span>
+                                                    <span className="font-mono font-bold">-{promoDiscountAmount} {cur}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Free Shipping Promo */}
+                                            {isFreeShippingApplied && (
+                                                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                                                    <span className="flex items-center gap-1">
+                                                        <Truck className="w-3.5 h-3.5" />
+                                                        {isAr ? 'الشحن والتوصيل' : 'Shipping'}
+                                                    </span>
+                                                    <span>{isAr ? 'مجاني (عرض ترويجي)' : 'FREE'}</span>
+                                                </div>
+                                            )}
+
+                                            {/* Final Grand Total */}
                                             <div className="flex justify-between text-base font-black pt-1 border-t" style={{ borderColor: borderColor }}>
                                                 <span>{isAr ? 'الإجمالي الكلي' : 'Total'}</span>
-                                                <span className="font-mono" style={{ color: primaryColor }}>{cartTotal} {cur}</span>
+                                                <div className="flex items-baseline gap-1.5 font-mono">
+                                                    {promoDiscountAmount > 0 && (
+                                                        <span className="text-xs line-through text-muted-foreground opacity-70">
+                                                            {cartTotal} {cur}
+                                                        </span>
+                                                    )}
+                                                    <span style={{ color: primaryColor }}>
+                                                        {finalDiscountedTotal} {cur}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1640,6 +1933,12 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                 {isAr ? 'الأكثر طلباً' : 'Best Seller'}
                                             </span>
                                         )}
+                                        {getItemActivePromotions(quickViewItem.item.id).length > 0 && (
+                                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-600 text-white shadow flex items-center gap-1">
+                                                <Gift className="w-3 h-3" />
+                                                {isAr ? 'مشمول بالعرض 🎁' : 'Promotion'}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1660,9 +1959,9 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                             <span className="text-lg sm:text-xl font-black font-mono" style={{ color: primaryColor }}>
                                                 {quickViewItem.item.prices?.[modalSizeIdx] || 0} {cur}
                                             </span>
-                                            {quickViewItem.item.old_prices?.[modalSizeIdx] && quickViewItem.item.old_prices[modalSizeIdx] > (quickViewItem.item.prices?.[modalSizeIdx] || 0) && (
+                                            {hasItemDiscount(quickViewItem.item, modalSizeIdx) && (
                                                 <span className="block text-xs line-through text-muted-foreground font-mono">
-                                                    {quickViewItem.item.old_prices[modalSizeIdx]} {cur}
+                                                    {getItemOldPrice(quickViewItem.item, modalSizeIdx)} {cur}
                                                 </span>
                                             )}
                                         </div>
@@ -1694,8 +1993,10 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                         </label>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                             {quickViewItem.item.prices.map((p: number, idx: number) => {
-                                                const label = quickViewItem.item.size_labels?.[idx] || (isAr ? `خيار ${idx + 1}` : `Option ${idx + 1}`);
+                                                const rawLabel = quickViewItem.item.size_labels?.[idx] || (isAr ? `خيار ${idx + 1}` : `Option ${idx + 1}`);
+                                                const label = rawLabel.includes('::') ? rawLabel.split('::')[0] : rawLabel;
                                                 const isSelected = modalSizeIdx === idx;
+                                                const oldP = getItemOldPrice(quickViewItem.item, idx);
                                                 return (
                                                     <button
                                                         key={idx}
@@ -1709,7 +2010,12 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                         }}
                                                     >
                                                         <span>{label}</span>
-                                                        <span className="font-mono text-[11px] opacity-90">{p} {cur}</span>
+                                                        <div className="flex items-center gap-1 font-mono text-[11px] opacity-90">
+                                                            <span>{p} {cur}</span>
+                                                            {oldP > p && (
+                                                                <span className="line-through text-[10px] opacity-60">{oldP}</span>
+                                                            )}
+                                                        </div>
                                                     </button>
                                                 );
                                             })}
@@ -2019,6 +2325,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 onOrderSuccess={() => {
                     setCart([]);
                     setShowCheckout(false);
+                    handleRemovePromoCode();
                 }}
             />
 
