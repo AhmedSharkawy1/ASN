@@ -161,6 +161,17 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const isDark = mounted && theme === 'dark';
     const cur = parseCurrency(config?.currency, isAr);
 
+    // Dynamic Place Word (مطعم / كافيه / متجر / ...) from store settings
+    const placeWord = useMemo(() => {
+        const raw = config?.menu_title_word?.trim();
+        if (!raw) return isAr ? 'المكان' : 'Store';
+        if (!isAr) return raw;
+        if (raw.startsWith('ال') || raw.startsWith('أل') || raw.startsWith('إل') || raw.startsWith('آل')) {
+            return raw;
+        }
+        return `ال${raw}`;
+    }, [config?.menu_title_word, isAr]);
+
     // Color resolution
     const themeSuffix = config?.theme?.split('-')[1] || 'default';
     const preset = PRESET_COLORS[themeSuffix] || PRESET_COLORS.default;
@@ -548,6 +559,23 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         ? 0 
         : Math.max(0, freeShippingThreshold - cartTotal);
 
+    // Direct Checkout Form Validation (يتحقق من ملء كافة البيانات المطلوبة لإتاحة زر التأكيد)
+    const isCheckoutFormValid = useMemo(() => {
+        if (cart.length === 0) return false;
+        if (!customerName.trim()) return false;
+        const cleanPhone = customerPhone.replace(/\D/g, '');
+        if (cleanPhone.length < 7) return false;
+        if (orderType === 'delivery') {
+            if (!customerAddress.trim()) return false;
+            if (deliveryZones.length > 0 && !selectedZone) return false;
+            if (selectedZone && selectedZone.min_order > 0 && cartTotal < selectedZone.min_order) return false;
+        }
+        if (orderType === 'dinein') {
+            if (!tableNumber.trim()) return false;
+        }
+        return true;
+    }, [cart.length, customerName, customerPhone, orderType, customerAddress, deliveryZones.length, selectedZone, cartTotal, tableNumber]);
+
     // Apply Coupon Code
     const handleApplyPromoCode = () => {
         const code = promoCodeInput.trim();
@@ -797,7 +825,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const handleShare = async () => {
         const shareData = {
             title: config?.name || 'Store',
-            text: isAr ? `تسوق الآن من ${config?.name || 'متجرنا'}` : `Shop now at ${config?.name || 'our store'}`,
+            text: isAr ? `تسوق الآن من ${placeWord} ${config?.name || ''}` : `Shop now at ${config?.name || 'our store'}`,
             url: window.location.href,
         };
         if (navigator.share) {
@@ -846,7 +874,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                     <Sparkles className="w-4 h-4 shrink-0 animate-pulse text-yellow-300" />
                     {config?.marquee_enabled ? (
                         <div className="flex-1 overflow-hidden">
-                            <SharedMarquee text={isAr ? (config?.marquee_text_ar || 'أهلاً بكم في متجرنا! تسوقوا أفضل المنتجات والعروض الحصرية') : (config?.marquee_text_en || 'Welcome to our store! Shop exclusive deals and offers')} />
+                            <SharedMarquee text={isAr ? (config?.marquee_text_ar || `أهلاً بكم في ${placeWord}! تسوقوا أفضل المنتجات والعروض الحصرية`) : (config?.marquee_text_en || 'Welcome to our store! Shop exclusive deals and offers')} />
                         </div>
                     ) : promoHighlightText ? (
                         <p className="truncate font-bold tracking-wide">
@@ -892,7 +920,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
                     <div className="flex items-center justify-between gap-3">
                         {/* Store Brand / Logo */}
-                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => { scrollToCategory('all'); setSearchQuery(''); }}>
+                        <div className="flex items-center gap-2.5 sm:gap-3 cursor-pointer min-w-0 flex-1" onClick={() => { scrollToCategory('all'); setSearchQuery(''); }}>
                             {config?.logo_url ? (
                                 <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-md border-2 border-white/20 shrink-0 relative bg-white">
                                     <OptimizedMenuImage 
@@ -910,18 +938,18 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </div>
                             )}
 
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <h1 className="font-black text-base sm:text-xl tracking-tight leading-tight line-clamp-1">
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                    <h1 className="font-black text-sm sm:text-lg lg:text-xl tracking-tight leading-tight">
                                         {config?.name || 'Shopify Store'}
                                     </h1>
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                                         <CheckCircle2 className="w-3 h-3 me-0.5" />
                                         {isAr ? 'موثق' : 'Verified'}
                                     </span>
                                 </div>
                                 {(config?.slogan_ar || config?.slogan_en) && (
-                                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5" style={{ color: textMuted }}>
+                                    <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 break-words leading-relaxed" style={{ color: textMuted }}>
                                         {isAr ? config.slogan_ar : (config.slogan_en || config.slogan_ar)}
                                     </p>
                                 )}
@@ -929,17 +957,17 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                         </div>
 
                         {/* Header Action Buttons */}
-                        <div className="flex items-center gap-1.5 sm:gap-2.5">
+                        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                             {/* Clear Store Profile & Hours Button (Replaces the obscure exclamation mark) */}
                             <button
                                 onClick={() => setIsInfoModalOpen(true)}
                                 className="px-2.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
-                                title={isAr ? 'بيانات ومواعيد العمل' : 'Store Info & Hours'}
+                                title={isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Info & Hours`}
                             >
                                 <Store className="w-4 h-4 text-emerald-500" />
-                                <span className="hidden lg:inline">{isAr ? 'بيانات ومواعيد المتجر' : 'Store & Hours'}</span>
-                                <span className="inline lg:hidden text-[11px]">{isAr ? 'عن المكان' : 'Info'}</span>
+                                <span className="hidden lg:inline">{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} & Hours`}</span>
+                                <span className="inline lg:hidden text-[11px]">{isAr ? `عن ${placeWord}` : 'Info'}</span>
                             </button>
 
                             {/* Payment Methods Button */}
@@ -958,7 +986,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 onClick={handleShare}
                                 className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
-                                title={isAr ? 'مشاركة المتجر' : 'Share'}
+                                title={isAr ? `مشاركة ${placeWord}` : 'Share'}
                             >
                                 <Share2 className="w-4 h-4 text-blue-500" />
                             </button>
@@ -1601,98 +1629,122 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                             <div 
                                                 key={item.id}
                                                 onClick={() => openQuickView(item, catName(cat))}
-                                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all hover:shadow-md cursor-pointer ${
+                                                className={`group relative flex items-start gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-2xl border transition-all hover:shadow-md cursor-pointer ${
                                                     !isAvailable ? 'opacity-60' : ''
                                                 }`}
                                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                             >
-                                                {/* Left Thumbnail */}
-                                                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0">
+                                                {/* Start / Image Thumbnail */}
+                                                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0">
                                                     {item.image_url || item.image ? (
                                                         <OptimizedMenuImage 
                                                             src={item.image_url || item.image}
                                                             thumbnailSrc={item.thumbnail_url}
                                                             alt={title}
-                                                            className="w-full h-full object-cover"
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                         />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                                            <ShoppingBag className="w-6 h-6 opacity-30" />
+                                                            <ShoppingBag className="w-7 h-7 opacity-30" />
                                                         </div>
                                                     )}
                                                     {hasDiscount && (
-                                                        <span className="absolute top-1 start-1 px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white">
+                                                        <span className="absolute top-1.5 start-1.5 px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500 text-white shadow-sm">
                                                             {isAr ? 'خصم' : 'Sale'}
                                                         </span>
                                                     )}
                                                     {isPromotional && !hasDiscount && (
-                                                        <span className="absolute top-1 start-1 px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-600 text-white">
+                                                        <span className="absolute top-1.5 start-1.5 px-1.5 py-0.5 rounded text-[9px] font-black bg-purple-600 text-white shadow-sm">
                                                             {isAr ? 'عرض' : 'Promo'}
                                                         </span>
                                                     )}
+                                                    {!isAvailable && (
+                                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-[1px]">
+                                                            <span className="text-[10px] font-black text-white px-2 py-0.5 rounded bg-rose-600/90">
+                                                                {isAr ? 'غير متوفر' : 'Unavailable'}
+                                                            </span>
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {/* Middle Info */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <h4 className="font-bold text-xs sm:text-sm tracking-tight truncate">
-                                                            {title}
-                                                        </h4>
-                                                        {item.is_popular && <span className="text-[10px] text-amber-500 font-bold">🔥</span>}
-                                                        {item.is_spicy && <span className="text-[10px]">🌶️</span>}
-                                                    </div>
+                                                {/* Content & Actions Stack (Takes full remaining space) */}
+                                                <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
+                                                    {/* Top Row: Title + Badges + Heart Wishlist Button */}
+                                                    <div>
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    <h4 className="font-black text-xs sm:text-sm tracking-tight leading-snug break-words">
+                                                                        {title}
+                                                                    </h4>
+                                                                    {item.is_popular && (
+                                                                        <span className="text-[11px] text-amber-500 font-bold shrink-0">🔥</span>
+                                                                    )}
+                                                                    {item.is_spicy && (
+                                                                        <span className="text-[11px] shrink-0">🌶️</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
 
-                                                    {desc && (
-                                                        <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5" style={{ color: textMuted }}>
-                                                            {desc}
-                                                        </p>
-                                                    )}
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }}
+                                                                className="p-1 -m-1 text-slate-400 hover:text-rose-500 transition-colors shrink-0"
+                                                                title={isAr ? 'المفضلة' : 'Wishlist'}
+                                                            >
+                                                                <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
+                                                            </button>
+                                                        </div>
 
-                                                    <div className="flex items-baseline gap-2 mt-1">
-                                                        <span className="text-sm font-black" style={{ color: primaryColor }}>
-                                                            {price} {cur}
-                                                        </span>
-                                                        {hasDiscount && (
-                                                            <span className="text-xs text-muted-foreground line-through font-mono">
-                                                                {oldPrice} {cur}
-                                                            </span>
+                                                        {/* Description */}
+                                                        {desc && (
+                                                            <p 
+                                                                className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2 mt-1 leading-relaxed break-words" 
+                                                                style={{ color: textMuted }}
+                                                            >
+                                                                {desc}
+                                                            </p>
                                                         )}
                                                     </div>
-                                                </div>
 
-                                                {/* Right Action: Open Selection Modal */}
-                                                <div className="flex items-center gap-2 shrink-0">
-                                                    <button 
-                                                        onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }}
-                                                        className="p-2 rounded-xl text-slate-400 hover:text-rose-500"
-                                                        title={isAr ? 'المفضلة' : 'Wishlist'}
-                                                    >
-                                                        <Heart className={`w-4 h-4 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                                                    </button>
-
-                                                    {config?.orders_enabled !== false && isAvailable && (
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); openQuickView(item, catName(cat)); }}
-                                                            className={`px-3 py-2 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all hover:opacity-90 active:scale-95 ${
-                                                                inCartQty > 0
-                                                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                                                                    : 'text-white'
-                                                            }`}
-                                                            style={{ backgroundColor: inCartQty > 0 ? undefined : primaryColor }}
-                                                        >
-                                                            {inCartQty > 0 ? (
-                                                                <>
-                                                                    <Check className="w-3.5 h-3.5" />
-                                                                    <span>{isAr ? `في السلة (${inCartQty})` : `In Cart (${inCartQty})`}</span>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Plus className="w-3.5 h-3.5" />
-                                                                    <span>{isAr ? 'اختيار' : 'Select'}</span>
-                                                                </>
+                                                    {/* Bottom Row: Price + Select Action */}
+                                                    <div className="flex items-center justify-between gap-2 mt-2 pt-1">
+                                                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                                                            <span className="text-sm sm:text-base font-black font-mono" style={{ color: primaryColor }}>
+                                                                {price} {cur}
+                                                            </span>
+                                                            {hasDiscount && (
+                                                                <span className="text-[11px] sm:text-xs text-muted-foreground line-through font-mono">
+                                                                    {oldPrice} {cur}
+                                                                </span>
                                                             )}
-                                                        </button>
-                                                    )}
+                                                        </div>
+
+                                                        {config?.orders_enabled !== false && isAvailable && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => { e.stopPropagation(); openQuickView(item, catName(cat)); }}
+                                                                className={`px-3 py-1.5 rounded-xl text-xs font-black shadow-sm flex items-center gap-1.5 transition-all hover:opacity-90 active:scale-95 shrink-0 ${
+                                                                    inCartQty > 0
+                                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                                                        : 'text-white'
+                                                                }`}
+                                                                style={{ backgroundColor: inCartQty > 0 ? undefined : primaryColor }}
+                                                            >
+                                                                {inCartQty > 0 ? (
+                                                                    <>
+                                                                        <Check className="w-3.5 h-3.5" />
+                                                                        <span>{isAr ? `في السلة (${inCartQty})` : `In Cart (${inCartQty})`}</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Plus className="w-3.5 h-3.5" />
+                                                                        <span>{isAr ? 'اختيار' : 'Select'}</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -1750,7 +1802,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
             {/* 8. FLOATING WHATSAPP BUTTON (زر الواتساب العائم) */}
             {(config?.whatsapp_number || config?.phone) && (
                 <a
-                    href={`https://wa.me/${(config?.whatsapp_number || config?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(isAr ? `مرحباً، أود الاستفسار بخصوص الطلبات في متجر ${config?.name || ''}` : `Hello, I would like to inquire about orders at ${config?.name || ''}`)}`}
+                    href={`https://wa.me/${(config?.whatsapp_number || config?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(isAr ? `مرحباً، أود الاستفسار بخصوص الطلبات في ${placeWord} ${config?.name || ''}` : `Hello, I would like to inquire about orders at ${config?.name || ''}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="fixed bottom-4 left-4 z-40 w-11 h-11 rounded-full bg-[#25D366] text-white shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
@@ -2297,12 +2349,28 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                     </div>
                                                 )}
 
+                                                {/* Incomplete Form Helper Alert */}
+                                                {!isCheckoutFormValid && (
+                                                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center gap-2">
+                                                        <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                                                        <span>
+                                                            {isAr
+                                                                ? 'يرجى استكمال جميع البيانات المطلوبة أعلاه لتفعيل زر تأكيد الطلب'
+                                                                : 'Please complete all required fields above to confirm order'}
+                                                        </span>
+                                                    </div>
+                                                )}
+
                                                 {/* ONE Single Unified Checkout Button */}
                                                 <button
                                                     type="button"
                                                     onClick={handleUnifiedSubmitOrder}
-                                                    disabled={isSubmittingOrder}
-                                                    className="w-full py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm text-white shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                                    disabled={!isCheckoutFormValid || isSubmittingOrder}
+                                                    className={`w-full py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm text-white shadow-xl flex items-center justify-center gap-2 transition-all ${
+                                                        !isCheckoutFormValid || isSubmittingOrder
+                                                            ? 'opacity-40 cursor-not-allowed filter grayscale pointer-events-none'
+                                                            : 'hover:shadow-2xl hover:brightness-105 active:scale-95 cursor-pointer'
+                                                    }`}
                                                     style={{ backgroundColor: primaryColor }}
                                                 >
                                                     {isSubmittingOrder ? (
@@ -2702,7 +2770,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: borderColor }}>
                                 <div className="flex items-center gap-2">
                                     <Store className="w-5 h-5 text-emerald-500" />
-                                    <h3 className="font-black text-base">{isAr ? 'بيانات ومواعيد المتجر' : 'Store Information & Hours'}</h3>
+                                    <h3 className="font-black text-base">{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Information & Hours`}</h3>
                                 </div>
                                 <button onClick={() => setIsInfoModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
                                     <X className="w-5 h-5" />
@@ -2898,7 +2966,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 <h3 className="font-black text-lg tracking-tight">{config?.name || 'Shopify Store'}</h3>
                             </div>
                             <p className="text-xs text-muted-foreground leading-relaxed max-w-md" style={{ color: textMuted }}>
-                                {isAr ? (config?.slogan_ar || 'متجرك الإلكتروني المتكامل لبيع المنتجات والسلع وأشهى الوجبات والمشروبات بأحدث تجربة تسوق عصرية.') : (config?.slogan_en || 'Your complete modern digital store for products, goods, and fine dining.')}
+                                {isAr ? (config?.slogan_ar || 'وجهتك المتكاملة لأفضل تجربة تسوق وطلب المنتجات بأعلى جودة.') : (config?.slogan_en || 'Your complete modern digital store for products, goods, and fine dining.')}
                             </p>
                         </div>
 
