@@ -655,6 +655,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/theme-usa", icon: Palette, labelAr: "إعدادات ثيم USA (الأمريكي)", labelEn: "USA Theme Settings", key: "theme_usa" },
                 { href: "/dashboard/theme-uae", icon: Palette, labelAr: "إعدادات ثيم الإمارات (UAE)", labelEn: "UAE Theme Settings", key: "theme_uae" },
                 { href: "/dashboard/theme-usa-dual", icon: Palette, labelAr: "إعدادات ثيم USA الثنائي (Bilingual)", labelEn: "USA Dual Theme Settings", key: "theme_usa_dual" },
+                { href: "/dashboard/popup-settings", icon: Megaphone, labelAr: "نافذة العروض المنبثقة (Pop-up)", labelEn: "Promotional Pop-up", key: "popup_settings" },
                 ...(!isDesktopApp ? [{ href: "/dashboard/qr", icon: QrCode, labelAr: "QR", labelEn: "QR Codes", key: "qr" }] : []),
                 { href: "/dashboard/settings", icon: Settings, labelAr: "الإعدادات", labelEn: "Settings", key: "settings" },
             ]
@@ -665,7 +666,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const BROAD_TO_SPECIFIC: Record<string, string[]> = {
         orders: ['orders', 'pos', 'kitchen'], // cashier_shifts has its own granular permission
         products: ['products', 'tables', 'delivery', 'promotions'],
-        settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme27_settings', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'qr'],
+        settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme27_settings', 'theme28_settings', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'popup_settings', 'qr'],
         team: ['team'],
         customers: ['customers', 'notifications', 'whatsapp'],
         reports: ['reports'],

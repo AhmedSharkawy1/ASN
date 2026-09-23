@@ -17,6 +17,8 @@ import { parseCurrency } from '@/lib/currency';
 import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from '@/components/menu/CheckoutModal';
 import SharedMarquee from '@/components/menu/SharedMarquee';
+import { getStoreOpenStatus } from '@/lib/helpers/storeHours';
+import { itemMatchesSmartSearch } from '@/lib/helpers/smartMenuSearch';
 
 // Types
 export type MenuItem = {
@@ -115,12 +117,14 @@ interface Theme28MenuProps {
     config: RestaurantType;
     categories: CategoryWithItemsType[];
     restaurantId: string;
+    language?: string;
+    suppressInternalPopup?: boolean;
 }
 
 type ViewMode = 'grid' | 'list' | 'compact' | 'showcase';
 type FilterTag = 'all' | 'popular' | 'new' | 'offers';
 
-export default function Theme28Menu({ config, categories, restaurantId }: Theme28MenuProps) {
+export default function Theme28Menu({ config, categories, restaurantId, suppressInternalPopup = false }: Theme28MenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -137,6 +141,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
     const isAr = currentLang === 'ar';
     const isDark = mounted && theme === 'dark';
     const cur = parseCurrency(config?.currency, isAr);
+    const storeStatus = useMemo(() => getStoreOpenStatus(config), [config]);
 
     // Color resolution
     const getPrimaryColor = (themeName?: string, customPrimary?: string) => {
@@ -200,7 +205,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
         tc.theme28_popup || tc.theme27_popup || null;
 
     useEffect(() => {
-        if (popupConfig?.enabled) {
+        if (!suppressInternalPopup && popupConfig?.enabled) {
             const popupKey = `theme28_popup_${restaurantId || config?.id || 'dismissed'}`;
             const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem(popupKey) : null;
             if (!dismissed) {
@@ -208,7 +213,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 return () => clearTimeout(timer);
             }
         }
-    }, [popupConfig, restaurantId, config?.id]);
+    }, [popupConfig, restaurantId, config?.id, suppressInternalPopup]);
 
     // Helpers
     const itemName = (item: MenuItem) => (isAr ? item.title_ar : (item.title_en || item.title_ar)) || '';
@@ -274,12 +279,11 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 // Availability
                 if (item.is_available === false) return false;
 
-                // Search query match
+                // Smart cross-entity search query match
                 if (searchQuery.trim()) {
-                    const q = searchQuery.toLowerCase().trim();
-                    const nMatch = itemName(item).toLowerCase().includes(q);
-                    const dMatch = itemDesc(item).toLowerCase().includes(q);
-                    if (!nMatch && !dMatch) return false;
+                    if (!itemMatchesSmartSearch(item, catName(cat), searchQuery, isAr)) {
+                        return false;
+                    }
                 }
 
                 // Filter tags
@@ -645,10 +649,17 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     <h1 className="text-xl sm:text-2xl font-black tracking-tight truncate">
                                         {config.name}
                                     </h1>
-                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                        {isAr ? 'مفتوح الآن' : 'Open Now'}
-                                    </span>
+                                    {storeStatus.isOpen ? (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            {isAr ? 'مفتوح الآن' : 'Open Now'}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                            {isAr ? 'مغلق الآن' : 'Closed Now'}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {(config.slogan_ar || config.slogan_en) && (
@@ -657,7 +668,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     </p>
                                 )}
 
-                                {/* Meta details bar: Dining & Delivery / Fast Service / Payment Methods */}
+                                {/* Meta details bar: Dining & Delivery / Fast Service */}
                                 <div className="flex items-center gap-2.5 mt-2 text-[11px] text-slate-600 dark:text-zinc-300 font-semibold flex-wrap">
                                     <span className="flex items-center gap-1">
                                         <Utensils className="w-3.5 h-3.5 text-amber-500" />
@@ -668,15 +679,6 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                         <Clock className="w-3.5 h-3.5 text-emerald-500" />
                                         <span>{isAr ? 'خدمة سريعة' : 'Fast Service'}</span>
                                     </span>
-                                    <span>•</span>
-                                    <button 
-                                        onClick={() => setIsPaymentModalOpen(true)}
-                                        className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold hover:underline cursor-pointer bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20 active:scale-95 transition-all"
-                                        title={isAr ? 'عرض وسائل الدفع المتاحة' : 'View Payment Methods'}
-                                    >
-                                        <CreditCard className="w-3 h-3 text-emerald-500" />
-                                        <span>{isAr ? 'طرق الدفع' : 'Payments'}</span>
-                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1975,7 +1977,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
 
                 {/* 10. PROMOTIONAL POPUP */}
                 <AnimatePresence>
-                    {showPromoPopup && popupConfig && (
+                    {!suppressInternalPopup && showPromoPopup && popupConfig && (
                         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <motion.div 
                                 initial={{ opacity: 0 }}

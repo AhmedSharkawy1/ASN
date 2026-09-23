@@ -49,6 +49,7 @@ const ThemeUaeMenu = dynamic(() => import("@/components/menu/ThemeUaeMenu"));
 const ThemeUsaDualMenu = dynamic(() => import("@/components/menu/ThemeUsaDualMenu"));
 const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
 const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
+const ThemePromotionalPopup = dynamic(() => import("@/components/menu/ThemePromotionalPopup"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
 const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
@@ -306,6 +307,30 @@ export default function MenuClient({
       );
   }
 
+  if (showLanding) {
+    return <VicinoLandingPage config={config} onContinue={() => {
+      setShowLanding(false);
+      const isLeadCaptured = typeof window !== 'undefined' ? localStorage.getItem(`lead_captured_${config?.id}`) : false;
+      if (!isLeadCaptured && config?.theme?.startsWith("vicino")) {
+        setShowLeadPopup(true);
+      }
+    }} />;
+  }
+
+  if (showLeadPopup) {
+    return <CustomerLeadPopup 
+              config={config} 
+              isAr={language === 'ar'} 
+              isDark={false} 
+              primaryColor={config?.theme_colors?.primary || '#000'} 
+              bgBody={config?.theme_colors?.background || '#fff'} 
+              textMain={config?.theme_colors?.text || '#000'} 
+              textMuted="#666" 
+              onComplete={() => setShowLeadPopup(false)} 
+            />;
+  }
+
+  const renderThemeContent = () => {
   // If PizzaPasta theme, render the dedicated full-layout component
   if (config?.theme === "pizzapasta") {
     return (
@@ -404,28 +429,6 @@ export default function MenuClient({
   if (config?.theme === "theme16") {
     return <Theme16Menu config={config} categories={categories} restaurantId={config.id} />;
   }
-  if (showLanding) {
-    return <VicinoLandingPage config={config} onContinue={() => {
-      setShowLanding(false);
-      const isLeadCaptured = typeof window !== 'undefined' ? localStorage.getItem(`lead_captured_${config?.id}`) : false;
-      if (!isLeadCaptured && config?.theme?.startsWith("vicino")) {
-        setShowLeadPopup(true);
-      }
-    }} />;
-  }
-
-  if (showLeadPopup) {
-    return <CustomerLeadPopup 
-              config={config} 
-              isAr={language === 'ar'} 
-              isDark={false} 
-              primaryColor={config?.theme_colors?.primary || '#000'} 
-              bgBody={config?.theme_colors?.background || '#fff'} 
-              textMain={config?.theme_colors?.text || '#000'} 
-              textMuted="#666" 
-              onComplete={() => setShowLeadPopup(false)} 
-            />;
-  }
 
   // If Theme 17 (Lusha Theme)
   if (config?.theme === "theme17") {
@@ -460,10 +463,10 @@ export default function MenuClient({
     return <Theme19Menu config={config} categories={categories} restaurantId={config.id} />;
   }
   if (config?.theme?.startsWith("lamet-zaman-compact") || config?.theme?.startsWith("theme27")) {
-    return <LametZamanCompactMenu config={config} categories={categories} restaurantId={config.id} />;
+    return <LametZamanCompactMenu config={config} categories={categories} restaurantId={config.id} suppressInternalPopup={true} />;
   }
   if (config?.theme?.startsWith("theme28")) {
-    return <Theme28Menu config={config} categories={categories} restaurantId={config.id} />;
+    return <Theme28Menu config={config} categories={categories} restaurantId={config.id} suppressInternalPopup={true} />;
   }
   if (config?.theme?.startsWith("theme29")) {
     return <Theme29Menu config={config} categories={categories} restaurantId={config.id} language={language} />;
@@ -717,7 +720,23 @@ export default function MenuClient({
     return <Theme15SkyMenu config={config} categories={categories} restaurantId={config.id} />;
   }
 
+    return null;
+  };
 
+  const themeComponent = renderThemeContent();
+  if (themeComponent) {
+    return (
+      <>
+        {themeComponent}
+        <ThemePromotionalPopup
+          config={config}
+          categories={categories}
+          restaurantId={config?.id}
+          isAr={language === 'ar'}
+        />
+      </>
+    );
+  }
 
   // ----------------- CART LOGIC -----------------
   const openItemSelect = (item: Item, cName: string) => {
@@ -1529,6 +1548,13 @@ export default function MenuClient({
           padding-bottom: env(safe-area-inset-bottom, 1rem);
         }
       `}</style>
+
+      <ThemePromotionalPopup
+        config={config}
+        categories={categories}
+        restaurantId={config?.id}
+        isAr={language === 'ar'}
+      />
     </main>
   );
 }

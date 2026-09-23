@@ -100,9 +100,10 @@ interface LametZamanCompactMenuProps {
     config: RestaurantType;
     categories: CategoryWithItemsType[];
     restaurantId: string;
+    suppressInternalPopup?: boolean;
 }
 
-export default function LametZamanCompactMenu({ config, categories, restaurantId }: LametZamanCompactMenuProps) {
+export default function LametZamanCompactMenu({ config, categories, restaurantId, suppressInternalPopup = false }: LametZamanCompactMenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -161,7 +162,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
     const [showPromoPopup, setShowPromoPopup] = useState(false);
 
     useEffect(() => {
-        if (popupConfig?.enabled) {
+        if (!suppressInternalPopup && popupConfig?.enabled) {
             const popupKey = `theme27_popup_${restaurantId || config?.id || 'dismissed'}`;
             const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem(popupKey) : null;
             if (!dismissed) {
@@ -169,7 +170,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                 return () => clearTimeout(timer);
             }
         }
-    }, [popupConfig, restaurantId, config?.id]);
+    }, [popupConfig, restaurantId, config?.id, suppressInternalPopup]);
 
     // Theme colors
     const bgBody = isDark ? '#111111' : '#f9fafb';
@@ -1734,7 +1735,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
 
                 {/* --- PROMOTIONAL OFFERS POP-UP MODAL --- */}
                 <AnimatePresence>
-                    {showPromoPopup && popupConfig?.enabled && (
+                    {!suppressInternalPopup && showPromoPopup && popupConfig?.enabled && (
                         <motion.div 
                             initial={{ opacity: 0 }} 
                             animate={{ opacity: 1 }} 
@@ -1844,7 +1845,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                 </AnimatePresence>
 
                 {/* Floating Re-open Offers Pill */}
-                {popupConfig?.enabled && !showPromoPopup && (
+                {!suppressInternalPopup && popupConfig?.enabled && !showPromoPopup && (
                     <button 
                         onClick={() => setShowPromoPopup(true)} 
                         className="fixed bottom-24 right-4 z-40 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-full px-3.5 py-2 text-xs font-black shadow-xl flex items-center gap-1.5 active:scale-95 transition-transform"

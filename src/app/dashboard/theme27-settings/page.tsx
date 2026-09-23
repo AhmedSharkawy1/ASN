@@ -652,6 +652,10 @@ export default function Theme27SettingsPage() {
                         </h2>
                         <p className="text-xs text-slate-500 dark:text-zinc-400">
                             {isAr ? "نافذة منبثقة جذابة تظهر للعملاء عند فتح المنيو لتسليط الضوء على عروضك الخاصة أو خصومات اليوم." : "Interactive popup shown to customers when entering the menu."}
+                            {" "}
+                            <Link href="/dashboard/popup-settings" className="text-orange-500 underline hover:text-orange-600 font-bold inline-flex items-center gap-1">
+                                {isAr ? "أو يمكنك تفعيلها لجميع الثيمات من هنا" : "or enable for all themes here"}
+                            </Link>
                         </p>
                     </div>
 

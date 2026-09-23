@@ -152,6 +152,7 @@ export default function SuperAdminClientsPage() {
                 { key: 'theme_usa', nameEn: 'USA Theme Settings', nameAr: 'إعدادات ثيم USA (الأمريكي)' },
                 { key: 'theme_uae', nameEn: 'UAE Theme Settings', nameAr: 'إعدادات ثيم الإمارات (UAE)' },
                 { key: 'theme_usa_dual', nameEn: 'USA Dual Theme Settings', nameAr: 'إعدادات ثيم USA الثنائي (Bilingual)' },
+                { key: 'popup_settings', nameEn: 'Promotional Pop-up Settings', nameAr: 'إعدادات النافذة المنبثقة (Pop-up)' },
             ]
         }
     ];
