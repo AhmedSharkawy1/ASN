@@ -42,31 +42,34 @@ export default function ThemePromotionalPopup({
     // 1. Universal popup config (from dedicated popup settings page)
     const promoPopup: PromotionalPopupConfig | null = tc.promo_popup || config?.promo_popup || null;
 
-    // 2. Specific theme configs (Theme 27 / Theme 28)
+    // 2. Specific theme configs (Theme 27 / Theme 28 / Theme 30)
     const theme27Popup: PromotionalPopupConfig | null = tc.theme27_popup || config?.theme27_popup || null;
     const theme28Popup: PromotionalPopupConfig | null = tc.theme28_popup || config?.theme28_popup || null;
+    const theme30Popup: PromotionalPopupConfig | null = tc.theme30_popup || config?.theme30_popup || null;
 
     const currentTheme = config?.theme || "";
     const isTheme27 = currentTheme.startsWith("lamet-zaman-compact") || currentTheme.startsWith("theme27");
     const isTheme28 = currentTheme.startsWith("theme28");
+    const isTheme30 = currentTheme.startsWith("theme30");
 
     // Enable condition:
     // Disabled by default UNLESS activated by user in the universal popup settings (promoPopup.enabled === true)
-    // OR activated in its theme settings (theme27Popup.enabled if theme 27, theme28Popup.enabled if theme 28).
+    // OR activated in its theme settings (theme27Popup.enabled if theme 27, theme28Popup.enabled if theme 28, theme30Popup.enabled if theme 30).
     const isEnabled = Boolean(
         promoPopup?.enabled ||
         (isTheme27 && theme27Popup?.enabled) ||
-        (isTheme28 && theme28Popup?.enabled)
+        (isTheme28 && theme28Popup?.enabled) ||
+        (isTheme30 && theme30Popup?.enabled)
     );
 
     // Consolidated popup details: prefer universal config, fall back to theme-specific config
     const activePopupConfig: PromotionalPopupConfig = {
         enabled: isEnabled,
-        title: (promoPopup?.title ?? (isTheme27 ? theme27Popup?.title : isTheme28 ? theme28Popup?.title : undefined)) || promoPopup?.title || theme27Popup?.title || theme28Popup?.title || "",
-        description: (promoPopup?.description ?? (isTheme27 ? theme27Popup?.description : isTheme28 ? theme28Popup?.description : undefined)) || promoPopup?.description || theme27Popup?.description || theme28Popup?.description || "",
-        image_url: (promoPopup?.image_url ?? (isTheme27 ? theme27Popup?.image_url : isTheme28 ? theme28Popup?.image_url : undefined)) || promoPopup?.image_url || theme27Popup?.image_url || theme28Popup?.image_url || "",
-        button_text: (promoPopup?.button_text ?? (isTheme27 ? theme27Popup?.button_text : isTheme28 ? theme28Popup?.button_text : undefined)) || promoPopup?.button_text || theme27Popup?.button_text || theme28Popup?.button_text || (isAr ? "تصفح العرض الآن" : "View Offer Now"),
-        target_category_id: (promoPopup?.target_category_id ?? (isTheme27 ? theme27Popup?.target_category_id : isTheme28 ? theme28Popup?.target_category_id : undefined)) || promoPopup?.target_category_id || theme27Popup?.target_category_id || theme28Popup?.target_category_id || ""
+        title: (promoPopup?.title ?? (isTheme27 ? theme27Popup?.title : isTheme28 ? theme28Popup?.title : isTheme30 ? theme30Popup?.title : undefined)) || promoPopup?.title || theme30Popup?.title || theme27Popup?.title || theme28Popup?.title || "",
+        description: (promoPopup?.description ?? (isTheme27 ? theme27Popup?.description : isTheme28 ? theme28Popup?.description : isTheme30 ? theme30Popup?.description : undefined)) || promoPopup?.description || theme30Popup?.description || theme27Popup?.description || theme28Popup?.description || "",
+        image_url: (promoPopup?.image_url ?? (isTheme27 ? theme27Popup?.image_url : isTheme28 ? theme28Popup?.image_url : isTheme30 ? theme30Popup?.image_url : undefined)) || promoPopup?.image_url || theme30Popup?.image_url || theme27Popup?.image_url || theme28Popup?.image_url || "",
+        button_text: (promoPopup?.button_text ?? (isTheme27 ? theme27Popup?.button_text : isTheme28 ? theme28Popup?.button_text : isTheme30 ? theme30Popup?.button_text : undefined)) || promoPopup?.button_text || theme30Popup?.button_text || theme27Popup?.button_text || theme28Popup?.button_text || (isAr ? "تصفح العرض الآن" : "View Offer Now"),
+        target_category_id: (promoPopup?.target_category_id ?? (isTheme27 ? theme27Popup?.target_category_id : isTheme28 ? theme28Popup?.target_category_id : isTheme30 ? theme30Popup?.target_category_id : undefined)) || promoPopup?.target_category_id || theme30Popup?.target_category_id || theme27Popup?.target_category_id || theme28Popup?.target_category_id || ""
     };
 
     const targetRestId = restaurantId || config?.id || "default";
@@ -93,13 +96,14 @@ export default function ThemePromotionalPopup({
             const dismissedGlobal = sessionStorage.getItem(storageKey);
             const dismissed27 = isTheme27 ? sessionStorage.getItem(`theme27_popup_${targetRestId}`) : null;
             const dismissed28 = isTheme28 ? sessionStorage.getItem(`theme28_popup_${targetRestId}`) : null;
+            const dismissed30 = isTheme30 ? sessionStorage.getItem(`theme30_popup_${targetRestId}`) : null;
 
-            if (!dismissedGlobal && !dismissed27 && !dismissed28) {
+            if (!dismissedGlobal && !dismissed27 && !dismissed28 && !dismissed30) {
                 const timer = setTimeout(() => setShowPopup(true), 700);
                 return () => clearTimeout(timer);
             }
         }
-    }, [isEnabled, storageKey, targetRestId, isTheme27, isTheme28]);
+    }, [isEnabled, storageKey, targetRestId, isTheme27, isTheme28, isTheme30]);
 
     const handleDismiss = () => {
         setShowPopup(false);
@@ -107,6 +111,7 @@ export default function ThemePromotionalPopup({
             sessionStorage.setItem(storageKey, "1");
             sessionStorage.setItem(`theme27_popup_${targetRestId}`, "1");
             sessionStorage.setItem(`theme28_popup_${targetRestId}`, "1");
+            sessionStorage.setItem(`theme30_popup_${targetRestId}`, "1");
         }
     };
 
@@ -119,6 +124,7 @@ export default function ThemePromotionalPopup({
                 // Find category section in any theme layout
                 const targetElement =
                     document.getElementById(`cat-${catId}`) ||
+                    document.getElementById(`cat-section-t30-${catId}`) ||
                     document.getElementById(`cat-section-${catId}`) ||
                     document.getElementById(`cat-sec-${catId}`) ||
                     document.getElementById(`category-${catId}`) ||
@@ -133,6 +139,7 @@ export default function ThemePromotionalPopup({
 
                 // Also trigger category tab click if available in the theme
                 const navButton =
+                    document.getElementById(`nav-cat-t30-${catId}`) ||
                     document.getElementById(`compact-nav-cat-${catId}`) ||
                     document.getElementById(`nav-cat-${catId}`) ||
                     document.getElementById(`cat-tab-${catId}`) ||

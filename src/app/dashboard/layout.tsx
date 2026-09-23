@@ -696,16 +696,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const filteredItems = section.items.filter((item: NavItem) => {
                 if (!item.key) return true; // Items without key always show
                 if (p._isAdmin) {
-                    // Admin: If no restrictions are set (i.e. only _isAdmin is true), allow all.
-                    if (Object.keys(p).length === 1) return true;
-                    // If explicitly set to false, hide it!
+                    // If explicitly set to false by Super Admin, hide it!
                     if (p[item.key] === false) return false;
                     // For WhatsApp: STRICTLY hidden from everyone unless explicitly enabled (true) by Super Admin
                     if (item.key === 'whatsapp') {
                         return p['whatsapp'] === true;
                     }
-                    // Otherwise, hide any page not explicitly enabled
-                    return p[item.key] === true;
+                    // Admin/Owner sees all other pages by default unless explicitly disabled
+                    return true;
                 } else {
                     // For WhatsApp: only show if explicitly enabled
                     if (item.key === 'whatsapp') {
@@ -719,9 +717,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }).filter(section => section.items.length > 0);
     }, [expandedPermissions, navSections]);
 
-    // Auto-redirect staff away from forbidden pages they don't have permission to view
+    // Auto-redirect away from forbidden pages (both staff and explicitly blocked pages for owners)
     useEffect(() => {
-        if (loading || !permissions || (permissions as any)._isAdmin) return;
+        if (loading || !permissions) return;
         
         const allItems = navSections.flatMap(s => s.items);
         const currentItem = allItems.find(item => {
@@ -730,8 +728,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         });
 
         if (currentItem && currentItem.key) {
+            const isExplicitlyBlocked = expandedPermissions && expandedPermissions[currentItem.key] === false;
             const hasAccess = expandedPermissions && expandedPermissions[currentItem.key] === true;
-            if (!hasAccess) {
+            
+            if (isExplicitlyBlocked || (!(permissions as any)._isAdmin && !hasAccess)) {
                 const firstAllowed = filteredNavSections.flatMap(s => s.items)[0];
                 if (firstAllowed && firstAllowed.href !== pathname) {
                     router.replace(firstAllowed.href);

@@ -42,6 +42,7 @@ export default function PopupSettingsPage() {
     const [themeColors, setThemeColors] = useState<any>({});
     const [currentTheme, setCurrentTheme] = useState<string>("");
     const [theme27Enabled, setTheme27Enabled] = useState<boolean>(false);
+    const [isAccessDenied, setIsAccessDenied] = useState<boolean>(false);
 
     const [popupConfig, setPopupConfig] = useState<PromoPopupConfig>({
         enabled: false,
@@ -88,6 +89,18 @@ export default function PopupSettingsPage() {
 
                 setRestaurantId(rId);
 
+                // Check if Super Admin explicitly disabled popup settings for this tenant
+                const { data: pageAccess } = await supabase
+                    .from('client_page_access')
+                    .select('enabled')
+                    .eq('tenant_id', rId)
+                    .eq('page_key', 'popup_settings')
+                    .maybeSingle();
+
+                if (pageAccess && pageAccess.enabled === false) {
+                    setIsAccessDenied(true);
+                }
+
                 // Load restaurant and theme settings
                 const { data: rest, error: rErr } = await supabase
                     .from('restaurants')
@@ -114,19 +127,20 @@ export default function PopupSettingsPage() {
                     const existingUniversal = tc.promo_popup;
                     const existing27 = tc.theme27_popup;
                     const existing28 = tc.theme28_popup;
+                    const existing30 = tc.theme30_popup;
 
-                    if (existing27?.enabled) {
+                    if (existing27?.enabled || existing28?.enabled || existing30?.enabled) {
                         setTheme27Enabled(true);
                     }
 
                     // Default or prefill values
                     const initialConfig: PromoPopupConfig = {
                         enabled: existingUniversal?.enabled ?? false,
-                        title: existingUniversal?.title || existing27?.title || existing28?.title || "",
-                        description: existingUniversal?.description || existing27?.description || existing28?.description || "",
-                        image_url: existingUniversal?.image_url || existing27?.image_url || existing28?.image_url || "",
-                        button_text: existingUniversal?.button_text || existing27?.button_text || existing28?.button_text || (isAr ? "تصفح العرض الآن" : "View Offer Now"),
-                        target_category_id: existingUniversal?.target_category_id || existing27?.target_category_id || existing28?.target_category_id || ""
+                        title: existingUniversal?.title || existing30?.title || existing27?.title || existing28?.title || "",
+                        description: existingUniversal?.description || existing30?.description || existing27?.description || existing28?.description || "",
+                        image_url: existingUniversal?.image_url || existing30?.image_url || existing27?.image_url || existing28?.image_url || "",
+                        button_text: existingUniversal?.button_text || existing30?.button_text || existing27?.button_text || existing28?.button_text || (isAr ? "تصفح العرض الآن" : "View Offer Now"),
+                        target_category_id: existingUniversal?.target_category_id || existing30?.target_category_id || existing27?.target_category_id || existing28?.target_category_id || ""
                     };
 
                     setPopupConfig(initialConfig);
@@ -231,6 +245,32 @@ export default function PopupSettingsPage() {
         );
     }
 
+    if (isAccessDenied) {
+        return (
+            <div className="max-w-2xl mx-auto p-8 my-12 bg-white dark:bg-zinc-900 rounded-3xl border border-red-200 dark:border-red-900/30 text-center space-y-4 shadow-sm" dir={isAr ? "rtl" : "ltr"}>
+                <div className="w-16 h-16 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center mx-auto">
+                    <AlertCircle className="w-8 h-8" />
+                </div>
+                <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                    {isAr ? "هذه الصفحة غير مفعلة لمطعمك" : "Page Access Restricted"}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-zinc-400 max-w-md mx-auto">
+                    {isAr 
+                        ? "تم إخفاء صفحة إعدادات النافذة المنبثقة لمطعمك من قِبل إدارة المنصة (Super Admin). يرجى التواصل مع الإدارة لتفعيل الميزة."
+                        : "Access to the promotional pop-up settings page has been disabled for your restaurant by platform administration."}
+                </p>
+                <div className="pt-2">
+                    <Link
+                        href="/dashboard"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-zinc-900 font-bold text-sm hover:opacity-90 transition-all"
+                    >
+                        {isAr ? "العودة للوحة التحكم" : "Back to Dashboard"}
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     const previewBg = previewDark ? "#18181b" : "#ffffff";
     const previewText = previewDark ? "#ffffff" : "#09090b";
     const previewMuted = previewDark ? "#a1a1aa" : "#64748b";
@@ -289,13 +329,13 @@ export default function PopupSettingsPage() {
                     </p>
                     <p className="text-amber-800 dark:text-amber-300">
                         {isAr
-                            ? "هذا الخيار يكون معطلاً تلقائياً لجميع الثيمات ما لم تقم بتفعيله من الزر أدناه. في حال كان الخيار معطلاً هنا، لن تظهر النافذة إلا إذا كان الثيم المختار حالياً هو ثيم يحتوي على إعدادات بوب اب خاصة به ومفعلة بداخله (مثل ثيم 27)."
-                            : "This option is disabled by default for all themes unless enabled below. If disabled here, the popup will only appear if the currently active theme has its own popup enabled (e.g. Theme 27)."}
+                            ? "هذا الخيار يكون معطلاً تلقائياً لجميع الثيمات ما لم تقم بتفعيله من الزر أدناه. في حال كان الخيار معطلاً هنا، لن تظهر النافذة إلا إذا كان الثيم المختار حالياً هو ثيم يحتوي على إعدادات بوب اب خاصة به ومفعلة بداخله (مثل ثيم 27 أو ثيم 28 أو ثيم 30)."
+                            : "This option is disabled by default for all themes unless enabled below. If disabled here, the popup will only appear if the currently active theme has its own popup enabled (e.g. Theme 27, 28, or 30)."}
                     </p>
                     {theme27Enabled && (
                         <p className="text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5 pt-1">
                             <CheckCircle2 className="w-4 h-4" />
-                            {isAr ? "تم رصد أن إعدادات ثيم 27 مفعلة لديك مسبقاً وتعمل بالفعل." : "Theme 27 popup setting is already active on your account."}
+                            {isAr ? "تم رصد أن إعدادات البوب اب مفعلة مسبقاً في إعدادات الثيم لديك وتعمل بالفعل." : "Theme popup setting is already active on your account."}
                         </p>
                     )}
                 </div>

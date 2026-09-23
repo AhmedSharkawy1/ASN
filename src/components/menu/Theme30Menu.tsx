@@ -126,7 +126,7 @@ interface Theme30MenuProps {
 type ViewMode = 'grid' | 'list' | 'compact' | 'showcase';
 type FilterTag = 'all' | 'popular' | 'new' | 'offers';
 
-export default function Theme30Menu({ config, categories, restaurantId }: Theme30MenuProps) {
+export default function Theme30Menu({ config, categories, restaurantId, suppressInternalPopup }: Theme30MenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
@@ -207,7 +207,7 @@ export default function Theme30Menu({ config, categories, restaurantId }: Theme3
         tc.theme30_popup || tc.theme28_popup || tc.theme27_popup || null;
 
     useEffect(() => {
-        if (popupConfig?.enabled) {
+        if (!suppressInternalPopup && popupConfig?.enabled) {
             const popupKey = `theme30_popup_${restaurantId || config?.id || 'dismissed'}`;
             const dismissed = typeof window !== 'undefined' ? sessionStorage.getItem(popupKey) : null;
             if (!dismissed) {
@@ -215,7 +215,7 @@ export default function Theme30Menu({ config, categories, restaurantId }: Theme3
                 return () => clearTimeout(timer);
             }
         }
-    }, [popupConfig, restaurantId, config?.id]);
+    }, [popupConfig, restaurantId, config?.id, suppressInternalPopup]);
 
     // Helpers
     const itemName = (item: MenuItem) => (isAr ? item.title_ar : (item.title_en || item.title_ar)) || '';

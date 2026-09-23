@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, EyeOff, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, EyeOff, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -43,6 +43,7 @@ export default function SuperAdminClientsPage() {
     const [showAsnBranding, setShowAsnBranding] = useState(true);
     const [highQualityImages, setHighQualityImages] = useState(false);
     const [whatsappAccessMap, setWhatsappAccessMap] = useState<Record<string, boolean>>({});
+    const [popupAccessMap, setPopupAccessMap] = useState<Record<string, boolean>>({});
 
     // Parent Link Modal Options
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -203,6 +204,20 @@ export default function SuperAdminClientsPage() {
                 });
             }
             setWhatsappAccessMap(waMap);
+
+            // Fetch popup_settings permission states for quick toggle
+            const { data: popData } = await supabase
+                .from('client_page_access')
+                .select('tenant_id, enabled')
+                .eq('page_key', 'popup_settings');
+
+            const popMap: Record<string, boolean> = {};
+            if (popData) {
+                (popData as { tenant_id: string; enabled: boolean }[]).forEach(item => {
+                    popMap[item.tenant_id] = item.enabled;
+                });
+            }
+            setPopupAccessMap(popMap);
         } catch (err: unknown) {
             console.error("Fetch clients error:", err);
             const message = err instanceof Error ? err.message : 'Failed to load clients';
@@ -271,6 +286,9 @@ export default function SuperAdminClientsPage() {
                if (error) throw error;
                if ('whatsapp' in clientPermissions) {
                    setWhatsappAccessMap(prev => ({ ...prev, [selectedClient.id]: clientPermissions['whatsapp'] }));
+               }
+               if ('popup_settings' in clientPermissions) {
+                   setPopupAccessMap(prev => ({ ...prev, [selectedClient.id]: clientPermissions['popup_settings'] }));
                }
             }
             
@@ -386,6 +404,34 @@ export default function SuperAdminClientsPage() {
         } catch (err: unknown) {
             console.error("Failed to toggle WhatsApp:", err);
             const message = err instanceof Error ? err.message : 'Failed to toggle WhatsApp';
+            toast.error(message);
+        }
+    };
+
+    const handleTogglePopupAccess = async (client: Client) => {
+        try {
+            const currentVal = popupAccessMap[client.id] !== false;
+            const newVal = !currentVal;
+
+            const { error } = await supabase
+                .from('client_page_access')
+                .upsert({
+                    tenant_id: client.id,
+                    page_key: 'popup_settings',
+                    enabled: newVal
+                }, { onConflict: 'tenant_id, page_key' });
+
+            if (error) throw error;
+
+            setPopupAccessMap(prev => ({ ...prev, [client.id]: newVal }));
+
+            toast.success(newVal
+                ? (language === "ar" ? `تم إظهار صفحة النافذة المنبثقة لمطعم ${client.name} ✅` : `Pop-up settings enabled for ${client.name} ✅`)
+                : (language === "ar" ? `تم إخفاء صفحة النافذة المنبثقة عن مطعم ${client.name} ❌` : `Pop-up settings hidden for ${client.name} ❌`)
+            );
+        } catch (err: unknown) {
+            console.error("Failed to toggle pop-up access:", err);
+            const message = err instanceof Error ? err.message : 'Failed to toggle pop-up access';
             toast.error(message);
         }
     };
@@ -795,6 +841,20 @@ export default function SuperAdminClientsPage() {
                                                       >
                                                           <MessageCircle className="w-4 h-4" />
                                                       </button>
+                                                      <button 
+                                                           onClick={() => handleTogglePopupAccess(client)} 
+                                                           className={`p-2 rounded-lg transition-colors ${
+                                                               popupAccessMap[client.id] !== false 
+                                                                   ? 'text-orange-500 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 border border-orange-500/30' 
+                                                                   : 'text-stone-400 hover:text-orange-500 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-500/10'
+                                                           }`} 
+                                                           title={popupAccessMap[client.id] !== false 
+                                                               ? (language === 'ar' ? 'صفحة نافذة العروض (Pop-up) ظاهرة ومفعلة للمطعم (اضغط للإخفاء)' : 'Pop-up settings page is active (click to hide)') 
+                                                               : (language === 'ar' ? 'صفحة نافذة العروض (Pop-up) مخفية عن المطعم (اضغط للإظهار والتفعيل)' : 'Pop-up settings page is hidden (click to show)')
+                                                           }
+                                                       >
+                                                           <Tag className="w-4 h-4" />
+                                                       </button>
                                                     {/* Views tracking toggle — amber when on, gray when off */}
                                                     <button
                                                         onClick={() => handleToggleViewsTracking(client)}
