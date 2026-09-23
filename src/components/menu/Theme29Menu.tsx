@@ -10,14 +10,15 @@ import {
     LayoutGrid, LayoutList, Tag, Heart, Eye, 
     Truck, ShieldCheck, CreditCard, Headphones, Star, 
     SlidersHorizontal, CheckCircle2, AlertCircle, ShoppingBag, ArrowRight, ArrowLeft,
-    Ticket, Gift, Percent, Store, Wallet, Copy, CheckCheck, Banknote, Smartphone
+    Ticket, Gift, Percent, Store, Wallet, Copy, CheckCheck, Banknote, Smartphone, Loader2
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaInstagram, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
 import { parseCurrency } from '@/lib/currency';
 import ASNFooter from '@/components/menu/ASNFooter';
-import CheckoutModal from '@/components/menu/CheckoutModal';
 import SharedMarquee from '@/components/menu/SharedMarquee';
+import { supabase } from '@/lib/supabase/client';
+import { submitOrder, buildWhatsAppMessage, OrderItem } from '@/lib/helpers/submitOrder';
 import { 
     fetchActivePromotions, 
     evaluatePromotions, 
@@ -34,6 +35,16 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 
 // ================= TYPES =================
+export type DeliveryZone = {
+    id: string;
+    name_ar: string;
+    name_en?: string;
+    fee: number;
+    min_order: number;
+    estimated_time: number;
+    is_active: boolean;
+};
+
 export type MenuItem = {
     id: string | number;
     title_ar: string;
@@ -184,11 +195,46 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     // State: Cart
     const [cart, setCart] = useState<CartItemType[]>([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
-    const [showCheckout, setShowCheckout] = useState(false);
     const [orderType, setOrderType] = useState<'delivery' | 'takeaway' | 'dinein'>('delivery');
     const [tableNumber, setTableNumber] = useState('');
     const [cartNotes, setCartNotes] = useState('');
     const [selectedBranch, setSelectedBranch] = useState(config?.branches?.[0] || '');
+
+    // State: Customer Checkout Details (بيانات إتمام الطلب المباشر من السلة)
+    const [customerName, setCustomerName] = useState('');
+    const [customerPhone, setCustomerPhone] = useState('');
+    const [customerAddress, setCustomerAddress] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet'>('cash');
+    const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+    const [validationError, setValidationError] = useState('');
+    const [orderSuccessDetails, setOrderSuccessDetails] = useState<{
+        orderNumber: number;
+        whatsappUrl?: string;
+    } | null>(null);
+
+    // State: Delivery Zones
+    const [deliveryZones, setDeliveryZones] = useState<DeliveryZone[]>([]);
+    const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
+
+    // Fetch delivery zones on mount
+    useEffect(() => {
+        if (!restaurantId) return;
+        (async () => {
+            try {
+                const { data } = await supabase
+                    .from('delivery_zones')
+                    .select('*')
+                    .eq('restaurant_id', restaurantId)
+                    .eq('is_active', true)
+                    .order('name_ar');
+                if (data && Array.isArray(data)) {
+                    setDeliveryZones(data as DeliveryZone[]);
+                }
+            } catch (err) {
+                console.error('Error fetching delivery zones in Theme 29:', err);
+            }
+        })();
+    }, [restaurantId]);
 
     // State: Promotions & Coupons
     const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -489,6 +535,9 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const promoDiscountAmount = activeAppliedPromo?.discountAmount || 0;
     const isFreeShippingApplied = activeAppliedPromo?.freeShipping || false;
     const finalDiscountedTotal = Math.max(0, cartTotal - promoDiscountAmount);
+    const effectiveDeliveryFee = (orderType === 'delivery' && selectedZone && !isFreeShippingApplied) ? selectedZone.fee : 0;
+    const grandTotal = finalDiscountedTotal + effectiveDeliveryFee;
+    const isWhatsAppEnabled = (config?.order_channel === 'whatsapp' || config?.order_channel === 'both' || !config?.order_channel) && Boolean(config?.whatsapp_number || config?.phone);
 
     // Free shipping threshold simulation (or from free_shipping promo)
     const freeShippingThreshold = 250;
@@ -609,73 +658,139 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         setTimeout(() => setCopiedAccount(null), 2500);
     };
 
-    // WhatsApp Direct 1-Click Order Formatter
-    const handleWhatsAppOrder = () => {
-        const rawPhone = config?.whatsapp_number || config?.phone || '';
-        let cleanPhone = rawPhone.replace(/\D/g, '');
-        if (!cleanPhone) {
-            alert(isAr ? 'رقم الواتساب غير محدد في إعدادات المتجر.' : 'WhatsApp number is not configured.');
+    // Unified Order Submit & Complete Handler (يرسل الطلب لكل الأماكن مع فتح الواتساب إذا مفعل في الإعدادات)
+    const handleUnifiedSubmitOrder = async () => {
+        setValidationError('');
+
+        // 1. Validations
+        if (!customerName.trim()) {
+            setValidationError(isAr ? 'يرجى إدخال اسم العميل' : 'Please enter customer name');
             return;
         }
-        if (cleanPhone.length === 11 && cleanPhone.startsWith('01')) {
-            cleanPhone = '20' + cleanPhone.slice(1);
+        if (!customerPhone.trim()) {
+            setValidationError(isAr ? 'يرجى إدخال رقم الهاتف' : 'Please enter phone number');
+            return;
         }
-
-        const lines: string[] = [];
-        lines.push(`🛍️ *طلب جديد من متجر ${config?.name || 'Shopify Store'}*`);
-        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
-        
-        // Order Info
-        const orderTypeText = orderType === 'delivery' 
-            ? (isAr ? '🛵 توصيل للمنزل' : '🛵 Home Delivery')
-            : orderType === 'takeaway'
-            ? (isAr ? '🏬 استلام من الفرع' : '🏬 Takeaway / Pickup')
-            : (isAr ? `🍽️ تناول في المطعم / الصالة (طاولة: ${tableNumber || 'غير محدد'})` : `🍽️ Dine-in (Table: ${tableNumber || 'N/A'})`);
-        
-        lines.push(`📍 *نوع الطلب:* ${orderTypeText}`);
-        if (selectedBranch) {
-            lines.push(`🏢 *الفرع:* ${selectedBranch}`);
-        }
-        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
-        lines.push(isAr ? `📦 *تفاصيل المنتجات:*` : `📦 *Order Items:*`);
-
-        cart.forEach((c, idx) => {
-            const itemTitle = itemName(c.item);
-            lines.push(`\n*${idx + 1}. ${itemTitle}*`);
-            if (c.sizeLabel && c.sizeLabel !== (isAr ? 'عادي' : 'Regular')) {
-                lines.push(`   ▫️ ${isAr ? 'الحجم/المقاس' : 'Size'}: ${c.sizeLabel}`);
+        if (orderType === 'delivery') {
+            if (deliveryZones.length > 0 && !selectedZone) {
+                setValidationError(isAr ? 'يرجى اختيار منطقة التوصيل' : 'Please select delivery zone');
+                return;
             }
-            if (c.extras && c.extras.length > 0) {
-                const extrasText = c.extras.map(e => `${e.name} (${e.qty > 1 ? e.qty + 'x ' : ''}+${e.price * e.qty} ${cur})`).join(', ');
-                lines.push(`   ▫️ ${isAr ? 'إضافات' : 'Extras'}: ${extrasText}`);
+            if (!customerAddress.trim()) {
+                setValidationError(isAr ? 'يرجى إدخال عنوان التوصيل بالتفصيل' : 'Please enter detailed delivery address');
+                return;
             }
-            if (c.notes) {
-                lines.push(`   ▫️ ${isAr ? 'ملاحظة' : 'Note'}: ${c.notes}`);
+        }
+        if (orderType === 'dinein' && !tableNumber.trim()) {
+            setValidationError(isAr ? 'يرجى إدخال رقم الطاولة' : 'Please enter table number');
+            return;
+        }
+        if (cart.length === 0) return;
+
+        setIsSubmittingOrder(true);
+
+        try {
+            const orderItems: OrderItem[] = cart.map(c => ({
+                id: String(c.item.id),
+                title: itemName(c.item),
+                qty: c.quantity,
+                price: c.price,
+                size: c.sizeLabel && c.sizeLabel !== (isAr ? 'عادي' : 'Regular') ? c.sizeLabel : undefined,
+                category: c.catName || undefined,
+                extras: (c.extras || []).map(e => ({ name: e.name, price: e.price, qty: e.qty || 1 })),
+                notes: c.notes ? c.notes.trim() : undefined
+            }));
+
+            let combinedNotes = cartNotes.trim();
+            if (orderType === 'dinein' && tableNumber.trim()) {
+                combinedNotes = `${isAr ? 'طاولة رقم' : 'Table'}: ${tableNumber.trim()}${combinedNotes ? ' | ' + combinedNotes : ''}`;
             }
-            lines.push(`   ▫️ ${isAr ? 'الكمية' : 'Qty'}: ${c.quantity} × ${c.price} ${cur} = *${c.quantity * c.price} ${cur}*`);
-        });
 
-        lines.push(`\n━━━━━━━━━━━━━━━━━━━━`);
-        if (cartNotes.trim()) {
-            lines.push(`📝 *${isAr ? 'ملاحظات الطلب العامة' : 'General Notes'}:* ${cartNotes.trim()}`);
-        }
-        lines.push(`💰 *${isAr ? 'المجموع الفرعي' : 'Subtotal'}:* ${cartTotal} ${cur}`);
+            // Direct official order submission to Supabase, POS, Realtime, Telegram, and Inventory
+            const result = await submitOrder({
+                restaurantId,
+                customerName: customerName.trim(),
+                customerPhone: customerPhone.trim(),
+                customerAddress: orderType === 'delivery' ? customerAddress.trim() : undefined,
+                notes: combinedNotes || undefined,
+                orderType: orderType === 'delivery' ? 'delivery' : 'pickup',
+                deliveryZoneId: (orderType === 'delivery' && selectedZone) ? selectedZone.id : undefined,
+                deliveryZoneName: (orderType === 'delivery' && selectedZone) ? selectedZone.name_ar : undefined,
+                deliveryFee: effectiveDeliveryFee,
+                items: orderItems,
+                subtotal: cartTotal,
+                total: grandTotal,
+                paymentMethod,
+                restaurantName: config?.name || '',
+                promotionId: activeAppliedPromo?.promotion.id,
+                promotionName: activeAppliedPromo ? (isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)) : undefined,
+                discountAmount: promoDiscountAmount,
+                discountType: activeAppliedPromo?.promotion.discount_type,
+                branchName: selectedBranch || undefined,
+                currency: config?.currency || 'ج'
+            });
 
-        // If a promotion or coupon is applied
-        if (activeAppliedPromo && promoDiscountAmount > 0) {
-            const promoName = isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar);
-            lines.push(`🎉 *${isAr ? 'الخصم المطبق' : 'Discount Applied'}:* -${promoDiscountAmount} ${cur} (${promoName}${appliedPromoCode ? ' | كود: ' + appliedPromoCode : ''})`);
-        }
-        if (isFreeShippingApplied) {
-            lines.push(`🚚 *${isAr ? 'الشحن والتوصيل' : 'Shipping'}:* ${isAr ? 'مجاني (عرض ترويجي)' : 'FREE'}`);
-        }
-        lines.push(`✨ *${isAr ? 'الإجمالي النهائي المطلوب' : 'Final Total'}:* *${finalDiscountedTotal} ${cur}*`);
-        lines.push(`━━━━━━━━━━━━━━━━━━━━`);
-        lines.push(isAr ? `شكراً لاختياركم متجرنا! ✨` : `Thank you for shopping with us! ✨`);
+            if (!result.success) {
+                setValidationError(result.error || (isAr ? 'حدث خطأ أثناء إرسال الطلب، يرجى المحاولة مرة أخرى' : 'Failed to submit order, please try again'));
+                setIsSubmittingOrder(false);
+                return;
+            }
 
-        const message = encodeURIComponent(lines.join('\n'));
-        const whatsappUrl = `https://wa.me/${cleanPhone}?text=${message}`;
-        window.open(whatsappUrl, '_blank');
+            const orderNum = result.orderNumber || 1;
+            let whatsappUrl: string | undefined = undefined;
+
+            // Check if WhatsApp ordering is enabled in store settings
+            if (isWhatsAppEnabled) {
+                const rawPhone = config?.whatsapp_number || config?.phone || '';
+                let cleanPhone = rawPhone.replace(/\D/g, '');
+                if (cleanPhone.length === 11 && cleanPhone.startsWith('01')) {
+                    cleanPhone = '20' + cleanPhone.slice(1);
+                }
+                if (cleanPhone) {
+                    const msg = buildWhatsAppMessage({
+                        orderNumber: orderNum,
+                        restaurantName: config?.name || '',
+                        customerName: customerName.trim(),
+                        customerPhone: customerPhone.trim(),
+                        customerAddress: orderType === 'delivery' ? customerAddress.trim() : undefined,
+                        orderType: orderType === 'delivery' ? 'delivery' : 'pickup',
+                        deliveryZoneName: (orderType === 'delivery' && selectedZone) ? selectedZone.name_ar : undefined,
+                        deliveryFee: effectiveDeliveryFee,
+                        items: orderItems,
+                        subtotal: cartTotal,
+                        total: grandTotal,
+                        notes: combinedNotes || undefined,
+                        currency: config?.currency || 'ج',
+                        language: isAr ? 'ar' : 'en',
+                        promotionName: activeAppliedPromo ? (isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)) : undefined,
+                        discountAmount: promoDiscountAmount,
+                        discountType: activeAppliedPromo?.promotion.discount_type,
+                        branchName: selectedBranch || undefined
+                    });
+                    whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+                    try {
+                        window.open(whatsappUrl, '_blank');
+                    } catch {
+                        // ignore popup blocker
+                    }
+                }
+            }
+
+            // Clear cart & show success screen
+            setCart([]);
+            setAppliedPromoCode(null);
+            setOrderSuccessDetails({
+                orderNumber: orderNum,
+                whatsappUrl
+            });
+
+            if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+        } catch (err: any) {
+            console.error('Order submission error:', err);
+            setValidationError(err?.message || (isAr ? 'حدث خطأ غير متوقع أثناء إرسال الطلب' : 'Unexpected error submitting order'));
+        } finally {
+            setIsSubmittingOrder(false);
+        }
     };
 
     // Share link
@@ -1709,316 +1824,502 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                     </div>
                                 </div>
 
-                                {/* Drawer Body: Cart Items */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-dashed" style={{ borderColor: borderColor }}>
-                                    {cart.length === 0 ? (
-                                        <div className="text-center py-20 px-4">
-                                            <ShoppingBag className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-3" />
-                                            <h4 className="font-bold text-base mb-1">{isAr ? 'سلة المشتريات فارغة' : 'Your cart is empty'}</h4>
-                                            <p className="text-xs text-muted-foreground mb-4" style={{ color: textMuted }}>
-                                                {isAr ? 'تصفح المنتجات واختر ما يعجبك لإضافته للسلة' : 'Explore products and add items to your cart'}
-                                            </p>
-                                            <button 
-                                                onClick={() => setIsCartOpen(false)}
-                                                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-md"
-                                                style={{ backgroundColor: primaryColor }}
-                                            >
-                                                {isAr ? 'ابدأ التسوق الآن' : 'Start Shopping'}
-                                            </button>
+                                {/* Drawer Body: Cart Items & In-Drawer Checkout OR Success View */}
+                                {orderSuccessDetails ? (
+                                    <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center space-y-4">
+                                        <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shadow-lg border border-emerald-500/20">
+                                            <CheckCircle2 className="w-10 h-10 animate-bounce" />
                                         </div>
-                                    ) : (
-                                        cart.map((line) => {
-                                            const lineItemName = itemName(line.item);
-                                            const lineTotal = line.price * line.quantity;
+                                        <div className="space-y-1">
+                                            <h4 className="text-xl font-black">{isAr ? 'تم استلام طلبك بنجاح! 🎉' : 'Order Received Successfully! 🎉'}</h4>
+                                            <p className="text-xs text-muted-foreground" style={{ color: textMuted }}>
+                                                {isAr ? 'تم إرسال تفاصيل طلبك مباشرة وجارٍ تجهيزه' : 'Your order has been sent to the store and is being prepared'}
+                                            </p>
+                                        </div>
 
-                                            return (
-                                                <div key={line.id} className="pt-3 first:pt-0 flex gap-3">
-                                                    {/* Thumbnail */}
-                                                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border" style={{ borderColor: borderColor }}>
-                                                        {line.item.image_url || line.item.image ? (
-                                                            <OptimizedMenuImage 
-                                                                src={line.item.image_url || line.item.image}
-                                                                thumbnailSrc={line.item.thumbnail_url}
-                                                                alt={lineItemName}
-                                                                className="w-full h-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                                                <ShoppingBag className="w-6 h-6 opacity-30" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Details */}
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-start justify-between gap-1">
-                                                            <h4 className="font-extrabold text-xs sm:text-sm tracking-tight leading-snug line-clamp-1">
-                                                                {lineItemName}
-                                                            </h4>
-                                                            <button 
-                                                                onClick={() => removeCartLine(line.id)}
-                                                                className="text-slate-400 hover:text-rose-500 p-0.5 shrink-0"
-                                                                title={isAr ? 'حذف' : 'Remove'}
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </div>
-
-                                                        {line.sizeLabel && line.sizeLabel !== (isAr ? 'عادي' : 'Regular') && (
-                                                            <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-muted-foreground mt-0.5">
-                                                                {line.sizeLabel}
-                                                            </span>
-                                                        )}
-
-                                                        {line.extras && line.extras.length > 0 && (
-                                                            <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1" style={{ color: textMuted }}>
-                                                                + {line.extras.map(e => `${e.name} (${e.qty}x)`).join(', ')}
-                                                            </p>
-                                                        )}
-
-                                                        {line.notes && (
-                                                            <p className="text-[10px] italic text-amber-600 dark:text-amber-400 mt-0.5">
-                                                                &quot;{line.notes}&quot;
-                                                            </p>
-                                                        )}
-
-                                                        <div className="flex items-center justify-between gap-2 mt-2">
-                                                            <div className="flex items-center gap-1.5 border rounded-lg p-0.5 bg-slate-50 dark:bg-slate-800" style={{ borderColor: borderColor }}>
-                                                                <button
-                                                                    onClick={() => updateCartLineQty(line.id, -1)}
-                                                                    className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
-                                                                >
-                                                                    <Minus className="w-3 h-3" />
-                                                                </button>
-                                                                <span className="text-xs font-black min-w-[14px] text-center font-mono">
-                                                                    {line.quantity}
-                                                                </span>
-                                                                <button
-                                                                    onClick={() => updateCartLineQty(line.id, 1)}
-                                                                    className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
-                                                                >
-                                                                    <Plus className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
-
-                                                            <span className="font-extrabold text-xs sm:text-sm font-mono" style={{ color: primaryColor }}>
-                                                                {lineTotal} {cur}
-                                                            </span>
-                                                        </div>
-                                                    </div>
+                                        <div className="p-4 rounded-2xl border w-full max-w-sm space-y-2.5 text-xs bg-slate-50 dark:bg-slate-900 text-start" style={{ borderColor: borderColor }}>
+                                            <div className="flex justify-between items-center pb-2 border-b" style={{ borderColor: borderColor }}>
+                                                <span className="text-muted-foreground">{isAr ? 'رقم الطلب' : 'Order Number'}:</span>
+                                                <span className="font-mono font-black text-base text-emerald-600 dark:text-emerald-400">#{orderSuccessDetails.orderNumber}</span>
+                                            </div>
+                                            {customerName && (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-muted-foreground">{isAr ? 'اسم العميل' : 'Customer Name'}:</span>
+                                                    <span className="font-bold">{customerName}</span>
                                                 </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-
-                                {/* Drawer Footer: Coupon Code, Order Type & Checkout Buttons */}
-                                {cart.length > 0 && (
-                                    <div className="p-4 border-t bg-slate-50/50 dark:bg-slate-900/50 space-y-3" style={{ borderColor: borderColor }}>
-                                        {/* COUPON / PROMO CODE INPUT (Shopify Style) */}
-                                        <div className="p-2.5 rounded-xl border bg-white dark:bg-black/50" style={{ borderColor: borderColor }}>
-                                            {!appliedPromoCode ? (
-                                                <div className="space-y-1.5">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Ticket className="w-3.5 h-3.5 text-emerald-500" />
-                                                        <span className="text-[11px] font-bold">{isAr ? 'لديك كود خصم أو كوبون؟' : 'Have a coupon code?'}</span>
-                                                    </div>
-                                                    <div className="flex gap-1.5">
-                                                        <input 
-                                                            type="text"
-                                                            value={promoCodeInput}
-                                                            onChange={(e) => setPromoCodeInput(e.target.value)}
-                                                            placeholder={isAr ? 'أدخل الكود هنا...' : 'Enter promo code...'}
-                                                            className="flex-1 px-3 py-1.5 text-xs rounded-lg border uppercase tracking-wider font-mono font-bold bg-slate-50 dark:bg-slate-900"
-                                                            style={{ borderColor: borderColor }}
-                                                            onKeyDown={(e) => { if (e.key === 'Enter') handleApplyPromoCode(); }}
-                                                        />
-                                                        <button
-                                                            onClick={handleApplyPromoCode}
-                                                            className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm shrink-0 transition-opacity hover:opacity-90 active:scale-95"
-                                                            style={{ backgroundColor: primaryColor }}
-                                                        >
-                                                            {isAr ? 'تطبيق' : 'Apply'}
-                                                        </button>
-                                                    </div>
-                                                    {promoCodeError && (
-                                                        <p className="text-[10px] text-rose-500 font-semibold">{promoCodeError}</p>
-                                                    )}
+                                            )}
+                                            {customerPhone && (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-muted-foreground">{isAr ? 'رقم الهاتف' : 'Phone'}:</span>
+                                                    <span className="font-mono">{customerPhone}</span>
                                                 </div>
-                                            ) : (
-                                                <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
-                                                    <div className="flex items-center gap-2">
-                                                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                                                        <div>
-                                                            <span className="font-bold text-emerald-700 dark:text-emerald-300">
-                                                                {isAr ? 'تم تفعيل كود الخصم:' : 'Active Code:'} <span className="font-mono">{appliedPromoCode}</span>
-                                                            </span>
-                                                            {activeAppliedPromo && (
-                                                                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
-                                                                    {isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                    </div>
+                                            )}
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-muted-foreground">{isAr ? 'نوع الطلب' : 'Order Type'}:</span>
+                                                <span className="font-bold">
+                                                    {orderType === 'delivery' ? (isAr ? '🛵 توصيل للمنزل' : 'Delivery') : orderType === 'takeaway' ? (isAr ? '🏬 استلام من الفرع' : 'Takeaway') : (isAr ? `🍽️ صالة (طاولة ${tableNumber || '-'})` : 'Dine-in')}
+                                                </span>
+                                            </div>
+                                            {orderType === 'delivery' && selectedZone && (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-muted-foreground">{isAr ? 'منطقة التوصيل' : 'Delivery Zone'}:</span>
+                                                    <span className="font-bold">{selectedZone.name_ar}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between items-center pt-2 border-t font-black text-sm" style={{ borderColor: borderColor }}>
+                                                <span>{isAr ? 'الإجمالي المطلوب' : 'Total Amount'}:</span>
+                                                <span className="font-mono" style={{ color: primaryColor }}>{grandTotal} {cur}</span>
+                                            </div>
+                                        </div>
+
+                                        {orderSuccessDetails.whatsappUrl && (
+                                            <a
+                                                href={orderSuccessDetails.whatsappUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="w-full max-w-sm py-3 px-4 rounded-xl font-black text-xs sm:text-sm text-white bg-[#25D366] hover:bg-[#20ba59] shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95"
+                                            >
+                                                <FaWhatsapp className="w-5 h-5" />
+                                                <span>{isAr ? 'إعادة فتح محادثة الواتساب 💬' : 'Re-open WhatsApp Chat 💬'}</span>
+                                            </a>
+                                        )}
+
+                                        <button
+                                            onClick={() => {
+                                                setOrderSuccessDetails(null);
+                                                setIsCartOpen(false);
+                                            }}
+                                            className="w-full max-w-sm py-2.5 px-4 rounded-xl font-bold text-xs border transition-all"
+                                            style={{ borderColor: borderColor }}
+                                        >
+                                            {isAr ? 'متابعة التسوق' : 'Continue Shopping'}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* Drawer Body: Cart Items List */}
+                                        <div className="flex-1 overflow-y-auto p-4 space-y-3 divide-y divide-dashed" style={{ borderColor: borderColor }}>
+                                            {cart.length === 0 ? (
+                                                <div className="text-center py-20 px-4">
+                                                    <ShoppingBag className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-3" />
+                                                    <h4 className="font-bold text-base mb-1">{isAr ? 'سلة المشتريات فارغة' : 'Your cart is empty'}</h4>
+                                                    <p className="text-xs text-muted-foreground mb-4" style={{ color: textMuted }}>
+                                                        {isAr ? 'تصفح المنتجات واختر ما يعجبك لإضافته للسلة' : 'Explore products and add items to your cart'}
+                                                    </p>
                                                     <button 
-                                                        onClick={handleRemovePromoCode}
-                                                        className="text-xs text-rose-500 hover:underline font-bold"
+                                                        onClick={() => setIsCartOpen(false)}
+                                                        className="px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-md"
+                                                        style={{ backgroundColor: primaryColor }}
                                                     >
-                                                        {isAr ? 'إلغاء' : 'Remove'}
+                                                        {isAr ? 'ابدأ التسوق الآن' : 'Start Shopping'}
                                                     </button>
                                                 </div>
+                                            ) : (
+                                                cart.map((line) => {
+                                                    const lineItemName = itemName(line.item);
+                                                    const lineTotal = line.price * line.quantity;
+
+                                                    return (
+                                                        <div key={line.id} className="pt-3 first:pt-0 flex gap-3">
+                                                            {/* Thumbnail */}
+                                                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border" style={{ borderColor: borderColor }}>
+                                                                {line.item.image_url || line.item.image ? (
+                                                                    <OptimizedMenuImage 
+                                                                        src={line.item.image_url || line.item.image}
+                                                                        thumbnailSrc={line.item.thumbnail_url}
+                                                                        alt={lineItemName}
+                                                                        className="w-full h-full object-cover"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                                                        <ShoppingBag className="w-6 h-6 opacity-30" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Details */}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-start justify-between gap-1">
+                                                                    <h4 className="font-extrabold text-xs sm:text-sm tracking-tight leading-snug line-clamp-1">
+                                                                        {lineItemName}
+                                                                    </h4>
+                                                                    <button 
+                                                                        onClick={() => removeCartLine(line.id)}
+                                                                        className="text-slate-400 hover:text-rose-500 p-0.5 shrink-0"
+                                                                        title={isAr ? 'حذف' : 'Remove'}
+                                                                    >
+                                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+
+                                                                {line.sizeLabel && line.sizeLabel !== (isAr ? 'عادي' : 'Regular') && (
+                                                                    <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-muted-foreground mt-0.5">
+                                                                        {line.sizeLabel}
+                                                                    </span>
+                                                                )}
+
+                                                                {line.extras && line.extras.length > 0 && (
+                                                                    <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1" style={{ color: textMuted }}>
+                                                                        + {line.extras.map(e => `${e.name} (${e.qty}x)`).join(', ')}
+                                                                    </p>
+                                                                )}
+
+                                                                {line.notes && (
+                                                                    <p className="text-[10px] italic text-amber-600 dark:text-amber-400 mt-0.5">
+                                                                        &quot;{line.notes}&quot;
+                                                                    </p>
+                                                                )}
+
+                                                                <div className="flex items-center justify-between gap-2 mt-2">
+                                                                    <div className="flex items-center gap-1.5 border rounded-lg p-0.5 bg-slate-50 dark:bg-slate-800" style={{ borderColor: borderColor }}>
+                                                                        <button
+                                                                            onClick={() => updateCartLineQty(line.id, -1)}
+                                                                            className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
+                                                                        >
+                                                                            <Minus className="w-3 h-3" />
+                                                                        </button>
+                                                                        <span className="text-xs font-black min-w-[14px] text-center font-mono">
+                                                                            {line.quantity}
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={() => updateCartLineQty(line.id, 1)}
+                                                                            className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700"
+                                                                        >
+                                                                            <Plus className="w-3 h-3" />
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <span className="font-extrabold text-xs sm:text-sm font-mono" style={{ color: primaryColor }}>
+                                                                        {lineTotal} {cur}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })
                                             )}
                                         </div>
 
-                                        {/* Order Type Toggle (Specialized for Goods AND Restaurants/Cafes) */}
-                                        <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-[11px] font-bold">
-                                            <button
-                                                onClick={() => setOrderType('delivery')}
-                                                className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${
-                                                    orderType === 'delivery' ? 'bg-white dark:bg-black shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
-                                                }`}
-                                            >
-                                                <span>🛵</span>
-                                                <span>{isAr ? 'توصيل' : 'Delivery'}</span>
-                                            </button>
-                                            <button
-                                                onClick={() => setOrderType('takeaway')}
-                                                className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${
-                                                    orderType === 'takeaway' ? 'bg-white dark:bg-black shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
-                                                }`}
-                                            >
-                                                <span>🏬</span>
-                                                <span>{isAr ? 'استلام' : 'Pickup'}</span>
-                                            </button>
-                                            <button
-                                                onClick={() => setOrderType('dinein')}
-                                                className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${
-                                                    orderType === 'dinein' ? 'bg-white dark:bg-black shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
-                                                }`}
-                                            >
-                                                <span>🍽️</span>
-                                                <span>{isAr ? 'صالة' : 'Dine-in'}</span>
-                                            </button>
-                                        </div>
+                                        {/* Drawer Footer: Complete In-Drawer Checkout & ONE Submit Button */}
+                                        {cart.length > 0 && (
+                                            <div className="p-4 border-t bg-slate-50/50 dark:bg-slate-900/50 space-y-3 overflow-y-auto max-h-[50vh]" style={{ borderColor: borderColor }}>
+                                                {/* COUPON / PROMO CODE INPUT */}
+                                                <div className="p-2.5 rounded-xl border bg-white dark:bg-black/50" style={{ borderColor: borderColor }}>
+                                                    {!appliedPromoCode ? (
+                                                        <div className="space-y-1.5">
+                                                            <div className="flex items-center gap-1.5">
+                                                                <Ticket className="w-3.5 h-3.5 text-emerald-500" />
+                                                                <span className="text-[11px] font-bold">{isAr ? 'لديك كود خصم أو كوبون؟' : 'Have a coupon code?'}</span>
+                                                            </div>
+                                                            <div className="flex gap-1.5">
+                                                                <input 
+                                                                    type="text"
+                                                                    value={promoCodeInput}
+                                                                    onChange={(e) => setPromoCodeInput(e.target.value)}
+                                                                    placeholder={isAr ? 'أدخل الكود هنا...' : 'Enter promo code...'}
+                                                                    className="flex-1 px-3 py-1.5 text-xs rounded-lg border uppercase tracking-wider font-mono font-bold bg-slate-50 dark:bg-slate-900"
+                                                                    style={{ borderColor: borderColor }}
+                                                                    onKeyDown={(e) => { if (e.key === 'Enter') handleApplyPromoCode(); }}
+                                                                />
+                                                                <button
+                                                                    onClick={handleApplyPromoCode}
+                                                                    className="px-3 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm shrink-0 transition-opacity hover:opacity-90 active:scale-95"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                >
+                                                                    {isAr ? 'تطبيق' : 'Apply'}
+                                                                </button>
+                                                            </div>
+                                                            {promoCodeError && (
+                                                                <p className="text-[10px] text-rose-500 font-semibold">{promoCodeError}</p>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center justify-between p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                                                            <div className="flex items-center gap-2">
+                                                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                                <div>
+                                                                    <span className="font-bold text-emerald-700 dark:text-emerald-300">
+                                                                        {isAr ? 'تم تفعيل كود الخصم:' : 'Active Code:'} <span className="font-mono">{appliedPromoCode}</span>
+                                                                    </span>
+                                                                    {activeAppliedPromo && (
+                                                                        <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                                                                            {isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <button 
+                                                                onClick={handleRemovePromoCode}
+                                                                className="text-xs text-rose-500 hover:underline font-bold"
+                                                            >
+                                                                {isAr ? 'إلغاء' : 'Remove'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
 
-                                        {/* If Dine-in, Table input */}
-                                        {orderType === 'dinein' && (
-                                            <div className="flex items-center gap-2">
-                                                <input 
-                                                    type="text" 
-                                                    value={tableNumber} 
-                                                    onChange={(e) => setTableNumber(e.target.value)}
-                                                    placeholder={isAr ? 'أدخل رقم الطاولة هنا...' : 'Enter Table #...'}
-                                                    className="w-full px-3 py-1.5 rounded-xl border text-xs bg-white dark:bg-black"
-                                                    style={{ borderColor: borderColor }}
-                                                />
-                                            </div>
-                                        )}
+                                                {/* Customer Personal Details (الاسم ورقم الهاتف) */}
+                                                <div className="space-y-2">
+                                                    <span className="text-[11px] font-bold text-muted-foreground block">{isAr ? 'بيانات العميل:' : 'Customer Details:'}</span>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        <input 
+                                                            type="text" 
+                                                            value={customerName} 
+                                                            onChange={(e) => setCustomerName(e.target.value)} 
+                                                            placeholder={isAr ? 'الاسم بالكامل *' : 'Full Name *'} 
+                                                            className="w-full px-3 py-2 rounded-xl border text-xs bg-white dark:bg-black focus:outline-none" 
+                                                            style={{ borderColor: borderColor }} 
+                                                        />
+                                                        <input 
+                                                            type="tel" 
+                                                            value={customerPhone} 
+                                                            onChange={(e) => setCustomerPhone(e.target.value)} 
+                                                            placeholder={isAr ? 'رقم الهاتف / الواتساب *' : 'Phone / WhatsApp *'} 
+                                                            className="w-full px-3 py-2 rounded-xl border text-xs bg-white dark:bg-black focus:outline-none dir-ltr text-end" 
+                                                            style={{ borderColor: borderColor }} 
+                                                        />
+                                                    </div>
+                                                </div>
 
-                                        {/* Branches Selector (if available) */}
-                                        {config?.branches_enabled && config?.branches && config.branches.length > 1 && (
-                                            <select
-                                                value={selectedBranch}
-                                                onChange={(e) => setSelectedBranch(e.target.value)}
-                                                className="w-full px-3 py-1.5 rounded-xl border text-xs font-medium"
-                                                style={{ 
-                                                    borderColor: borderColor,
-                                                    backgroundColor: isDark ? '#141417' : '#ffffff',
-                                                    color: textMain
-                                                }}
-                                            >
-                                                {config.branches.map((b: string, i: number) => (
-                                                    <option 
-                                                        key={i} 
-                                                        value={b}
+                                                {/* Order Type Toggle (توصيل / استلام / صالة) */}
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[11px] font-bold text-muted-foreground block">{isAr ? 'طريقة الاستلام:' : 'Order Type:'}</span>
+                                                    <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-[11px] font-bold">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setOrderType('delivery')}
+                                                            className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${
+                                                                orderType === 'delivery' ? 'bg-white dark:bg-black shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
+                                                            }`}
+                                                        >
+                                                            <span>🛵</span>
+                                                            <span>{isAr ? 'توصيل' : 'Delivery'}</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setOrderType('takeaway')}
+                                                            className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${
+                                                                orderType === 'takeaway' ? 'bg-white dark:bg-black shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
+                                                            }`}
+                                                        >
+                                                            <span>🏬</span>
+                                                            <span>{isAr ? 'استلام' : 'Pickup'}</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setOrderType('dinein')}
+                                                            className={`py-1.5 rounded-lg transition-all flex items-center justify-center gap-1 ${
+                                                                orderType === 'dinein' ? 'bg-white dark:bg-black shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500'
+                                                            }`}
+                                                        >
+                                                            <span>🍽️</span>
+                                                            <span>{isAr ? 'صالة' : 'Dine-in'}</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Delivery Zone & Address (if delivery) */}
+                                                {orderType === 'delivery' && (
+                                                    <div className="space-y-2">
+                                                        {deliveryZones.length > 0 && (
+                                                            <select
+                                                                value={selectedZone?.id || ''}
+                                                                onChange={(e) => {
+                                                                    const zone = deliveryZones.find(z => z.id === e.target.value) || null;
+                                                                    setSelectedZone(zone);
+                                                                }}
+                                                                className="w-full px-3 py-2 rounded-xl border text-xs bg-white dark:bg-black font-medium focus:outline-none"
+                                                                style={{ borderColor: borderColor }}
+                                                            >
+                                                                <option value="">{isAr ? 'اختر منطقة التوصيل *' : 'Select Delivery Zone *'}</option>
+                                                                {deliveryZones.map(zone => (
+                                                                    <option key={zone.id} value={zone.id}>
+                                                                        {isAr ? zone.name_ar : (zone.name_en || zone.name_ar)} ({zone.fee} {cur}{zone.estimated_time ? ` - ${zone.estimated_time} دقيقة` : ''})
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        )}
+                                                        <input 
+                                                            type="text" 
+                                                            value={customerAddress} 
+                                                            onChange={(e) => setCustomerAddress(e.target.value)} 
+                                                            placeholder={isAr ? 'عنوان التوصيل بالتفصيل (الشارع، العمارة، الشقة) *' : 'Detailed delivery address *'} 
+                                                            className="w-full px-3 py-2 rounded-xl border text-xs bg-white dark:bg-black focus:outline-none" 
+                                                            style={{ borderColor: borderColor }} 
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {/* If Dine-in, Table input */}
+                                                {orderType === 'dinein' && (
+                                                    <input 
+                                                        type="text" 
+                                                        value={tableNumber} 
+                                                        onChange={(e) => setTableNumber(e.target.value)} 
+                                                        placeholder={isAr ? 'أدخل رقم الطاولة في الصالة *' : 'Enter Table # *'} 
+                                                        className="w-full px-3 py-2 rounded-xl border text-xs bg-white dark:bg-black focus:outline-none" 
+                                                        style={{ borderColor: borderColor }} 
+                                                    />
+                                                )}
+
+                                                {/* Branches Selector (if available) */}
+                                                {config?.branches_enabled && config?.branches && config.branches.length > 1 && (
+                                                    <select
+                                                        value={selectedBranch}
+                                                        onChange={(e) => setSelectedBranch(e.target.value)}
+                                                        className="w-full px-3 py-2 rounded-xl border text-xs font-medium focus:outline-none"
                                                         style={{ 
-                                                            backgroundColor: isDark ? '#18181b' : '#ffffff', 
-                                                            color: isDark ? '#ffffff' : '#0f172a' 
+                                                            borderColor: borderColor,
+                                                            backgroundColor: isDark ? '#141417' : '#ffffff',
+                                                            color: textMain
                                                         }}
                                                     >
-                                                        {isAr ? `فرع: ${b}` : `Branch: ${b}`}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        )}
+                                                        {config.branches.map((b: string, i: number) => (
+                                                            <option 
+                                                                key={i} 
+                                                                value={b}
+                                                                style={{ 
+                                                                    backgroundColor: isDark ? '#18181b' : '#ffffff', 
+                                                                    color: isDark ? '#ffffff' : '#0f172a' 
+                                                                }}
+                                                            >
+                                                                {isAr ? `فرع: ${b}` : `Branch: ${b}`}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                )}
 
-                                        {/* Order Notes */}
-                                        <textarea
-                                            value={cartNotes}
-                                            onChange={(e) => setCartNotes(e.target.value)}
-                                            placeholder={isAr ? 'ملاحظات إضافية على الطلب (العنوان بالتفصيل، مواعيد، إلخ)...' : 'Order instructions or delivery address...'}
-                                            rows={2}
-                                            className="w-full px-3 py-1.5 rounded-xl border text-xs bg-white dark:bg-black resize-none"
-                                            style={{ borderColor: borderColor }}
-                                        />
-
-                                        {/* Totals Summary */}
-                                        <div className="space-y-1 text-xs pt-1">
-                                            <div className="flex justify-between text-muted-foreground" style={{ color: textMuted }}>
-                                                <span>{isAr ? 'المجموع الفرعي' : 'Subtotal'}</span>
-                                                <span className="font-mono font-bold">{cartTotal} {cur}</span>
-                                            </div>
-
-                                            {/* Promotion Discount Breakdown */}
-                                            {activeAppliedPromo && promoDiscountAmount > 0 && (
-                                                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
-                                                    <span className="flex items-center gap-1">
-                                                        <Tag className="w-3.5 h-3.5" />
-                                                        {isAr ? 'الخصم المطبق' : 'Discount'} ({isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)})
-                                                    </span>
-                                                    <span className="font-mono font-bold">-{promoDiscountAmount} {cur}</span>
+                                                {/* Payment Method Selector */}
+                                                <div className="space-y-1.5">
+                                                    <span className="text-[11px] font-bold text-muted-foreground block">{isAr ? 'طريقة الدفع:' : 'Payment Method:'}</span>
+                                                    <div className="grid grid-cols-3 gap-1.5">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPaymentMethod('cash')}
+                                                            className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                                                                paymentMethod === 'cash' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-slate-200 dark:border-slate-800'
+                                                            }`}
+                                                        >
+                                                            <Banknote className="w-4 h-4" />
+                                                            <span>{isAr ? 'نقدًا' : 'Cash'}</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPaymentMethod('card')}
+                                                            className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                                                                paymentMethod === 'card' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-slate-200 dark:border-slate-800'
+                                                            }`}
+                                                        >
+                                                            <CreditCard className="w-4 h-4" />
+                                                            <span>{isAr ? 'فيزا / كارت' : 'Card'}</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setPaymentMethod('wallet')}
+                                                            className={`p-2 rounded-xl border text-[11px] font-bold flex flex-col items-center justify-center gap-1 transition-all ${
+                                                                paymentMethod === 'wallet' ? 'bg-emerald-500/10 border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-slate-200 dark:border-slate-800'
+                                                            }`}
+                                                        >
+                                                            <Smartphone className="w-4 h-4" />
+                                                            <span>{isAr ? 'محفظة' : 'Wallet'}</span>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            )}
 
-                                            {/* Free Shipping Promo */}
-                                            {isFreeShippingApplied && (
-                                                <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
-                                                    <span className="flex items-center gap-1">
-                                                        <Truck className="w-3.5 h-3.5" />
-                                                        {isAr ? 'الشحن والتوصيل' : 'Shipping'}
-                                                    </span>
-                                                    <span>{isAr ? 'مجاني (عرض ترويجي)' : 'FREE'}</span>
-                                                </div>
-                                            )}
+                                                {/* Order Notes */}
+                                                <textarea
+                                                    value={cartNotes}
+                                                    onChange={(e) => setCartNotes(e.target.value)}
+                                                    placeholder={isAr ? 'ملاحظات إضافية على الطلب (تعليمات التوصيل، مواعيد، إلخ)...' : 'Order instructions or notes...'}
+                                                    rows={2}
+                                                    className="w-full px-3 py-2 rounded-xl border text-xs bg-white dark:bg-black resize-none focus:outline-none"
+                                                    style={{ borderColor: borderColor }}
+                                                />
 
-                                            {/* Final Grand Total */}
-                                            <div className="flex justify-between text-base font-black pt-1 border-t" style={{ borderColor: borderColor }}>
-                                                <span>{isAr ? 'الإجمالي الكلي' : 'Total'}</span>
-                                                <div className="flex items-baseline gap-1.5 font-mono">
-                                                    {promoDiscountAmount > 0 && (
-                                                        <span className="text-xs line-through text-muted-foreground opacity-70">
-                                                            {cartTotal} {cur}
-                                                        </span>
+                                                {/* Totals Summary */}
+                                                <div className="space-y-1.5 text-xs pt-2 border-t" style={{ borderColor: borderColor }}>
+                                                    <div className="flex justify-between text-muted-foreground" style={{ color: textMuted }}>
+                                                        <span>{isAr ? 'المجموع الفرعي' : 'Subtotal'}</span>
+                                                        <span className="font-mono font-bold">{cartTotal} {cur}</span>
+                                                    </div>
+
+                                                    {/* Promotion Discount Breakdown */}
+                                                    {activeAppliedPromo && promoDiscountAmount > 0 && (
+                                                        <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
+                                                            <span className="flex items-center gap-1">
+                                                                <Tag className="w-3.5 h-3.5" />
+                                                                {isAr ? 'الخصم المطبق' : 'Discount'} ({isAr ? activeAppliedPromo.promotion.name_ar : (activeAppliedPromo.promotion.name_en || activeAppliedPromo.promotion.name_ar)})
+                                                            </span>
+                                                            <span className="font-mono font-bold">-{promoDiscountAmount} {cur}</span>
+                                                        </div>
                                                     )}
-                                                    <span style={{ color: primaryColor }}>
-                                                        {finalDiscountedTotal} {cur}
-                                                    </span>
+
+                                                    {/* Delivery Fee */}
+                                                    {orderType === 'delivery' && (
+                                                        <div className="flex justify-between text-muted-foreground" style={{ color: textMuted }}>
+                                                            <span className="flex items-center gap-1">
+                                                                <Truck className="w-3.5 h-3.5 text-emerald-500" />
+                                                                {isAr ? 'رسوم التوصيل' : 'Delivery Fee'}
+                                                            </span>
+                                                            <span className="font-mono font-bold">
+                                                                {isFreeShippingApplied ? (
+                                                                    <span className="text-emerald-600 dark:text-emerald-400">{isAr ? 'مجاني' : 'FREE'}</span>
+                                                                ) : selectedZone ? (
+                                                                    `${selectedZone.fee} ${cur}`
+                                                                ) : (
+                                                                    (isAr ? 'بحسب المنطقة' : 'Zone rate')
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Final Grand Total */}
+                                                    <div className="flex justify-between text-base font-black pt-2 border-t" style={{ borderColor: borderColor }}>
+                                                        <span>{isAr ? 'الإجمالي المطلوب' : 'Total Amount'}</span>
+                                                        <div className="flex items-baseline gap-1.5 font-mono">
+                                                            {promoDiscountAmount > 0 && (
+                                                                <span className="text-xs line-through text-muted-foreground opacity-70">
+                                                                    {cartTotal + effectiveDeliveryFee} {cur}
+                                                                </span>
+                                                            )}
+                                                            <span style={{ color: primaryColor }}>
+                                                                {grandTotal} {cur}
+                                                            </span>
+                                                        </div>
+                                                    </div>
                                                 </div>
+
+                                                {/* Validation Error Alert */}
+                                                {validationError && (
+                                                    <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold flex items-center gap-1.5 animate-shake">
+                                                        <AlertCircle className="w-4 h-4 shrink-0" />
+                                                        <span>{validationError}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* ONE Single Unified Checkout Button */}
+                                                <button
+                                                    type="button"
+                                                    onClick={handleUnifiedSubmitOrder}
+                                                    disabled={isSubmittingOrder}
+                                                    className="w-full py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm text-white shadow-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                                                    style={{ backgroundColor: primaryColor }}
+                                                >
+                                                    {isSubmittingOrder ? (
+                                                        <>
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                            <span>{isAr ? 'جارٍ إرسال وتأكيد الطلب...' : 'Submitting Order...'}</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                            <span>{isAr ? `تأكيد وإتمام الطلب 🚀 (${grandTotal} ${cur})` : `Confirm & Place Order 🚀 (${grandTotal} ${cur})`}</span>
+                                                        </>
+                                                    )}
+                                                </button>
                                             </div>
-                                        </div>
-
-                                        {/* Dual Checkout Action Buttons */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                                            {/* WhatsApp Quick 1-Click Order */}
-                                            <button
-                                                onClick={handleWhatsAppOrder}
-                                                className="w-full py-2.5 px-3 rounded-xl font-black text-xs text-white bg-emerald-600 hover:bg-emerald-700 shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                                            >
-                                                <FaWhatsapp className="w-4 h-4" />
-                                                <span>{isAr ? 'طلب عبر واتساب' : 'WhatsApp Order'}</span>
-                                            </button>
-
-                                            {/* Standard Complete Checkout Modal */}
-                                            <button
-                                                onClick={() => { setIsCartOpen(false); setShowCheckout(true); }}
-                                                className="w-full py-2.5 px-3 rounded-xl font-black text-xs text-white shadow-md flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                                                style={{ backgroundColor: primaryColor }}
-                                            >
-                                                <CheckCircle2 className="w-4 h-4" />
-                                                <span>{isAr ? 'إتمام الطلب الرسمي' : 'Complete Checkout'}</span>
-                                            </button>
-                                        </div>
-                                    </div>
+                                        )}
+                                    </>
                                 )}
                             </motion.div>
                         </div>
@@ -2580,34 +2881,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 )}
             </AnimatePresence>
 
-            {/* 14. OFFICIAL CHECKOUT MODAL INTEGRATION */}
-            <CheckoutModal 
-                isOpen={showCheckout} 
-                onClose={() => setShowCheckout(false)} 
-                cartItems={cart.map(c => ({
-                    id: String(c.id),
-                    title: itemName(c.item),
-                    qty: c.quantity,
-                    price: c.price,
-                    size: c.sizeLabel !== (isAr ? 'عادي' : 'Regular') ? c.sizeLabel : undefined,
-                    category: c.catName,
-                    notes: c.notes,
-                    extras: (c.extras || []).map(e => ({ name: e.name, price: e.price, qty: e.qty || 1 })),
-                    item: c.item
-                }))}
-                subtotal={cartTotal}
-                restaurantId={restaurantId}
-                restaurantName={config?.name || 'Store'}
-                whatsappNumber={config?.whatsapp_number || config?.phone}
-                currency={config?.currency}
-                language={currentLang}
-                branches={config?.branches || []}
-                onOrderSuccess={() => {
-                    setCart([]);
-                    setShowCheckout(false);
-                    handleRemovePromoCode();
-                }}
-            />
+
 
             {/* 15. STORE FOOTER (Shopify Style) */}
             <footer className="border-t mt-16 py-10 transition-colors" style={{ backgroundColor: bgCard, borderColor: borderColor }}>
