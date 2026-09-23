@@ -1010,70 +1010,73 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                                 </div>
 
                                                 {/* Content */}
-                                                <div className="flex-1 flex flex-col justify-between">
+                                                <div className="flex-1 flex flex-col justify-between text-center pt-1">
                                                     <div>
-                                                        <h3 className="font-bold text-sm leading-snug line-clamp-2">
+                                                        <h3 className="font-bold text-sm leading-snug line-clamp-2 text-center">
                                                             {itemName(item)}
                                                         </h3>
                                                         {itemDesc(item) && (
-                                                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
+                                                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed text-center">
                                                                 {itemDesc(item)}
                                                             </p>
                                                         )}
                                                     </div>
 
                                                     {/* Price & Add Stepper */}
-                                                    <div className="flex items-center justify-between gap-1 mt-3 pt-1 border-t border-black/5 dark:border-white/5">
-                                                        <div>
-                                                            <div className="flex items-baseline gap-1">
-                                                                <span className="font-extrabold text-sm sm:text-base" style={{ color: primaryColor }}>
-                                                                    {basePrice}
-                                                                </span>
-                                                                <span className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400">
-                                                                    {cur}
-                                                                </span>
-                                                            </div>
+                                                    <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 flex flex-col items-center gap-2">
+                                                        {/* Centered Price */}
+                                                        <div className="flex items-baseline justify-center gap-1">
+                                                            <span className="font-extrabold text-base" style={{ color: primaryColor }}>
+                                                                {basePrice}
+                                                            </span>
+                                                            <span className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400">
+                                                                {cur}
+                                                            </span>
                                                             {hasDiscount && (
-                                                                <span className="text-[10px] text-slate-400 line-through">
+                                                                <span className="text-[10px] text-slate-400 line-through mr-1">
                                                                     {oldPrice} {cur}
                                                                 </span>
                                                             )}
                                                         </div>
 
-                                                        {/* Stepper / Add button */}
-                                                        {inCartQty > 0 ? (
-                                                            <div 
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                className="flex items-center gap-1.5 bg-emerald-500 text-white px-1.5 py-1 rounded-full shadow-sm"
-                                                            >
-                                                                <button 
-                                                                    onClick={() => quickDecrementFromCart(item.id)}
-                                                                    className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 active:scale-90"
+                                                        {/* Stepper / Add button - Centered & Prominent */}
+                                                        <div className="w-full">
+                                                            {inCartQty > 0 ? (
+                                                                <div 
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="w-full flex items-center justify-between text-white px-2 py-1.5 rounded-2xl shadow-sm text-xs font-black transition-all"
+                                                                    style={{ backgroundColor: primaryColor }}
                                                                 >
-                                                                    <Minus className="w-3 h-3" />
-                                                                </button>
-                                                                <span className="text-xs font-black px-1 min-w-[12px] text-center">
-                                                                    {inCartQty}
-                                                                </span>
-                                                                <button 
-                                                                    onClick={() => quickAddToCart(item, catName(category), 0)}
-                                                                    className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 active:scale-90"
+                                                                    <button 
+                                                                        onClick={() => quickDecrementFromCart(item.id)}
+                                                                        className="w-7 h-7 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center active:scale-90 transition-transform"
+                                                                    >
+                                                                        <Minus className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                    <span className="text-xs font-black px-2 min-w-[20px] text-center">
+                                                                        {inCartQty}
+                                                                    </span>
+                                                                    <button 
+                                                                        onClick={() => quickAddToCart(item, catName(category), 0)}
+                                                                        className="w-7 h-7 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center active:scale-90 transition-transform"
+                                                                    >
+                                                                        <Plus className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleItemClick(item, catName(category), category.id);
+                                                                    }}
+                                                                    className="w-full py-2 px-3 rounded-2xl text-white text-xs font-black flex items-center justify-center gap-1.5 shadow-sm hover:shadow-md transition-all active:scale-95"
+                                                                    style={{ backgroundColor: primaryColor }}
                                                                 >
-                                                                    <Plus className="w-3 h-3" />
+                                                                    <Plus className="w-3.5 h-3.5" />
+                                                                    <span>{isAr ? 'أضف للسلة' : 'Add to Cart'}</span>
                                                                 </button>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleItemClick(item, catName(category), category.id);
-                                                                }}
-                                                                className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-all shadow-sm active:scale-90"
-                                                                style={{ backgroundColor: primaryColor }}
-                                                            >
-                                                                <Plus className="w-4 h-4" />
-                                                            </button>
-                                                        )}
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1168,18 +1171,19 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                                         {inCartQty > 0 ? (
                                                             <div 
                                                                 onClick={(e) => e.stopPropagation()}
-                                                                className="flex items-center gap-1.5 bg-emerald-500 text-white px-2 py-1 rounded-full shadow-md text-xs font-black"
+                                                                className="flex items-center gap-1.5 text-white px-2.5 py-1 rounded-full shadow-md text-xs font-black transition-all"
+                                                                style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <button 
                                                                     onClick={() => quickDecrementFromCart(item.id)}
-                                                                    className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center"
+                                                                    className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center active:scale-90"
                                                                 >
                                                                     <Minus className="w-2.5 h-2.5" />
                                                                 </button>
-                                                                <span className="min-w-[12px] text-center">{inCartQty}</span>
+                                                                <span className="min-w-[14px] text-center px-0.5">{inCartQty}</span>
                                                                 <button 
                                                                     onClick={() => quickAddToCart(item, catName(category), 0)}
-                                                                    className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center"
+                                                                    className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center active:scale-90"
                                                                 >
                                                                     <Plus className="w-2.5 h-2.5" />
                                                                 </button>
@@ -1190,10 +1194,11 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                                                     e.stopPropagation();
                                                                     handleItemClick(item, catName(category), category.id);
                                                                 }}
-                                                                className="w-7 h-7 rounded-full text-white flex items-center justify-center shadow-md active:scale-90"
+                                                                className="px-3 py-1 rounded-full text-white text-xs font-bold flex items-center gap-1 shadow-md active:scale-90 transition-all"
                                                                 style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <Plus className="w-3.5 h-3.5" />
+                                                                <span>{isAr ? 'أضف' : 'Add'}</span>
                                                             </button>
                                                         )}
                                                     </div>
@@ -1263,18 +1268,19 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                                     {inCartQty > 0 ? (
                                                         <div 
                                                             onClick={(e) => e.stopPropagation()}
-                                                            className="flex items-center gap-1 bg-emerald-500 text-white px-2 py-0.5 rounded-full text-xs font-black"
+                                                            className="flex items-center gap-1 text-white px-2 py-0.5 rounded-full text-xs font-black shadow-xs"
+                                                            style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <button 
                                                                 onClick={() => quickDecrementFromCart(item.id)}
-                                                                className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center"
+                                                                className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center active:scale-90"
                                                             >
                                                                 <Minus className="w-2.5 h-2.5" />
                                                             </button>
-                                                            <span>{inCartQty}</span>
+                                                            <span className="min-w-[12px] text-center">{inCartQty}</span>
                                                             <button 
                                                                 onClick={() => quickAddToCart(item, catName(category), 0)}
-                                                                className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center"
+                                                                className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center active:scale-90"
                                                             >
                                                                 <Plus className="w-2.5 h-2.5" />
                                                             </button>
@@ -1285,7 +1291,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                                                 e.stopPropagation();
                                                                 handleItemClick(item, catName(category), category.id);
                                                             }}
-                                                            className="w-7 h-7 rounded-full text-white flex items-center justify-center active:scale-90"
+                                                            className="w-7 h-7 rounded-full text-white flex items-center justify-center active:scale-90 shadow-xs"
                                                             style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
@@ -1370,7 +1376,8 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                                     {inCartQty > 0 ? (
                                                         <div 
                                                             onClick={(e) => e.stopPropagation()}
-                                                            className="flex items-center gap-2 bg-emerald-500 text-white px-3 py-1.5 rounded-full text-xs font-black shrink-0"
+                                                            className="flex items-center gap-2 text-white px-3 py-1.5 rounded-full text-xs font-black shrink-0 shadow-md"
+                                                            style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <button 
                                                                 onClick={() => quickDecrementFromCart(item.id)}
@@ -1457,7 +1464,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 {/* 8. RICH ITEM DETAIL MODAL */}
                 <AnimatePresence>
                     {selectedItem && (
-                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -1467,11 +1474,11 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                             />
 
                             <motion.div 
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                                className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-t-[32px] sm:rounded-3xl max-h-[88vh] overflow-y-auto z-10 shadow-2xl no-scrollbar"
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl max-h-[88vh] overflow-y-auto z-10 shadow-2xl no-scrollbar border border-black/5 dark:border-white/10"
                             >
                                 {/* Modal Image Header */}
                                 <div className="relative w-full aspect-[16/10] bg-slate-100 dark:bg-zinc-800">
@@ -1632,8 +1639,11 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                             className="flex-1 h-12 rounded-2xl text-white font-black text-sm flex items-center justify-between px-5 shadow-lg active:scale-95 transition-all"
                                             style={{ backgroundColor: primaryColor }}
                                         >
-                                            <span>{isAr ? 'إضافة إلى السلة' : 'Add to Cart'}</span>
-                                            <span>{modalCalculatedTotal} {cur}</span>
+                                            <span className="flex items-center gap-2">
+                                                <ShoppingCart className="w-4 h-4" />
+                                                <span>{isAr ? 'إضافة إلى السلة' : 'Add to Cart'}</span>
+                                            </span>
+                                            <span className="font-extrabold">{modalCalculatedTotal} {cur}</span>
                                         </button>
                                     </div>
                                 </div>
@@ -1642,10 +1652,10 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                     )}
                 </AnimatePresence>
 
-                {/* 9. CART DRAWER (Bottom Sheet) */}
+                {/* 9. CART MODAL (Centered in Screen) */}
                 <AnimatePresence>
                     {isCartOpen && (
-                        <div className="fixed inset-0 z-50 flex items-end justify-center">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                             <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -1655,26 +1665,31 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                             />
 
                             <motion.div 
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-                                className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-t-[32px] p-5 max-h-[85vh] flex flex-col z-10 shadow-2xl"
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-5 max-h-[85vh] flex flex-col z-10 shadow-2xl border border-black/5 dark:border-white/10"
                             >
                                 {/* Header */}
                                 <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
-                                    <div className="flex items-center gap-2">
-                                        <ShoppingCart className="w-5 h-5 text-emerald-500" />
+                                    <div className="flex items-center gap-2.5">
+                                        <div 
+                                            className="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-xs"
+                                            style={{ backgroundColor: primaryColor }}
+                                        >
+                                            <ShoppingCart className="w-4 h-4" />
+                                        </div>
                                         <h3 className="font-black text-base">
                                             {isAr ? 'سلة الطلبات' : 'Your Order'}
                                         </h3>
-                                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold">
+                                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
                                             {cartCount} {isAr ? 'صنف' : 'items'}
                                         </span>
                                     </div>
                                     <button 
                                         onClick={() => setIsCartOpen(false)}
-                                        className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center"
+                                        className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
