@@ -870,23 +870,19 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 className="py-2 px-4 text-xs font-medium text-white flex items-center justify-between shadow-sm relative z-30"
                 style={{ backgroundColor: primaryColor }}
             >
-                <div className="flex items-center gap-2 overflow-hidden flex-1">
+                <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
                     <Sparkles className="w-4 h-4 shrink-0 animate-pulse text-yellow-300" />
-                    {config?.marquee_enabled ? (
-                        <div className="flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-hidden min-w-0">
+                        {config?.marquee_enabled ? (
                             <SharedMarquee text={isAr ? (config?.marquee_text_ar || `أهلاً بكم في ${placeWord}! تسوقوا أفضل المنتجات والعروض الحصرية`) : (config?.marquee_text_en || 'Welcome to our store! Shop exclusive deals and offers')} />
-                        </div>
-                    ) : promoHighlightText ? (
-                        <p className="truncate font-bold tracking-wide">
-                            {promoHighlightText}
-                        </p>
-                    ) : (
-                        <p className="truncate">
-                            {isAr 
+                        ) : promoHighlightText ? (
+                            <SharedMarquee text={promoHighlightText} />
+                        ) : (
+                            <SharedMarquee text={isAr 
                                 ? `🚀 شحن مجاني للطلبات فوق ${freeShippingThreshold} ${cur} | جودة وضمان عالمي` 
-                                : `🚀 Free shipping on orders over ${freeShippingThreshold} ${cur} | Guaranteed Quality`}
-                        </p>
-                    )}
+                                : `🚀 Free shipping on orders over ${freeShippingThreshold} ${cur} | Guaranteed Quality`} />
+                        )}
+                    </div>
                 </div>
 
                 {/* Quick Controls: Lang & Mode */}
@@ -918,11 +914,15 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
-                    <div className="flex items-center justify-between gap-3">
+                    {/* Row 1: Brand (Logo + Name) on Start, Action Buttons on End */}
+                    <div className="flex items-center justify-between gap-2">
                         {/* Store Brand / Logo */}
-                        <div className="flex items-center gap-2.5 sm:gap-3 cursor-pointer min-w-0 flex-1" onClick={() => { scrollToCategory('all'); setSearchQuery(''); }}>
+                        <div 
+                            className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" 
+                            onClick={() => { scrollToCategory('all'); setSearchQuery(''); }}
+                        >
                             {config?.logo_url ? (
-                                <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-md border-2 border-white/20 shrink-0 relative bg-white">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm border shrink-0 relative bg-white">
                                     <OptimizedMenuImage 
                                         src={config.logo_url} 
                                         alt={config.name || 'Store Logo'} 
@@ -931,60 +931,54 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </div>
                             ) : (
                                 <div 
-                                    className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-bold text-white shadow-md text-lg shrink-0"
+                                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-white shadow-sm text-sm sm:text-base shrink-0"
                                     style={{ backgroundColor: primaryColor }}
                                 >
                                     {config?.name ? config.name.slice(0, 2).toUpperCase() : 'SN'}
                                 </div>
                             )}
 
-                            <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                    <h1 className="font-black text-sm sm:text-lg lg:text-xl tracking-tight leading-tight">
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                    <h1 className="font-black text-sm sm:text-base lg:text-lg tracking-tight truncate">
                                         {config?.name || 'Shopify Store'}
                                     </h1>
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                                        <CheckCircle2 className="w-3 h-3 me-0.5" />
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                                        <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 me-0.5" />
                                         {isAr ? 'موثق' : 'Verified'}
                                     </span>
                                 </div>
-                                {(config?.slogan_ar || config?.slogan_en) && (
-                                    <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 break-words leading-relaxed" style={{ color: textMuted }}>
-                                        {isAr ? config.slogan_ar : (config.slogan_en || config.slogan_ar)}
-                                    </p>
-                                )}
                             </div>
                         </div>
 
                         {/* Header Action Buttons */}
-                        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-                            {/* Clear Store Profile & Hours Button (Replaces the obscure exclamation mark) */}
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                            {/* Store Profile & Hours Button */}
                             <button
                                 onClick={() => setIsInfoModalOpen(true)}
-                                className="px-2.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Info & Hours`}
                             >
                                 <Store className="w-4 h-4 text-emerald-500" />
-                                <span className="hidden lg:inline">{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} & Hours`}</span>
-                                <span className="inline lg:hidden text-[11px]">{isAr ? `عن ${placeWord}` : 'Info'}</span>
+                                <span className="hidden md:inline">{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} & Hours`}</span>
                             </button>
 
                             {/* Payment Methods Button */}
                             <button
                                 onClick={() => setIsPaymentModalOpen(true)}
-                                className="px-2.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? 'طرق ووسائل الدفع' : 'Payment Methods'}
                             >
                                 <CreditCard className="w-4 h-4 text-amber-500" />
-                                <span className="hidden sm:inline">{isAr ? 'طرق الدفع' : 'Payments'}</span>
+                                <span className="hidden md:inline">{isAr ? 'طرق الدفع' : 'Payments'}</span>
                             </button>
 
                             {/* Share Button */}
                             <button
                                 onClick={handleShare}
-                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
+                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? `مشاركة ${placeWord}` : 'Share'}
                             >
@@ -994,13 +988,13 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {/* Wishlist Button */}
                             <button
                                 onClick={() => setIsWishlistOpen(true)}
-                                className="relative p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
+                                className="relative p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? 'المفضلة' : 'Wishlist'}
                             >
                                 <Heart className={`w-4 h-4 ${wishlist.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-500'}`} />
                                 {wishlist.length > 0 && (
-                                    <span className="absolute -top-1.5 -end-1.5 bg-rose-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-md animate-bounce">
+                                    <span className="absolute -top-1 -end-1 bg-rose-500 text-white text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center shadow">
                                         {wishlist.length}
                                     </span>
                                 )}
@@ -1009,28 +1003,33 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {/* Cart Drawer Trigger Button (Shopify Style Pill) */}
                             <button
                                 onClick={() => setIsCartOpen(true)}
-                                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-bold text-white shadow-lg shadow-emerald-900/10 transition-all hover:opacity-95 active:scale-95"
+                                className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3.5 sm:py-2 rounded-xl font-bold text-white shadow-md transition-all hover:opacity-95 active:scale-95 shrink-0"
                                 style={{ backgroundColor: primaryColor }}
+                                title={isAr ? 'عرض سلة المشتريات' : 'View Cart'}
                             >
                                 <div className="relative">
                                     <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                                     {cartCount > 0 && (
-                                        <span className="absolute -top-2 -end-2.5 bg-rose-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                                        <span className="absolute -top-2 -end-2 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center">
                                             {cartCount}
                                         </span>
                                     )}
                                 </div>
-                                <div className="flex flex-col text-start">
-                                    <span className="text-[10px] uppercase tracking-wider opacity-80 leading-none">
-                                        {isAr ? 'السلة' : 'Cart'}
-                                    </span>
-                                    <span className="text-xs sm:text-sm font-extrabold leading-tight">
-                                        {finalDiscountedTotal} {cur}
-                                    </span>
-                                </div>
+                                <span className="text-xs font-mono font-black hidden sm:inline">
+                                    {finalDiscountedTotal} {cur}
+                                </span>
                             </button>
                         </div>
                     </div>
+
+                    {/* Row 2: Store Slogan (Full Width below Brand & Actions, cleanly separated) */}
+                    {(config?.slogan_ar || config?.slogan_en) && (
+                        <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/60">
+                            <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed break-words" style={{ color: textMuted }}>
+                                {isAr ? config.slogan_ar : (config.slogan_en || config.slogan_ar)}
+                            </p>
+                        </div>
+                    )}
 
                     {/* Integrated Search Bar */}
                     <div className="mt-3 relative">
