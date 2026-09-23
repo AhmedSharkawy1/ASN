@@ -226,7 +226,13 @@ class AppNavigationDrawer extends ConsumerWidget {
                             ? 'SUPER ADMIN'
                             : permsNotifier.isAdmin
                                 ? 'OWNER / ADMIN'
-                                : 'STAFF MEMBER',
+                                : (user.permissions['pos'] == true && user.permissions['reports'] != true
+                                    ? 'CASHIER / كاشير'
+                                    : (user.permissions['kitchen'] == true && user.permissions['pos'] != true
+                                        ? 'KITCHEN / مطبخ'
+                                        : (user.permissions['delivery'] == true && user.permissions['pos'] != true
+                                            ? 'DELIVERY / دليفري'
+                                            : 'STAFF MEMBER'))),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: Colors.white,

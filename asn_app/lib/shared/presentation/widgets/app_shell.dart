@@ -57,6 +57,13 @@ class AppShell extends ConsumerWidget {
       label: _ordersLabel,
     ),
     _ShellDestination(
+      route: '/kitchen',
+      pageKey: 'kitchen',
+      icon: Icons.kitchen_outlined,
+      selectedIcon: Icons.kitchen,
+      label: _kitchenLabel,
+    ),
+    _ShellDestination(
       route: '/products',
       pageKey: 'products',
       icon: Icons.restaurant_menu_outlined,
@@ -75,6 +82,7 @@ class AppShell extends ConsumerWidget {
   static String _dashboardLabel(AppLocalizations l10n) => l10n.dashboard;
   static String _posLabel(AppLocalizations l10n) => l10n.pos;
   static String _ordersLabel(AppLocalizations l10n) => l10n.orders;
+  static String _kitchenLabel(AppLocalizations l10n) => l10n.kitchen;
   static String _productsLabel(AppLocalizations l10n) => l10n.products;
   static String _reportsLabel(AppLocalizations l10n) => l10n.reports;
 

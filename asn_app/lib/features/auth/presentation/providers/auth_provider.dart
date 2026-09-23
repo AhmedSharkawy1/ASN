@@ -153,10 +153,19 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<void> login(String usernameOrEmail, String password, String language) async {
+  Future<void> login(
+    String usernameOrEmail,
+    String password,
+    String language, {
+    bool rememberMe = true,
+  }) async {
     state = const AuthState.loading();
     try {
-      final user = await ref.read(loginUseCaseProvider).call(usernameOrEmail, password);
+      final user = await ref.read(loginUseCaseProvider).call(
+            usernameOrEmail,
+            password,
+            rememberMe: rememberMe,
+          );
       state = AuthState.authenticated(user);
       // Deliberately not awaited. Setting up alerts means two system permission
       // dialogs and starting a foreground service; awaiting them left the user

@@ -44,6 +44,18 @@ class AppPreferences {
     }
   }
 
+  // Remember Me
+  static const String _rememberMeKey = 'auth_remember_me';
+  bool get rememberMe => _prefs.getBool(_rememberMeKey) ?? true;
+  Future<bool> setRememberMe(bool value) async {
+    try {
+      return await _prefs.setBool(_rememberMeKey, value);
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to save remember me preference', error: e, stackTrace: stackTrace, name: 'Preferences');
+      return false;
+    }
+  }
+
   // Offline Session
   String? get offlineSession => _prefs.getString(_offlineSessionKey);
   Future<bool> setOfflineSession(String jsonSession) async {

@@ -38,6 +38,8 @@ class DashboardScreen extends ConsumerWidget {
         _DashboardAction(title: l10n.pos, icon: Icons.point_of_sale, color: AppColors.modulePos, route: '/pos'),
       if (show('orders'))
         _DashboardAction(title: l10n.orders, icon: Icons.receipt_long, color: AppColors.moduleOrders, route: '/orders'),
+      if (show('kitchen'))
+        _DashboardAction(title: l10n.kitchen, icon: Icons.kitchen, color: AppColors.moduleKitchen, route: '/kitchen'),
       if (show('products'))
         _DashboardAction(title: l10n.products, icon: Icons.restaurant_menu, color: AppColors.moduleProducts, route: '/products'),
       if (show('delivery'))
@@ -198,6 +200,8 @@ class _TodayStatsRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final stats = ref.watch(dashboardStatsProvider).value ?? DashboardStats.empty;
+    final perms = ref.watch(permissionsProvider.notifier);
+    final canSeeRevenue = perms.isSuperAdmin || perms.isAdmin || perms.hasPermission('reports');
 
     Widget statCard(String label, String value, IconData icon, Color color) {
       return Expanded(
@@ -230,8 +234,10 @@ class _TodayStatsRow extends ConsumerWidget {
 
     return Row(
       children: [
-        statCard(l10n.revenue, _fmt(stats.todayRevenue), Icons.payments_outlined, AppColors.success),
-        AppSpacing.widthSm,
+        if (canSeeRevenue) ...[
+          statCard(l10n.revenue, _fmt(stats.todayRevenue), Icons.payments_outlined, AppColors.success),
+          AppSpacing.widthSm,
+        ],
         statCard(l10n.totalOrders, '${stats.todayOrders}', Icons.receipt_long_outlined, AppColors.info),
         AppSpacing.widthSm,
         statCard(l10n.statusPending, '${stats.pendingOrders}', Icons.hourglass_top, AppColors.warning),
@@ -261,8 +267,13 @@ class _RecentOrdersSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final stats = ref.watch(dashboardStatsProvider).value ?? DashboardStats.empty;
+    final perms = ref.watch(permissionsProvider.notifier);
+    final canSeeOrders = perms.isSuperAdmin ||
+        perms.isAdmin ||
+        perms.hasPermission('orders') ||
+        perms.hasPermission('pos');
 
-    if (stats.recentOrders.isEmpty) return const SizedBox.shrink();
+    if (!canSeeOrders || stats.recentOrders.isEmpty) return const SizedBox.shrink();
 
     final timeFormat = DateFormat('hh:mm a');
 

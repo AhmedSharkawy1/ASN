@@ -60,6 +60,24 @@ void main() {
       expect(notifier({'_isAdmin': false, 'orders': false})
           .hasPermission('orders'), isFalse);
     });
+
+    test('cashier only sees pos and orders, other pages stay strictly closed', () {
+      final perms = notifier({
+        '_isAdmin': false,
+        'pos': true,
+        'orders': true,
+        'notifications': true,
+      });
+      expect(perms.hasPermission('pos'), isTrue);
+      expect(perms.hasPermission('orders'), isTrue);
+      expect(perms.hasPermission('kitchen'), isFalse);
+      expect(perms.hasPermission('products'), isFalse);
+      expect(perms.hasPermission('reports'), isFalse);
+      expect(perms.hasPermission('settings'), isFalse);
+      expect(perms.hasPermission('tables'), isFalse);
+      expect(perms.isAdmin, isFalse);
+      expect(perms.isSuperAdmin, isFalse);
+    });
   });
 
   group('super admin', () {

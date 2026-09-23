@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart' show User;
 
+import 'package:asn_app/core/config/app_modules.dart';
 import 'package:asn_app/core/network/network_info.dart';
 import 'package:asn_app/core/error/exceptions.dart';
 import 'package:asn_app/core/logging/logger.dart';
@@ -24,7 +26,8 @@ class AuthRepositoryImpl implements AuthRepository {
         _networkInfo = networkInfo;
 
   @override
-  Future<UserEntity> login(String usernameOrEmail, String password) async {
+  Future<UserEntity> login(String usernameOrEmail, String password, {bool rememberMe = true}) async {
+    await _localDataSource.saveRememberMe(rememberMe);
     final isOnline = await _networkInfo.isConnected;
 
     // Helper for offline fallback
@@ -101,22 +104,58 @@ class AuthRepositoryImpl implements AuthRepository {
     required String fallbackName,
   }) async {
     final usernameOrEmail = fallbackName;
-    {
-      // Fetch User Role
-      final role = await _remoteDataSource.fetchUserRole(user.id);
-      String? restaurantId;
-      String name = usernameOrEmail;
-      Map<String, bool> permissions = {};
+    final role = await _remoteDataSource.fetchUserRole(user.id);
+    String? restaurantId;
+    String name = usernameOrEmail;
+    Map<String, bool> permissions = {};
+    String resolvedRole = role ?? 'staff';
 
-      if (role == 'super_admin') {
-        name = 'Super Admin';
-        permissions = {'_isSuperAdmin': true};
-      } else if (role == 'staff' || resolvedEmail.endsWith('.asn')) {
-        // Confirmed staff user (explicit role or internal .asn email)
-        final staffProfile = await _remoteDataSource.fetchStaffProfile(user.id);
-        if (staffProfile == null) {
-          throw const AuthException('لم يتم العثور على حساب الموظف');
+    if (role == 'super_admin') {
+      name = 'Super Admin';
+      permissions = {'_isSuperAdmin': true};
+      resolvedRole = 'super_admin';
+    } else {
+      // Check if user is staff (team member)
+      Map<String, dynamic>? staffProfile;
+      final isAsnEmail = resolvedEmail.endsWith('.asn');
+
+      if (role == 'staff' || isAsnEmail) {
+        staffProfile = await _remoteDataSource.fetchStaffProfile(
+          user.id,
+          email: resolvedEmail,
+          username: usernameOrEmail,
+        );
+      }
+
+      Map<String, dynamic>? restProfile;
+      if (staffProfile == null && !isAsnEmail) {
+        restProfile = await _remoteDataSource.fetchRestaurantProfile(resolvedEmail);
+      }
+
+      if (staffProfile == null && restProfile == null) {
+        staffProfile = await _remoteDataSource.fetchStaffProfile(
+          user.id,
+          email: resolvedEmail,
+          username: usernameOrEmail,
+        );
+      }
+
+      if (restProfile != null) {
+        // Restaurant owner / admin
+        restaurantId = restProfile['id'] as String?;
+        name = restProfile['name'] as String? ?? usernameOrEmail;
+        resolvedRole = 'admin';
+
+        if (restaurantId != null) {
+          final clientPages = await _remoteDataSource.fetchClientPageAccess(restaurantId);
+          for (final page in clientPages) {
+            final key = page['page_key'] as String;
+            permissions[key] = page['enabled'] as bool? ?? true;
+          }
         }
+        permissions['_isAdmin'] = true;
+      } else if (staffProfile != null) {
+        // Confirmed staff / team member
         final isActive = staffProfile['is_active'] as bool? ?? false;
         if (!isActive) {
           throw const AuthException('هذا الحساب غير مفعل حالياً');
@@ -124,94 +163,73 @@ class AuthRepositoryImpl implements AuthRepository {
 
         restaurantId = staffProfile['restaurant_id'] as String?;
         name = staffProfile['name'] as String? ?? usernameOrEmail;
-        
-        // Parse permissions
-        final staffPermsJson = staffProfile['permissions'];
+        final rawRole = (staffProfile['role'] as String? ?? 'staff').toLowerCase();
+        resolvedRole = rawRole;
+
+        // Parse staff permissions
+        dynamic staffPermsJson = staffProfile['permissions'];
+        if (staffPermsJson is String) {
+          try {
+            staffPermsJson = json.decode(staffPermsJson);
+          } catch (_) {}
+        }
         Map<String, bool> staffPerms = {};
         if (staffPermsJson is Map) {
-          staffPerms = Map<String, bool>.from(staffPermsJson.map((k, v) => MapEntry(k.toString(), v == true)));
+          staffPerms = Map<String, bool>.from(
+            staffPermsJson.map((k, v) => MapEntry(k.toString(), v == true)),
+          );
         }
 
-        // Apply tenant client_page_access filter
+        // Apply role-based default permissions if omitted
+        if (rawRole == 'cashier') {
+          staffPerms.putIfAbsent('pos', () => true);
+          staffPerms.putIfAbsent('orders', () => true);
+        } else if (rawRole == 'kitchen') {
+          staffPerms.putIfAbsent('kitchen', () => true);
+          staffPerms.putIfAbsent('orders', () => true);
+        } else if (rawRole == 'delivery') {
+          staffPerms.putIfAbsent('delivery', () => true);
+          staffPerms.putIfAbsent('orders', () => true);
+        } else if (rawRole == 'admin' || rawRole == 'manager') {
+          for (final key in AppModules.visibleRoutes.values) {
+            staffPerms.putIfAbsent(key, () => true);
+          }
+        }
+
+        // Staff permissions start with granted staff permissions ONLY
+        permissions = Map<String, bool>.from(staffPerms);
+
+        // Apply tenant client_page_access filter: if tenant disabled a page, override to false
         if (restaurantId != null) {
           final clientPages = await _remoteDataSource.fetchClientPageAccess(restaurantId);
           for (final page in clientPages) {
             final key = page['page_key'] as String;
             final isEnabled = page['enabled'] as bool? ?? true;
-            // Staff permission is true only if both staff is allowed AND tenant is allowed
-            if (staffPerms.containsKey(key)) {
-              permissions[key] = staffPerms[key]! && isEnabled;
+            if (!isEnabled) {
+              permissions[key] = false;
             }
           }
         }
-        permissions['_isAdmin'] = false;
+
+        permissions['_isAdmin'] = (rawRole == 'admin' || rawRole == 'manager');
       } else {
-        // Role is null (no user_roles entry) or an explicit owner/admin role.
-        // Try owner path first: check if the user's email matches a restaurant.
-        final restProfile = await _remoteDataSource.fetchRestaurantProfile(resolvedEmail);
-        if (restProfile != null) {
-          restaurantId = restProfile['id'] as String?;
-          name = restProfile['name'] as String? ?? usernameOrEmail;
-
-          // Fetch tenant client_page_access
-          if (restaurantId != null) {
-            final clientPages = await _remoteDataSource.fetchClientPageAccess(restaurantId);
-            for (final page in clientPages) {
-              final key = page['page_key'] as String;
-              permissions[key] = page['enabled'] as bool? ?? true;
-            }
-          }
-          permissions['_isAdmin'] = true;
-        } else {
-          // No restaurant profile found — fall back to staff profile check.
-          // This handles cases where user_roles is missing but the user is
-          // actually a team member, or rare edge cases.
-          final staffFallback = await _remoteDataSource.fetchStaffProfile(user.id);
-          if (staffFallback != null) {
-            final isActive = staffFallback['is_active'] as bool? ?? false;
-            if (!isActive) {
-              throw const AuthException('هذا الحساب غير مفعل حالياً');
-            }
-            restaurantId = staffFallback['restaurant_id'] as String?;
-            name = staffFallback['name'] as String? ?? usernameOrEmail;
-            
-            // Parse staff permissions for fallback path
-            final fallbackPermsJson = staffFallback['permissions'];
-            Map<String, bool> fallbackPerms = {};
-            if (fallbackPermsJson is Map) {
-              fallbackPerms = Map<String, bool>.from(fallbackPermsJson.map((k, v) => MapEntry(k.toString(), v == true)));
-            }
-            if (restaurantId != null) {
-              final clientPages = await _remoteDataSource.fetchClientPageAccess(restaurantId);
-              for (final page in clientPages) {
-                final key = page['page_key'] as String;
-                final isEnabled = page['enabled'] as bool? ?? true;
-                if (fallbackPerms.containsKey(key)) {
-                  permissions[key] = fallbackPerms[key]! && isEnabled;
-                }
-              }
-            }
-            permissions['_isAdmin'] = false;
-          } else {
-            throw const AuthException('تعذر العثور على بيانات الحساب المرتبطة');
-          }
-        }
+        throw const AuthException('تعذر العثور على بيانات الحساب المرتبطة');
       }
-
-      final userModel = UserModel(
-        id: user.id,
-        email: user.email ?? resolvedEmail,
-        name: name,
-        role: role ?? (permissions['_isAdmin'] == true ? 'admin' : 'staff'),
-        restaurantId: restaurantId,
-        permissions: permissions,
-      );
-
-      // Cache session locally
-      await _localDataSource.cacheUserSession(userModel);
-
-      return userModel.toEntity();
     }
+
+    final userModel = UserModel(
+      id: user.id,
+      email: user.email ?? resolvedEmail,
+      name: name,
+      role: resolvedRole,
+      restaurantId: restaurantId,
+      permissions: permissions,
+    );
+
+    // Cache session locally
+    await _localDataSource.cacheUserSession(userModel);
+
+    return userModel.toEntity();
   }
 
   @override
@@ -235,6 +253,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<UserEntity?> checkSession() async {
+    final rememberMe = _localDataSource.getRememberMe();
+    if (!rememberMe) {
+      AppLogger.info('Remember me is disabled. Skipping session auto-restore.', name: 'AuthRepo');
+      return null;
+    }
+
     final isOnline = await _networkInfo.isConnected;
 
     if (!isOnline) {
@@ -244,42 +268,72 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     try {
+      final cached = await _localDataSource.getCachedUserSession();
       final token = await _localDataSource.getAuthToken();
-      if (token == null || token.isEmpty) return null;
+      final refreshToken = await _localDataSource.getRefreshToken();
 
-      // Online check using Supabase instance state
+      // If no tokens and no cached session, definitely unauthenticated
+      if ((token == null || token.isEmpty) && (refreshToken == null || refreshToken.isEmpty) && cached == null) {
+        return null;
+      }
+
+      // 1. Check if Supabase already has a currentUser in memory
       final supabaseUser = SupabaseClientManager.client.auth.currentUser;
       if (supabaseUser != null) {
-        final cached = await _localDataSource.getCachedUserSession();
         if (cached != null && cached.id == supabaseUser.id) {
-          return cached.toEntity();
+          try {
+            final refreshed = await _buildProfile(
+              user: supabaseUser,
+              resolvedEmail: supabaseUser.email ?? cached.email,
+              fallbackName: cached.name,
+            );
+            return refreshed;
+          } catch (e) {
+            AppLogger.warning('Background profile refresh failed, using cached session: $e', name: 'AuthRepo');
+            return cached.toEntity();
+          }
         }
       }
 
-      // No active session in memory, try silent auto login with refresh token
-      final refreshToken = await _localDataSource.getRefreshToken();
+      // 2. Try silent session restoration using refresh token
       if (refreshToken != null && refreshToken.isNotEmpty) {
-        AppLogger.info('Refreshing user session silenty...', name: 'AuthRepo');
-        final response = await SupabaseClientManager.client.auth.setSession(refreshToken);
-        final refreshedUser = response.user;
-        if (response.session != null && refreshedUser != null) {
-          // Rebuild role/permissions from the refreshed session — no password
-          // needed, so none has to be stored.
-          final email = refreshedUser.email ?? '';
-          await _localDataSource.saveAuthToken(response.session!.accessToken);
-          final newRefresh = response.session!.refreshToken;
-          if (newRefresh != null && newRefresh.isNotEmpty) {
-            await _localDataSource.saveRefreshToken(newRefresh);
+        AppLogger.info('Refreshing user session silently...', name: 'AuthRepo');
+        try {
+          final response = await SupabaseClientManager.client.auth.setSession(refreshToken);
+          final refreshedUser = response.user;
+          if (response.session != null && refreshedUser != null) {
+            final email = refreshedUser.email ?? cached?.email ?? '';
+            await _localDataSource.saveAuthToken(response.session!.accessToken);
+            final newRefresh = response.session!.refreshToken;
+            if (newRefresh != null && newRefresh.isNotEmpty) {
+              await _localDataSource.saveRefreshToken(newRefresh);
+            }
+            try {
+              return await _buildProfile(
+                user: refreshedUser,
+                resolvedEmail: email,
+                fallbackName: cached?.name ?? email,
+              );
+            } catch (e) {
+              AppLogger.warning('Profile build after setSession failed, using cached: $e', name: 'AuthRepo');
+              if (cached != null) return cached.toEntity();
+            }
           }
-          return await _buildProfile(
-            user: refreshedUser,
-            resolvedEmail: email,
-            fallbackName: email,
-          );
+        } catch (e) {
+          AppLogger.warning('setSession failed: $e', name: 'AuthRepo');
         }
+      }
+
+      // 3. If online refresh encountered transient issues but we have a valid cached session,
+      // KEEP THE USER LOGGED IN!
+      if (cached != null) {
+        AppLogger.info('Returning cached session for auto-login: ${cached.name}', name: 'AuthRepo');
+        return cached.toEntity();
       }
     } catch (e, stackTrace) {
       AppLogger.error('Check session check failed', error: e, stackTrace: stackTrace, name: 'AuthRepo');
+      final cached = await _localDataSource.getCachedUserSession();
+      if (cached != null) return cached.toEntity();
     }
     return null;
   }

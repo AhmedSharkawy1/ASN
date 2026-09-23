@@ -9,7 +9,7 @@ abstract class AuthRemoteDataSource {
   Future<String> lookupEmail(String username);
   Future<AuthResponse> signIn(String email, String password);
   Future<String?> fetchUserRole(String userId);
-  Future<Map<String, dynamic>?> fetchStaffProfile(String userId);
+  Future<Map<String, dynamic>?> fetchStaffProfile(String userId, {String? email, String? username});
   Future<Map<String, dynamic>?> fetchRestaurantProfile(String email);
   Future<List<Map<String, dynamic>>> fetchClientPageAccess(String restaurantId);
   Future<void> signOut();
@@ -78,13 +78,62 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>?> fetchStaffProfile(String userId) async {
+  Future<Map<String, dynamic>?> fetchStaffProfile(String userId, {String? email, String? username}) async {
     try {
-      return await _supabaseClient
+      // 1. Primary lookup by auth_id
+      final byAuthId = await _supabaseClient
           .from('team_members')
-          .select('restaurant_id, permissions, is_active, name')
+          .select('id, restaurant_id, role, permissions, is_active, name, email, username, auth_id')
           .eq('auth_id', userId)
           .maybeSingle();
+
+      if (byAuthId != null) {
+        return byAuthId;
+      }
+
+      // 2. Fallback lookup by email if auth_id was not linked yet
+      if (email != null && email.isNotEmpty) {
+        final byEmail = await _supabaseClient
+            .from('team_members')
+            .select('id, restaurant_id, role, permissions, is_active, name, email, username, auth_id')
+            .ilike('email', email)
+            .maybeSingle();
+
+        if (byEmail != null) {
+          if (byEmail['auth_id'] == null) {
+            try {
+              await _supabaseClient
+                  .from('team_members')
+                  .update({'auth_id': userId})
+                  .eq('id', byEmail['id'] as Object);
+            } catch (_) {}
+          }
+          return byEmail;
+        }
+      }
+
+      // 3. Fallback lookup by username
+      if (username != null && username.isNotEmpty) {
+        final byUsername = await _supabaseClient
+            .from('team_members')
+            .select('id, restaurant_id, role, permissions, is_active, name, email, username, auth_id')
+            .eq('username', username)
+            .maybeSingle();
+
+        if (byUsername != null) {
+          if (byUsername['auth_id'] == null) {
+            try {
+              await _supabaseClient
+                  .from('team_members')
+                  .update({'auth_id': userId})
+                  .eq('id', byUsername['id'] as Object);
+            } catch (_) {}
+          }
+          return byUsername;
+        }
+      }
+
+      return null;
     } catch (e, stackTrace) {
       AppLogger.error('Failed to fetch staff profile', error: e, stackTrace: stackTrace, name: 'AuthRemote');
       return null;

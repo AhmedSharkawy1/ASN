@@ -21,6 +21,9 @@ abstract class AuthLocalDataSource {
   Future<void> cacheUserSession(UserModel user);
   Future<UserModel?> getCachedUserSession();
   Future<void> clearCachedUserSession();
+
+  Future<void> saveRememberMe(bool value);
+  bool getRememberMe();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -89,5 +92,15 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     } catch (e, stackTrace) {
       AppLogger.error('Failed to clear cached user session', error: e, stackTrace: stackTrace, name: 'AuthLocal');
     }
+  }
+
+  @override
+  Future<void> saveRememberMe(bool value) async {
+    await _preferences.setRememberMe(value);
+  }
+
+  @override
+  bool getRememberMe() {
+    return _preferences.rememberMe;
   }
 }

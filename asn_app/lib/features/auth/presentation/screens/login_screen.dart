@@ -40,6 +40,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _usernameController.text.trim(),
             _passwordController.text,
             lang,
+            rememberMe: _rememberMe,
           );
     }
   }

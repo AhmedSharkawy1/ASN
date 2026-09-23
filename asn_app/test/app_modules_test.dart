@@ -14,6 +14,7 @@ void main() {
           '/dashboard',
           '/pos',
           '/orders',
+          '/kitchen',
           '/delivery',
           '/reports',
           '/products',
@@ -26,7 +27,7 @@ void main() {
     });
 
     test('the deliberately hidden ones stay hidden', () {
-      for (final route in ['/kitchen', '/inventory', '/recipes', '/hr']) {
+      for (final route in ['/inventory', '/recipes', '/hr']) {
         expect(AppModules.isVisible(route), isFalse, reason: route);
       }
     });

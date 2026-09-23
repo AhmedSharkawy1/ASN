@@ -13,14 +13,13 @@ class AppModules {
     '/dashboard': 'dashboard',
     '/pos': 'pos',
     '/orders': 'orders',
+    '/kitchen': 'kitchen',
     '/delivery': 'delivery',
     '/reports': 'reports',
     '/products': 'products',
     '/customers': 'customers',
     '/promotions': 'promotions',
     '/qr': 'qr',
-    // Tables earns its place through the QR screen: a per-table QR code needs
-    // the table to exist first, and the waiter-call alert names it.
     '/tables': 'tables',
   };
 

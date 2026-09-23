@@ -6,7 +6,7 @@ class LoginUseCase {
 
   LoginUseCase(this._repository);
 
-  Future<UserEntity> call(String usernameOrEmail, String password) {
-    return _repository.login(usernameOrEmail, password);
+  Future<UserEntity> call(String usernameOrEmail, String password, {bool rememberMe = true}) {
+    return _repository.login(usernameOrEmail, password, rememberMe: rememberMe);
   }
 }
