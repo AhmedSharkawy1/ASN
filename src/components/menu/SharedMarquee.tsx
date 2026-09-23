@@ -21,7 +21,7 @@ export default function SharedMarquee({
 
     return (
         <div
-            className="w-full overflow-hidden flex items-center py-2"
+            className="w-full max-w-full overflow-hidden flex items-center py-2 select-none"
             style={{ backgroundColor: bgColor, color: textColor }}
             dir="ltr" // Always LTR for consistent animation math
         >

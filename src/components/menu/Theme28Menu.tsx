@@ -504,7 +504,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
 
     return (
         <div 
-            className="min-h-screen font-cairo pb-36 relative transition-colors duration-300 selection:bg-emerald-500 selection:text-white"
+            className="min-w-0 w-full max-w-full overflow-x-hidden min-h-screen font-cairo pb-36 relative transition-colors duration-300 selection:bg-emerald-500 selection:text-white"
             style={{ 
                 backgroundColor: hasBgImage ? 'transparent' : (isDark ? '#090a0f' : '#f8fafc'),
                 color: isDark ? '#f8fafc' : '#0f172a'
@@ -527,50 +527,51 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 </>
             )}
 
-            <div className="relative z-10 max-w-2xl mx-auto">
+            <div className="relative z-10 w-full max-w-2xl mx-auto min-w-0 overflow-x-hidden">
                 {/* 1. TOP MARQUEE */}
                 {config.marquee_enabled && (
-                    <div className="shadow-sm overflow-hidden" style={{ backgroundColor: primaryColor }}>
+                    <div className="w-full max-w-full overflow-hidden shadow-sm" style={{ backgroundColor: primaryColor }}>
                         <SharedMarquee 
                             text={isAr ? (config.marquee_text_ar || '') : (config.marquee_text_en || config.marquee_text_ar || '')} 
+                            bgColor={primaryColor}
                         />
                     </div>
                 )}
 
                 {/* 2. BRAND HERO HEADER */}
-                <header className="px-4 pt-5 pb-3">
-                    <div className="flex items-center justify-between gap-3 mb-4">
+                <header className="px-3 sm:px-4 pt-4 sm:pt-5 pb-3">
+                    <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-3.5 w-full min-w-0">
                         {/* Quick Control Pills */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                             {/* Language Switch */}
                             <button
                                 onClick={() => setCurrentLang(prev => prev === 'ar' ? 'en' : 'ar')}
-                                className="h-10 px-3 rounded-full flex items-center gap-1.5 text-xs font-bold transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 hover:scale-105 active:scale-95"
+                                className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 shrink-0"
                                 title={isAr ? 'Switch to English' : 'التحويل للعربية'}
                             >
-                                <Globe className="w-4 h-4 text-emerald-500" />
+                                <Globe className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                 <span>{isAr ? 'EN' : 'عربي'}</span>
                             </button>
 
                             {/* Theme Mode Toggle */}
                             <button
                                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                                className="w-10 h-10 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 hover:scale-105 active:scale-95 text-amber-500 dark:text-amber-300"
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 text-amber-500 dark:text-amber-300 shrink-0"
                                 title={isDark ? 'الوضع النهاري' : 'الوضع الليلي'}
                             >
-                                {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-slate-700" />}
+                                {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
                             </button>
                         </div>
 
                         {/* Social & Contact Actions */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                             {primaryPhone && (
                                 <a 
                                     href={`tel:${primaryPhone}`}
-                                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 text-emerald-600 dark:text-emerald-400 hover:scale-105 active:scale-95"
+                                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 text-emerald-600 dark:text-emerald-400 active:scale-95 shrink-0"
                                     title={isAr ? 'اتصال هاتفي' : 'Call'}
                                 >
-                                    <Phone className="w-4 h-4" />
+                                    <Phone className="w-3.5 h-3.5" />
                                 </a>
                             )}
                             {whatsappClean && (
@@ -578,10 +579,10 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     href={`https://wa.me/${whatsappClean}`}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all bg-emerald-500 text-white shadow-sm hover:scale-105 active:scale-95 shadow-emerald-500/20"
+                                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-emerald-500 text-white shadow-xs active:scale-95 shadow-emerald-500/20 shrink-0"
                                     title={isAr ? 'محادثة واتساب' : 'WhatsApp'}
                                 >
-                                    <FaWhatsapp className="w-4 h-4" />
+                                    <FaWhatsapp className="w-3.5 h-3.5" />
                                 </a>
                             )}
                             {(config.location_url || config.map_link || config.location_link) && (
@@ -589,18 +590,18 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     href={config.location_url || config.map_link || config.location_link}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 text-rose-500 hover:scale-105 active:scale-95"
+                                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 text-rose-500 active:scale-95 shrink-0"
                                     title={isAr ? 'الموقع الجغرافي' : 'Location'}
                                 >
-                                    <MapPin className="w-4 h-4" />
+                                    <MapPin className="w-3.5 h-3.5" />
                                 </a>
                             )}
                             <button
                                 onClick={handleShare}
-                                className="w-10 h-10 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-sm border border-black/5 dark:border-white/10 hover:scale-105 active:scale-95"
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 shrink-0"
                                 title={isAr ? 'مشاركة المنيو' : 'Share'}
                             >
-                                <Share2 className="w-4 h-4" />
+                                <Share2 className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     </div>
@@ -667,18 +668,18 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     href={locationUrl || (config.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config.address)}` : '#')}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex items-center justify-between gap-2 p-2 -mx-2 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-all group/loc cursor-pointer"
+                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-all group/loc cursor-pointer border border-black/5 dark:border-white/5"
                                     title={isAr ? 'اضغط لفتح الموقع على خرائط جوجل' : 'Click to open location in Google Maps'}
                                 >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-colors">
+                                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                        <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 mt-0.5 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-colors">
                                             <MapPin className="w-3.5 h-3.5" />
                                         </div>
                                         <span className="font-semibold text-xs text-slate-700 dark:text-zinc-200 group-hover/loc:text-rose-500 transition-colors leading-relaxed">
                                             {config.address || (isAr ? 'الموقع الجغرافي للمطعم' : 'Restaurant Location')}
                                         </span>
                                     </div>
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-black text-rose-500 group-hover/loc:translate-x-[-2px] transition-transform shrink-0">
+                                    <span className="inline-flex items-center self-start sm:self-auto gap-1 text-[11px] font-black text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-xl shrink-0 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-all">
                                         <span>{isAr ? 'عرض اللوكيشن' : 'Open Map'}</span>
                                         <ArrowUpRight className="w-3 h-3" />
                                     </span>
@@ -926,9 +927,9 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                     </div>
 
                     {/* View Modes & Quick Filter Pills */}
-                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                    <div className="flex items-center justify-between gap-2 pt-0.5 w-full min-w-0">
                         {/* Filter Tags */}
-                        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 min-w-0 flex-1">
                             <button
                                 onClick={() => setActiveFilter('all')}
                                 className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-all ${
@@ -1556,11 +1557,11 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
 
                 {/* 7. FLOATING ACTION DOCK / BOTTOM BAR (Ultra-compact & sleek) */}
                 {cartCount > 0 && (
-                    <div className="fixed bottom-3 inset-x-4 max-w-xs sm:max-w-sm mx-auto z-40">
+                    <div className="fixed bottom-3 inset-x-3 sm:inset-x-4 max-w-xs sm:max-w-sm mx-auto z-40 pointer-events-none">
                         <motion.div 
                             initial={{ y: 30, opacity: 0, scale: 0.95 }}
                             animate={{ y: 0, opacity: 1, scale: 1 }}
-                            className="py-1.5 px-3 rounded-full bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-950 backdrop-blur-xl shadow-xl flex items-center justify-between gap-2.5 border border-white/10 dark:border-black/10"
+                            className="py-1.5 px-3 rounded-full bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-950 backdrop-blur-xl shadow-xl flex items-center justify-between gap-2.5 border border-white/10 dark:border-black/10 pointer-events-auto"
                         >
                             {/* Left: Cart badge & total */}
                             <div 
@@ -1602,13 +1603,13 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 {/* 8. RICH ITEM DETAIL MODAL */}
                 <AnimatePresence>
                     {selectedItem && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
                             <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => setSelectedItem(null)}
-                                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
                             />
 
                             <motion.div 
@@ -1616,7 +1617,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                 animate={{ scale: 1, opacity: 1, y: 0 }}
                                 exit={{ scale: 0.9, opacity: 0, y: 20 }}
                                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                                className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl max-h-[88vh] overflow-y-auto z-10 shadow-2xl no-scrollbar border border-black/5 dark:border-white/10"
+                                className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl max-h-[90vh] overflow-y-auto z-10 shadow-2xl no-scrollbar border border-black/5 dark:border-white/10 my-auto"
                             >
                                 {/* Modal Image Header */}
                                 <div className="relative w-full aspect-[16/10] bg-slate-100 dark:bg-zinc-800">
@@ -1751,37 +1752,41 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     </div>
 
                                     {/* Quantity Stepper & Add Button */}
-                                    <div className="pt-2 flex items-center gap-3">
+                                    <div className="pt-3 border-t border-black/5 dark:border-white/10 flex items-center gap-2 sm:gap-3">
                                         {/* Stepper */}
-                                        <div className="flex items-center gap-3 bg-slate-100 dark:bg-zinc-800 p-2 rounded-2xl shrink-0">
+                                        <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-zinc-800 p-1 sm:p-1.5 rounded-2xl shrink-0 border border-black/5 dark:border-white/5">
                                             <button 
                                                 onClick={() => setModalQty(q => Math.max(1, q - 1))}
-                                                className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90"
+                                                className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90 shadow-2xs transition-transform"
+                                                title={isAr ? 'تقليل الكمية' : 'Decrease'}
                                             >
-                                                <Minus className="w-4 h-4" />
+                                                <Minus className="w-3.5 h-3.5" />
                                             </button>
-                                            <span className="font-black text-sm min-w-[16px] text-center">
+                                            <span className="font-black text-sm w-5 sm:w-6 text-center select-none">
                                                 {modalQty}
                                             </span>
                                             <button 
                                                 onClick={() => setModalQty(q => q + 1)}
-                                                className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90"
+                                                className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90 shadow-2xs transition-transform"
+                                                title={isAr ? 'زيادة الكمية' : 'Increase'}
                                             >
-                                                <Plus className="w-4 h-4" />
+                                                <Plus className="w-3.5 h-3.5" />
                                             </button>
                                         </div>
 
                                         {/* Add to Cart Button */}
                                         <button 
                                             onClick={addModalToCart}
-                                            className="flex-1 h-12 rounded-2xl text-white font-black text-sm flex items-center justify-between px-5 shadow-lg active:scale-95 transition-all"
+                                            className="flex-1 min-w-0 h-11 sm:h-12 rounded-2xl text-white font-black text-xs sm:text-sm flex items-center justify-between px-3 sm:px-4 shadow-lg active:scale-95 transition-all overflow-hidden"
                                             style={{ backgroundColor: primaryColor }}
                                         >
-                                            <span className="flex items-center gap-2">
-                                                <ShoppingCart className="w-4 h-4" />
-                                                <span>{isAr ? 'إضافة إلى السلة' : 'Add to Cart'}</span>
+                                            <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
+                                                <ShoppingCart className="w-4 h-4 shrink-0" />
+                                                <span>{isAr ? 'إضافة للسلة' : 'Add to Cart'}</span>
                                             </span>
-                                            <span className="font-extrabold">{modalCalculatedTotal} {cur}</span>
+                                            <span className="font-black text-xs sm:text-sm px-2 py-0.5 rounded-xl bg-black/15 dark:bg-white/15 whitespace-nowrap shrink-0">
+                                                {modalCalculatedTotal} {cur}
+                                            </span>
                                         </button>
                                     </div>
                                 </div>
