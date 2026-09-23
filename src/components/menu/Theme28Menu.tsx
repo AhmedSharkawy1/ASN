@@ -220,9 +220,9 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
     useEffect(() => {
         const handleScroll = () => {
             if (searchQuery || activeFilter !== 'all') return;
-            const scrollPos = window.scrollY + 140;
+            const scrollPos = window.scrollY + 80;
 
-            if (window.scrollY < 260) {
+            if (window.scrollY < 200) {
                 if (activeCategory !== 'all') setActiveCategory('all');
                 return;
             }
@@ -258,7 +258,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
         }
         const el = document.getElementById(`cat-section-${catId}`);
         if (el) {
-            const offset = 110;
+            const offset = 60;
             const bodyRect = document.body.getBoundingClientRect().top;
             const elementRect = el.getBoundingClientRect().top;
             const elementPosition = elementRect - bodyRect;
@@ -506,7 +506,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
 
     return (
         <div 
-            className="min-w-0 w-full max-w-full overflow-x-hidden min-h-screen font-cairo pb-36 relative transition-colors duration-300 selection:bg-emerald-500 selection:text-white"
+            className="min-w-0 w-full max-w-full min-h-screen font-cairo pb-36 relative transition-colors duration-300 selection:bg-emerald-500 selection:text-white"
             style={{ 
                 backgroundColor: hasBgImage ? 'transparent' : (isDark ? '#090a0f' : '#f8fafc'),
                 color: isDark ? '#f8fafc' : '#0f172a'
@@ -529,7 +529,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 </>
             )}
 
-            <div className="relative z-10 w-full max-w-2xl mx-auto min-w-0 overflow-x-hidden">
+            <div className="relative z-10 w-full max-w-2xl mx-auto min-w-0">
                 {/* 1. TOP MARQUEE */}
                 {config.marquee_enabled && (
                     <div className="w-full max-w-full overflow-hidden shadow-sm" style={{ backgroundColor: primaryColor }}>
@@ -1034,7 +1034,7 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                 </div>
 
                 {/* 5. STICKY CATEGORY NAVIGATION (Only category bar sticks at top) */}
-                <div className="sticky top-0 z-30 px-4 py-2 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl border-y border-black/5 dark:border-white/10 shadow-xs">
+                <div className="sticky top-0 z-30 px-4 py-2.5 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border-y border-black/5 dark:border-white/10 shadow-xs">
                     <div 
                         ref={categoryNavRef}
                         className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5"
@@ -2184,13 +2184,23 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     )}
                                 </div>
 
+                                {/* Screenshot Confirmation Notice */}
+                                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 flex items-center gap-2.5 text-amber-800 dark:text-amber-300 shadow-2xs">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 text-base">
+                                        📸
+                                    </div>
+                                    <p className="text-xs font-black leading-snug">
+                                        {isAr ? 'برجاء إرسال سكرين شوت على رقم الواتساب للتأكيد' : 'Please send a screenshot to WhatsApp for confirmation'}
+                                    </p>
+                                </div>
+
                                 {/* Footer WhatsApp Button */}
                                 {whatsappClean && (
                                     <a
-                                        href={`https://wa.me/${whatsappClean}?text=${encodeURIComponent(isAr ? 'السلام عليكم، أود الاستفسار عن طرق الدفع المتاحة للطلب' : 'Hello, I would like to inquire about payment methods')}`}
+                                        href={`https://wa.me/${whatsappClean}?text=${encodeURIComponent(isAr ? 'السلام عليكم، قمت بالتحويل وأود إرسال سكرين شوت لتأكيد الطلب' : 'Hello, I have completed the transfer and would like to send a screenshot to confirm my order')}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="w-full h-11 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all mt-2"
+                                        className="w-full h-11 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all mt-1"
                                     >
                                         <FaWhatsapp className="w-4 h-4" />
                                         <span>{isAr ? 'تأكيد أو تحويل الدفع عبر واتساب' : 'Confirm Payment on WhatsApp'}</span>
