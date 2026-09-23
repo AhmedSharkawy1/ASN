@@ -191,7 +191,16 @@ const MarketingThemes = [
     { key: "theme29-blue", nameEn: "Theme 29 (Shopify Royal Blue)", nameAr: "ثيم 29 (شوبيفاي أزرق ملكي)" },
     { key: "theme29-red", nameEn: "Theme 29 (Shopify Crimson Red)", nameAr: "ثيم 29 (شوبيفاي أحمر قرمزي)" },
     { key: "theme29-purple", nameEn: "Theme 29 (Shopify Boutique Purple)", nameAr: "ثيم 29 (شوبيفاي بنفسجي بوتيك)" },
-    { key: "theme29-amber", nameEn: "Theme 29 (Shopify Warm Amber)", nameAr: "ثيم 29 (شوبيفاي ذهبي عنبري)" }
+    { key: "theme29-amber", nameEn: "Theme 29 (Shopify Warm Amber)", nameAr: "ثيم 29 (شوبيفاي ذهبي عنبري)" },
+
+    // Theme 30: Neo-Luxe Minimalist 2026
+    { key: "theme30", nameEn: "Theme 30 (Neo-Luxe - Sapphire Indigo)", nameAr: "ثيم 30 (أوبسيديان نيو-لوكس - نيلي ياقوتي)" },
+    { key: "theme30-emerald", nameEn: "Theme 30 (Royal Emerald)", nameAr: "ثيم 30 (زمردي ملكي)" },
+    { key: "theme30-amber", nameEn: "Theme 30 (Amber & Specialty Coffee)", nameAr: "ثيم 30 (عنبري وقهوة مختصة)" },
+    { key: "theme30-rose", nameEn: "Theme 30 (Ruby Crimson)", nameAr: "ثيم 30 (ياقوت أحمر قرمزي)" },
+    { key: "theme30-cyan", nameEn: "Theme 30 (Ocean Cyan)", nameAr: "ثيم 30 (سماوي بحري)" },
+    { key: "theme30-violet", nameEn: "Theme 30 (Royal Violet)", nameAr: "ثيم 30 (بنفسجي ملكي فاخر)" },
+    { key: "theme30-dark", nameEn: "Theme 30 (Obsidian Dark)", nameAr: "ثيم 30 (أوبسيديان ليلي داكن)" }
 ];
 
 export default function MarketingLinksPage() {
