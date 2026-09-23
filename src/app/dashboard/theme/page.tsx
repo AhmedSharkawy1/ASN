@@ -222,10 +222,20 @@ const THEMES = [
     { id: "theme29-red", family: "theme29", name_ar: "ثيم 29 (شوبيفاي أحمر قرمزي)", name_en: "Theme 29 (Shopify Crimson Red)", description_ar: "تصميم شوبيفاي العصري باللون الأحمر المميز للأزياء والمطاعم والبرجر.", description_en: "Shopify modern theme with crimson red accent.", preview_color: "#e11d48" },
     { id: "theme29-purple", family: "theme29", name_ar: "ثيم 29 (شوبيفاي بنفسجي بوتيك)", name_en: "Theme 29 (Shopify Boutique Purple)", description_ar: "تصميم شوبيفاي العصري باللون البنفسجي للمستحضرات والعطور والكافيهات.", description_en: "Shopify modern theme with boutique purple accent.", preview_color: "#7c3aed" },
     { id: "theme29-amber", family: "theme29", name_ar: "ثيم 29 (شوبيفاي ذهبي عنبري)", name_en: "Theme 29 (Shopify Warm Amber)", description_ar: "تصميم شوبيفاي العصري باللون الذهبي الدافئ للمخابز ومحامص القهوة والمطاعم الفاخرة.", description_en: "Shopify modern theme with warm amber accent.", preview_color: "#d97706" },
+
+    // ===== Theme 30: Neo-Luxe Minimalist 2026 Family (All Restaurants & Cafes) =====
+    { id: "theme30", family: "theme30", name_ar: "ثيم 30 (أوبسيديان نيو-لوكس - نيلي ياقوتي)", name_en: "Theme 30 (Neo-Luxe - Sapphire Indigo)", description_ar: "التصميم الأحدث مع كبسولة الهيدر المبتكرة، بحث ذكي متقاطع، فحص ساعات العمل اللحظي، وشريط ستوري كبسولي.", description_en: "Next-gen Neo-Luxe minimalist theme with smart search, dynamic working hours status, and capsule stories.", preview_color: "#4f46e5" },
+    { id: "theme30-emerald", family: "theme30", name_ar: "ثيم 30 (زمردي ملكي)", name_en: "Theme 30 (Royal Emerald)", description_ar: "تصميم ثيم 30 باللون الزمردي الملكي الفاخر للمطاعم والكافيهات.", description_en: "Theme 30 design with royal emerald green accent.", preview_color: "#059669" },
+    { id: "theme30-amber", family: "theme30", name_ar: "ثيم 30 (عنبري وقهوة مختصة)", name_en: "Theme 30 (Amber & Specialty Coffee)", description_ar: "تصميم ثيم 30 باللون العنبري الذهبي للكافيهات ومحامص القهوة والحلويات.", description_en: "Theme 30 design with warm amber & coffee palette.", preview_color: "#d97706" },
+    { id: "theme30-rose", family: "theme30", name_ar: "ثيم 30 (ياقوت أحمر قرمزي)", name_en: "Theme 30 (Ruby Crimson)", description_ar: "تصميم ثيم 30 باللون القرمزي الجريء للبرجر والمشويات والبيتزا.", description_en: "Theme 30 design with ruby crimson accent.", preview_color: "#e11d48" },
+    { id: "theme30-cyan", family: "theme30", name_ar: "ثيم 30 (سماوي بحري)", name_en: "Theme 30 (Ocean Cyan)", description_ar: "تصميم ثيم 30 باللون الأزرق السماوي للمأكولات البحرية والمشروبات المنعشة.", description_en: "Theme 30 design with ocean cyan accent.", preview_color: "#0284c7" },
+    { id: "theme30-violet", family: "theme30", name_ar: "ثيم 30 (بنفسجي ملكي فاخر)", name_en: "Theme 30 (Royal Violet)", description_ar: "تصميم ثيم 30 باللون البنفسجي الفاخر للاونجات والحلويات.", description_en: "Theme 30 design with royal violet accent.", preview_color: "#7c3aed" },
+    { id: "theme30-dark", family: "theme30", name_ar: "ثيم 30 (أوبسيديان ليلي داكن)", name_en: "Theme 30 (Obsidian Dark)", description_ar: "تصميم ثيم 30 بوضع داكن فاخر للستيك هاوس والأجواء الليلية الهادئة.", description_en: "Theme 30 design with obsidian midnight dark mode.", preview_color: "#0f172a" },
 ];
 
 const FAMILIES = [
     { id: 'all', name_ar: 'الكل (جميع الثيمات)', name_en: 'All Themes' },
+    { id: 'theme30', name_ar: 'ثيم 30 (أوبسيديان نيو-لوكس) 💎 الأحدث', name_en: 'Theme 30 (Neo-Luxe Minimalist) 💎 Latest' },
     { id: 'theme28', name_ar: 'ثيم 28 (الأحدث للمطاعم والكافيهات) 🔥 جديد', name_en: 'Theme 28 (Universal Next-Gen) 🔥 New' },
     { id: 'theme29', name_ar: 'ثيم 29 (شوبيفاي للمنتجات والمطاعم) 🛍️ جديد', name_en: 'Theme 29 (Shopify Multi-Store) 🛍️ New' },
     { id: 'pizzapasta', name_ar: 'ثيم 1 (بيتزا باستا)', name_en: 'Theme 1 (PizzaPasta)' },
@@ -578,7 +588,28 @@ export default function ThemePage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                        {/* Theme 30 Quick Select */}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelectedFamily('theme30');
+                                const t30 = THEMES.find(t => t.family === 'theme30');
+                                if (t30) setSelectedTheme(t30.id);
+                            }}
+                            className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 border shadow-sm active:scale-95 ${
+                                selectedFamily === 'theme30'
+                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-indigo-500/30 ring-2 ring-indigo-400'
+                                    : 'bg-card border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10'
+                            }`}
+                        >
+                            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-ping shrink-0" />
+                            <span>{isArabic ? "ثيم 30 (أوبسيديان نيو-لوكس) 💎" : "Theme 30 (Neo-Luxe) 💎"}</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-500/20 font-black">
+                                {getFamilyCount('theme30')}
+                            </span>
+                        </button>
+
                         {/* Theme 28 Quick Select */}
                         <button
                             type="button"
@@ -697,6 +728,7 @@ export default function ThemePage() {
                         {FAMILIES.map((f) => {
                             const count = getFamilyCount(f.id);
                             const isSelected = selectedFamily === f.id;
+                            const isT30 = f.id === 'theme30';
                             const isT28 = f.id === 'theme28';
                             const isT29 = f.id === 'theme29';
 
@@ -713,19 +745,23 @@ export default function ThemePage() {
                                     }}
                                     className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 border shrink-0 ${
                                         isSelected
-                                            ? isT28 
-                                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400' 
-                                                : isT29
-                                                    ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400'
-                                                    : 'bg-blue text-white border-blue shadow-md'
-                                            : isT28
-                                                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-                                                : isT29
-                                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
-                                                    : 'bg-background border-border hover:border-blue/40 text-foreground'
+                                            ? isT30
+                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-400'
+                                                : isT28 
+                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400' 
+                                                    : isT29
+                                                        ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400'
+                                                        : 'bg-blue text-white border-blue shadow-md'
+                                            : isT30
+                                                ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20'
+                                                : isT28
+                                                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                                                    : isT29
+                                                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20'
+                                                        : 'bg-background border-border hover:border-blue/40 text-foreground'
                                     }`}
                                 >
-                                    {(isT28 || isT29) && <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />}
+                                    {(isT30 || isT28 || isT29) && <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />}
                                     <span>{isArabic ? f.name_ar : f.name_en}</span>
                                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black ${
                                         isSelected ? 'bg-white/20 text-white' : 'bg-card text-silver'

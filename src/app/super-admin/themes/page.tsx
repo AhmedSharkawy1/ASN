@@ -223,6 +223,15 @@ const ALL_THEMES = [
     { id: "theme29-red", name_ar: "ثيم 29 (شوبيفاي أحمر قرمزي)", name_en: "Theme 29 (Shopify Crimson Red)", preview_color: "#e11d48" },
     { id: "theme29-purple", name_ar: "ثيم 29 (شوبيفاي بنفسجي بوتيك)", name_en: "Theme 29 (Shopify Boutique Purple)", preview_color: "#7c3aed" },
     { id: "theme29-amber", name_ar: "ثيم 29 (شوبيفاي ذهبي عنبري)", name_en: "Theme 29 (Shopify Warm Amber)", preview_color: "#d97706" },
+
+    // ===== Theme 30: Neo-Luxe Minimalist 2026 Family (All Restaurants & Cafes) =====
+    { id: "theme30", name_ar: "ثيم 30 (أوبسيديان نيو-لوكس - نيلي ياقوتي)", name_en: "Theme 30 (Neo-Luxe - Sapphire Indigo)", preview_color: "#4f46e5" },
+    { id: "theme30-emerald", name_ar: "ثيم 30 (زمردي ملكي)", name_en: "Theme 30 (Royal Emerald)", preview_color: "#059669" },
+    { id: "theme30-amber", name_ar: "ثيم 30 (عنبري وقهوة مختصة)", name_en: "Theme 30 (Amber & Specialty Coffee)", preview_color: "#d97706" },
+    { id: "theme30-rose", name_ar: "ثيم 30 (ياقوت أحمر قرمزي)", name_en: "Theme 30 (Ruby Crimson)", preview_color: "#e11d48" },
+    { id: "theme30-cyan", name_ar: "ثيم 30 (سماوي بحري)", name_en: "Theme 30 (Ocean Cyan)", preview_color: "#0284c7" },
+    { id: "theme30-violet", name_ar: "ثيم 30 (بنفسجي ملكي فاخر)", name_en: "Theme 30 (Royal Violet)", preview_color: "#7c3aed" },
+    { id: "theme30-dark", name_ar: "ثيم 30 (أوبسيديان ليلي داكن)", name_en: "Theme 30 (Obsidian Dark)", preview_color: "#0f172a" },
 ];
 
 interface ThemeOverride {

@@ -140,6 +140,98 @@ export const hasItemDiscount = (item: MenuItem, sizeIdx: number = 0): boolean =>
     return oldP > currP && currP > 0;
 };
 
+// ================= WORKING HOURS / OPEN STATUS HELPER =================
+function parseTimeToMinutes(str: string): number | null {
+    if (!str) return null;
+    const s = str
+        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+        .toLowerCase()
+        .trim();
+
+    if (s.includes('منتصف الليل') || s.includes('midnight')) {
+        return 0;
+    }
+
+    const isPM = s.includes('pm') || 
+                 s.includes('مساء') || 
+                 s.includes('م') || 
+                 s.includes('عصر') || 
+                 s.includes('ظهر') || 
+                 s.includes('ليل');
+
+    const isAM = s.includes('am') || 
+                 s.includes('صباح') || 
+                 s.includes('ص') ||
+                 s.includes('فجر');
+
+    const match = s.match(/(\d{1,2})(?::(\d{1,2}))?/);
+    if (!match) return null;
+
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2] ? parseInt(match[2], 10) : 0;
+    if (isNaN(hours)) return null;
+
+    if (isPM) {
+        if (hours < 12) hours += 12;
+    } else if (isAM) {
+        if (hours === 12) hours = 0;
+    }
+
+    return (hours % 24) * 60 + minutes;
+}
+
+export function checkIsStoreOpen(workingHoursStr?: string, timeOpen?: string, timeClose?: string): boolean {
+    const raw = (workingHoursStr || '').trim();
+    if (!raw && !timeOpen) return true; // Default to open if not specified
+
+    const normalized = raw
+        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
+        .toLowerCase();
+
+    // 24-hours indicators
+    if (
+        normalized.includes('24') || 
+        normalized.includes('طوال') || 
+        normalized.includes('مدار') || 
+        normalized.includes('always') ||
+        normalized.includes('مفتوح دائما')
+    ) {
+        return true;
+    }
+
+    try {
+        let openMins: number | null = null;
+        let closeMins: number | null = null;
+
+        if (timeOpen && timeClose) {
+            openMins = parseTimeToMinutes(timeOpen);
+            closeMins = parseTimeToMinutes(timeClose);
+        } else if (raw) {
+            const parts = raw.split(/[-–—~]|(?:\s+إلى\s+)|(?:\s+الى\s+)|(?:\s+حتى\s+)|(?:\s+to\s+)/i);
+            if (parts.length >= 2) {
+                openMins = parseTimeToMinutes(parts[0]);
+                closeMins = parseTimeToMinutes(parts[1]);
+            }
+        }
+
+        if (openMins === null || closeMins === null) {
+            return true;
+        }
+
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+
+        // Overnight shift (e.g., 10:00 AM to 02:00 AM)
+        if (closeMins <= openMins) {
+            return currentMins >= openMins || currentMins < closeMins;
+        } else {
+            return currentMins >= openMins && currentMins < closeMins;
+        }
+    } catch {
+        return true;
+    }
+}
+
 export default function Theme29Menu({ config, categories = [], restaurantId, language: initialLanguage }: Theme29MenuProps) {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
@@ -171,6 +263,11 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         }
         return `ال${raw}`;
     }, [config?.menu_title_word, isAr]);
+
+    // Store Open / Closed Status (مفتوح الآن / مغلق الآن حسب أوقات العمل في الإعدادات)
+    const isStoreOpen = useMemo(() => {
+        return checkIsStoreOpen(config?.working_hours, config?.time_open, config?.time_close);
+    }, [config?.working_hours, config?.time_open, config?.time_close]);
 
     // Color resolution
     const themeSuffix = config?.theme?.split('-')[1] || 'default';
@@ -943,9 +1040,18 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                     <h1 className="font-black text-sm sm:text-base lg:text-lg tracking-tight truncate">
                                         {config?.name || 'Shopify Store'}
                                     </h1>
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                                        <CheckCircle2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 me-0.5" />
-                                        {isAr ? 'موثق' : 'Verified'}
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black shrink-0 border transition-colors ${
+                                        isStoreOpen
+                                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                                    }`}>
+                                        <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full me-1.5 shrink-0 ${
+                                            isStoreOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
+                                        }`} />
+                                        {isStoreOpen 
+                                            ? (isAr ? 'مفتوح الآن' : 'Open Now') 
+                                            : (isAr ? 'مغلق الآن' : 'Closed Now')
+                                        }
                                     </span>
                                 </div>
                             </div>
@@ -2780,8 +2886,17 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {config?.working_hours && (
                                 <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border text-xs" style={{ borderColor: borderColor }}>
                                     <Clock className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                                    <div>
-                                        <span className="font-bold block">{isAr ? 'مواعيد العمل:' : 'Working Hours:'}</span>
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="font-bold block">{isAr ? 'مواعيد العمل:' : 'Working Hours:'}</span>
+                                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+                                                isStoreOpen 
+                                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' 
+                                                    : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                                            }`}>
+                                                {isStoreOpen ? (isAr ? 'مفتوح الآن' : 'Open Now') : (isAr ? 'مغلق الآن' : 'Closed Now')}
+                                            </span>
+                                        </div>
                                         <p className="text-muted-foreground mt-0.5" style={{ color: textMuted }}>{config.working_hours}</p>
                                     </div>
                                 </div>
