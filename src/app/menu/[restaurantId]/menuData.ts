@@ -29,6 +29,7 @@ export type Category = {
   image_url?: string;
   thumbnail_url?: string | null;
   items: Item[];
+  is_available?: boolean;
 };
 
 export type RestaurantConfig = {
@@ -186,25 +187,42 @@ export async function loadMenu(restaurantId: string, previewTheme?: string): Pro
   if (previewTheme) config.theme = previewTheme;
 
   // Only the columns the mapping below consumes.
-  const { data: catsData } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let catsQuery: any = await supabase
     .from("categories")
-    .select("id, name_ar, name_en, emoji, image_url, thumbnail_url, sort_order")
+    .select("id, name_ar, name_en, emoji, image_url, thumbnail_url, sort_order, is_available")
     .eq("restaurant_id", config.id)
     .order("sort_order", { ascending: true });
 
-  if (!catsData?.length) return { config, categories: [] };
+  if (catsQuery.error && /is_available/.test(catsQuery.error.message || "")) {
+    catsQuery = await supabase
+      .from("categories")
+      .select("id, name_ar, name_en, emoji, image_url, thumbnail_url, sort_order")
+      .eq("restaurant_id", config.id)
+      .order("sort_order", { ascending: true });
+  }
+
+  const rawCats = catsQuery.data;
+
+  if (!rawCats?.length) return { config, categories: [] };
+
+  // Filter out any hidden categories (is_available === false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const catsData = rawCats.filter((c: any) => c.is_available !== false);
+
+  if (!catsData.length) return { config, categories: [] };
 
   const { data: itemsData } = await supabase
     .from("items")
     .select("*")
     .in(
       "category_id",
-      catsData.map((c) => c.id)
+      catsData.map((c: any) => c.id)
     )
     .eq("is_available", true)
     .order("sort_order", { ascending: true });
 
-  const categories: Category[] = catsData.map((cat) => ({
+  const categories: Category[] = catsData.map((cat: any) => ({
     id: cat.id,
     name_ar: cat.name_ar,
     name_en: cat.name_en,

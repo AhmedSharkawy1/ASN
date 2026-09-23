@@ -42,6 +42,7 @@ type Category = {
     image_url?: string;
     thumbnail_url?: string | null;
     items: Item[];
+    is_available?: boolean;
 };
 
 export default function MenuBuilderPage() {
@@ -105,6 +106,8 @@ export default function MenuBuilderPage() {
                         setCategories(catsData.map(cat => ({
                             id: cat.id, name_ar: cat.name_ar, name_en: cat.name_en,
                             emoji: cat.emoji, image_url: cat.image_url,
+                            thumbnail_url: cat.thumbnail_url,
+                            is_available: typeof cat.is_available === 'boolean' ? cat.is_available : true,
                             items: itemsData ? itemsData.filter(i => i.category_id === cat.id).map(item => {
                                 if (item.size_labels && item.size_labels.some((l: string) => l && l.includes('::'))) {
                                     const newLabels: string[] = [];
@@ -291,8 +294,18 @@ export default function MenuBuilderPage() {
     };
 
     const updateCategory = async (catId: string, updates: Partial<Category>) => {
-        await supabase.from('categories').update(updates).eq('id', catId);
-        setCategories(categories.map(c => c.id === catId ? { ...c, ...updates } : c));
+        setCategories(prev => prev.map(c => c.id === catId ? { ...c, ...updates } : c));
+        const { error } = await supabase.from('categories').update(updates).eq('id', catId);
+        if (error) {
+            console.error("Error updating category:", error);
+            if (/is_available/.test(error.message || '')) {
+                alert(
+                    language === 'ar'
+                        ? 'تنبيه: يرجى تنفيذ ملف add_category_is_available.sql في Supabase أولاً لإضافة عمود is_available.'
+                        : 'Notice: Please run add_category_is_available.sql in Supabase to add the is_available column.'
+                );
+            }
+        }
         triggerRevalidate();
     };
 
@@ -488,10 +501,11 @@ export default function MenuBuilderPage() {
                 <div className="flex flex-col gap-6">
                     {categories.map((cat, catIdx) => {
                         const isCollapsed = collapsedCats.has(cat.id);
+                        const isCatHidden = cat.is_available === false;
                         return (
-                            <div key={cat.id} className="bg-white dark:bg-card border border-glass-border rounded-2xl overflow-hidden shadow-sm">
+                            <div key={cat.id} className={`rounded-2xl border transition-all overflow-hidden shadow-sm ${isCatHidden ? 'border-red-500/30 bg-red-50/10 dark:bg-red-950/10' : 'bg-white dark:bg-card border-glass-border'}`}>
                                 {/* CATEGORY HEADER */}
-                                <div className="bg-slate-50 dark:bg-glass-dark px-6 py-4 border-b border-glass-border">
+                                <div className={`px-6 py-4 border-b transition-colors ${isCatHidden ? 'bg-red-50/20 dark:bg-red-950/20 border-red-500/20' : 'bg-slate-50 dark:bg-glass-dark border-glass-border'}`}>
                                     {editingCat === cat.id ? (
                                         <CategoryEditor cat={cat} language={language}
                                             onUpdate={(u) => updateCategory(cat.id, u)}
@@ -510,9 +524,14 @@ export default function MenuBuilderPage() {
                                                     </div>
                                                 )}
                                                 <div>
-                                                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+                                                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap">
                                                         {cat.name_ar}
                                                         <span className="text-silver text-sm font-normal">({cat.items.length})</span>
+                                                        {isCatHidden && (
+                                                            <span className="bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap">
+                                                                <EyeOff className="w-3 h-3" /> {language === "ar" ? "مخفي" : "Hidden"}
+                                                            </span>
+                                                        )}
                                                         {isCollapsed ? <ChevronDown className="w-5 h-5 text-silver" /> : <ChevronUp className="w-5 h-5 text-silver" />}
                                                     </h2>
                                                     {cat.name_en && cat.name_en !== cat.name_ar && <span className="text-sm text-silver">{cat.name_en}</span>}
@@ -523,8 +542,18 @@ export default function MenuBuilderPage() {
                                                     <button onClick={() => handleMoveCategory(catIdx, 'up')} disabled={catIdx === 0} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-5 h-5" /></button>
                                                     <button onClick={() => handleMoveCategory(catIdx, 'down')} disabled={catIdx === categories.length - 1} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-5 h-5" /></button>
                                                 </div>
-                                                <button onClick={() => { setEditingCat(cat.id); setEditingItem(null); }} className="p-2 text-blue hover:bg-blue/10 rounded-lg transition-colors"><Edit2 className="w-4 h-4 md:w-5 md:h-5" /></button>
-                                                <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        updateCategory(cat.id, { is_available: isCatHidden });
+                                                    }}
+                                                    className={`p-2 rounded-lg transition-colors ${isCatHidden ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
+                                                    title={language === 'ar' ? (isCatHidden ? 'إظهار القسم بالكامل في المنيو' : 'إخفاء القسم بالكامل من المنيو') : (isCatHidden ? 'Show category in menu' : 'Hide category from menu')}
+                                                >
+                                                    {isCatHidden ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
+                                                </button>
+                                                <button onClick={() => { setEditingCat(cat.id); setEditingItem(null); }} className="p-2 text-blue hover:bg-blue/10 rounded-lg transition-colors" title={language === 'ar' ? 'تعديل القسم' : 'Edit Category'}><Edit2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                                <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title={language === 'ar' ? 'حذف القسم' : 'Delete Category'}><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
                                             </div>
                                         </div>
                                     )}
@@ -536,6 +565,16 @@ export default function MenuBuilderPage() {
                                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}
                                             className="overflow-hidden">
                                             <div className="p-4 md:p-6 flex flex-col gap-4">
+                                                {isCatHidden && (
+                                                    <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs sm:text-sm px-4 py-2.5 rounded-xl flex items-center gap-2">
+                                                        <EyeOff className="w-4 h-4 shrink-0" />
+                                                        <span>
+                                                            {language === "ar"
+                                                                ? "تنبيه: هذا القسم وجميع أصنافه مخفية حالياً ولا تظهر للعملاء في المنيو."
+                                                                : "Notice: This entire category and all its items are currently hidden from the public menu."}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 {cat.items.length === 0 && addingItemToCat !== cat.id && (
                                                     <div className="text-center py-4 text-silver/60 text-base">{language === "ar" ? "لا توجد أصناف بعد." : "No items yet."}</div>
                                                 )}
@@ -940,7 +979,7 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
                         await supabase.from('categories').update({ image_url: imgUrl, thumbnail_url: thumbUrl }).eq('id', data.id);
                     }
                 }
-                onCreated({ ...data, image_url: imgUrl, thumbnail_url: thumbUrl, items: [] });
+                onCreated({ ...data, is_available: true, image_url: imgUrl, thumbnail_url: thumbUrl, items: [] });
             }
         } catch (e) { console.error(e); }
         finally { setSaving(false); }
@@ -1357,7 +1396,24 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
     return (
         <div onPaste={handlePaste} className="space-y-4 bg-blue/5 p-4 rounded-xl border border-blue/20">
             <div className="flex items-center justify-between">
-                <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل القسم" : "Edit Category"}</h3>
+                <div className="flex items-center gap-3">
+                    <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل القسم" : "Edit Category"}</h3>
+                    <button
+                        type="button"
+                        onClick={() => onUpdate({ is_available: cat.is_available === false })}
+                        className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold flex items-center gap-1 transition-colors ${
+                            cat.is_available === false
+                                ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500'
+                                : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500'
+                        }`}
+                    >
+                        {cat.is_available === false ? (
+                            <><EyeOff className="w-3 h-3" /> {language === "ar" ? "مخفي - اضغط للإظهار" : "Hidden - Show"}</>
+                        ) : (
+                            <><Eye className="w-3 h-3" /> {language === "ar" ? "ظاهر في المنيو" : "Visible in Menu"}</>
+                        )}
+                    </button>
+                </div>
                 <div className="flex gap-2">
                     <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-blue text-slate-900 dark:text-white text-sm font-bold rounded-lg"><Save className="w-3 h-3" /> {language === "ar" ? "حفظ" : "Save"}</button>
                     <button onClick={onClose} className="p-1.5 text-silver hover:text-red-500"><X className="w-4 h-4" /></button>
