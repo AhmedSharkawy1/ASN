@@ -1633,12 +1633,13 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 <div className="space-y-4">
                                     {cat.items?.map(item => {
                                         const inCartQty = getItemCartQty(item.id);
-                                        const hasDiscount = item.old_prices && item.old_prices[0] && item.old_prices[0] > (item.prices?.[0] || 0);
+                                        const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
+                                        const hasDiscount = item.old_prices && item.old_prices.some((op, idx) => op && op > (item.prices?.[idx] || 0));
 
                                         return (
                                             <div
                                                 key={`showcase-item-t30-${item.id}`}
-                                                onClick={() => handleItemClick(item, catName(cat), cat.id)}
+                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
                                                 className="group bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-3xl overflow-hidden border border-black/5 dark:border-white/10 shadow-sm hover:shadow-lg transition-all cursor-pointer"
                                             >
                                                 <div className="relative w-full h-44 sm:h-52 bg-slate-100 dark:bg-zinc-800 overflow-hidden">
@@ -1667,43 +1668,109 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                             )}
                                                         </div>
                                                         <div className="text-right">
-                                                            <div className="text-base sm:text-lg font-black drop-shadow-md">
-                                                                {item.prices?.[0] || 0} {cur}
-                                                            </div>
-                                                            {hasDiscount && (
-                                                                <span className="text-xs text-white/60 line-through">
-                                                                    {item.old_prices![0]} {cur}
-                                                                </span>
+                                                            {hasMultipleSizes ? (
+                                                                <div>
+                                                                    <span className="text-[10px] text-white/80 block leading-tight">{isAr ? 'يبدأ من' : 'Starts from'}</span>
+                                                                    <div className="text-base sm:text-lg font-black drop-shadow-md text-amber-300">
+                                                                        {Math.min(...item.prices)} {cur}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div>
+                                                                    <div className="text-base sm:text-lg font-black drop-shadow-md">
+                                                                        {item.prices?.[0] || 0} {cur}
+                                                                    </div>
+                                                                    {hasDiscount && item.old_prices?.[0] && (
+                                                                        <span className="text-xs text-white/60 line-through">
+                                                                            {item.old_prices[0]} {cur}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="p-3.5 flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
-                                                    <span className="text-xs font-semibold text-slate-500">
-                                                        {catName(cat)}
-                                                    </span>
+                                                <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="flex-1 min-w-0">
+                                                        {hasMultipleSizes ? (
+                                                            <div className="space-y-1.5">
+                                                                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block">
+                                                                    {isAr ? 'اختر الحجم مباشرة:' : 'Available Sizes:'}
+                                                                </span>
+                                                                <div className="flex flex-wrap items-center gap-1.5">
+                                                                    {item.prices.map((price, pIdx) => {
+                                                                        const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                        const oldPrice = item.old_prices?.[pIdx];
+                                                                        const hasDisc = Boolean(oldPrice && oldPrice > price);
+                                                                        const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
 
-                                                    {inCartQty > 0 ? (
-                                                        <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 rounded-2xl">
-                                                            <button onClick={() => quickDecrementFromCart(item.id)} className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center active:scale-90">
-                                                                <Minus className="w-3.5 h-3.5" />
-                                                            </button>
-                                                            <span className="font-black text-sm px-1">{inCartQty}</span>
-                                                            <button onClick={() => quickAddToCart(item, catName(cat), 0)} className="w-6 h-6 rounded-lg text-white flex items-center justify-center active:scale-90" style={{ backgroundColor: primaryColor }}>
+                                                                        return (
+                                                                            <button
+                                                                                key={pIdx}
+                                                                                type="button"
+                                                                                onClick={() => handleItemClick(item, catName(cat), cat.id, pIdx)}
+                                                                                className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+                                                                                    sizeCartQty > 0
+                                                                                        ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                                                                                        : 'border-black/5 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-200'
+                                                                                }`}
+                                                                            >
+                                                                                {sizeCartQty > 0 && (
+                                                                                    <span 
+                                                                                        className="w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs"
+                                                                                        style={{ backgroundColor: primaryColor }}
+                                                                                    >
+                                                                                        {sizeCartQty}
+                                                                                    </span>
+                                                                                )}
+                                                                                <span className="text-slate-500 dark:text-zinc-400">{label}:</span>
+                                                                                {hasDisc && <span className="text-[10px] text-slate-400 line-through">{oldPrice}</span>}
+                                                                                <span className="font-black text-sm" style={{ color: primaryColor }}>{price}</span>
+                                                                                <span className="text-[10px] font-bold text-slate-400">{cur}</span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs font-semibold text-slate-500">
+                                                                {catName(cat)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="shrink-0 flex items-center justify-end gap-2">
+                                                        {hasMultipleSizes ? (
+                                                            <button
+                                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                                className="px-4 py-2 rounded-2xl text-white text-xs font-black shadow-xs active:scale-95 flex items-center gap-1.5 transition-all"
+                                                                style={{ backgroundColor: primaryColor }}
+                                                            >
                                                                 <Plus className="w-3.5 h-3.5" />
+                                                                <span>{isAr ? 'عرض التفاصيل والطلب' : 'Select & Order'}</span>
                                                             </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => handleItemClick(item, catName(cat), cat.id)}
-                                                            className="px-4 py-2 rounded-2xl text-white text-xs font-black shadow-xs active:scale-95 flex items-center gap-1.5"
-                                                            style={{ backgroundColor: primaryColor }}
-                                                        >
-                                                            <ShoppingCart className="w-3.5 h-3.5" />
-                                                            <span>{isAr ? 'إضافة للسلة' : 'Add to Cart'}</span>
-                                                        </button>
-                                                    )}
+                                                        ) : inCartQty > 0 ? (
+                                                            <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 rounded-2xl">
+                                                                <button onClick={() => quickDecrementFromCart(item.id)} className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center active:scale-90">
+                                                                    <Minus className="w-3.5 h-3.5" />
+                                                                </button>
+                                                                <span className="font-black text-sm px-1">{inCartQty}</span>
+                                                                <button onClick={() => quickAddToCart(item, catName(cat), 0)} className="w-6 h-6 rounded-lg text-white flex items-center justify-center active:scale-90" style={{ backgroundColor: primaryColor }}>
+                                                                    <Plus className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button 
+                                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                                className="px-4 py-2 rounded-2xl text-white text-xs font-black shadow-xs active:scale-95 flex items-center gap-1.5"
+                                                                style={{ backgroundColor: primaryColor }}
+                                                            >
+                                                                <ShoppingCart className="w-3.5 h-3.5" />
+                                                                <span>{isAr ? 'إضافة للسلة' : 'Add to Cart'}</span>
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
