@@ -7,10 +7,10 @@ import {
     ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, 
     Sparkles, Flame, Clock, MapPin, Phone, MessageCircle,
     Sun, Moon, Globe, ChevronRight, ChevronLeft, Check,
-    LayoutGrid, LayoutList, Tag, Heart, Info, Eye, 
+    LayoutGrid, LayoutList, Tag, Heart, Eye, 
     Truck, ShieldCheck, CreditCard, Headphones, Star, 
     SlidersHorizontal, CheckCircle2, AlertCircle, ShoppingBag, ArrowRight, ArrowLeft,
-    Ticket, Gift, Percent
+    Ticket, Gift, Percent, Store, Wallet, Copy, CheckCheck, Banknote, Smartphone
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaInstagram, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
@@ -207,7 +207,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const [wishlist, setWishlist] = useState<(string | number)[]>([]);
     const [isWishlistOpen, setIsWishlistOpen] = useState(false);
 
-    // State: Quick View Modal
+    // State: Product Selection / Customization Modal (المعاينة واختيار المقاسات والملاحظات)
     const [quickViewItem, setQuickViewItem] = useState<{ item: MenuItem; catName: string } | null>(null);
     const [modalSizeIdx, setModalSizeIdx] = useState(0);
     const [modalQty, setModalQty] = useState(1);
@@ -216,6 +216,10 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
 
     // State: Info Modal (Contact & Working Hours)
     const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+
+    // State: Payment Methods Modal
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
 
     // Load wishlist from local storage
     useEffect(() => {
@@ -419,81 +423,9 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         setPromoCodeError('');
     };
 
-    // Quick Add directly to cart (first variant)
-    const handleQuickAdd = (item: MenuItem, cName: string, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        if (config?.orders_enabled === false || item.is_available === false) return;
-
-        // If item has multiple sizes or extras, open Quick View modal instead for precision
-        if ((item.prices && item.prices.length > 1) || (item.extras && item.extras.length > 0)) {
-            openQuickView(item, cName);
-            return;
-        }
-
-        const sizeLabel = item.size_labels?.[0] || (isAr ? 'عادي' : 'Regular');
-        const price = item.prices?.[0] || 0;
-        const cartId = `${item.id}-0-default`;
-
-        setCart(prev => {
-            const ex = prev.find(c => c.id === cartId);
-            if (ex) {
-                return prev.map(c => c.id === cartId ? { ...c, quantity: c.quantity + 1 } : c);
-            }
-            return [...prev, {
-                id: cartId,
-                item,
-                catName: cName,
-                price,
-                sizeLabel,
-                quantity: 1,
-                notes: '',
-                extras: []
-            }];
-        });
-
-        if (navigator.vibrate) navigator.vibrate(25);
-    };
-
-    // Inline quantity update directly on card
-    const getItemCartQty = (itemId: string | number) => {
-        return cart.filter(c => c.item.id === itemId).reduce((acc, curr) => acc + curr.quantity, 0);
-    };
-
-    const handleUpdateItemCartQty = (item: MenuItem, delta: number, e?: React.MouseEvent) => {
-        if (e) e.stopPropagation();
-        const existingLines = cart.filter(c => c.item.id === item.id);
-        if (existingLines.length === 0 && delta > 0) {
-            handleQuickAdd(item, item.catName || '');
-            return;
-        }
-        if (existingLines.length > 1) {
-            // Multiple variants in cart; open cart drawer to let user adjust specific variant
-            setIsCartOpen(true);
-            return;
-        }
-        if (existingLines.length === 1) {
-            const line = existingLines[0];
-            updateCartLineQty(line.id, delta);
-        }
-    };
-
-    const updateCartLineQty = (cartId: string, delta: number) => {
-        setCart(prev => prev.map(c => {
-            if (c.id === cartId) {
-                const nextQty = c.quantity + delta;
-                return { ...c, quantity: nextQty };
-            }
-            return c;
-        }).filter(c => c.quantity > 0));
-        if (navigator.vibrate) navigator.vibrate(15);
-    };
-
-    const removeCartLine = (cartId: string) => {
-        setCart(prev => prev.filter(c => c.id !== cartId));
-    };
-
-    // Open Quick View Modal
+    // Open Product Selection / Customization Modal (The primary logical way to choose an item)
     const openQuickView = (item: MenuItem, cName: string) => {
+        if (config?.orders_enabled === false || item.is_available === false) return;
         setQuickViewItem({ item, catName: cName });
         setModalSizeIdx(0);
         setModalQty(1);
@@ -507,13 +439,15 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         document.body.style.overflow = 'auto';
     };
 
+    // Add to cart from the selection modal
     const handleAddFromModal = () => {
         if (!quickViewItem || config?.orders_enabled === false) return;
         const { item, catName: cName } = quickViewItem;
         const basePrice = item.prices?.[modalSizeIdx] || 0;
         const extrasSum = modalSelectedExtras.reduce((sum, e) => sum + (e.price * e.qty), 0);
         const finalUnitPrice = basePrice + extrasSum;
-        const sizeLabel = item.size_labels?.[modalSizeIdx] || (isAr ? 'عادي' : 'Regular');
+        const rawLabel = item.size_labels?.[modalSizeIdx] || (isAr ? 'عادي' : 'Regular');
+        const sizeLabel = rawLabel.includes('::') ? rawLabel.split('::')[0] : rawLabel;
 
         const extrasKey = modalSelectedExtras.map(e => `${e.name}_${e.qty}`).sort().join(';');
         const cartId = `${item.id}-${modalSizeIdx}-${extrasKey}-${modalNotes.trim()}`;
@@ -536,8 +470,34 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         });
 
         closeQuickView();
-        setIsCartOpen(true);
         if (navigator.vibrate) navigator.vibrate(30);
+    };
+
+    // Quantity check in cart
+    const getItemCartQty = (itemId: string | number) => {
+        return cart.filter(c => c.item.id === itemId).reduce((acc, curr) => acc + curr.quantity, 0);
+    };
+
+    const updateCartLineQty = (cartId: string, delta: number) => {
+        setCart(prev => prev.map(c => {
+            if (c.id === cartId) {
+                const nextQty = c.quantity + delta;
+                return { ...c, quantity: nextQty };
+            }
+            return c;
+        }).filter(c => c.quantity > 0));
+        if (navigator.vibrate) navigator.vibrate(15);
+    };
+
+    const removeCartLine = (cartId: string) => {
+        setCart(prev => prev.filter(c => c.id !== cartId));
+    };
+
+    // Copy to clipboard helper
+    const handleCopy = (text: string, id: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedAccount(id);
+        setTimeout(() => setCopiedAccount(null), 2500);
     };
 
     // WhatsApp Direct 1-Click Order Formatter
@@ -745,40 +705,50 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                         </div>
 
                         {/* Header Action Buttons */}
-                        <div className="flex items-center gap-2 sm:gap-3">
-                            {/* Info & Working Hours Button */}
+                        <div className="flex items-center gap-1.5 sm:gap-2.5">
+                            {/* Clear Store Profile & Hours Button (Replaces the obscure exclamation mark) */}
                             <button
                                 onClick={() => setIsInfoModalOpen(true)}
-                                className="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
+                                className="px-2.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
-                                title={isAr ? 'معلومات المتجر والتواصل' : 'Store Info'}
+                                title={isAr ? 'بيانات ومواعيد العمل' : 'Store Info & Hours'}
                             >
-                                <Info className="w-4 h-4 text-emerald-500" />
-                                <span className="hidden md:inline">{isAr ? 'معلومات المتجر' : 'Store Info'}</span>
+                                <Store className="w-4 h-4 text-emerald-500" />
+                                <span className="hidden lg:inline">{isAr ? 'بيانات ومواعيد المتجر' : 'Store & Hours'}</span>
+                                <span className="inline lg:hidden text-[11px]">{isAr ? 'عن المكان' : 'Info'}</span>
+                            </button>
+
+                            {/* Payment Methods Button */}
+                            <button
+                                onClick={() => setIsPaymentModalOpen(true)}
+                                className="px-2.5 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm"
+                                style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
+                                title={isAr ? 'طرق ووسائل الدفع' : 'Payment Methods'}
+                            >
+                                <CreditCard className="w-4 h-4 text-amber-500" />
+                                <span className="hidden sm:inline">{isAr ? 'طرق الدفع' : 'Payments'}</span>
                             </button>
 
                             {/* Share Button */}
                             <button
                                 onClick={handleShare}
-                                className="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
+                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? 'مشاركة المتجر' : 'Share'}
                             >
                                 <Share2 className="w-4 h-4 text-blue-500" />
-                                <span className="hidden md:inline">{isAr ? 'مشاركة' : 'Share'}</span>
                             </button>
 
                             {/* Wishlist Button */}
                             <button
                                 onClick={() => setIsWishlistOpen(true)}
-                                className="relative p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
+                                className="relative p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? 'المفضلة' : 'Wishlist'}
                             >
                                 <Heart className={`w-4 h-4 ${wishlist.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-500'}`} />
-                                <span className="hidden md:inline">{isAr ? 'المفضلة' : 'Wishlist'}</span>
                                 {wishlist.length > 0 && (
-                                    <span className="absolute -top-1.5 -end-1.5 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-bounce">
+                                    <span className="absolute -top-1.5 -end-1.5 bg-rose-500 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-md animate-bounce">
                                         {wishlist.length}
                                     </span>
                                 )}
@@ -787,7 +757,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {/* Cart Drawer Trigger Button (Shopify Style Pill) */}
                             <button
                                 onClick={() => setIsCartOpen(true)}
-                                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-white shadow-lg shadow-emerald-900/10 transition-all hover:opacity-95 active:scale-95"
+                                className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-bold text-white shadow-lg shadow-emerald-900/10 transition-all hover:opacity-95 active:scale-95"
                                 style={{ backgroundColor: primaryColor }}
                             >
                                 <div className="relative">
@@ -1127,7 +1097,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
             </div>
 
             {/* 6. PRODUCTS & CATEGORIES LIST */}
-            <main className="max-w-7xl mx-auto px-4 py-4 min-h-[50vh]">
+            <main className="max-w-7xl mx-auto px-4 py-4 min-h-[50vh] pb-32">
                 {filteredCategories.length === 0 ? (
                     <div className="text-center py-20 px-4 rounded-3xl border border-dashed my-8" style={{ borderColor: borderColor, backgroundColor: bgCard }}>
                         <AlertCircle className="w-12 h-12 mx-auto text-slate-400 mb-3" />
@@ -1188,16 +1158,14 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                         return (
                                             <div 
                                                 key={item.id}
-                                                className={`group flex flex-col rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative overflow-hidden ${
+                                                onClick={() => openQuickView(item, catName(cat))}
+                                                className={`group flex flex-col rounded-2xl border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative overflow-hidden cursor-pointer ${
                                                     !isAvailable ? 'opacity-70 grayscale-[20%]' : ''
                                                 }`}
                                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                             >
                                                 {/* Card Media Container */}
-                                                <div 
-                                                    className="relative aspect-square w-full bg-slate-100 dark:bg-slate-800 overflow-hidden cursor-pointer"
-                                                    onClick={() => openQuickView(item, catName(cat))}
-                                                >
+                                                <div className="relative aspect-square w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                                     {item.image_url || item.image ? (
                                                         <OptimizedMenuImage 
                                                             src={item.image_url || item.image}
@@ -1247,7 +1215,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                         </div>
                                                     )}
 
-                                                    {/* Quick Action Floating Buttons (Shopify Hover Style) */}
+                                                    {/* Wishlist Floating Button */}
                                                     <div className="absolute top-2 end-2 flex flex-col gap-1.5 z-10">
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }}
@@ -1255,13 +1223,6 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                             title={isAr ? 'إضافة للمفضلة' : 'Wishlist'}
                                                         >
                                                             <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500' : ''}`} />
-                                                        </button>
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); openQuickView(item, catName(cat)); }}
-                                                            className="p-1.5 rounded-full bg-white/90 dark:bg-black/80 backdrop-blur-md shadow-md text-slate-700 dark:text-slate-200 hover:scale-110 active:scale-95 transition-all"
-                                                            title={isAr ? 'معاينة سريعة' : 'Quick View'}
-                                                        >
-                                                            <Eye className="w-3.5 h-3.5" />
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1274,10 +1235,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                     </span>
 
                                                     {/* Title */}
-                                                    <h4 
-                                                        className="font-extrabold text-xs sm:text-sm tracking-tight leading-snug line-clamp-1 cursor-pointer hover:underline"
-                                                        onClick={() => openQuickView(item, catName(cat))}
-                                                    >
+                                                    <h4 className="font-extrabold text-xs sm:text-sm tracking-tight leading-snug line-clamp-1 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                                                         {title}
                                                     </h4>
 
@@ -1300,76 +1258,51 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                         </p>
                                                     )}
 
-                                                    {/* Multiple size indicators if any */}
-                                                    {item.size_labels && item.size_labels.length > 1 && (
-                                                        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar mb-2 mt-auto">
-                                                            {item.size_labels.map((lbl: string, idx: number) => {
-                                                                const cleanLabel = lbl.includes('::') ? lbl.split('::')[0] : lbl;
-                                                                return (
-                                                                    <span 
-                                                                        key={idx} 
-                                                                        className="px-1.5 py-0.5 rounded text-[9px] font-bold border whitespace-nowrap bg-slate-50 dark:bg-slate-800"
-                                                                        style={{ borderColor: borderColor }}
-                                                                    >
-                                                                        {cleanLabel}
-                                                                    </span>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Price & Add to Cart Container */}
-                                                    <div className="mt-auto pt-2 flex items-center justify-between gap-2 border-t" style={{ borderColor: borderColor }}>
-                                                        <div className="flex flex-col">
-                                                            <div className="flex items-baseline gap-1.5">
-                                                                <span className="text-sm sm:text-base font-black tracking-tight" style={{ color: primaryColor }}>
-                                                                    {price} {cur}
-                                                                </span>
-                                                                {hasDiscount && (
-                                                                    <span className="text-[11px] text-muted-foreground line-through font-mono opacity-70">
-                                                                        {oldPrice} {cur}
-                                                                    </span>
-                                                                )}
-                                                            </div>
+                                                    {/* Price & Discount */}
+                                                    <div className="flex items-baseline justify-between gap-1.5 my-1.5">
+                                                        <div className="flex items-baseline gap-1.5">
+                                                            <span className="text-sm sm:text-base font-black tracking-tight" style={{ color: primaryColor }}>
+                                                                {price} {cur}
+                                                            </span>
                                                             {hasDiscount && (
-                                                                <span className="text-[9px] font-bold text-rose-500">
-                                                                    {isAr ? `وفر ${(oldPrice - price).toFixed(0)} ${cur}` : `Save ${(oldPrice - price).toFixed(0)} ${cur}`}
+                                                                <span className="text-[11px] text-muted-foreground line-through font-mono opacity-70">
+                                                                    {oldPrice} {cur}
                                                                 </span>
                                                             )}
                                                         </div>
+                                                        {hasDiscount && (
+                                                            <span className="text-[10px] font-bold text-rose-500">
+                                                                {isAr ? `وفر ${(oldPrice - price).toFixed(0)} ${cur}` : `Save ${(oldPrice - price).toFixed(0)}`}
+                                                            </span>
+                                                        )}
+                                                    </div>
 
-                                                        {/* Interactive Add to Cart button */}
+                                                    {/* Logical Action Button: Triggers Product Selection Modal */}
+                                                    <div className="mt-auto pt-2 border-t" style={{ borderColor: borderColor }}>
                                                         {config?.orders_enabled !== false && isAvailable && (
-                                                            inCartQty > 0 ? (
-                                                                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border" style={{ borderColor: borderColor }}>
-                                                                    <button
-                                                                        onClick={(e) => handleUpdateItemCartQty(item, -1, e)}
-                                                                        className="w-6 h-6 rounded-lg bg-white dark:bg-black flex items-center justify-center shadow-sm text-slate-800 dark:text-slate-100 hover:bg-slate-200 active:scale-95"
-                                                                    >
-                                                                        <Minus className="w-3 h-3" />
-                                                                    </button>
-                                                                    <span className="text-xs font-black px-1.5 min-w-[16px] text-center font-mono">
-                                                                        {inCartQty}
-                                                                    </span>
-                                                                    <button
-                                                                        onClick={(e) => handleUpdateItemCartQty(item, 1, e)}
-                                                                        className="w-6 h-6 rounded-lg text-white flex items-center justify-center shadow-sm hover:opacity-90 active:scale-95"
-                                                                        style={{ backgroundColor: primaryColor }}
-                                                                    >
-                                                                        <Plus className="w-3 h-3" />
-                                                                    </button>
-                                                                </div>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={(e) => handleQuickAdd(item, catName(cat), e)}
-                                                                    className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1 transition-all hover:opacity-90 active:scale-95 shrink-0"
-                                                                    style={{ backgroundColor: primaryColor }}
-                                                                    title={isAr ? 'أضف للسلة' : 'Add to cart'}
-                                                                >
-                                                                    <ShoppingCart className="w-3.5 h-3.5" />
-                                                                    <span className="hidden sm:inline">{isAr ? 'أضف' : 'Add'}</span>
-                                                                </button>
-                                                            )
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); openQuickView(item, catName(cat)); }}
+                                                                className={`w-full py-2 px-2.5 rounded-xl text-xs font-black shadow-sm flex items-center justify-center gap-1.5 transition-all hover:opacity-95 active:scale-95 ${
+                                                                    inCartQty > 0
+                                                                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                                                        : 'text-white'
+                                                                }`}
+                                                                style={{ 
+                                                                    backgroundColor: inCartQty > 0 ? undefined : primaryColor 
+                                                                }}
+                                                            >
+                                                                {inCartQty > 0 ? (
+                                                                    <>
+                                                                        <Check className="w-3.5 h-3.5" />
+                                                                        <span>{isAr ? `تعديل / خيارات (${inCartQty})` : `Selected (${inCartQty})`}</span>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Plus className="w-3.5 h-3.5" />
+                                                                        <span>{isAr ? 'اختيار ومواصفات الصنف 🛒' : 'Select Options 🛒'}</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
                                                         )}
                                                     </div>
                                                 </div>
@@ -1378,7 +1311,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                     })}
                                 </div>
                             ) : (
-                                /* List View (Super convenient for restaurants & fast buying) */
+                                /* List View (Clean Restaurant Menu View) */
                                 <div className="space-y-3">
                                     {(cat.items || []).map((item) => {
                                         const title = itemName(item);
@@ -1394,16 +1327,14 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                         return (
                                             <div 
                                                 key={item.id}
-                                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all hover:shadow-md ${
+                                                onClick={() => openQuickView(item, catName(cat))}
+                                                className={`flex items-center gap-3 p-3 rounded-2xl border transition-all hover:shadow-md cursor-pointer ${
                                                     !isAvailable ? 'opacity-60' : ''
                                                 }`}
                                                 style={{ backgroundColor: bgCard, borderColor: borderColor }}
                                             >
                                                 {/* Left Thumbnail */}
-                                                <div 
-                                                    className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 cursor-pointer"
-                                                    onClick={() => openQuickView(item, catName(cat))}
-                                                >
+                                                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0">
                                                     {item.image_url || item.image ? (
                                                         <OptimizedMenuImage 
                                                             src={item.image_url || item.image}
@@ -1431,10 +1362,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                 {/* Middle Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-1.5">
-                                                        <h4 
-                                                            className="font-bold text-xs sm:text-sm tracking-tight truncate cursor-pointer hover:underline"
-                                                            onClick={() => openQuickView(item, catName(cat))}
-                                                        >
+                                                        <h4 className="font-bold text-xs sm:text-sm tracking-tight truncate">
                                                             {title}
                                                         </h4>
                                                         {item.is_popular && <span className="text-[10px] text-amber-500 font-bold">🔥</span>}
@@ -1459,10 +1387,10 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                     </div>
                                                 </div>
 
-                                                {/* Right Action */}
+                                                {/* Right Action: Open Selection Modal */}
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     <button 
-                                                        onClick={() => toggleWishlist(item.id)}
+                                                        onClick={(e) => { e.stopPropagation(); toggleWishlist(item.id); }}
                                                         className="p-2 rounded-xl text-slate-400 hover:text-rose-500"
                                                         title={isAr ? 'المفضلة' : 'Wishlist'}
                                                     >
@@ -1470,35 +1398,27 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                     </button>
 
                                                     {config?.orders_enabled !== false && isAvailable && (
-                                                        inCartQty > 0 ? (
-                                                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border" style={{ borderColor: borderColor }}>
-                                                                <button
-                                                                    onClick={(e) => handleUpdateItemCartQty(item, -1, e)}
-                                                                    className="w-7 h-7 rounded-lg bg-white dark:bg-black flex items-center justify-center shadow-sm"
-                                                                >
-                                                                    <Minus className="w-3.5 h-3.5" />
-                                                                </button>
-                                                                <span className="text-xs font-black px-2 min-w-[16px] text-center font-mono">
-                                                                    {inCartQty}
-                                                                </span>
-                                                                <button
-                                                                    onClick={(e) => handleUpdateItemCartQty(item, 1, e)}
-                                                                    className="w-7 h-7 rounded-lg text-white flex items-center justify-center shadow-sm"
-                                                                    style={{ backgroundColor: primaryColor }}
-                                                                >
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openQuickView(item, catName(cat)); }}
+                                                            className={`px-3 py-2 rounded-xl text-xs font-bold shadow-sm flex items-center gap-1.5 transition-all hover:opacity-90 active:scale-95 ${
+                                                                inCartQty > 0
+                                                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                                                                    : 'text-white'
+                                                            }`}
+                                                            style={{ backgroundColor: inCartQty > 0 ? undefined : primaryColor }}
+                                                        >
+                                                            {inCartQty > 0 ? (
+                                                                <>
+                                                                    <Check className="w-3.5 h-3.5" />
+                                                                    <span>{isAr ? `في السلة (${inCartQty})` : `In Cart (${inCartQty})`}</span>
+                                                                </>
+                                                            ) : (
+                                                                <>
                                                                     <Plus className="w-3.5 h-3.5" />
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                onClick={(e) => handleQuickAdd(item, catName(cat), e)}
-                                                                className="px-3 py-2 rounded-xl text-xs font-bold text-white shadow-sm flex items-center gap-1.5 transition-all hover:opacity-90 active:scale-95"
-                                                                style={{ backgroundColor: primaryColor }}
-                                                            >
-                                                                <ShoppingCart className="w-3.5 h-3.5" />
-                                                                <span>{isAr ? 'أضف' : 'Add'}</span>
-                                                            </button>
-                                                        )
+                                                                    <span>{isAr ? 'اختيار' : 'Select'}</span>
+                                                                </>
+                                                            )}
+                                                        </button>
                                                     )}
                                                 </div>
                                             </div>
@@ -1511,7 +1431,78 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 )}
             </main>
 
-            {/* 7. SHOPIFY SLIDE-OVER CART DRAWER */}
+            {/* 7. FLOATING MINI-CART (السلة الصغيرة العائمة - تظهر تلقائياً بمجرد إضافة أي منتج) */}
+            <AnimatePresence>
+                {cartCount > 0 && !isCartOpen && (
+                    <motion.div
+                        initial={{ y: 80, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 80, opacity: 0 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="fixed bottom-4 inset-x-4 max-w-lg mx-auto z-40"
+                    >
+                        <div 
+                            onClick={() => setIsCartOpen(true)}
+                            className="p-3 sm:p-3.5 rounded-2xl shadow-2xl border flex items-center justify-between gap-3 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] backdrop-blur-md"
+                            style={{ 
+                                backgroundColor: isDark ? 'rgba(20, 20, 23, 0.95)' : 'rgba(255, 255, 255, 0.95)', 
+                                borderColor: primaryColor,
+                                boxShadow: `0 12px 35px -5px ${primaryColor}40`
+                            }}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div 
+                                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white relative shrink-0 shadow-md"
+                                    style={{ backgroundColor: primaryColor }}
+                                >
+                                    <ShoppingCart className="w-5 h-5 animate-bounce" />
+                                    <span className="absolute -top-1.5 -end-1.5 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">
+                                        {cartCount}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-xs font-black block leading-tight">
+                                        {isAr ? `${cartCount} منتجات في السلة` : `${cartCount} items in cart`}
+                                    </span>
+                                    <span className="text-xs sm:text-sm font-mono font-extrabold" style={{ color: primaryColor }}>
+                                        {finalDiscountedTotal} {cur}
+                                        {promoDiscountAmount > 0 && (
+                                            <span className="ms-1.5 text-[10px] line-through text-muted-foreground font-normal">
+                                                {cartTotal} {cur}
+                                            </span>
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-white px-3.5 py-2 rounded-xl shadow-md flex items-center gap-1.5" style={{ backgroundColor: primaryColor }}>
+                                    <span>{isAr ? 'عرض السلة وإتمام الطلب' : 'View Cart'}</span>
+                                    {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                                </span>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* 8. FLOATING WHATSAPP BUTTON (زر الواتساب العائم) */}
+            {(config?.whatsapp_number || config?.phone) && (
+                <a
+                    href={`https://wa.me/${(config?.whatsapp_number || config?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(isAr ? `مرحباً، أود الاستفسار بخصوص الطلبات في متجر ${config?.name || ''}` : `Hello, I would like to inquire about orders at ${config?.name || ''}`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={`fixed ${cartCount > 0 && !isCartOpen ? 'bottom-24' : 'bottom-6'} ${isAr ? 'left-4' : 'right-4'} z-40 flex items-center gap-2 p-3 sm:px-4 sm:py-3 rounded-full bg-[#25D366] text-white shadow-2xl hover:scale-110 active:scale-95 transition-all group`}
+                    title={isAr ? 'تواصل معنا مباشرة عبر واتساب' : 'Chat with us on WhatsApp'}
+                >
+                    <FaWhatsapp className="w-6 h-6 animate-pulse" />
+                    <span className="hidden sm:inline font-bold text-xs">
+                        {isAr ? 'تواصل عبر واتساب' : 'Chat on WhatsApp'}
+                    </span>
+                </a>
+            )}
+
+            {/* 9. SHOPIFY SLIDE-OVER CART DRAWER */}
             <AnimatePresence>
                 {isCartOpen && (
                     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -1582,7 +1573,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                             <ShoppingBag className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-700 mb-3" />
                                             <h4 className="font-bold text-base mb-1">{isAr ? 'سلة المشتريات فارغة' : 'Your cart is empty'}</h4>
                                             <p className="text-xs text-muted-foreground mb-4" style={{ color: textMuted }}>
-                                                {isAr ? 'تصفح المنتجات وأضف ما يعجبك إلى السلة الآن' : 'Explore products and add items to your cart'}
+                                                {isAr ? 'تصفح المنتجات واختر ما يعجبك لإضافته للسلة' : 'Explore products and add items to your cart'}
                                             </p>
                                             <button 
                                                 onClick={() => setIsCartOpen(false)}
@@ -1879,7 +1870,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 )}
             </AnimatePresence>
 
-            {/* 8. PRODUCT QUICK VIEW MODAL (Shopify Modal) */}
+            {/* 10. PRODUCT SELECTION & CUSTOMIZATION MODAL (صفحة اختيار الصنف والمواصفات والملاحظات) */}
             <AnimatePresence>
                 {quickViewItem && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -1933,12 +1924,6 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                 {isAr ? 'الأكثر طلباً' : 'Best Seller'}
                                             </span>
                                         )}
-                                        {getItemActivePromotions(quickViewItem.item.id).length > 0 && (
-                                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-600 text-white shadow flex items-center gap-1">
-                                                <Gift className="w-3 h-3" />
-                                                {isAr ? 'مشمول بالعرض 🎁' : 'Promotion'}
-                                            </span>
-                                        )}
                                     </div>
                                 </div>
 
@@ -1966,6 +1951,16 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Promotion Banner if item is in promo */}
+                                    {getItemActivePromotions(quickViewItem.item.id).length > 0 && (
+                                        <div className="mt-2.5 p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                                            <Gift className="w-4 h-4 shrink-0 text-purple-600" />
+                                            <span className="font-bold">
+                                                {isAr ? 'هذا المنتج مشمول بعرض ترويجي نشط!' : 'This item is included in an active promo!'}
+                                            </span>
+                                        </div>
+                                    )}
 
                                     {/* Description */}
                                     {itemDesc(quickViewItem.item) && (
@@ -2066,14 +2061,14 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 {/* Special Notes Input */}
                                 <div className="space-y-1.5 pt-2">
                                     <label className="text-xs font-bold block text-muted-foreground" style={{ color: textMuted }}>
-                                        {isAr ? 'ملاحظات خاصة بالتحضير أو الطلب:' : 'Special preparation notes:'}
+                                        {isAr ? 'ملاحظات التحضير أو التخصيص الخاصة بك:' : 'Special customization or preparation notes:'}
                                     </label>
-                                    <input 
-                                        type="text"
+                                    <textarea 
+                                        rows={2}
                                         value={modalNotes}
                                         onChange={(e) => setModalNotes(e.target.value)}
-                                        placeholder={isAr ? 'مثال: بدون بصل، صوص إضافي...' : 'e.g. Extra sauce, no onions...'}
-                                        className="w-full px-3 py-2 rounded-xl border text-xs bg-slate-50 dark:bg-slate-800"
+                                        placeholder={isAr ? 'مثال: بدون بصل، صوص خارجي، سكر خفيف، لون معين، إلخ...' : 'e.g. Extra sauce, no onions, specific request...'}
+                                        className="w-full px-3 py-2 rounded-xl border text-xs bg-slate-50 dark:bg-slate-800 resize-none"
                                         style={{ borderColor: borderColor }}
                                     />
                                 </div>
@@ -2085,7 +2080,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 <div className="flex items-center gap-2 border rounded-xl p-1 bg-white dark:bg-black" style={{ borderColor: borderColor }}>
                                     <button
                                         onClick={() => setModalQty(Math.max(1, modalQty - 1))}
-                                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                         <Minus className="w-3.5 h-3.5" />
                                     </button>
@@ -2094,7 +2089,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                     </span>
                                     <button
                                         onClick={() => setModalQty(modalQty + 1)}
-                                        className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                         <Plus className="w-3.5 h-3.5" />
                                     </button>
@@ -2117,74 +2112,111 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 )}
             </AnimatePresence>
 
-            {/* 9. WISHLIST MODAL */}
+            {/* 11. PAYMENT METHODS MODAL (طرق ووسائل الدفع المتاحة) */}
             <AnimatePresence>
-                {isWishlistOpen && (
+                {isPaymentModalOpen && (
                     <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
                         <motion.div 
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="fixed inset-0 bg-black/60 backdrop-blur-sm"
-                            onClick={() => setIsWishlistOpen(false)}
+                            onClick={() => setIsPaymentModalOpen(false)}
                         />
                         <motion.div 
                             initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
                             exit={{ scale: 0.95, opacity: 0 }}
-                            className="relative w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border z-10 flex flex-col max-h-[80vh]"
+                            className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border z-10 p-5 space-y-4"
                             style={{ backgroundColor: bgCard, borderColor: borderColor }}
                         >
-                            <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: borderColor }}>
+                            <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: borderColor }}>
                                 <div className="flex items-center gap-2">
-                                    <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
-                                    <h3 className="font-black text-base">{isAr ? 'قائمة المفضلة' : 'Your Wishlist'}</h3>
-                                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800">
-                                        {wishlist.length}
-                                    </span>
+                                    <CreditCard className="w-5 h-5 text-amber-500" />
+                                    <h3 className="font-black text-base">{isAr ? 'طرق الدفع المتاحة' : 'Accepted Payment Methods'}</h3>
                                 </div>
-                                <button onClick={() => setIsWishlistOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600">
+                                <button onClick={() => setIsPaymentModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                                {wishlist.length === 0 ? (
-                                    <div className="text-center py-16">
-                                        <Heart className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-700 mb-2" />
-                                        <p className="text-sm font-bold">{isAr ? 'لم تقم بإضافة أي منتجات للمفضلة بعد' : 'No items in your wishlist yet'}</p>
+                            <div className="space-y-3">
+                                {/* Cash on Delivery */}
+                                <div className="p-3 rounded-2xl border flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                                        <Banknote className="w-5 h-5" />
                                     </div>
+                                    <div>
+                                        <h4 className="text-xs font-black">{isAr ? 'الدفع نقداً عند الاستلام' : 'Cash on Delivery'}</h4>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>
+                                            {isAr ? 'يمكنك الدفع كاش عند استلام طلبك أو في الصالة' : 'Pay in cash upon receiving your order'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Cards (Visa / Mastercard) */}
+                                <div className="p-3 rounded-2xl border flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
+                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                                        <CreditCard className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-black">{isAr ? 'البطاقات الائتمانية والبنكية' : 'Credit / Debit Cards'}</h4>
+                                        <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>
+                                            {isAr ? 'فيزا، ماستركارد، ميزة (عبر نقاط البيع أو التحويل)' : 'Visa, MasterCard, Meeza'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Custom merchant payment methods (e.g. Vodafone Cash, InstaPay) */}
+                                {config?.payment_methods && config.payment_methods.length > 0 ? (
+                                    config.payment_methods.map((pm: any, idx: number) => {
+                                        const name = isAr ? pm.name_ar : (pm.name_en || pm.name_ar);
+                                        const desc = isAr ? pm.desc_ar : (pm.desc_en || pm.desc_ar);
+                                        const num = pm.number;
+                                        const isCopied = copiedAccount === `pm-${idx}`;
+
+                                        return (
+                                            <div key={idx} className="p-3 rounded-2xl border space-y-2 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+                                                        <Smartphone className="w-5 h-5" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className="text-xs font-black">{name}</h4>
+                                                        {desc && (
+                                                            <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>{desc}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {num && (
+                                                    <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-black border text-xs font-mono font-bold" style={{ borderColor: borderColor }}>
+                                                        <span className="truncate">{num}</span>
+                                                        <button
+                                                            onClick={() => handleCopy(num, `pm-${idx}`)}
+                                                            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md text-white shrink-0 font-sans"
+                                                            style={{ backgroundColor: primaryColor }}
+                                                        >
+                                                            {isCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                                                            <span>{isCopied ? (isAr ? 'تم النسخ!' : 'Copied!') : (isAr ? 'نسخ' : 'Copy')}</span>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
                                 ) : (
-                                    allItems.filter(i => wishlist.includes(i.id)).map(item => (
-                                        <div key={item.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border" style={{ borderColor: borderColor }}>
-                                            <div className="flex items-center gap-2.5 min-w-0">
-                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0">
-                                                    {item.image_url || item.image ? (
-                                                        <OptimizedMenuImage src={item.image_url || item.image} alt={itemName(item)} className="w-full h-full object-cover" />
-                                                    ) : null}
-                                                </div>
-                                                <div className="truncate">
-                                                    <h5 className="font-bold text-xs truncate">{itemName(item)}</h5>
-                                                    <span className="text-xs font-mono font-bold" style={{ color: primaryColor }}>{item.prices?.[0] || 0} {cur}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                <button
-                                                    onClick={() => { handleQuickAdd(item, item.catName); setIsWishlistOpen(false); setIsCartOpen(true); }}
-                                                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm"
-                                                    style={{ backgroundColor: primaryColor }}
-                                                >
-                                                    {isAr ? 'أضف للسلة' : 'Add to Cart'}
-                                                </button>
-                                                <button
-                                                    onClick={() => toggleWishlist(item.id)}
-                                                    className="p-1.5 text-slate-400 hover:text-rose-500"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
+                                    <div className="p-3 rounded-2xl border flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
+                                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+                                            <Wallet className="w-5 h-5" />
                                         </div>
-                                    ))
+                                        <div>
+                                            <h4 className="text-xs font-black">{isAr ? 'المحافظ الإلكترونية وإنستاباي' : 'E-Wallets & InstaPay'}</h4>
+                                            <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>
+                                                {isAr ? 'متاح التحويل عند الطلب عبر الواتساب' : 'Available upon ordering via WhatsApp'}
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </motion.div>
@@ -2192,7 +2224,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 )}
             </AnimatePresence>
 
-            {/* 10. STORE INFO & CONTACT MODAL */}
+            {/* 12. STORE INFO & CONTACT MODAL */}
             <AnimatePresence>
                 {isInfoModalOpen && (
                     <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
@@ -2211,7 +2243,10 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             style={{ backgroundColor: bgCard, borderColor: borderColor }}
                         >
                             <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: borderColor }}>
-                                <h3 className="font-black text-base">{isAr ? 'معلومات المتجر والتواصل' : 'Store Information'}</h3>
+                                <div className="flex items-center gap-2">
+                                    <Store className="w-5 h-5 text-emerald-500" />
+                                    <h3 className="font-black text-base">{isAr ? 'بيانات ومواعيد المتجر' : 'Store Information & Hours'}</h3>
+                                </div>
                                 <button onClick={() => setIsInfoModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
                                     <X className="w-5 h-5" />
                                 </button>
@@ -2239,10 +2274,24 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </div>
                             )}
 
+                            {/* Branches */}
+                            {config?.branches && config.branches.length > 0 && (
+                                <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border text-xs" style={{ borderColor: borderColor }}>
+                                    <span className="font-bold block">{isAr ? 'فروعنا:' : 'Our Branches:'}</span>
+                                    <div className="flex flex-wrap gap-1.5 mt-1">
+                                        {config.branches.map((b: string, i: number) => (
+                                            <span key={i} className="px-2 py-1 rounded-lg bg-white dark:bg-black border font-medium text-[11px]" style={{ borderColor: borderColor }}>
+                                                🏢 {b}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Phone Numbers List */}
                             {phoneList.length > 0 && (
                                 <div className="space-y-2">
-                                    <span className="text-xs font-bold block">{isAr ? 'أرقام الاتصال:' : 'Phone Numbers:'}</span>
+                                    <span className="text-xs font-bold block">{isAr ? 'أرقام الاتصال والطلبات:' : 'Phone Numbers:'}</span>
                                     <div className="space-y-1.5">
                                         {phoneList.map((p, idx) => (
                                             <a 
@@ -2300,7 +2349,82 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 )}
             </AnimatePresence>
 
-            {/* 11. OFFICIAL CHECKOUT MODAL INTEGRATION */}
+            {/* 13. WISHLIST MODAL */}
+            <AnimatePresence>
+                {isWishlistOpen && (
+                    <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setIsWishlistOpen(false)}
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border z-10 flex flex-col max-h-[80vh]"
+                            style={{ backgroundColor: bgCard, borderColor: borderColor }}
+                        >
+                            <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: borderColor }}>
+                                <div className="flex items-center gap-2">
+                                    <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                                    <h3 className="font-black text-base">{isAr ? 'قائمة المفضلة' : 'Your Wishlist'}</h3>
+                                    <span className="px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800">
+                                        {wishlist.length}
+                                    </span>
+                                </div>
+                                <button onClick={() => setIsWishlistOpen(false)} className="p-1.5 text-slate-400 hover:text-slate-600">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                                {wishlist.length === 0 ? (
+                                    <div className="text-center py-16">
+                                        <Heart className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-700 mb-2" />
+                                        <p className="text-sm font-bold">{isAr ? 'لم تقم بإضافة أي منتجات للمفضلة بعد' : 'No items in your wishlist yet'}</p>
+                                    </div>
+                                ) : (
+                                    allItems.filter(i => wishlist.includes(i.id)).map(item => (
+                                        <div key={item.id} className="flex items-center justify-between gap-3 p-2.5 rounded-xl border" style={{ borderColor: borderColor }}>
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                                <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 shrink-0">
+                                                    {item.image_url || item.image ? (
+                                                        <OptimizedMenuImage src={item.image_url || item.image} alt={itemName(item)} className="w-full h-full object-cover" />
+                                                    ) : null}
+                                                </div>
+                                                <div className="truncate">
+                                                    <h5 className="font-bold text-xs truncate">{itemName(item)}</h5>
+                                                    <span className="text-xs font-mono font-bold" style={{ color: primaryColor }}>{item.prices?.[0] || 0} {cur}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <button
+                                                    onClick={() => { openQuickView(item, item.catName); setIsWishlistOpen(false); }}
+                                                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-white shadow-sm"
+                                                    style={{ backgroundColor: primaryColor }}
+                                                >
+                                                    {isAr ? 'اختيار ومواصفات' : 'Select'}
+                                                </button>
+                                                <button
+                                                    onClick={() => toggleWishlist(item.id)}
+                                                    className="p-1.5 text-slate-400 hover:text-rose-500"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* 14. OFFICIAL CHECKOUT MODAL INTEGRATION */}
             <CheckoutModal 
                 isOpen={showCheckout} 
                 onClose={() => setShowCheckout(false)} 
@@ -2329,7 +2453,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 }}
             />
 
-            {/* 12. STORE FOOTER (Shopify Style) */}
+            {/* 15. STORE FOOTER (Shopify Style) */}
             <footer className="border-t mt-16 py-10 transition-colors" style={{ backgroundColor: bgCard, borderColor: borderColor }}>
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
