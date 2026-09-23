@@ -1229,13 +1229,18 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                 {/* Price & Add Controls */}
                                                 {hasMultipleSizes ? (
                                                     <div className="mt-2.5 pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
-                                                        {/* Sizes Grid */}
-                                                        <div className={`grid ${item.prices.length === 2 ? 'grid-cols-2' : item.prices.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-1 w-full`}>
+                                                        {/* Sizes Grid: 2 cols for 2 or 4 sizes, 3 cols for 3 sizes, scroll track for 5+ sizes */}
+                                                        <div className={`${
+                                                            item.prices.length === 2 ? 'grid grid-cols-2 gap-1.5 w-full' :
+                                                            item.prices.length === 3 ? 'grid grid-cols-3 gap-1 w-full' :
+                                                            item.prices.length === 4 ? 'grid grid-cols-2 gap-1.5 w-full' :
+                                                            'flex items-stretch gap-1.5 overflow-x-auto no-scrollbar py-1 w-full'
+                                                        }`}>
                                                             {item.prices.map((price, pIdx) => {
                                                                 const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                 const oldPrice = item.old_prices?.[pIdx];
                                                                 const hasDisc = Boolean(oldPrice && oldPrice > price);
-                                                                const isOddLast = (item.prices.length % 2 !== 0 && item.prices.length > 3) && (pIdx === item.prices.length - 1);
+                                                                const sizeDiscountPercent = hasDisc && oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
                                                                 const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
 
                                                                 return (
@@ -1246,35 +1251,65 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                             e.stopPropagation();
                                                                             handleItemClick(item, catName(cat), cat.id, pIdx);
                                                                         }}
-                                                                        className={`relative group/size flex flex-col items-center justify-center py-1.5 px-1 rounded-xl border transition-all text-center ${
+                                                                        className={`relative group/size flex flex-col items-center justify-between py-1.5 px-1 rounded-xl border transition-all text-center min-h-[56px] ${
+                                                                            item.prices.length > 4 ? 'shrink-0 min-w-[70px]' : ''
+                                                                        } ${
                                                                             sizeCartQty > 0
-                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs'
-                                                                                : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
-                                                                        } ${isOddLast ? 'col-span-2' : ''}`}
+                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs ring-1 ring-indigo-500/50'
+                                                                                : hasDisc
+                                                                                    ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 hover:border-rose-500 shadow-2xs'
+                                                                                    : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
+                                                                        }`}
                                                                     >
+                                                                        {/* Offer Badge on Top of Pill */}
+                                                                        {hasDisc && sizeDiscountPercent && (
+                                                                            <span className="absolute -top-2 inset-x-0 mx-auto w-fit px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[8px] font-black shadow-2xs whitespace-nowrap leading-none flex items-center gap-0.5 z-10">
+                                                                                <span>%{sizeDiscountPercent}</span>
+                                                                                <span>{isAr ? 'خصم' : 'OFF'}</span>
+                                                                            </span>
+                                                                        )}
+
+                                                                        {/* Cart Qty Badge */}
                                                                         {sizeCartQty > 0 && (
                                                                             <span 
-                                                                                className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs"
+                                                                                className="absolute -top-1.5 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs z-10"
                                                                                 style={{ backgroundColor: primaryColor }}
                                                                             >
                                                                                 {sizeCartQty}
                                                                             </span>
                                                                         )}
-                                                                        <span className="text-[10px] font-bold truncate max-w-full leading-tight text-slate-500 dark:text-zinc-400">
+
+                                                                        {/* Size Label */}
+                                                                        <span className={`text-[10px] font-bold truncate max-w-full leading-tight ${hasDisc ? 'text-rose-700 dark:text-rose-300 font-black' : 'text-slate-600 dark:text-zinc-400'}`}>
                                                                             {label}
                                                                         </span>
-                                                                        <div className="flex items-baseline justify-center gap-0.5 mt-0.5 leading-none">
-                                                                            {hasDisc && (
-                                                                                <span className="text-[8px] text-slate-400 line-through mr-0.5">
-                                                                                    {oldPrice}
-                                                                                </span>
+
+                                                                        {/* Price & Offer Display - Stacked Vertically */}
+                                                                        <div className="w-full flex flex-col items-center justify-center leading-none mt-0.5">
+                                                                            {hasDisc ? (
+                                                                                <>
+                                                                                    <span className="text-[9px] line-through text-rose-500/80 font-bold decoration-rose-500/80 leading-none mb-0.5">
+                                                                                        {oldPrice}
+                                                                                    </span>
+                                                                                    <div className="flex items-baseline justify-center gap-0.5 leading-none">
+                                                                                        <span className="text-xs font-black text-rose-600 dark:text-rose-400">
+                                                                                            {price}
+                                                                                        </span>
+                                                                                        <span className="text-[8px] font-bold text-slate-400">
+                                                                                            {cur}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </>
+                                                                            ) : (
+                                                                                <div className="flex items-baseline justify-center gap-0.5 leading-none">
+                                                                                    <span className="text-xs font-black" style={{ color: primaryColor }}>
+                                                                                        {price}
+                                                                                    </span>
+                                                                                    <span className="text-[8px] font-bold text-slate-400">
+                                                                                        {cur}
+                                                                                    </span>
+                                                                                </div>
                                                                             )}
-                                                                            <span className="text-xs font-black" style={{ color: primaryColor }}>
-                                                                                {price}
-                                                                            </span>
-                                                                            <span className="text-[8px] font-bold text-slate-400">
-                                                                                {cur}
-                                                                            </span>
                                                                         </div>
                                                                     </button>
                                                                 );
@@ -1282,23 +1317,30 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                         </div>
 
                                                         {/* Bottom row: Info & Action */}
-                                                        <div className="flex items-center justify-between gap-1 pt-0.5">
-                                                            <span className="text-[10px] font-bold text-slate-400 truncate">
-                                                                {inCartQty > 0 ? (
-                                                                    <span className="text-indigo-600 dark:text-indigo-400 font-black">
+                                                        <div className="flex items-center justify-between gap-1 pt-1 mt-1 border-t border-black/5 dark:border-white/5">
+                                                            <div className="flex items-center gap-1 min-w-0">
+                                                                {hasDiscount ? (
+                                                                    <span className="text-[10px] font-black text-rose-500 flex items-center gap-0.5 truncate">
+                                                                        <Flame className="w-3 h-3 text-rose-500 shrink-0" />
+                                                                        <span>{isAr ? 'عروض خاصة' : 'Offers'}</span>
+                                                                    </span>
+                                                                ) : inCartQty > 0 ? (
+                                                                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 truncate">
                                                                         {inCartQty} {isAr ? 'في السلة' : 'in cart'}
                                                                     </span>
                                                                 ) : (
-                                                                    <span>{item.prices.length} {isAr ? 'أحجام متوفرة' : 'sizes available'}</span>
+                                                                    <span className="text-[10px] font-bold text-slate-400 truncate">
+                                                                        {item.prices.length} {isAr ? 'أحجام' : 'sizes'}
+                                                                    </span>
                                                                 )}
-                                                            </span>
+                                                            </div>
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     handleItemClick(item, catName(cat), cat.id, 0);
                                                                 }}
-                                                                className="px-2.5 py-1 rounded-xl text-white text-[11px] font-black flex items-center gap-1 shadow-xs active:scale-95 transition-all shrink-0"
+                                                                className="px-3 py-1 rounded-xl text-white text-[11px] font-black flex items-center gap-1 shadow-xs active:scale-95 transition-all shrink-0"
                                                                 style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <Plus className="w-3 h-3" />
@@ -1436,9 +1478,16 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                         className={`relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all ${
                                                                             sizeCartQty > 0
                                                                                 ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs'
-                                                                                : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
+                                                                                : hasDisc
+                                                                                    ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 shadow-2xs'
+                                                                                    : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
                                                                         }`}
                                                                     >
+                                                                        {hasDisc && oldPrice && (
+                                                                            <span className="px-1 py-0.2 rounded-md bg-rose-500 text-white text-[8px] font-black shrink-0">
+                                                                                %{Math.round(((oldPrice - price) / oldPrice) * 100)} {isAr ? 'خصم' : 'OFF'}
+                                                                            </span>
+                                                                        )}
                                                                         {sizeCartQty > 0 && (
                                                                             <span 
                                                                                 className="min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs"
@@ -1448,8 +1497,8 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                             </span>
                                                                         )}
                                                                         <span className="text-[11px] text-slate-500 dark:text-zinc-400">{label}:</span>
-                                                                        {hasDisc && <span className="text-[9px] text-slate-400 line-through">{oldPrice}</span>}
-                                                                        <span className="font-black" style={{ color: primaryColor }}>{price}</span>
+                                                                        {hasDisc && <span className="text-[10px] text-rose-500/80 line-through decoration-rose-500/80 font-bold">{oldPrice}</span>}
+                                                                        <span className="font-black" style={{ color: hasDisc ? '#e11d48' : primaryColor }}>{price}</span>
                                                                         <span className="text-[9px] font-bold text-slate-400">{cur}</span>
                                                                     </button>
                                                                 );
@@ -2003,20 +2052,41 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                             <div className="grid grid-cols-2 gap-2">
                                                 {selectedItem.item.prices.map((p, idx) => {
                                                     const lbl = selectedItem.item.size_labels?.[idx] || (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`);
+                                                    const oldP = selectedItem.item.old_prices?.[idx];
+                                                    const hasDisc = Boolean(oldP && oldP > p);
+                                                    const discPct = hasDisc && oldP ? Math.round(((oldP - p) / oldP) * 100) : null;
                                                     const isSelected = modalSizeIdx === idx;
                                                     return (
                                                         <button
                                                             key={idx}
                                                             type="button"
                                                             onClick={() => setModalSizeIdx(idx)}
-                                                            className={`p-2.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between ${
+                                                            className={`relative p-2.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between ${
                                                                 isSelected 
-                                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-xs' 
-                                                                    : 'border-black/5 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-xs ring-1 ring-indigo-500/50' 
+                                                                    : hasDisc
+                                                                        ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 text-slate-700 dark:text-zinc-300 hover:border-rose-400'
+                                                                        : 'border-black/5 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
                                                             }`}
                                                         >
-                                                            <span>{lbl}</span>
-                                                            <span className="font-black">{p} {cur}</span>
+                                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                                {hasDisc && discPct && (
+                                                                    <span className="px-1.5 py-0.2 rounded-md bg-rose-500 text-white text-[8px] font-black shrink-0">
+                                                                        %{discPct}
+                                                                    </span>
+                                                                )}
+                                                                <span className="truncate">{lbl}</span>
+                                                            </div>
+                                                            <div className="flex items-baseline gap-1 shrink-0">
+                                                                {hasDisc && (
+                                                                    <span className="text-[10px] text-slate-400 line-through">
+                                                                        {oldP}
+                                                                    </span>
+                                                                )}
+                                                                <span className="font-black" style={{ color: isSelected ? undefined : hasDisc ? '#e11d48' : undefined }}>
+                                                                    {p} {cur}
+                                                                </span>
+                                                            </div>
                                                         </button>
                                                     );
                                                 })}
