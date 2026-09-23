@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, 
     Sparkles, Flame, Clock, MapPin, Phone, MessageCircle,
-    Sun, Moon, Globe, ChevronRight, ChevronLeft, Check,
+    Sun, Moon, Globe, ChevronRight, ChevronLeft, Check, ChevronDown, ArrowUpDown,
     LayoutGrid, LayoutList, Tag, Heart, Eye, 
     Truck, ShieldCheck, CreditCard, Headphones, Star, 
     SlidersHorizontal, CheckCircle2, AlertCircle, ShoppingBag, ArrowRight, ArrowLeft,
@@ -172,6 +172,14 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const [filterInStockOnly, setFilterInStockOnly] = useState(false);
     const [filterSpicyOnly, setFilterSpicyOnly] = useState(false);
     const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'popular' | 'name'>('default');
+    const [isSortOpen, setIsSortOpen] = useState(false);
+    const sortRef = useRef<HTMLDivElement>(null);
+
+    // Refs for Category Tabs and Auto-Scroll (ScrollSpy)
+    const categoryTabsRef = useRef<HTMLDivElement>(null);
+    const tabRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+    const isManualScroll = useRef(false);
+    const manualScrollTimer = useRef<any>(null);
 
     // State: Cart
     const [cart, setCart] = useState<CartItemType[]>([]);
@@ -302,16 +310,11 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         return counts;
     }, [categories, allItems]);
 
-    // Filter & sort logic
+    // Filter & sort logic (Renders all categories so sections can be scrolled smoothly)
     const filteredCategories = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
 
         return categories.map(cat => {
-            // Check if active category matches
-            if (activeCategory !== 'all' && String(cat.id) !== activeCategory) {
-                return { ...cat, items: [] };
-            }
-
             let items = (cat.items || []).filter(item => {
                 // Search query
                 if (query) {
@@ -349,7 +352,113 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
 
             return { ...cat, items };
         }).filter(cat => (cat.items && cat.items.length > 0));
-    }, [categories, activeCategory, searchQuery, filterOfferOnly, filterPopularOnly, filterInStockOnly, filterSpicyOnly, sortBy, promotions, isAr]);
+    }, [categories, searchQuery, filterOfferOnly, filterPopularOnly, filterInStockOnly, filterSpicyOnly, sortBy, promotions, isAr]);
+
+    // Sort Options
+    const sortOptions = useMemo(() => [
+        { value: 'default', label: isAr ? 'الترتيب: الافتراضي' : 'Sort: Default' },
+        { value: 'popular', label: isAr ? 'الأعلى شعبية' : 'Most Popular' },
+        { value: 'price-asc', label: isAr ? 'السعر: من الأقل للأعلى' : 'Price: Low to High' },
+        { value: 'price-desc', label: isAr ? 'السعر: من الأعلى للأقل' : 'Price: High to Low' },
+        { value: 'name', label: isAr ? 'أبجدياً (A-Z)' : 'Name (A-Z)' },
+    ], [isAr]);
+
+    const currentSortLabel = sortOptions.find(o => o.value === sortBy)?.label || sortOptions[0].label;
+
+    // Close sort dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+                setIsSortOpen(false);
+            }
+        };
+        if (isSortOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [isSortOpen]);
+
+    // Smooth scroll to category section
+    const scrollToCategory = (catId: string) => {
+        setActiveCategory(catId);
+        isManualScroll.current = true;
+        if (manualScrollTimer.current) clearTimeout(manualScrollTimer.current);
+        manualScrollTimer.current = setTimeout(() => {
+            isManualScroll.current = false;
+        }, 900);
+
+        if (catId === 'all') {
+            const topEl = document.getElementById('menu-main-content');
+            if (topEl) {
+                const y = topEl.getBoundingClientRect().top + window.pageYOffset - 65;
+                window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+            }
+        } else {
+            const target = document.getElementById(`cat-section-${catId}`);
+            if (target) {
+                const y = target.getBoundingClientRect().top + window.pageYOffset - 65;
+                window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
+            }
+        }
+    };
+
+    // Auto-scroll horizontal category bar to center active category tab
+    useEffect(() => {
+        const activeBtn = tabRefs.current[activeCategory];
+        if (activeBtn && categoryTabsRef.current) {
+            activeBtn.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [activeCategory]);
+
+    // ScrollSpy: Track visible section and highlight/scroll category tab
+    useEffect(() => {
+        const handleScroll = () => {
+            if (isManualScroll.current) return;
+
+            const mainContent = document.getElementById('menu-main-content');
+            if (!mainContent) return;
+
+            const mainRect = mainContent.getBoundingClientRect();
+            // If scrolled above main product content (hero / banners area), set active to 'all'
+            if (mainRect.top > 120) {
+                setActiveCategory('all');
+                return;
+            }
+
+            const renderedSections = filteredCategories
+                .map(cat => ({
+                    id: String(cat.id),
+                    el: document.getElementById(`cat-section-${cat.id}`)
+                }))
+                .filter((s): s is { id: string; el: HTMLElement } => s.el !== null);
+
+            if (renderedSections.length === 0) return;
+
+            let currentActive = renderedSections[0].id;
+            for (const sec of renderedSections) {
+                const rect = sec.el.getBoundingClientRect();
+                // 100px accounts for sticky category bar height
+                if (rect.top <= 100) {
+                    currentActive = sec.id;
+                } else {
+                    break;
+                }
+            }
+
+            setActiveCategory(currentActive);
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [filteredCategories]);
 
     // Cart calculations
     const cartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
