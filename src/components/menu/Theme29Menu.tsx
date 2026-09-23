@@ -768,16 +768,16 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
 
             {/* 2. MAIN STORE HEADER (Shopify Navbar) */}
             <header 
-                className="sticky top-0 z-20 backdrop-blur-md border-b transition-colors"
+                className="relative z-10 border-b transition-colors"
                 style={{ 
-                    backgroundColor: isDark ? 'rgba(20, 20, 23, 0.88)' : 'rgba(255, 255, 255, 0.92)',
+                    backgroundColor: isDark ? '#141417' : '#ffffff',
                     borderColor: borderColor 
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
                     <div className="flex items-center justify-between gap-3">
                         {/* Store Brand / Logo */}
-                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => { setActiveCategory('all'); setSearchQuery(''); }}>
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => { scrollToCategory('all'); setSearchQuery(''); }}>
                             {config?.logo_url ? (
                                 <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl overflow-hidden shadow-md border-2 border-white/20 shrink-0 relative bg-white">
                                     <OptimizedMenuImage 
@@ -1043,19 +1043,20 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 </div>
             </div>
 
-            {/* 4. STICKY CATEGORY NAVIGATION (Shopify Filter Tabs) */}
+            {/* 4. STICKY CATEGORY NAVIGATION (Shopify Filter Tabs - Sticks at Top and Tracks Sections) */}
             <div 
-                className="sticky top-[73px] sm:top-[85px] z-10 backdrop-blur-md border-b py-2.5 transition-colors"
+                className="sticky top-0 z-30 backdrop-blur-md border-b py-2.5 transition-colors shadow-sm"
                 style={{ 
-                    backgroundColor: isDark ? 'rgba(15, 15, 18, 0.94)' : 'rgba(255, 255, 255, 0.95)',
+                    backgroundColor: isDark ? 'rgba(15, 15, 18, 0.95)' : 'rgba(255, 255, 255, 0.96)',
                     borderColor: borderColor 
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4">
-                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                    <div ref={categoryTabsRef} className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 scroll-smooth">
                         {/* All Categories Pill */}
                         <button
-                            onClick={() => setActiveCategory('all')}
+                            ref={el => { tabRefs.current['all'] = el; }}
+                            onClick={() => scrollToCategory('all')}
                             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 shadow-sm ${
                                 activeCategory === 'all'
                                     ? 'text-white scale-105'
@@ -1081,7 +1082,8 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             return (
                                 <button
                                     key={cat.id}
-                                    onClick={() => setActiveCategory(String(cat.id))}
+                                    ref={el => { tabRefs.current[String(cat.id)] = el; }}
+                                    onClick={() => scrollToCategory(String(cat.id))}
                                     className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 shadow-sm ${
                                         isSelected
                                             ? 'text-white scale-105'
@@ -1168,19 +1170,66 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
 
                     {/* Sorting & Layout Toggles */}
                     <div className="flex items-center gap-2 ms-auto">
-                        {/* Sort Dropdown */}
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as any)}
-                            className="bg-transparent border rounded-lg px-2.5 py-1.5 text-xs font-medium focus:outline-none"
-                            style={{ borderColor: borderColor, color: textMain }}
-                        >
-                            <option value="default">{isAr ? 'الترتيب: الافتراضي' : 'Sort: Default'}</option>
-                            <option value="popular">{isAr ? 'الأعلى شعبية' : 'Most Popular'}</option>
-                            <option value="price-asc">{isAr ? 'السعر: من الأقل للأعلى' : 'Price: Low to High'}</option>
-                            <option value="price-desc">{isAr ? 'السعر: من الأعلى للأقل' : 'Price: High to Low'}</option>
-                            <option value="name">{isAr ? 'أبجدياً (A-Z)' : 'Name (A-Z)'}</option>
-                        </select>
+                        {/* Custom Sort Dropdown (Eliminates mobile browser white-screen / white-on-white text bug) */}
+                        <div className="relative" ref={sortRef}>
+                            <button
+                                type="button"
+                                onClick={() => setIsSortOpen(!isSortOpen)}
+                                className="flex items-center gap-1.5 border rounded-xl px-2.5 py-1.5 text-xs font-bold transition-all shadow-sm"
+                                style={{ 
+                                    backgroundColor: isDark ? '#1e1e24' : '#ffffff', 
+                                    borderColor: isSortOpen ? primaryColor : borderColor, 
+                                    color: textMain 
+                                }}
+                            >
+                                <ArrowUpDown className="w-3 h-3 opacity-70" />
+                                <span>{currentSortLabel}</span>
+                                <ChevronDown className={`w-3 h-3 opacity-60 transition-transform duration-200 ${isSortOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {isSortOpen && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 4, scale: 0.97 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 4, scale: 0.97 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute top-full mt-1.5 end-0 z-50 min-w-[190px] rounded-2xl shadow-2xl border p-1.5 backdrop-blur-md overflow-hidden"
+                                        style={{ 
+                                            backgroundColor: isDark ? '#18181b' : '#ffffff', 
+                                            borderColor: borderColor,
+                                            boxShadow: isDark ? '0 10px 30px rgba(0,0,0,0.8)' : '0 10px 30px rgba(0,0,0,0.12)'
+                                        }}
+                                    >
+                                        {sortOptions.map(opt => {
+                                            const isSelected = sortBy === opt.value;
+                                            return (
+                                                <button
+                                                    key={opt.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSortBy(opt.value as any);
+                                                        setIsSortOpen(false);
+                                                    }}
+                                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all text-start ${
+                                                        isSelected 
+                                                            ? 'text-white' 
+                                                            : 'hover:bg-slate-100 dark:hover:bg-zinc-800'
+                                                    }`}
+                                                    style={{
+                                                        backgroundColor: isSelected ? primaryColor : 'transparent',
+                                                        color: isSelected ? '#ffffff' : textMain
+                                                    }}
+                                                >
+                                                    <span>{opt.label}</span>
+                                                    {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                                                </button>
+                                            );
+                                        })}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
 
                         {/* View Mode Toggle: Grid vs List */}
                         <div className="flex items-center border rounded-lg overflow-hidden" style={{ borderColor: borderColor }}>
@@ -1206,7 +1255,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
             </div>
 
             {/* 6. PRODUCTS & CATEGORIES LIST */}
-            <main className="max-w-7xl mx-auto px-4 py-4 min-h-[50vh] pb-32">
+            <main id="menu-main-content" className="max-w-7xl mx-auto px-4 py-4 min-h-[50vh] pb-32">
                 {filteredCategories.length === 0 ? (
                     <div className="text-center py-20 px-4 rounded-3xl border border-dashed my-8" style={{ borderColor: borderColor, backgroundColor: bgCard }}>
                         <AlertCircle className="w-12 h-12 mx-auto text-slate-400 mb-3" />
@@ -1217,7 +1266,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {isAr ? 'جرب البحث بكلمة مختلفة أو إلغاء بعض الفلاتر' : 'Try searching with different keywords or clear filters'}
                         </p>
                         <button
-                            onClick={() => { setSearchQuery(''); setActiveCategory('all'); setFilterOfferOnly(false); setFilterPopularOnly(false); setFilterInStockOnly(false); setFilterSpicyOnly(false); }}
+                            onClick={() => { setSearchQuery(''); scrollToCategory('all'); setFilterOfferOnly(false); setFilterPopularOnly(false); setFilterInStockOnly(false); setFilterSpicyOnly(false); }}
                             className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow"
                             style={{ backgroundColor: primaryColor }}
                         >
@@ -1226,7 +1275,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                     </div>
                 ) : (
                     filteredCategories.map((cat) => (
-                        <section key={cat.id} className="mb-10">
+                        <section key={cat.id} id={`cat-section-${cat.id}`} className="mb-10 scroll-mt-20">
                             {/* Category Header */}
                             <div className="flex items-center justify-between mb-4 pb-2 border-b" style={{ borderColor: borderColor }}>
                                 <div className="flex items-center gap-2.5">
@@ -1540,57 +1589,45 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 )}
             </main>
 
-            {/* 7. FLOATING MINI-CART (السلة الصغيرة العائمة - تظهر تلقائياً بمجرد إضافة أي منتج) */}
+            {/* 7. COMPACT FLOATING MINI-CART (سلة عائمة صغيرة وأنيقة ومدمجة) */}
             <AnimatePresence>
                 {cartCount > 0 && !isCartOpen && (
                     <motion.div
-                        initial={{ y: 80, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 80, opacity: 0 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="fixed bottom-4 inset-x-4 max-w-lg mx-auto z-40"
+                        initial={{ y: 50, opacity: 0, scale: 0.9 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: 50, opacity: 0, scale: 0.9 }}
+                        transition={{ type: 'spring', damping: 24, stiffness: 300 }}
+                        className="fixed bottom-4 right-4 z-40"
                     >
-                        <div 
+                        <button 
+                            type="button"
                             onClick={() => setIsCartOpen(true)}
-                            className="p-3 sm:p-3.5 rounded-2xl shadow-2xl border flex items-center justify-between gap-3 cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98] backdrop-blur-md"
+                            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-full shadow-2xl border text-white font-bold transition-all hover:scale-105 active:scale-95 backdrop-blur-md cursor-pointer"
                             style={{ 
-                                backgroundColor: isDark ? 'rgba(20, 20, 23, 0.95)' : 'rgba(255, 255, 255, 0.95)', 
-                                borderColor: primaryColor,
-                                boxShadow: `0 12px 35px -5px ${primaryColor}40`
+                                backgroundColor: primaryColor,
+                                borderColor: 'rgba(255, 255, 255, 0.25)',
+                                boxShadow: `0 8px 25px -4px ${primaryColor}70`
                             }}
+                            title={isAr ? 'عرض سلة المشتريات' : 'View Cart'}
                         >
-                            <div className="flex items-center gap-3">
-                                <div 
-                                    className="w-11 h-11 rounded-xl flex items-center justify-center text-white relative shrink-0 shadow-md"
-                                    style={{ backgroundColor: primaryColor }}
-                                >
-                                    <ShoppingCart className="w-5 h-5 animate-bounce" />
-                                    <span className="absolute -top-1.5 -end-1.5 bg-rose-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow">
-                                        {cartCount}
-                                    </span>
-                                </div>
-                                <div>
-                                    <span className="text-xs font-black block leading-tight">
-                                        {isAr ? `${cartCount} منتجات في السلة` : `${cartCount} items in cart`}
-                                    </span>
-                                    <span className="text-xs sm:text-sm font-mono font-extrabold" style={{ color: primaryColor }}>
-                                        {finalDiscountedTotal} {cur}
-                                        {promoDiscountAmount > 0 && (
-                                            <span className="ms-1.5 text-[10px] line-through text-muted-foreground font-normal">
-                                                {cartTotal} {cur}
-                                            </span>
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-white px-3.5 py-2 rounded-xl shadow-md flex items-center gap-1.5" style={{ backgroundColor: primaryColor }}>
-                                    <span>{isAr ? 'عرض السلة وإتمام الطلب' : 'View Cart'}</span>
-                                    {isAr ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                            <div className="relative flex items-center justify-center">
+                                <ShoppingCart className="w-4 h-4" />
+                                <span className="absolute -top-2 -end-2 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow">
+                                    {cartCount}
                                 </span>
                             </div>
-                        </div>
+
+                            <span className="text-xs font-mono font-black">
+                                {finalDiscountedTotal} {cur}
+                            </span>
+
+                            <div className="h-3.5 w-px bg-white/30" />
+
+                            <span className="text-[11px] font-bold flex items-center gap-1">
+                                <span>{isAr ? 'السلة' : 'Cart'}</span>
+                                {isAr ? <ArrowLeft className="w-3 h-3" /> : <ArrowRight className="w-3 h-3" />}
+                            </span>
+                        </button>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -1601,13 +1638,10 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                     href={`https://wa.me/${(config?.whatsapp_number || config?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(isAr ? `مرحباً، أود الاستفسار بخصوص الطلبات في متجر ${config?.name || ''}` : `Hello, I would like to inquire about orders at ${config?.name || ''}`)}`}
                     target="_blank"
                     rel="noreferrer"
-                    className={`fixed ${cartCount > 0 && !isCartOpen ? 'bottom-24' : 'bottom-6'} ${isAr ? 'left-4' : 'right-4'} z-40 flex items-center gap-2 p-3 sm:px-4 sm:py-3 rounded-full bg-[#25D366] text-white shadow-2xl hover:scale-110 active:scale-95 transition-all group`}
+                    className="fixed bottom-4 left-4 z-40 w-11 h-11 rounded-full bg-[#25D366] text-white shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all"
                     title={isAr ? 'تواصل معنا مباشرة عبر واتساب' : 'Chat with us on WhatsApp'}
                 >
                     <FaWhatsapp className="w-6 h-6 animate-pulse" />
-                    <span className="hidden sm:inline font-bold text-xs">
-                        {isAr ? 'تواصل عبر واتساب' : 'Chat on WhatsApp'}
-                    </span>
                 </a>
             )}
 
@@ -1886,11 +1920,24 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                             <select
                                                 value={selectedBranch}
                                                 onChange={(e) => setSelectedBranch(e.target.value)}
-                                                className="w-full px-3 py-1.5 rounded-xl border text-xs bg-white dark:bg-black font-medium"
-                                                style={{ borderColor: borderColor }}
+                                                className="w-full px-3 py-1.5 rounded-xl border text-xs font-medium"
+                                                style={{ 
+                                                    borderColor: borderColor,
+                                                    backgroundColor: isDark ? '#141417' : '#ffffff',
+                                                    color: textMain
+                                                }}
                                             >
                                                 {config.branches.map((b: string, i: number) => (
-                                                    <option key={i} value={b}>{isAr ? `فرع: ${b}` : `Branch: ${b}`}</option>
+                                                    <option 
+                                                        key={i} 
+                                                        value={b}
+                                                        style={{ 
+                                                            backgroundColor: isDark ? '#18181b' : '#ffffff', 
+                                                            color: isDark ? '#ffffff' : '#0f172a' 
+                                                        }}
+                                                    >
+                                                        {isAr ? `فرع: ${b}` : `Branch: ${b}`}
+                                                    </option>
                                                 ))}
                                             </select>
                                         )}
