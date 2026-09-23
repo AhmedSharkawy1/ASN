@@ -33,15 +33,16 @@ const THEME_SUBDOMAINS = [
 
 export default function middleware(req: NextRequest) {
     const url = req.nextUrl;
-    const hostname = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
+    const rawHostname = req.headers.get('x-forwarded-host') || req.headers.get('host') || url.host || '';
+    const hostname = rawHostname.split(':')[0].toLowerCase();
 
     // تحديد النطاق الأساسي
-    const rootDomains = ['asntechnology.net', 'localhost:3000', 'localhost:3456'];
-    const rootDomain = rootDomains.find(d => hostname.endsWith(d)) || rootDomains[0];
+    const rootDomains = ['asntechnology.net', 'localhost:3000', 'localhost:3456', 'localhost'];
+    const rootDomain = rootDomains.find(d => hostname.endsWith(d.split(':')[0])) || rootDomains[0];
 
     // استخراج الـ Subdomain
     let subdomain = '';
-    const hostWithoutRoot = hostname.replace(`.${rootDomain}`, '').replace(rootDomain, '');
+    const hostWithoutRoot = hostname.replace(`.${rootDomain.split(':')[0]}`, '').replace(rootDomain.split(':')[0], '');
     if (hostWithoutRoot && hostWithoutRoot !== 'www') {
         const parts = hostWithoutRoot.split('.');
         subdomain = parts[parts.length - 1];
@@ -102,11 +103,22 @@ export default function middleware(req: NextRequest) {
     // ═══════════════════════════════════════════════════════════════
     if (subdomain && !RESERVED_SUBDOMAINS.includes(subdomain) && !THEME_SUBDOMAINS.includes(subdomain)) {
         // إعادة توجيه السبدومين للدومين الرئيسي عشان شهادة SSL
-        // مثال: hamzaa.asntechnology.net -> https://www.asntechnology.net/menu/hamzaa
-        const targetPath = path === '/' ? `/menu/${subdomain}` : `/menu/${subdomain}${path}`;
+        // مثال: happycorner.asntechnology.net -> https://www.asntechnology.net/menu/happycorner
+        let targetPath = `/menu/${subdomain}`;
+        if (path && path !== '/') {
+            if (path.startsWith(`/menu/${subdomain}`)) {
+                targetPath = path;
+            } else if (path.startsWith('/menu/')) {
+                targetPath = path;
+            } else {
+                targetPath = `/menu/${subdomain}${path}`;
+            }
+        }
         const redirectUrl = `https://www.asntechnology.net${targetPath}${url.search || ''}`;
         console.log(`[Middleware] Subdomain ${subdomain} -> Redirect to ${redirectUrl}`);
-        return NextResponse.redirect(redirectUrl, 301);
+        const response = NextResponse.redirect(redirectUrl, 301);
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        return response;
     }
 
     return NextResponse.next();
