@@ -477,6 +477,23 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
     const primaryPhone = phoneList[0] || config?.whatsapp_number || '';
     const whatsappClean = (config?.whatsapp_number || '').replace(/[^0-9+]/g, '');
 
+    const socialLinks = useMemo(() => {
+        const sl = config?.social_links || {};
+        const facebook = config?.facebook_url || sl.facebook || config?.facebook || '';
+        const instagram = config?.instagram_url || sl.instagram || config?.instagram || '';
+        const tiktok = config?.tiktok_url || sl.tiktok || config?.tiktok || '';
+        const snapchat = config?.snapchat_url || sl.snapchat || config?.snapchat || '';
+        const youtube = config?.youtube_url || sl.youtube || config?.youtube || '';
+        return { facebook, instagram, tiktok, snapchat, youtube };
+    }, [config]);
+
+    const hasSocialLinks = Boolean(
+        socialLinks.facebook || socialLinks.instagram || 
+        socialLinks.tiktok || socialLinks.snapchat || socialLinks.youtube
+    );
+
+    const locationUrl = config?.location_url || config?.map_link || config?.location_link || '';
+
     if (!mounted) {
         return (
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center">
@@ -589,8 +606,8 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                     </div>
 
                     {/* Brand Card with Glass effect */}
-                    <div className="p-4 rounded-3xl bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl shadow-black/5 relative overflow-hidden">
-                        <div className="flex items-center gap-4">
+                    <div className="p-4 sm:p-5 rounded-3xl bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-xl shadow-black/5 relative overflow-hidden">
+                        <div className="flex items-start sm:items-center gap-3.5 sm:gap-4">
                             {/* Logo */}
                             {config.logo_url ? (
                                 <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shrink-0 shadow-md ring-2 ring-white/50 dark:ring-white/10">
@@ -628,20 +645,136 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                     </p>
                                 )}
 
-                                {/* Meta details bar: Dining / Takeaway / Delivery */}
+                                {/* Meta details bar: Dining & Delivery / Fast Service */}
                                 <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-600 dark:text-zinc-300 font-semibold">
                                     <span className="flex items-center gap-1">
                                         <Utensils className="w-3.5 h-3.5 text-amber-500" />
-                                        {isAr ? 'صالة وسفري' : 'Dine-in & Takeaway'}
+                                        <span>{isAr ? 'صالة ودليفري' : 'Dine-in & Delivery'}</span>
                                     </span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
                                         <Clock className="w-3.5 h-3.5 text-emerald-500" />
-                                        {isAr ? 'خدمة سريعة' : 'Fast Service'}
+                                        <span>{isAr ? 'خدمة سريعة' : 'Fast Service'}</span>
                                     </span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Location / Address Row */}
+                        {(config.address || locationUrl) && (
+                            <div className="mt-3.5 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 flex-wrap text-xs">
+                                <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-300 min-w-0">
+                                    <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                    <span className="truncate font-semibold text-[11px] sm:text-xs">
+                                        {config.address || (isAr ? 'الموقع الجغرافي للمطعم' : 'Restaurant Location')}
+                                    </span>
+                                </div>
+                                {locationUrl && (
+                                    <a 
+                                        href={locationUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-500 hover:text-rose-600 dark:text-rose-400 hover:underline shrink-0"
+                                    >
+                                        <span>{isAr ? 'عرض اللوكيشن' : 'Open Map'}</span>
+                                        <ArrowUpRight className="w-3 h-3" />
+                                    </a>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Contact Numbers (Phone & WhatsApp) */}
+                        {(phoneList.length > 0 || whatsappClean) && (
+                            <div className="mt-2.5 flex items-center gap-2 flex-wrap">
+                                {phoneList.map((ph, idx) => (
+                                    <a
+                                        key={idx}
+                                        href={`tel:${ph}`}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-[11px] font-bold text-slate-700 dark:text-zinc-200 transition-all border border-black/5 dark:border-white/5 shadow-2xs active:scale-95"
+                                    >
+                                        <Phone className="w-3 h-3 text-emerald-500" />
+                                        <span dir="ltr">{ph}</span>
+                                    </a>
+                                ))}
+                                {whatsappClean && (
+                                    <a
+                                        href={`https://wa.me/${whatsappClean}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-black text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-2xs active:scale-95"
+                                    >
+                                        <FaWhatsapp className="w-3.5 h-3.5 text-emerald-500" />
+                                        <span dir="ltr">{config.whatsapp_number}</span>
+                                    </a>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Social Media Links */}
+                        {hasSocialLinks && (
+                            <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 flex-wrap">
+                                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                                    {isAr ? 'صفحات التواصل:' : 'Social Pages:'}
+                                </span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {socialLinks.facebook && (
+                                        <a
+                                            href={socialLinks.facebook}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-8 h-8 rounded-xl bg-[#1877F2]/10 hover:bg-[#1877F2] text-[#1877F2] hover:text-white flex items-center justify-center transition-all shadow-2xs active:scale-90"
+                                            title="Facebook"
+                                        >
+                                            <FaFacebookF className="w-3.5 h-3.5" />
+                                        </a>
+                                    )}
+                                    {socialLinks.instagram && (
+                                        <a
+                                            href={socialLinks.instagram}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-8 h-8 rounded-xl bg-[#E4405F]/10 hover:bg-[#E4405F] text-[#E4405F] hover:text-white flex items-center justify-center transition-all shadow-2xs active:scale-90"
+                                            title="Instagram"
+                                        >
+                                            <FaInstagram className="w-3.5 h-3.5" />
+                                        </a>
+                                    )}
+                                    {socialLinks.tiktok && (
+                                        <a
+                                            href={socialLinks.tiktok}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-8 h-8 rounded-xl bg-black/10 dark:bg-white/10 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black flex items-center justify-center transition-all shadow-2xs active:scale-90"
+                                            title="TikTok"
+                                        >
+                                            <FaTiktok className="w-3.5 h-3.5" />
+                                        </a>
+                                    )}
+                                    {socialLinks.snapchat && (
+                                        <a
+                                            href={socialLinks.snapchat}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-8 h-8 rounded-xl bg-[#FFFC00]/20 hover:bg-[#FFFC00] text-amber-600 hover:text-black flex items-center justify-center transition-all shadow-2xs active:scale-90"
+                                            title="Snapchat"
+                                        >
+                                            <FaSnapchatGhost className="w-3.5 h-3.5" />
+                                        </a>
+                                    )}
+                                    {socialLinks.youtube && (
+                                        <a
+                                            href={socialLinks.youtube}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="w-8 h-8 rounded-xl bg-[#FF0000]/10 hover:bg-[#FF0000] text-[#FF0000] hover:text-white flex items-center justify-center transition-all shadow-2xs active:scale-90"
+                                            title="YouTube"
+                                        >
+                                            <FaYoutube className="w-3.5 h-3.5" />
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </header>
 
@@ -1807,6 +1940,15 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                 exit={{ scale: 0.9, opacity: 0 }}
                                 className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-zinc-900 overflow-hidden shadow-2xl z-10 border border-black/5 dark:border-white/10"
                             >
+                                {/* Close / Exit Button */}
+                                <button
+                                    onClick={() => setShowPromoPopup(false)}
+                                    className="absolute top-3 left-3 rtl:left-3 rtl:right-auto ltr:right-3 ltr:left-auto z-30 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 text-white backdrop-blur-md flex items-center justify-center shadow-lg active:scale-90 transition-all cursor-pointer"
+                                    title={isAr ? 'إغلاق' : 'Close'}
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+
                                 {popupConfig.image_url && (
                                     <div className="relative w-full aspect-video">
                                         <img 
@@ -1836,6 +1978,15 @@ export default function Theme28Menu({ config, categories, restaurantId }: Theme2
                                         style={{ backgroundColor: primaryColor }}
                                     >
                                         {popupConfig.button_text || (isAr ? 'تصفح العرض الآن' : 'View Offer')}
+                                    </button>
+                                    
+                                    {/* Secondary Dismiss Button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPromoPopup(false)}
+                                        className="w-full py-1 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200 transition-colors"
+                                    >
+                                        {isAr ? 'إغلاق ومتابعة التصفح' : 'Close and continue browsing'}
                                     </button>
                                 </div>
                             </motion.div>
