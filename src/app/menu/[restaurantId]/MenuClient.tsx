@@ -1085,6 +1085,7 @@ export default function MenuClient({
             {categories.map((cat) => (
               <button
                 key={cat.id}
+                id={`cat-tab-${cat.id}`}
                 onClick={() => setActiveCategory(cat.id)}
                 className={`snap-start whitespace-nowrap px-6 py-2.5 rounded-full font-bold transition-all flex items-center gap-2 ${activeCategory === cat.id
                   ? "bg-blue text-white shadow-md shadow-blue/30 scale-105"

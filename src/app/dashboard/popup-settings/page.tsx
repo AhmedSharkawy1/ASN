@@ -57,27 +57,30 @@ export default function PopupSettingsPage() {
         const loadData = async () => {
             try {
                 let rId: string | null = null;
-                try {
-                    const cached = await posDb.settings.get('current_config');
-                    if (cached?.restaurant_id) rId = cached.restaurant_id;
-                } catch (e) {
-                    console.warn("Could not read posDb cache:", e);
+                // Impersonation check first (crucial for Super Admin managing clients)
+                if (typeof window !== "undefined") {
+                    const imp = sessionStorage.getItem('impersonating_tenant');
+                    if (imp) rId = imp;
+                }
+
+                if (!rId) {
+                    try {
+                        const cached = await posDb.settings.get('current_config');
+                        if (cached?.restaurant_id) rId = cached.restaurant_id;
+                    } catch (e) {
+                        console.warn("Could not read posDb cache:", e);
+                    }
                 }
 
                 if (!rId) {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user) {
-                        const imp = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
-                        if (imp) {
-                            rId = imp;
+                        const { data: rest } = await supabase.from('restaurants').select('id').eq('email', user.email).maybeSingle();
+                        if (rest) {
+                            rId = rest.id;
                         } else {
-                            const { data: rest } = await supabase.from('restaurants').select('id').eq('email', user.email).maybeSingle();
-                            if (rest) {
-                                rId = rest.id;
-                            } else {
-                                const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).maybeSingle();
-                                if (staff) rId = staff.restaurant_id;
-                            }
+                            const { data: staff } = await supabase.from('team_members').select('restaurant_id').eq('auth_id', user.id).maybeSingle();
+                            if (staff) rId = staff.restaurant_id;
                         }
                     }
                 }
@@ -146,16 +149,28 @@ export default function PopupSettingsPage() {
                     setPopupConfig(initialConfig);
                 }
 
-                // Load categories
+                // Load categories with resilient sorting (sort_order)
+                let loadedCategories: CategoryItem[] = [];
                 const { data: cats, error: cErr } = await supabase
                     .from('categories')
                     .select('id, name_ar, name_en')
                     .eq('restaurant_id', rId)
-                    .order('display_order', { ascending: true });
+                    .order('sort_order', { ascending: true });
 
-                if (!cErr && cats) {
-                    setCategories(cats);
+                if (!cErr && cats && cats.length > 0) {
+                    loadedCategories = cats;
+                } else {
+                    // Fallback if sorting query has issues
+                    const { data: fallbackCats } = await supabase
+                        .from('categories')
+                        .select('id, name_ar, name_en')
+                        .eq('restaurant_id', rId);
+                    if (fallbackCats && fallbackCats.length > 0) {
+                        loadedCategories = fallbackCats;
+                    }
                 }
+
+                setCategories(loadedCategories);
             } catch (err: any) {
                 console.error("Error loading popup settings:", err);
                 toast.error(isAr ? "حدث خطأ أثناء تحميل البيانات" : "Error loading settings");
@@ -419,21 +434,31 @@ export default function PopupSettingsPage() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5">
-                                    {isAr ? "القسم المرتبط (الانتقال السريع إليه)" : "Target Category"}
+                                <label className="block text-xs font-bold text-slate-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
+                                    <span>{isAr ? "القسم المرتبط (الانتقال السريع إليه)" : "Target Category"}</span>
+                                    {categories.length > 0 && (
+                                        <span className="text-[10px] font-medium text-slate-400">
+                                            {isAr ? `(${categories.length} أقسام متاحة)` : `(${categories.length} available)`}
+                                        </span>
+                                    )}
                                 </label>
                                 <select
                                     value={popupConfig.target_category_id || ""}
                                     onChange={(e) => setPopupConfig(prev => ({ ...prev, target_category_id: e.target.value }))}
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-sm font-bold focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-slate-900 dark:text-white"
                                 >
-                                    <option value="">{isAr ? "-- إغلاق النافذة فقط --" : "-- Just Dismiss --"}</option>
+                                    <option value="">{isAr ? "-- إغلاق النافذة فقط (بدون تحويل) --" : "-- Just Dismiss (No redirect) --"}</option>
                                     {categories.map((cat) => (
                                         <option key={cat.id} value={cat.id}>
-                                            {isAr ? (cat.name_ar || cat.name_en) : (cat.name_en || cat.name_ar)}
+                                            📁 {isAr ? (cat.name_ar || cat.name_en) : (cat.name_en || cat.name_ar)}
                                         </option>
                                     ))}
                                 </select>
+                                {categories.length === 0 && (
+                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5 font-medium">
+                                        {isAr ? "⚠️ لا توجد أقسام مسجلة لهذا المطعم حتى الآن." : "⚠️ No categories found for this restaurant."}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -538,6 +563,18 @@ export default function PopupSettingsPage() {
                                     >
                                         {popupConfig.button_text || (isAr ? "تصفح العرض الآن" : "View Offer Now")}
                                     </button>
+                                    {(() => {
+                                        const targetCat = categories.find(c => c.id === popupConfig.target_category_id);
+                                        if (targetCat) {
+                                            const catName = isAr ? (targetCat.name_ar || targetCat.name_en) : (targetCat.name_en || targetCat.name_ar);
+                                            return (
+                                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-[11px] font-black mx-auto">
+                                                    <span>🎯 {isAr ? `ينقل العميل إلى: ${catName}` : `Transfers user directly to: ${catName}`}</span>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                     <p className="text-[11px] font-bold opacity-60" style={{ color: previewText }}>
                                         {isAr ? "إغلاق ومتابعة التصفح" : "Close and continue browsing"}
                                     </p>
