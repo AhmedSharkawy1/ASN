@@ -269,6 +269,26 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         return checkIsStoreOpen(config?.working_hours, config?.time_open, config?.time_close);
     }, [config?.working_hours, config?.time_open, config?.time_close]);
 
+    // Check if merchant registered any custom payment methods in store settings
+    const hasPaymentMethods = useMemo(() => {
+        return Boolean(config?.payment_methods && Array.isArray(config.payment_methods) && config.payment_methods.length > 0);
+    }, [config?.payment_methods]);
+
+    // Restaurant WhatsApp number & URL for payment screenshot confirmation
+    const restaurantWhatsApp = useMemo(() => {
+        return (config?.whatsapp_number || config?.phone || '').trim();
+    }, [config?.whatsapp_number, config?.phone]);
+
+    const waPaymentScreenshotUrl = useMemo(() => {
+        const cleanWa = restaurantWhatsApp.replace(/\D/g, '');
+        if (!cleanWa) return '';
+        const storeTitle = config?.name || '';
+        const msg = isAr 
+            ? `مرحباً، أود إرسال صورة / اسكرين شوت إشعار التحويل لطلبي من ${storeTitle}`
+            : `Hello, sending payment transfer screenshot for my order at ${storeTitle}`;
+        return `https://wa.me/${cleanWa}?text=${encodeURIComponent(msg)}`;
+    }, [restaurantWhatsApp, config?.name, isAr]);
+
     // Color resolution
     const themeSuffix = config?.theme?.split('-')[1] || 'default';
     const preset = PRESET_COLORS[themeSuffix] || PRESET_COLORS.default;
@@ -1035,17 +1055,17 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </div>
                             )}
 
-                            <div className="min-w-0">
-                                <div className="flex items-center gap-1.5">
-                                    <h1 className="font-black text-sm sm:text-base lg:text-lg tracking-tight truncate">
-                                        {config?.name || 'Shopify Store'}
-                                    </h1>
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black shrink-0 border transition-colors ${
+                            <div className="min-w-0 flex flex-col justify-center">
+                                <h1 className="font-black text-sm sm:text-base lg:text-lg tracking-tight truncate leading-tight">
+                                    {config?.name || 'Shopify Store'}
+                                </h1>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold shrink-0 border transition-colors ${
                                         isStoreOpen
                                             ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                                             : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
                                     }`}>
-                                        <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full me-1.5 shrink-0 ${
+                                        <span className={`w-1.5 h-1.5 rounded-full me-1 shrink-0 ${
                                             isStoreOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
                                         }`} />
                                         {isStoreOpen 
@@ -1062,7 +1082,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {/* Store Profile & Hours Button */}
                             <button
                                 onClick={() => setIsInfoModalOpen(true)}
-                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
+                                className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Info & Hours`}
                             >
@@ -1070,21 +1090,23 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 <span className="hidden md:inline">{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} & Hours`}</span>
                             </button>
 
-                            {/* Payment Methods Button */}
-                            <button
-                                onClick={() => setIsPaymentModalOpen(true)}
-                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
-                                style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
-                                title={isAr ? 'طرق ووسائل الدفع' : 'Payment Methods'}
-                            >
-                                <CreditCard className="w-4 h-4 text-amber-500" />
-                                <span className="hidden md:inline">{isAr ? 'طرق الدفع' : 'Payments'}</span>
-                            </button>
+                            {/* Payment Methods Button - Only rendered if merchant registered payment methods in settings */}
+                            {hasPaymentMethods && (
+                                <button
+                                    onClick={() => setIsPaymentModalOpen(true)}
+                                    className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
+                                    style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
+                                    title={isAr ? 'طرق ووسائل الدفع' : 'Payment Methods'}
+                                >
+                                    <CreditCard className="w-4 h-4 text-amber-500" />
+                                    <span className="hidden md:inline">{isAr ? 'طرق الدفع' : 'Payments'}</span>
+                                </button>
+                            )}
 
                             {/* Share Button */}
                             <button
                                 onClick={handleShare}
-                                className="p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
+                                className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? `مشاركة ${placeWord}` : 'Share'}
                             >
@@ -1094,7 +1116,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {/* Wishlist Button */}
                             <button
                                 onClick={() => setIsWishlistOpen(true)}
-                                className="relative p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
+                                className="relative p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? 'المفضلة' : 'Wishlist'}
                             >
@@ -1109,7 +1131,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {/* Cart Drawer Trigger Button (Shopify Style Pill) */}
                             <button
                                 onClick={() => setIsCartOpen(true)}
-                                className="flex items-center gap-1.5 px-2.5 py-2 sm:px-3.5 sm:py-2 rounded-xl font-bold text-white shadow-md transition-all hover:opacity-95 active:scale-95 shrink-0"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl font-bold text-white shadow-md transition-all hover:opacity-95 active:scale-95 shrink-0"
                                 style={{ backgroundColor: primaryColor }}
                                 title={isAr ? 'عرض سلة المشتريات' : 'View Cart'}
                             >
@@ -1269,13 +1291,25 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2.5 p-3 rounded-xl border transition-all" style={{ backgroundColor: bgCard, borderColor: borderColor }}>
+                    <div 
+                        onClick={() => { if (hasPaymentMethods) setIsPaymentModalOpen(true); }}
+                        className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all ${hasPaymentMethods ? 'cursor-pointer hover:border-amber-500/50' : ''}`} 
+                        style={{ backgroundColor: bgCard, borderColor: borderColor }}
+                    >
                         <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
                             <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div>
-                            <h4 className="text-xs font-bold leading-tight">{isAr ? 'دفع عند الاستلام' : 'Cash on Delivery'}</h4>
-                            <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>{isAr ? 'كاش أو إلكتروني' : 'Cash or digital'}</p>
+                            <h4 className="text-xs font-bold leading-tight">
+                                {hasPaymentMethods 
+                                    ? (isAr ? 'طرق الدفع المعتمدة' : 'Accepted Payments') 
+                                    : (isAr ? 'دفع آمن ومريح' : 'Secure Checkout')}
+                            </h4>
+                            <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>
+                                {hasPaymentMethods 
+                                    ? (isAr ? 'عرض الحسابات المتاحة' : 'View accepted methods') 
+                                    : (isAr ? 'تأكيد مباشر مع الطلب' : 'Instant confirmation')}
+                            </p>
                         </div>
                     </div>
 
@@ -2770,61 +2804,91 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </button>
                             </div>
 
-                            <div className="space-y-3">
-                                {/* Cash on Delivery */}
-                                <div className="p-3 rounded-2xl border flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                                        <Banknote className="w-5 h-5" />
+                            {/* WhatsApp Payment Confirmation Notice */}
+                            <div className="p-3.5 rounded-2xl border bg-emerald-500/10 border-emerald-500/30 text-start space-y-2.5">
+                                <div className="flex items-start gap-2.5">
+                                    <div className="p-2 rounded-xl bg-emerald-500 text-white shrink-0 mt-0.5 shadow-sm">
+                                        <FaWhatsapp className="w-4 h-4" />
                                     </div>
-                                    <div>
-                                        <h4 className="text-xs font-black">{isAr ? 'الدفع نقداً عند الاستلام' : 'Cash on Delivery'}</h4>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>
-                                            {isAr ? 'يمكنك الدفع كاش عند استلام طلبك أو في الصالة' : 'Pay in cash upon receiving your order'}
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-xs font-black text-emerald-800 dark:text-emerald-300">
+                                            {isAr ? 'تأكيد عملية التحويل' : 'Transfer Confirmation'}
+                                        </h4>
+                                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 mt-0.5 leading-relaxed">
+                                            {isAr 
+                                                ? 'برجاء إرسال اسكرين شوت على رقم الواتساب للمطعم للتأكيد.' 
+                                                : 'Please send a screenshot to the restaurant WhatsApp number for confirmation.'}
                                         </p>
                                     </div>
                                 </div>
 
-                                {/* Cards (Visa / Mastercard) */}
-                                <div className="p-3 rounded-2xl border flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
-                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                                        <CreditCard className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h4 className="text-xs font-black">{isAr ? 'البطاقات الائتمانية والبنكية' : 'Credit / Debit Cards'}</h4>
-                                        <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>
-                                            {isAr ? 'فيزا، ماستركارد، ميزة (عبر نقاط البيع أو التحويل)' : 'Visa, MasterCard, Meeza'}
-                                        </p>
-                                    </div>
-                                </div>
+                                {restaurantWhatsApp && (
+                                    <div className="pt-2 border-t border-emerald-500/20 space-y-2">
+                                        <div className="flex items-center justify-between text-xs bg-white dark:bg-black/40 p-2 rounded-xl border border-emerald-500/20 font-mono font-bold">
+                                            <span className="text-[11px] font-sans text-muted-foreground font-semibold" style={{ color: textMuted }}>
+                                                {isAr ? 'رقم الواتساب:' : 'WhatsApp:'}
+                                            </span>
+                                            <div className="flex items-center gap-2" dir="ltr">
+                                                <span className="text-xs">{restaurantWhatsApp}</span>
+                                                <button
+                                                    onClick={() => handleCopy(restaurantWhatsApp, 'restaurant-wa-modal')}
+                                                    className="p-1 rounded text-slate-500 hover:text-emerald-600 transition-colors"
+                                                    title={isAr ? 'نسخ الرقم' : 'Copy'}
+                                                >
+                                                    {copiedAccount === 'restaurant-wa-modal' ? (
+                                                        <CheckCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                                    ) : (
+                                                        <Copy className="w-3.5 h-3.5" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
 
-                                {/* Custom merchant payment methods (e.g. Vodafone Cash, InstaPay) */}
+                                        {waPaymentScreenshotUrl && (
+                                            <a
+                                                href={waPaymentScreenshotUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl font-black text-xs text-white shadow-md active:scale-95 transition-all bg-[#25D366] hover:bg-[#20ba59]"
+                                            >
+                                                <FaWhatsapp className="w-4 h-4 shrink-0" />
+                                                <span>{isAr ? 'إرسال الاسكرين شوت على الواتساب' : 'Send Screenshot on WhatsApp'}</span>
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Registered Merchant Payment Methods ONLY */}
+                            <div className="space-y-2.5 max-h-[45vh] overflow-y-auto pe-1">
                                 {config?.payment_methods && config.payment_methods.length > 0 ? (
                                     config.payment_methods.map((pm: any, idx: number) => {
                                         const name = isAr ? pm.name_ar : (pm.name_en || pm.name_ar);
                                         const desc = isAr ? pm.desc_ar : (pm.desc_en || pm.desc_ar);
                                         const num = pm.number;
+                                        const link = pm.link;
                                         const isCopied = copiedAccount === `pm-${idx}`;
 
                                         return (
-                                            <div key={idx} className="p-3 rounded-2xl border space-y-2 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
+                                            <div key={idx} className="p-3.5 rounded-2xl border space-y-2.5 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
+                                                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
                                                         <Smartphone className="w-5 h-5" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <h4 className="text-xs font-black">{name}</h4>
+                                                        <h4 className="text-xs sm:text-sm font-black">{name}</h4>
                                                         {desc && (
-                                                            <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>{desc}</p>
+                                                            <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed" style={{ color: textMuted }}>{desc}</p>
                                                         )}
                                                     </div>
                                                 </div>
 
                                                 {num && (
                                                     <div className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-black border text-xs font-mono font-bold" style={{ borderColor: borderColor }}>
-                                                        <span className="truncate">{num}</span>
+                                                        <span className="truncate" dir="ltr">{num}</span>
                                                         <button
                                                             onClick={() => handleCopy(num, `pm-${idx}`)}
-                                                            className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-md text-white shrink-0 font-sans"
+                                                            className="flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg text-white shrink-0 font-sans shadow-sm"
                                                             style={{ backgroundColor: primaryColor }}
                                                         >
                                                             {isCopied ? <CheckCheck className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
@@ -2832,20 +2896,24 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                         </button>
                                                     </div>
                                                 )}
+
+                                                {link && (
+                                                    <a
+                                                        href={link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="block text-center w-full text-white font-bold text-xs py-2 rounded-xl active:scale-95 transition-transform shadow-sm"
+                                                        style={{ backgroundColor: primaryColor }}
+                                                    >
+                                                        {isAr ? `رابط التحويل (${name})` : `Payment Link (${name})`}
+                                                    </a>
+                                                )}
                                             </div>
                                         );
                                     })
                                 ) : (
-                                    <div className="p-3 rounded-2xl border flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50" style={{ borderColor: borderColor }}>
-                                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
-                                            <Wallet className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h4 className="text-xs font-black">{isAr ? 'المحافظ الإلكترونية وإنستاباي' : 'E-Wallets & InstaPay'}</h4>
-                                            <p className="text-[11px] text-muted-foreground mt-0.5" style={{ color: textMuted }}>
-                                                {isAr ? 'متاح التحويل عند الطلب عبر الواتساب' : 'Available upon ordering via WhatsApp'}
-                                            </p>
-                                        </div>
+                                    <div className="p-4 rounded-2xl border text-center text-xs text-muted-foreground" style={{ borderColor: borderColor, color: textMuted }}>
+                                        {isAr ? 'لا توجد وسائل دفع مسجلة حالياً.' : 'No payment methods registered.'}
                                     </div>
                                 )}
                             </div>

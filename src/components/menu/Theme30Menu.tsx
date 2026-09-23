@@ -327,21 +327,28 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
             .reduce((sum, c) => sum + c.quantity, 0);
     };
 
-    // Quick add or open modal
-    const handleItemClick = (item: MenuItem, catNameStr: string, catId: string | number) => {
+    // Get item size quantity in cart
+    const getItemSizeCartQty = (itemId: string | number, sizeIdx: number) => {
+        return cart
+            .filter(c => String(c.id) === String(itemId) && c.sizeIdx === sizeIdx)
+            .reduce((sum, c) => sum + c.quantity, 0);
+    };
+
+    // Quick add or open modal with optional initial size
+    const handleItemClick = (item: MenuItem, catNameStr: string, catId: string | number, initialSizeIdx = 0) => {
         const hasSizes = (item.prices && item.prices.length > 1) || (item.size_labels && item.size_labels.length > 1);
         const hasExtras = item.extras && item.extras.length > 0;
 
         // If item has sizes, extras, or details, open rich modal
         if (hasSizes || hasExtras || itemDesc(item)) {
             setSelectedItem({ item, catName: catNameStr, categoryId: catId });
-            setModalSizeIdx(0);
+            setModalSizeIdx(initialSizeIdx);
             setModalQty(1);
             setModalNotes('');
             setModalExtras([]);
         } else {
             // Instant add to cart
-            quickAddToCart(item, catNameStr, 0);
+            quickAddToCart(item, catNameStr, initialSizeIdx);
         }
     };
 
@@ -1161,15 +1168,16 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5">
                                     {cat.items?.map(item => {
                                         const inCartQty = getItemCartQty(item.id);
-                                        const hasDiscount = item.old_prices && item.old_prices[0] && item.old_prices[0] > (item.prices?.[0] || 0);
-                                        const discountPercent = hasDiscount && item.prices?.[0] 
-                                            ? Math.round(((item.old_prices![0] - item.prices[0]) / item.old_prices![0]) * 100) 
+                                        const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
+                                        const hasDiscount = item.old_prices && item.old_prices.some((op, idx) => op && op > (item.prices?.[idx] || 0));
+                                        const discountPercent = hasDiscount && item.prices?.[0] && item.old_prices?.[0] && item.old_prices[0] > item.prices[0]
+                                            ? Math.round(((item.old_prices[0] - item.prices[0]) / item.old_prices[0]) * 100) 
                                             : null;
 
                                         return (
                                             <div
                                                 key={`grid-item-t30-${item.id}`}
-                                                onClick={() => handleItemClick(item, catName(cat), cat.id)}
+                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
                                                 className="group relative bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-3xl p-2.5 sm:p-3 border border-black/5 dark:border-white/10 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer"
                                             >
                                                 {/* Image & Badges */}
@@ -1219,60 +1227,142 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                 </div>
 
                                                 {/* Price & Add Controls */}
-                                                <div className="flex items-center justify-between gap-1 mt-2.5 pt-2 border-t border-black/5 dark:border-white/5">
-                                                    <div>
-                                                        <div className="flex items-baseline gap-1">
-                                                            <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                                                                {item.prices?.[0] || 0}
-                                                            </span>
-                                                            <span className="text-[10px] font-bold text-slate-400">
-                                                                {cur}
-                                                            </span>
-                                                        </div>
-                                                        {hasDiscount && (
-                                                            <span className="text-[10px] text-slate-400 line-through">
-                                                                {item.old_prices![0]} {cur}
-                                                            </span>
-                                                        )}
-                                                    </div>
+                                                {hasMultipleSizes ? (
+                                                    <div className="mt-2.5 pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
+                                                        {/* Sizes Grid */}
+                                                        <div className={`grid ${item.prices.length === 2 ? 'grid-cols-2' : item.prices.length === 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-1 w-full`}>
+                                                            {item.prices.map((price, pIdx) => {
+                                                                const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                const oldPrice = item.old_prices?.[pIdx];
+                                                                const hasDisc = Boolean(oldPrice && oldPrice > price);
+                                                                const isOddLast = (item.prices.length % 2 !== 0 && item.prices.length > 3) && (pIdx === item.prices.length - 1);
+                                                                const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
 
-                                                    {/* Qty Stepper or Plus Button */}
-                                                    {inCartQty > 0 ? (
-                                                        <div 
-                                                            className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 px-1.5 py-1 rounded-xl shadow-xs"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <button
-                                                                onClick={() => quickDecrementFromCart(item.id)}
-                                                                className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90"
-                                                            >
-                                                                <Minus className="w-3 h-3" />
-                                                            </button>
-                                                            <span className="text-xs font-black min-w-[14px] text-center">
-                                                                {inCartQty}
+                                                                return (
+                                                                    <button
+                                                                        key={pIdx}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleItemClick(item, catName(cat), cat.id, pIdx);
+                                                                        }}
+                                                                        className={`relative group/size flex flex-col items-center justify-center py-1.5 px-1 rounded-xl border transition-all text-center ${
+                                                                            sizeCartQty > 0
+                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                                                                                : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
+                                                                        } ${isOddLast ? 'col-span-2' : ''}`}
+                                                                    >
+                                                                        {sizeCartQty > 0 && (
+                                                                            <span 
+                                                                                className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs"
+                                                                                style={{ backgroundColor: primaryColor }}
+                                                                            >
+                                                                                {sizeCartQty}
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[10px] font-bold truncate max-w-full leading-tight text-slate-500 dark:text-zinc-400">
+                                                                            {label}
+                                                                        </span>
+                                                                        <div className="flex items-baseline justify-center gap-0.5 mt-0.5 leading-none">
+                                                                            {hasDisc && (
+                                                                                <span className="text-[8px] text-slate-400 line-through mr-0.5">
+                                                                                    {oldPrice}
+                                                                                </span>
+                                                                            )}
+                                                                            <span className="text-xs font-black" style={{ color: primaryColor }}>
+                                                                                {price}
+                                                                            </span>
+                                                                            <span className="text-[8px] font-bold text-slate-400">
+                                                                                {cur}
+                                                                            </span>
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Bottom row: Info & Action */}
+                                                        <div className="flex items-center justify-between gap-1 pt-0.5">
+                                                            <span className="text-[10px] font-bold text-slate-400 truncate">
+                                                                {inCartQty > 0 ? (
+                                                                    <span className="text-indigo-600 dark:text-indigo-400 font-black">
+                                                                        {inCartQty} {isAr ? 'في السلة' : 'in cart'}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span>{item.prices.length} {isAr ? 'أحجام متوفرة' : 'sizes available'}</span>
+                                                                )}
                                                             </span>
                                                             <button
-                                                                onClick={() => quickAddToCart(item, catName(cat), 0)}
-                                                                className="w-5 h-5 rounded-lg text-white flex items-center justify-center active:scale-90 shadow-2xs"
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleItemClick(item, catName(cat), cat.id, 0);
+                                                                }}
+                                                                className="px-2.5 py-1 rounded-xl text-white text-[11px] font-black flex items-center gap-1 shadow-xs active:scale-95 transition-all shrink-0"
                                                                 style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <Plus className="w-3 h-3" />
+                                                                <span>{isAr ? 'طلب' : 'Order'}</span>
                                                             </button>
                                                         </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleItemClick(item, catName(cat), cat.id);
-                                                            }}
-                                                            className="w-8 h-8 rounded-xl text-white flex items-center justify-center shadow-xs active:scale-90 transition-all"
-                                                            style={{ backgroundColor: primaryColor }}
-                                                            title={isAr ? 'أضف للسلة' : 'Add to cart'}
-                                                        >
-                                                            <Plus className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                    </div>
+                                                ) : (
+                                                    /* Single price layout */
+                                                    <div className="flex items-center justify-between gap-1 mt-2.5 pt-2 border-t border-black/5 dark:border-white/5">
+                                                        <div>
+                                                            <div className="flex items-baseline gap-1">
+                                                                <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                                                                    {item.prices?.[0] || 0}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-slate-400">
+                                                                    {cur}
+                                                                </span>
+                                                            </div>
+                                                            {hasDiscount && item.old_prices?.[0] && (
+                                                                <span className="text-[10px] text-slate-400 line-through">
+                                                                    {item.old_prices[0]} {cur}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Qty Stepper or Plus Button */}
+                                                        {inCartQty > 0 ? (
+                                                            <div 
+                                                                className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 px-1.5 py-1 rounded-xl shadow-xs"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                <button
+                                                                    onClick={() => quickDecrementFromCart(item.id)}
+                                                                    className="w-5 h-5 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90"
+                                                                >
+                                                                    <Minus className="w-3 h-3" />
+                                                                </button>
+                                                                <span className="text-xs font-black min-w-[14px] text-center">
+                                                                    {inCartQty}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => quickAddToCart(item, catName(cat), 0)}
+                                                                    className="w-5 h-5 rounded-lg text-white flex items-center justify-center active:scale-90 shadow-2xs"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                >
+                                                                    <Plus className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleItemClick(item, catName(cat), cat.id, 0);
+                                                                }}
+                                                                className="w-8 h-8 rounded-xl text-white flex items-center justify-center shadow-xs active:scale-90 transition-all"
+                                                                style={{ backgroundColor: primaryColor }}
+                                                                title={isAr ? 'أضف للسلة' : 'Add to cart'}
+                                                            >
+                                                                <Plus className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -1284,12 +1374,13 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 <div className="space-y-3">
                                     {cat.items?.map(item => {
                                         const inCartQty = getItemCartQty(item.id);
-                                        const hasDiscount = item.old_prices && item.old_prices[0] && item.old_prices[0] > (item.prices?.[0] || 0);
+                                        const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
+                                        const hasDiscount = item.old_prices && item.old_prices.some((op, idx) => op && op > (item.prices?.[idx] || 0));
 
                                         return (
                                             <div
                                                 key={`list-item-t30-${item.id}`}
-                                                onClick={() => handleItemClick(item, catName(cat), cat.id)}
+                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
                                                 className="group bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-3xl p-3 border border-black/5 dark:border-white/10 shadow-xs hover:shadow-md transition-all flex items-center gap-3 cursor-pointer"
                                             >
                                                 {/* Thumbnail */}
@@ -1310,32 +1401,89 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                                                 {/* Content */}
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-sm sm:text-base line-clamp-1 group-hover:text-indigo-500 transition-colors">
-                                                        {itemName(item)}
-                                                    </h3>
+                                                    <div className="flex items-start justify-between gap-1">
+                                                        <h3 className="font-bold text-sm sm:text-base line-clamp-1 group-hover:text-indigo-500 transition-colors">
+                                                            {itemName(item)}
+                                                        </h3>
+                                                        {inCartQty > 0 && hasMultipleSizes && (
+                                                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                                {inCartQty} {isAr ? 'بالسلة' : 'in cart'}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {itemDesc(item) && (
                                                         <p className="text-xs text-slate-400 dark:text-zinc-400 line-clamp-2 mt-0.5 leading-relaxed">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
-                                                    <div className="flex items-baseline gap-1 mt-1">
-                                                        <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                                                            {item.prices?.[0] || 0}
-                                                        </span>
-                                                        <span className="text-[10px] font-bold text-slate-400">
-                                                            {cur}
-                                                        </span>
-                                                        {hasDiscount && (
-                                                            <span className="text-[10px] text-slate-400 line-through mr-1">
-                                                                {item.old_prices![0]} {cur}
+
+                                                    {hasMultipleSizes ? (
+                                                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                            {item.prices.map((price, pIdx) => {
+                                                                const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                const oldPrice = item.old_prices?.[pIdx];
+                                                                const hasDisc = Boolean(oldPrice && oldPrice > price);
+                                                                const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+
+                                                                return (
+                                                                    <button
+                                                                        key={pIdx}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleItemClick(item, catName(cat), cat.id, pIdx);
+                                                                        }}
+                                                                        className={`relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all ${
+                                                                            sizeCartQty > 0
+                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                                                                                : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
+                                                                        }`}
+                                                                    >
+                                                                        {sizeCartQty > 0 && (
+                                                                            <span 
+                                                                                className="min-w-[14px] h-[14px] px-0.5 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs"
+                                                                                style={{ backgroundColor: primaryColor }}
+                                                                            >
+                                                                                {sizeCartQty}
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-[11px] text-slate-500 dark:text-zinc-400">{label}:</span>
+                                                                        {hasDisc && <span className="text-[9px] text-slate-400 line-through">{oldPrice}</span>}
+                                                                        <span className="font-black" style={{ color: primaryColor }}>{price}</span>
+                                                                        <span className="text-[9px] font-bold text-slate-400">{cur}</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-baseline gap-1 mt-1">
+                                                            <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                                                                {item.prices?.[0] || 0}
                                                             </span>
-                                                        )}
-                                                    </div>
+                                                            <span className="text-[10px] font-bold text-slate-400">
+                                                                {cur}
+                                                            </span>
+                                                            {hasDiscount && item.old_prices?.[0] && (
+                                                                <span className="text-[10px] text-slate-400 line-through mr-1">
+                                                                    {item.old_prices[0]} {cur}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
 
                                                 {/* Action */}
                                                 <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                    {inCartQty > 0 ? (
+                                                    {hasMultipleSizes ? (
+                                                        <button
+                                                            onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                            className="px-3 py-2 rounded-xl text-white text-xs font-black shadow-xs active:scale-90 flex items-center gap-1 transition-all"
+                                                            style={{ backgroundColor: primaryColor }}
+                                                        >
+                                                            <Plus className="w-3.5 h-3.5" />
+                                                            <span>{isAr ? 'اختر الحجم' : 'Select Size'}</span>
+                                                        </button>
+                                                    ) : inCartQty > 0 ? (
                                                         <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 px-2 py-1.5 rounded-xl shadow-xs">
                                                             <button
                                                                 onClick={() => quickDecrementFromCart(item.id)}
@@ -1356,7 +1504,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                         </div>
                                                     ) : (
                                                         <button
-                                                            onClick={() => handleItemClick(item, catName(cat), cat.id)}
+                                                            onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
                                                             className="px-3.5 py-2 rounded-xl text-white text-xs font-black shadow-xs active:scale-90 flex items-center gap-1 transition-all"
                                                             style={{ backgroundColor: primaryColor }}
                                                         >
@@ -1376,31 +1524,78 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 <div className="space-y-1.5">
                                     {cat.items?.map(item => {
                                         const inCartQty = getItemCartQty(item.id);
+                                        const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
 
                                         return (
                                             <div
                                                 key={`compact-item-t30-${item.id}`}
-                                                onClick={() => handleItemClick(item, catName(cat), cat.id)}
+                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
                                                 className="group bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-black/5 dark:border-white/10 shadow-2xs flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition-all"
                                             >
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-xs sm:text-sm truncate">
-                                                        {itemName(item)}
-                                                    </h3>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <h3 className="font-bold text-xs sm:text-sm truncate">
+                                                            {itemName(item)}
+                                                        </h3>
+                                                        {inCartQty > 0 && (
+                                                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                                {inCartQty}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     {itemDesc(item) && (
                                                         <p className="text-[10px] text-slate-400 dark:text-zinc-400 truncate">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
+                                                    {/* Sizes Chips for Compact Mode */}
+                                                    {hasMultipleSizes && (
+                                                        <div className="flex flex-wrap items-center gap-1 mt-1">
+                                                            {item.prices.map((price, pIdx) => {
+                                                                const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `S${pIdx + 1}`);
+                                                                const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                return (
+                                                                    <button
+                                                                        key={pIdx}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleItemClick(item, catName(cat), cat.id, pIdx);
+                                                                        }}
+                                                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg border text-[10px] font-bold transition-all ${
+                                                                            sizeCartQty > 0 
+                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400' 
+                                                                                : 'border-black/5 dark:border-white/10 bg-slate-100/80 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-300 hover:border-indigo-500/40'
+                                                                        }`}
+                                                                    >
+                                                                        <span>{label}:</span>
+                                                                        <span className="font-black" style={{ color: primaryColor }}>{price}</span>
+                                                                        <span className="text-[8px] text-slate-400">{cur}</span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="text-left font-black text-xs sm:text-sm">
-                                                        <span>{item.prices?.[0] || 0}</span>
-                                                        <span className="text-[10px] font-normal text-slate-400 ml-0.5">{cur}</span>
-                                                    </div>
+                                                <div className="flex items-center gap-2.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                    {!hasMultipleSizes && (
+                                                        <div className="text-left font-black text-xs sm:text-sm">
+                                                            <span>{item.prices?.[0] || 0}</span>
+                                                            <span className="text-[10px] font-normal text-slate-400 ml-0.5">{cur}</span>
+                                                        </div>
+                                                    )}
 
-                                                    {inCartQty > 0 ? (
+                                                    {hasMultipleSizes ? (
+                                                        <button
+                                                            onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                            className="px-2.5 py-1.5 rounded-xl text-white text-[11px] font-black flex items-center gap-1 shadow-2xs active:scale-90 transition-all"
+                                                            style={{ backgroundColor: primaryColor }}
+                                                        >
+                                                            <Plus className="w-3 h-3" />
+                                                            <span>{isAr ? 'الأحجام' : 'Sizes'}</span>
+                                                        </button>
+                                                    ) : inCartQty > 0 ? (
                                                         <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
                                                             <button
                                                                 onClick={() => quickDecrementFromCart(item.id)}
@@ -1419,7 +1614,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                         </div>
                                                     ) : (
                                                         <button
-                                                            onClick={() => handleItemClick(item, catName(cat), cat.id)}
+                                                            onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
                                                             className="w-7 h-7 rounded-lg text-white flex items-center justify-center active:scale-90 shadow-2xs"
                                                             style={{ backgroundColor: primaryColor }}
                                                         >
