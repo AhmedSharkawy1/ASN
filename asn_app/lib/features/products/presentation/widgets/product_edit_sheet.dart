@@ -12,6 +12,7 @@ import 'package:asn_app/features/products/data/models/product_model.dart';
 import 'package:asn_app/features/products/data/services/image_upload_service.dart';
 import 'package:asn_app/features/products/presentation/providers/products_provider.dart';
 import 'package:asn_app/features/products/presentation/providers/categories_provider.dart';
+import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 
 void showProductEditSheet(BuildContext context, {ProductModel? product, String? initialCategoryId}) {
   showModalBottomSheet<void>(
@@ -57,6 +58,7 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
   late final List<_SizeRow> _sizeRows;
   String? _categoryId;
   String? _imageUrl;
+  String? _thumbnailUrl;
   bool _isAvailable = true;
   bool _isPopular = false;
   bool _isSpicy = false;
@@ -76,6 +78,7 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
     _descController = TextEditingController(text: p?.descAr ?? '');
     _categoryId = p?.categoryId ?? widget.initialCategoryId;
     _imageUrl = p?.imageUrl;
+    _thumbnailUrl = p?.thumbnailUrl;
     _isAvailable = p?.isAvailable ?? true;
     _isPopular = p?.isPopular ?? false;
     _isSpicy = p?.isSpicy ?? false;
@@ -108,10 +111,24 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
     );
     if (picked == null) return;
 
+    final authState = ref.read(authNotifierProvider);
+    final restaurantId = authState.maybeWhen(
+      authenticated: (user) => user.restaurantId,
+      orElse: () => null,
+    );
+
     setState(() => _uploading = true);
     try {
-      final url = await ref.read(imageUploadServiceProvider).uploadImage(File(picked.path));
-      if (mounted) setState(() => _imageUrl = url);
+      final res = await ref.read(imageUploadServiceProvider).uploadImageWithThumb(
+        File(picked.path),
+        restaurantId: restaurantId,
+      );
+      if (mounted) {
+        setState(() {
+          _imageUrl = res.originalUrl;
+          _thumbnailUrl = res.thumbUrl;
+        });
+      }
     } catch (e) {
       if (mounted) showAppSnackBar(context, '$e', type: AppSnackBarType.error);
     } finally {
@@ -153,6 +170,7 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
           descAr: desc.isEmpty ? null : desc,
           sizes: sizes,
           imageUrl: _imageUrl,
+          thumbnailUrl: _thumbnailUrl,
           categoryId: _categoryId!,
           isAvailable: _isAvailable,
           isPopular: _isPopular,
@@ -166,6 +184,7 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
           descAr: desc.isEmpty ? null : desc,
           sizes: sizes,
           imageUrl: _imageUrl,
+          thumbnailUrl: _thumbnailUrl,
           categoryId: _categoryId,
           isAvailable: _isAvailable,
           isPopular: _isPopular,

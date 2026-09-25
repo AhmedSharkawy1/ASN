@@ -13,6 +13,7 @@ import 'package:asn_app/shared/presentation/widgets/state_widgets.dart';
 import 'package:asn_app/features/products/data/models/category_model.dart';
 import 'package:asn_app/features/products/presentation/providers/categories_provider.dart';
 import 'package:asn_app/features/products/presentation/providers/products_provider.dart';
+import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 
 void showCategoryManagerSheet(BuildContext context) {
   showModalBottomSheet<void>(
@@ -114,8 +115,20 @@ class CategoryManagerSheet extends ConsumerWidget {
     if (picked == null || !context.mounted) return;
 
     try {
-      final url = await ref.read(imageUploadServiceProvider).uploadImage(File(picked.path));
-      await ref.read(categoriesNotifierProvider.notifier).updateCategoryImage(category.id, url);
+      final authState = ref.read(authNotifierProvider);
+      final restaurantId = authState.maybeWhen(
+        authenticated: (user) => user.restaurantId,
+        orElse: () => null,
+      );
+      final res = await ref.read(imageUploadServiceProvider).uploadImageWithThumb(
+        File(picked.path),
+        restaurantId: restaurantId,
+      );
+      await ref.read(categoriesNotifierProvider.notifier).updateCategoryImage(
+        category.id,
+        res.originalUrl,
+        thumbnailUrl: res.thumbUrl,
+      );
     } catch (e) {
       if (context.mounted) showAppSnackBar(context, '$e', type: AppSnackBarType.error);
     }

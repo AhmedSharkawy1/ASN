@@ -21,16 +21,22 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
-    const { data } = await supabase.from('restaurants').select('slug').eq('id', restaurantId).single();
-    const slug = data?.slug;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurantId);
+    const query = supabase.from('restaurants').select('id, slug');
+    const { data } = isUuid
+      ? await query.eq('id', restaurantId).maybeSingle()
+      : await query.eq('slug', restaurantId).maybeSingle();
 
-    // Purge the Data Cache for the UUID
-    revalidateTag(`menu-${restaurantId}`);
-    revalidatePath(`/menu/${restaurantId}`);
-    revalidatePath(`/menu/${restaurantId}`, 'page');
+    const actualId = data?.id || (isUuid ? restaurantId : null);
+    const slug = data?.slug || (!isUuid ? restaurantId : null);
+
+    if (actualId) {
+      revalidateTag(`menu-${actualId}`);
+      revalidatePath(`/menu/${actualId}`);
+      revalidatePath(`/menu/${actualId}`, 'page');
+    }
 
     if (slug) {
-      // Purge the Data Cache for the slug
       revalidateTag(`menu-${slug}`);
       revalidatePath(`/menu/${slug}`);
       revalidatePath(`/menu/${slug}`, 'page');

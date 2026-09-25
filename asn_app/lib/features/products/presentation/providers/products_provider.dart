@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:asn_app/core/config/app_config.dart';
 import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/shared/data/supabase_client.dart';
 import 'package:asn_app/features/products/data/models/product_model.dart';
@@ -36,6 +38,19 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
       authenticated: (user) => user.restaurantId,
       orElse: () => null,
     );
+  }
+
+  /// Best-effort: purge the Next.js data cache for this restaurant's public
+  /// menu so changes (images, prices, availability) are reflected immediately.
+  void _triggerMenuRevalidation() {
+    final rid = _restaurantId;
+    if (rid == null) return;
+    Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl))
+        .post<void>('/api/revalidate-menu', data: {'restaurantId': rid})
+        .catchError((_) {
+      AppLogger.warning('Menu revalidation failed (non-fatal)', name: 'ProductsProvider');
+      return Response<void>(requestOptions: RequestOptions());
+    });
   }
 
   Future<void> _fetchProducts() async {
@@ -103,6 +118,7 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     String? descAr,
     required List<ProductSize> sizes,
     String? imageUrl,
+    String? thumbnailUrl,
     required bool isAvailable,
     required bool isPopular,
     required bool isSpicy,
@@ -118,6 +134,7 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
       'prices': encoded.prices,
       'size_labels': encoded.labels,
       'image_url': imageUrl,
+      'thumbnail_url': thumbnailUrl,
       'is_available': isAvailable,
       'is_popular': isPopular,
       'is_spicy': isSpicy,
@@ -131,6 +148,7 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     String? descAr,
     required List<ProductSize> sizes,
     String? imageUrl,
+    String? thumbnailUrl,
     required String categoryId,
     bool isAvailable = true,
     bool isPopular = false,
@@ -145,6 +163,7 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
           descAr: descAr,
           sizes: sizes,
           imageUrl: imageUrl,
+          thumbnailUrl: thumbnailUrl,
           isAvailable: isAvailable,
           isPopular: isPopular,
           isSpicy: isSpicy,
@@ -152,6 +171,7 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
         ),
         'sort_order': count,
       });
+      _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to add product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
@@ -166,6 +186,7 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     String? descAr,
     required List<ProductSize> sizes,
     String? imageUrl,
+    String? thumbnailUrl,
     String? categoryId,
     required bool isAvailable,
     required bool isPopular,
@@ -180,12 +201,14 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
             descAr: descAr,
             sizes: sizes,
             imageUrl: imageUrl,
+            thumbnailUrl: thumbnailUrl,
             isAvailable: isAvailable,
             isPopular: isPopular,
             isSpicy: isSpicy,
             categoryId: categoryId,
           ))
           .eq('id', productId);
+      _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to update product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');

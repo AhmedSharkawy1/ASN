@@ -1229,19 +1229,15 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                 {/* Price & Add Controls */}
                                                 {hasMultipleSizes ? (
                                                     <div className="mt-2.5 pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
-                                                        {/* Sizes Grid: 2 cols for 2 or 4 sizes, 3 cols for 3 sizes, scroll track for 5+ sizes */}
-                                                        <div className={`${
-                                                            item.prices.length === 2 ? 'grid grid-cols-2 gap-1.5 w-full' :
-                                                            item.prices.length === 3 ? 'grid grid-cols-3 gap-1 w-full' :
-                                                            item.prices.length === 4 ? 'grid grid-cols-2 gap-1.5 w-full' :
-                                                            'flex items-stretch gap-1.5 overflow-x-auto no-scrollbar py-1 w-full'
-                                                        }`}>
+                                                        {/* Sizes Grid: 2 cols side-by-side like Theme 26; 3rd or odd-last size spans 2 cols underneath */}
+                                                        <div className={`grid grid-cols-2 gap-1.5 w-full ${item.prices.length > 4 ? 'max-h-[160px] overflow-y-auto no-scrollbar' : ''}`}>
                                                             {item.prices.map((price, pIdx) => {
                                                                 const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                 const oldPrice = item.old_prices?.[pIdx];
                                                                 const hasDisc = Boolean(oldPrice && oldPrice > price);
                                                                 const sizeDiscountPercent = hasDisc && oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
                                                                 const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
 
                                                                 return (
                                                                     <button
@@ -1251,8 +1247,8 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                             e.stopPropagation();
                                                                             handleItemClick(item, catName(cat), cat.id, pIdx);
                                                                         }}
-                                                                        className={`relative group/size flex flex-col items-center justify-between py-1.5 px-1 rounded-xl border transition-all text-center min-h-[56px] ${
-                                                                            item.prices.length > 4 ? 'shrink-0 min-w-[70px]' : ''
+                                                                        className={`relative group/size flex flex-col items-center justify-between py-1.5 px-1.5 rounded-xl border transition-all text-center min-h-[52px] ${
+                                                                            isOddLast ? 'col-span-2' : ''
                                                                         } ${
                                                                             sizeCartQty > 0
                                                                                 ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs ring-1 ring-indigo-500/50'
@@ -1280,7 +1276,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                         )}
 
                                                                         {/* Size Label */}
-                                                                        <span className={`text-[10px] font-bold truncate max-w-full leading-tight ${hasDisc ? 'text-rose-700 dark:text-rose-300 font-black' : 'text-slate-600 dark:text-zinc-400'}`}>
+                                                                        <span className={`text-[10.5px] font-bold truncate max-w-full leading-tight ${hasDisc ? 'text-rose-700 dark:text-rose-300 font-black' : 'text-slate-600 dark:text-zinc-400'}`}>
                                                                             {label}
                                                                         </span>
 
@@ -1318,19 +1314,20 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                                                         {/* Bottom row: Info & Action */}
                                                         <div className="flex items-center justify-between gap-1 pt-1 mt-1 border-t border-black/5 dark:border-white/5">
-                                                            <div className="flex items-center gap-1 min-w-0">
-                                                                {hasDiscount ? (
-                                                                    <span className="text-[10px] font-black text-rose-500 flex items-center gap-0.5 truncate">
-                                                                        <Flame className="w-3 h-3 text-rose-500 shrink-0" />
-                                                                        <span>{isAr ? 'عروض خاصة' : 'Offers'}</span>
+                                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                                {/* Always preserve written size count */}
+                                                                <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-400 truncate">
+                                                                    {item.prices.length} {isAr ? 'أحجام' : 'sizes'}
+                                                                </span>
+                                                                {hasDiscount && (
+                                                                    <span className="text-[9.5px] font-black text-rose-500 flex items-center gap-0.5 shrink-0">
+                                                                        <Flame className="w-2.5 h-2.5 text-rose-500 shrink-0" />
+                                                                        <span>{isAr ? 'عروض' : 'Offers'}</span>
                                                                     </span>
-                                                                ) : inCartQty > 0 ? (
-                                                                    <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 truncate">
-                                                                        {inCartQty} {isAr ? 'في السلة' : 'in cart'}
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className="text-[10px] font-bold text-slate-400 truncate">
-                                                                        {item.prices.length} {isAr ? 'أحجام' : 'sizes'}
+                                                                )}
+                                                                {inCartQty > 0 && (
+                                                                    <span className="text-[9.5px] font-black text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                                        ({inCartQty})
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -1864,10 +1861,10 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                     </div>
                 )}
 
-                {/* 9. SLIDE-UP CART DRAWER */}
+                {/* 9. CENTERED CART MODAL */}
                 <AnimatePresence>
                     {isCartOpen && (
-                        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
                             <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -1876,11 +1873,11 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 className="fixed inset-0 bg-black/60 backdrop-blur-sm"
                             />
                             <motion.div 
-                                initial={{ y: '100%' }}
-                                animate={{ y: 0 }}
-                                exit={{ y: '100%' }}
-                                transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-                                className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl z-10 max-h-[85vh] flex flex-col border border-black/5 dark:border-white/10"
+                                initial={{ scale: 0.92, opacity: 0, y: 15 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.92, opacity: 0, y: 15 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-5 shadow-2xl z-10 max-h-[85vh] flex flex-col border border-black/5 dark:border-white/10 my-auto"
                             >
                                 {/* Header */}
                                 <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
@@ -2056,12 +2053,15 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                     const hasDisc = Boolean(oldP && oldP > p);
                                                     const discPct = hasDisc && oldP ? Math.round(((oldP - p) / oldP) * 100) : null;
                                                     const isSelected = modalSizeIdx === idx;
+                                                    const isOddLast = (selectedItem.item.prices.length % 2 !== 0) && (idx === selectedItem.item.prices.length - 1);
                                                     return (
                                                         <button
                                                             key={idx}
                                                             type="button"
                                                             onClick={() => setModalSizeIdx(idx)}
                                                             className={`relative p-2.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between ${
+                                                                isOddLast ? 'col-span-2' : ''
+                                                            } ${
                                                                 isSelected 
                                                                     ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-xs ring-1 ring-indigo-500/50' 
                                                                     : hasDisc

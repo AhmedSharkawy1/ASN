@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:asn_app/core/config/app_config.dart';
 import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/shared/data/supabase_client.dart';
 import 'package:asn_app/features/products/data/models/category_model.dart';
@@ -19,6 +21,18 @@ class CategoriesNotifier extends Notifier<AsyncValue<List<CategoryModel>>> {
       authenticated: (user) => user.restaurantId,
       orElse: () => null,
     );
+  }
+
+  /// Purges Next.js public menu cache for this restaurant immediately
+  void _triggerMenuRevalidation() {
+    final rid = _restaurantId;
+    if (rid == null) return;
+    Dio(BaseOptions(baseUrl: AppConfig.apiBaseUrl))
+        .post<void>('/api/revalidate-menu', data: {'restaurantId': rid})
+        .catchError((_) {
+      AppLogger.warning('Category revalidation failed (non-fatal)', name: 'CategoriesProvider');
+      return Response<void>(requestOptions: RequestOptions());
+    });
   }
 
   Future<void> _fetchCategories() async {
@@ -63,6 +77,7 @@ class CategoriesNotifier extends Notifier<AsyncValue<List<CategoryModel>>> {
         'emoji': ?emoji,
         'sort_order': current.length,
       });
+      _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to add category', error: e, stackTrace: stackTrace, name: 'CategoriesProvider');
@@ -80,6 +95,7 @@ class CategoriesNotifier extends Notifier<AsyncValue<List<CategoryModel>>> {
             if (emoji != null && emoji.isNotEmpty) 'emoji': emoji,
           })
           .eq('id', categoryId);
+      _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to rename category', error: e, stackTrace: stackTrace, name: 'CategoriesProvider');
@@ -87,12 +103,16 @@ class CategoriesNotifier extends Notifier<AsyncValue<List<CategoryModel>>> {
     }
   }
 
-  Future<void> updateCategoryImage(String categoryId, String imageUrl) async {
+  Future<void> updateCategoryImage(String categoryId, String imageUrl, {String? thumbnailUrl}) async {
     try {
       await SupabaseClientManager.client
           .from('categories')
-          .update({'image_url': imageUrl})
+          .update({
+            'image_url': imageUrl,
+            'thumbnail_url': ?thumbnailUrl,
+          })
           .eq('id', categoryId);
+      _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to update category image', error: e, stackTrace: stackTrace, name: 'CategoriesProvider');
@@ -103,6 +123,7 @@ class CategoriesNotifier extends Notifier<AsyncValue<List<CategoryModel>>> {
   Future<void> deleteCategory(String categoryId) async {
     try {
       await SupabaseClientManager.client.from('categories').delete().eq('id', categoryId);
+      _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to delete category', error: e, stackTrace: stackTrace, name: 'CategoriesProvider');

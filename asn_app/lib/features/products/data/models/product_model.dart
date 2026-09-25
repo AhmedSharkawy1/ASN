@@ -22,6 +22,7 @@ class ProductModel {
   final List<double> prices;
   final List<String> rawSizeLabels;
   final String? imageUrl;
+  final String? thumbnailUrl;
   final bool isAvailable;
   final bool isPopular;
   final bool isSpicy;
@@ -38,6 +39,7 @@ class ProductModel {
     this.prices = const [],
     this.rawSizeLabels = const [],
     this.imageUrl,
+    this.thumbnailUrl,
     this.isAvailable = true,
     this.isPopular = false,
     this.isSpicy = false,
@@ -94,6 +96,7 @@ class ProductModel {
       rawSizeLabels:
           (json['size_labels'] as List?)?.map((l) => l?.toString() ?? '').toList() ?? const [],
       imageUrl: json['image_url'] as String?,
+      thumbnailUrl: json['thumbnail_url'] as String?,
       isAvailable: json['is_available'] as bool? ?? true,
       isPopular: json['is_popular'] as bool? ?? false,
       isSpicy: json['is_spicy'] as bool? ?? false,

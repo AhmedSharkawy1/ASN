@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import { isR2Configured, uploadBufferToR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
@@ -121,6 +122,9 @@ export async function POST(req: NextRequest) {
     stage = 'formdata';
     const formData = await req.formData();
     
+    // Optional: restaurant ID for menu cache invalidation after upload
+    const restaurantId = formData.get('restaurantId');
+
     stage = 'file-validation';
     // formData.get() is typed `string | File | null`; narrow once here so the
     // Blob/File members below are actually checked rather than cast at each use.
@@ -191,6 +195,34 @@ export async function POST(req: NextRequest) {
       const { data: thumbUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(thumbUploadError ? originalFileName : thumbFileName);
       originalUrl = originalUrlData.publicUrl;
       thumbUrl = thumbUrlData.publicUrl;
+    }
+
+    // Revalidate the public menu cache if a restaurantId was provided
+    if (restaurantId && typeof restaurantId === 'string') {
+      stage = 'revalidation';
+      try {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurantId);
+        const query = supabaseAdmin.from('restaurants').select('id, slug');
+        const { data: rest } = isUuid
+          ? await query.eq('id', restaurantId).maybeSingle()
+          : await query.eq('slug', restaurantId).maybeSingle();
+
+        const actualId = rest?.id || (isUuid ? restaurantId : null);
+        const slug = rest?.slug || (!isUuid ? restaurantId : null);
+
+        if (actualId) {
+          revalidateTag(`menu-${actualId}`);
+          revalidatePath(`/menu/${actualId}`);
+          revalidatePath(`/menu/${actualId}`, 'page');
+        }
+        if (slug) {
+          revalidateTag(`menu-${slug}`);
+          revalidatePath(`/menu/${slug}`);
+          revalidatePath(`/menu/${slug}`, 'page');
+        }
+      } catch (revalErr) {
+        console.warn('[UPLOAD_IMAGE] Revalidation failed:', revalErr);
+      }
     }
 
     stage = 'response';
