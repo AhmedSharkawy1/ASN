@@ -351,8 +351,9 @@ class AuthRepositoryImpl implements AuthRepository {
           if (errStr.contains('already_used') ||
               errStr.contains('already used') ||
               errStr.contains('invalid refresh token') ||
+              errStr.contains('refresh_token_not_found') ||
               errStr.contains('invalid_grant')) {
-            AppLogger.error('Refresh token revoked or already used. Clearing zombie session.', error: e, name: 'AuthRepo');
+            AppLogger.info('Refresh token expired or revoked. Clearing zombie session.', name: 'AuthRepo');
             await logout();
             return null;
           }
@@ -365,16 +366,18 @@ class AuthRepositoryImpl implements AuthRepository {
         AppLogger.info('Returning cached session for auto-login: ${cached.name}', name: 'AuthRepo');
         return cached.toEntity();
       }
-    } catch (e, stackTrace) {
-      AppLogger.error('Check session check failed', error: e, stackTrace: stackTrace, name: 'AuthRepo');
+    } catch (e) {
       final errStr = e.toString().toLowerCase();
       if (errStr.contains('already_used') ||
           errStr.contains('already used') ||
           errStr.contains('invalid refresh token') ||
+          errStr.contains('refresh_token_not_found') ||
           errStr.contains('invalid_grant')) {
+        AppLogger.info('Session refresh token expired on check. Logged out gracefully.', name: 'AuthRepo');
         await logout();
         return null;
       }
+      AppLogger.warning('Check session transient failure, using cached session: $e', name: 'AuthRepo');
       final cached = await _localDataSource.getCachedUserSession();
       if (cached != null) return cached.toEntity();
     }

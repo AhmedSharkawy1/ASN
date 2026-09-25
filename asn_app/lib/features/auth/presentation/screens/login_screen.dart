@@ -32,6 +32,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _submitForm() {
+    final isAlreadyLoading =
+        ref.read(authNotifierProvider).maybeWhen(loading: () => true, orElse: () => false);
+    if (isAlreadyLoading) return;
+
     if (_formKey.currentState?.validate() ?? false) {
       final isAr = ref.read(localeProvider).languageCode == 'ar';
       final lang = isAr ? 'ar' : 'en';
@@ -368,6 +372,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
+
+          // Full-screen loading overlay when signing in
+          if (isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.55),
+                child: Center(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.tealPrimary),
+                          ),
+                        ),
+                        AppSpacing.heightMd,
+                        Text(
+                          isAr ? 'جاري تسجيل الدخول...' : 'Signing in...',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        AppSpacing.heightXs,
+                        Text(
+                          isAr ? 'يرجى الانتظار لحظات' : 'Please wait a moment',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

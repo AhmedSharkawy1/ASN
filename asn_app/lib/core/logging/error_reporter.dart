@@ -28,6 +28,17 @@ class ErrorReporter {
 
     final previousOnError = FlutterError.onError;
     FlutterError.onError = (FlutterErrorDetails details) {
+      // Ignore silent errors (e.g. routine asset/image fetch failures handled by widget error builders)
+      if (details.silent) return;
+
+      final ex = details.exception;
+      final exStr = ex.toString();
+      if (exStr.contains('HttpException: Invalid statusCode') ||
+          exStr.contains('ImageResourceService') ||
+          details.library == 'image resource service') {
+        return;
+      }
+
       record(
         details.exceptionAsString(),
         name: 'FlutterError',
@@ -38,6 +49,11 @@ class ErrorReporter {
 
     // Errors raised outside the framework (platform channels, isolates).
     PlatformDispatcher.instance.onError = (error, stack) {
+      final errStr = error.toString();
+      if (errStr.contains('HttpException: Invalid statusCode') ||
+          errStr.contains('ImageResourceService')) {
+        return true; // Routine image network failure, handled by widget
+      }
       record('$error', name: 'PlatformDispatcher', stackTrace: stack);
       return false; // keep default handling
     };
