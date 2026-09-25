@@ -7,12 +7,12 @@ export async function GET(request: Request) {
     const isAndroid = /Android/i.test(userAgent);
     const isMobile = isIOS || isAndroid;
 
-    // Try to get the APK download URL from Supabase storage
+    // APK download URL: Cloudflare R2 (0$ egress, fast edge delivery) or Supabase storage fallback
+    const r2PublicUrl = (process.env.R2_PUBLIC_URL || 'https://pub-bf5cb456ccb341b98cf3e5da0997dfc1.r2.dev').replace(/\/+$/, '');
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 
-    let apkUrl = "";
-    if (supabaseUrl) {
+    let apkUrl = `${r2PublicUrl}/asn-app-release.apk`;
+    if (!r2PublicUrl && supabaseUrl) {
         apkUrl = `${supabaseUrl}/storage/v1/object/public/app-releases/asn-app-release.apk`;
     }
 
@@ -194,7 +194,7 @@ export async function GET(request: Request) {
             </button>
         </div>
 
-        <p class="version">ASN Technology © ${new Date().getFullYear()} — الإصدار 1.0.0</p>
+        <p class="version">ASN Technology © ${new Date().getFullYear()} — الإصدار 1.0.3</p>
     </div>
 </body>
 </html>`;
