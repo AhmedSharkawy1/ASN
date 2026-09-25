@@ -39,11 +39,7 @@ final subscribeNewOrdersUseCaseProvider = Provider<SubscribeNewOrdersUseCase>((r
 class ActiveBranchNotifier extends Notifier<String?> {
   @override
   String? build() {
-    final authState = ref.watch(authNotifierProvider);
-    return authState.maybeWhen(
-      authenticated: (user) => user.role.name == 'staff' ? user.restaurantId : 'all',
-      orElse: () => null,
-    );
+    return 'all';
   }
 
   void updateBranch(String? branchId) {

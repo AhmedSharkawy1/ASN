@@ -197,6 +197,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: _usernameController,
                         enabled: !isLoading,
                         keyboardType: TextInputType.emailAddress,
+                        textCapitalization: TextCapitalization.none,
+                        autocorrect: false,
                         textDirection: TextDirection.ltr,
                         decoration: InputDecoration(
                           hintText: isAr ? 'admin@website.com أو admin1' : 'user@example.com or admin1',

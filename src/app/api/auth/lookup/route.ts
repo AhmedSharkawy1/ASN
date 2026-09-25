@@ -24,11 +24,13 @@ export async function POST(request: Request) {
             }
         });
 
+        const cleanUsername = username.trim();
+
         // Search by username first (supports multiple restaurants)
         let query = supabaseAdmin
             .from('team_members')
             .select('restaurant_id, username, auth_id, is_active')
-            .eq('username', username)
+            .ilike('username', cleanUsername)
             .order('created_at', { ascending: false });
             
         if (restaurantId) query = query.eq('restaurant_id', restaurantId);
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
             let emailQuery = supabaseAdmin
                 .from('team_members')
                 .select('restaurant_id, username, auth_id, is_active')
-                .ilike('email', username)
+                .ilike('email', cleanUsername)
                 .not('auth_id', 'is', null)
                 .order('created_at', { ascending: false });
                 
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
             let nameQuery = supabaseAdmin
                 .from('team_members')
                 .select('restaurant_id, username, auth_id, is_active')
-                .eq('name', username)
+                .ilike('name', cleanUsername)
                 .not('auth_id', 'is', null)
                 .order('created_at', { ascending: false });
                 

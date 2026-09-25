@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:supabase_flutter/supabase_flutter.dart' show User;
+import 'package:supabase_flutter/supabase_flutter.dart' show User, AuthResponse;
 
 import 'package:asn_app/core/config/app_modules.dart';
 import 'package:asn_app/core/network/network_info.dart';
@@ -59,7 +59,28 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // Supabase Sign In
-      final authResponse = await _remoteDataSource.signIn(resolvedEmail, password);
+      AuthResponse authResponse;
+      try {
+        authResponse = await _remoteDataSource.signIn(resolvedEmail, password);
+      } catch (signInErr) {
+        // If sign-in failed and input contains '@' (e.g. staff typed their real email),
+        // try looking up if this email belongs to a team member with an internal .asn email
+        if (resolvedEmail.contains('@') && !resolvedEmail.endsWith('.asn')) {
+          try {
+            final lookedUp = await _remoteDataSource.lookupEmail(resolvedEmail);
+            if (lookedUp.isNotEmpty && lookedUp != resolvedEmail) {
+              authResponse = await _remoteDataSource.signIn(lookedUp, password);
+              resolvedEmail = lookedUp;
+            } else {
+              rethrow;
+            }
+          } catch (_) {
+            rethrow;
+          }
+        } else {
+          rethrow;
+        }
+      }
       final session = authResponse.session;
       final user = authResponse.user;
 

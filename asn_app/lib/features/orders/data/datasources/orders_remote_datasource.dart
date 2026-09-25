@@ -31,10 +31,6 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
           .select(_orderSelect)
           .eq('restaurant_id', restaurantId);
 
-      if (branchId != null && branchId != 'all') {
-        query = query.eq('branch_id', branchId);
-      }
-
       if (status != null && status.isNotEmpty) {
         query = query.eq('status', status);
       }
@@ -83,13 +79,6 @@ class OrdersRemoteDataSourceImpl implements OrdersRemoteDataSource {
         try {
           final newRecord = payload.newRecord;
           final orderId = newRecord['id'] as String;
-          final orderBranchId = newRecord['branch_id'] as String?;
-
-          // Filter by branch_id in-memory if specified
-          if (branchId != null && branchId != 'all' && orderBranchId != branchId) {
-            return;
-          }
-
           AppLogger.info('New order PostgresChange insert event detected: $orderId', name: 'OrdersRemote');
 
           // Fetch complete order with all joins
