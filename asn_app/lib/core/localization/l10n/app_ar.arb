@@ -151,6 +151,7 @@
   "rangeToday": "اليوم",
   "range7d": "آخر 7 أيام",
   "range30d": "آخر 30 يوماً",
+  "rangeAll": "الكل",
   "revenue": "الإيرادات",
   "totalOrders": "الطلبات",
   "avgOrderValue": "متوسط الطلب",

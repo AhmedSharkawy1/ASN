@@ -40,6 +40,7 @@ class ReportsScreen extends ConsumerWidget {
                 ButtonSegment(value: ReportRange.today, label: Text(l10n.rangeToday)),
                 ButtonSegment(value: ReportRange.week, label: Text(l10n.range7d)),
                 ButtonSegment(value: ReportRange.month, label: Text(l10n.range30d)),
+                ButtonSegment(value: ReportRange.all, label: Text(l10n.rangeAll)),
               ],
               selected: {range},
               onSelectionChanged: (selection) =>

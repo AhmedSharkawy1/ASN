@@ -465,6 +465,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get range30d => 'آخر 30 يوماً';
 
   @override
+  String get rangeAll => 'الكل';
+
+  @override
   String get revenue => 'الإيرادات';
 
   @override

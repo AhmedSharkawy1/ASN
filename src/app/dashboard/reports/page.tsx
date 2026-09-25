@@ -86,6 +86,12 @@ const getLocalStartOfDay = (d: Date) => {
     return start;
 };
 
+const getLocalEndOfDay = (d: Date) => {
+    const end = new Date(d);
+    end.setHours(23, 59, 59, 999);
+    return end;
+};
+
 const getDateBounds = (range: DateRange, customStart: string, customEnd: string) => {
     const now = new Date();
     let dateFrom: string | null = null;
@@ -93,22 +99,28 @@ const getDateBounds = (range: DateRange, customStart: string, customEnd: string)
 
     if (range === "today") {
         dateFrom = getLocalStartOfDay(now).toISOString();
+        dateTo = getLocalEndOfDay(now).toISOString();
     } else if (range === "yesterday") {
-        const startOfYesterday = getLocalStartOfDay(now);
-        startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-        dateFrom = startOfYesterday.toISOString();
-
-        const endOfYesterday = new Date(startOfYesterday);
-        endOfYesterday.setHours(23, 59, 59, 999);
-        dateTo = endOfYesterday.toISOString();
+        const y = getLocalStartOfDay(now);
+        y.setDate(y.getDate() - 1);
+        dateFrom = y.toISOString();
+        dateTo = getLocalEndOfDay(y).toISOString();
     } else if (range === "week") {
+        // Last 7 days including today
         const w = getLocalStartOfDay(now);
-        w.setDate(w.getDate() - 7);
+        w.setDate(w.getDate() - 6);
         dateFrom = w.toISOString();
+        dateTo = getLocalEndOfDay(now).toISOString();
     } else if (range === "month") {
+        // Last 30 days including today
         const m = getLocalStartOfDay(now);
-        m.setMonth(m.getMonth() - 1);
+        m.setDate(m.getDate() - 29);
         dateFrom = m.toISOString();
+        dateTo = getLocalEndOfDay(now).toISOString();
+    } else if (range === "all") {
+        // All time: no date filter
+        dateFrom = null;
+        dateTo = null;
     } else if (range === "custom") {
         if (customStart) {
             dateFrom = customStart.includes("T")
@@ -195,7 +207,7 @@ export default function ReportsPage() {
             cashier_name: o.cashier_name,
             source: (o as any).source,
             items: (o.items || []).map((i: any) => ({
-                title: (i.title || "غير محدد").trim(),
+                title: (i.title || i.product_name || "غير محدد").trim(),
                 qty: Number(i.qty ?? i.quantity) || 1,
                 price: Number(i.price ?? i.unit_price) || 0,
                 category: i.category ? String(i.category).trim() : undefined,
@@ -204,49 +216,92 @@ export default function ReportsPage() {
             created_at: o.created_at,
         }));
 
-        // 2️⃣ Load from Supabase in chunks (remote/cloud orders)
+        // 2️⃣ Load from /api/reports (server-side, accurate, bypasses RLS and 1000-row limits)
         let remoteOrders: OrderLike[] = [];
+        let apiLoaded = false;
         try {
-            const batchSize = 1000;
-            let offset = 0;
-            while (true) {
-                let query = supabase
-                    .from('orders')
-                    .select('id, status, is_draft, total, deposit_amount, delivery_fee, discount, payment_method, cashier_name, source, items, created_at')
-                    .eq('restaurant_id', restaurantId)
-                    .eq('is_draft', false)
-                    .neq('status', 'cancelled')
-                    .order('created_at', { ascending: false });
+            const params = new URLSearchParams();
+            params.set('restaurant_id', restaurantId);
+            params.set('range', range);
+            if (dateFrom) params.set('from', dateFrom);
+            if (dateTo) params.set('to', dateTo);
+            params.set('include_cancelled', 'false');
 
-                if (dateFrom) query = query.gte('created_at', dateFrom);
-                if (dateTo) query = query.lte('created_at', dateTo);
-
-                const { data, error } = await query.range(offset, offset + batchSize - 1);
-                if (error) {
-                    console.error("Error fetching report orders:", error);
-                    break;
+            const res = await fetch(`/api/reports?${params.toString()}`, { cache: 'no-store' });
+            if (res.ok) {
+                const json = await res.json();
+                if (json.success && Array.isArray(json.orders)) {
+                    remoteOrders = json.orders.map((o: any) => ({
+                        id: o.id,
+                        status: o.status,
+                        is_draft: o.is_draft,
+                        total: Number(o.total) || 0,
+                        deposit_amount: o.deposit_amount,
+                        delivery_fee: o.delivery_fee,
+                        discount: o.discount,
+                        payment_method: o.payment_method,
+                        cashier_name: o.cashier_name,
+                        source: o.source,
+                        items: (o.items || []).map((i: any) => ({
+                            title: (i.title || i.product_name || "غير محدد").trim(),
+                            qty: Number(i.qty ?? i.quantity) || 1,
+                            price: Number(i.price ?? i.unit_price) || 0,
+                            category: i.category ? String(i.category).trim() : undefined,
+                            size: i.size ? String(i.size).trim() : undefined,
+                        })),
+                        created_at: o.created_at,
+                    }));
+                    apiLoaded = true;
                 }
-                if (!data || data.length === 0) break;
-
-                const mapped = (data as OrderLike[]).map(o => ({
-                    ...o,
-                    total: Number(o.total) || 0,
-                    items: (o.items || []).map((i: any) => ({
-                        title: (i.title || "غير محدد").trim(),
-                        qty: Number(i.qty ?? i.quantity) || 1,
-                        price: Number(i.price ?? i.unit_price) || 0,
-                        category: i.category ? String(i.category).trim() : undefined,
-                        size: i.size ? String(i.size).trim() : undefined,
-                    })),
-                }));
-                remoteOrders.push(...mapped);
-
-                if (data.length < batchSize) break;
-                offset += batchSize;
             }
-        } catch { /* offline — use local only */ }
+        } catch (apiErr) {
+            console.warn("Direct /api/reports fetch error, trying client Supabase fallback:", apiErr);
+        }
 
-        // 3️⃣ Merge: remote takes priority, local fills gaps
+        // Fallback: client Supabase in chunks (if server API failed)
+        if (!apiLoaded) {
+            try {
+                const batchSize = 1000;
+                let offset = 0;
+                while (true) {
+                    let query = supabase
+                        .from('orders')
+                        .select('id, status, is_draft, total, deposit_amount, delivery_fee, discount, payment_method, cashier_name, source, items, created_at')
+                        .eq('restaurant_id', restaurantId)
+                        .eq('is_draft', false)
+                        .neq('status', 'cancelled')
+                        .order('created_at', { ascending: false });
+
+                    if (dateFrom) query = query.gte('created_at', dateFrom);
+                    if (dateTo) query = query.lte('created_at', dateTo);
+
+                    const { data, error } = await query.range(offset, offset + batchSize - 1);
+                    if (error) {
+                        console.error("Error fetching report orders:", error);
+                        break;
+                    }
+                    if (!data || data.length === 0) break;
+
+                    const mapped = (data as OrderLike[]).map(o => ({
+                        ...o,
+                        total: Number(o.total) || 0,
+                        items: (o.items || []).map((i: any) => ({
+                            title: (i.title || i.product_name || "غير محدد").trim(),
+                            qty: Number(i.qty ?? i.quantity) || 1,
+                            price: Number(i.price ?? i.unit_price) || 0,
+                            category: i.category ? String(i.category).trim() : undefined,
+                            size: i.size ? String(i.size).trim() : undefined,
+                        })),
+                    }));
+                    remoteOrders.push(...mapped);
+
+                    if (data.length < batchSize) break;
+                    offset += batchSize;
+                }
+            } catch { /* offline — use local only */ }
+        }
+
+        // 3️⃣ Merge: remote takes priority, local fills unsynced gaps
         const mergedMap = new Map<string, OrderLike>();
         localMapped.forEach(o => mergedMap.set(o.id, o));
         remoteOrders.forEach(o => mergedMap.set(o.id, o)); // remote wins

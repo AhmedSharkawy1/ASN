@@ -465,6 +465,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get range30d => 'Last 30 Days';
 
   @override
+  String get rangeAll => 'All';
+
+  @override
   String get revenue => 'Revenue';
 
   @override

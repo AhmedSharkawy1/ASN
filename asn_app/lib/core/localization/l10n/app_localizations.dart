@@ -1004,6 +1004,12 @@ abstract class AppLocalizations {
   /// **'آخر 30 يوماً'**
   String get range30d;
 
+  /// No description provided for @rangeAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get rangeAll;
+
   /// No description provided for @revenue.
   ///
   /// In ar, this message translates to:

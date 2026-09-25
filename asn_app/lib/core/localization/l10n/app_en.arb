@@ -151,6 +151,7 @@
   "rangeToday": "Today",
   "range7d": "Last 7 Days",
   "range30d": "Last 30 Days",
+  "rangeAll": "All",
   "revenue": "Revenue",
   "totalOrders": "Orders",
   "avgOrderValue": "Avg Order",

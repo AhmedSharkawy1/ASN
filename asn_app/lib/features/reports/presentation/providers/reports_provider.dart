@@ -3,13 +3,14 @@ import 'package:asn_app/shared/data/supabase_client.dart';
 import 'package:asn_app/core/logging/logger.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 
-enum ReportRange { today, week, month }
+enum ReportRange { today, week, month, all }
 
 extension ReportRangeDays on ReportRange {
   int get days => switch (this) {
         ReportRange.today => 1,
         ReportRange.week => 7,
         ReportRange.month => 30,
+        ReportRange.all => 0,
       };
 }
 
@@ -64,7 +65,7 @@ class ReportData {
 
 class ReportRangeNotifier extends Notifier<ReportRange> {
   @override
-  ReportRange build() => ReportRange.week;
+  ReportRange build() => ReportRange.today;
 
   void set(ReportRange range) => state = range;
 }
@@ -100,18 +101,55 @@ class ReportsNotifier extends Notifier<AsyncValue<ReportData>> {
 
     try {
       final now = DateTime.now();
-      final startOfToday = DateTime(now.year, now.month, now.day);
-      final rangeStart = range == ReportRange.today
-          ? startOfToday
-          : startOfToday.subtract(Duration(days: range.days - 1));
+      final startOfToday = DateTime(now.year, now.month, now.day, 0, 0, 0);
+      final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59, 999);
 
-      final response = await SupabaseClientManager.client
-          .from('orders')
-          .select('total, status, created_at, items, payment_method, order_type, is_draft')
-          .eq('restaurant_id', restaurantId)
-          .gte('created_at', rangeStart.toUtc().toIso8601String());
+      DateTime? rangeStart;
+      DateTime? rangeEnd;
 
-      final List<dynamic> rawOrders = response as List;
+      if (range == ReportRange.today) {
+        rangeStart = startOfToday;
+        rangeEnd = endOfToday;
+      } else if (range == ReportRange.week) {
+        rangeStart = startOfToday.subtract(const Duration(days: 6));
+        rangeEnd = endOfToday;
+      } else if (range == ReportRange.month) {
+        rangeStart = startOfToday.subtract(const Duration(days: 29));
+        rangeEnd = endOfToday;
+      } else if (range == ReportRange.all) {
+        rangeStart = null;
+        rangeEnd = null;
+      }
+
+      // Fetch all orders in batches of 1000 so nothing is truncated
+      final List<dynamic> rawOrders = [];
+      const int batchSize = 1000;
+      int offset = 0;
+
+      while (true) {
+        var query = SupabaseClientManager.client
+            .from('orders')
+            .select('total, status, created_at, items, payment_method, order_type, is_draft')
+            .eq('restaurant_id', restaurantId)
+            .eq('is_draft', false);
+
+        if (rangeStart != null) {
+          query = query.gte('created_at', rangeStart.toUtc().toIso8601String());
+        }
+        if (rangeEnd != null) {
+          query = query.lte('created_at', rangeEnd.toUtc().toIso8601String());
+        }
+
+        final response = await query
+            .order('created_at', ascending: false)
+            .range(offset, offset + batchSize - 1);
+
+        final list = response as List;
+        if (list.isEmpty) break;
+        rawOrders.addAll(list);
+        if (list.length < batchSize) break;
+        offset += batchSize;
+      }
 
       double totalRevenue = 0;
       int totalOrders = 0;
@@ -121,14 +159,32 @@ class ReportsNotifier extends Notifier<AsyncValue<ReportData>> {
       final Map<String, double> payments = {};
       final Map<String, int> orderTypes = {};
 
-      // Trend buckets: hourly (4h blocks) for today, daily otherwise.
-      final bucketCount = range == ReportRange.today ? 6 : range.days;
+      // Trend buckets:
+      // - today: 6 blocks of 4 hours each
+      // - week: 7 daily blocks
+      // - month: 30 daily blocks
+      // - all: 6 monthly blocks ending at current month
+      final int bucketCount;
+      final List<String> trendLabels;
+
+      if (range == ReportRange.today) {
+        bucketCount = 6;
+        trendLabels = List.generate(bucketCount, (i) => '${i * 4}');
+      } else if (range == ReportRange.all) {
+        bucketCount = 6;
+        trendLabels = List.generate(bucketCount, (i) {
+          final m = DateTime(now.year, now.month - (bucketCount - 1 - i), 1);
+          return '${m.month}/${m.year.toString().substring(2)}';
+        });
+      } else {
+        bucketCount = range.days;
+        trendLabels = List.generate(bucketCount, (i) {
+          final day = rangeStart!.add(Duration(days: i));
+          return '${day.day}/${day.month}';
+        });
+      }
+
       final trend = List.filled(bucketCount, 0.0);
-      final trendLabels = List.generate(bucketCount, (i) {
-        if (range == ReportRange.today) return '${i * 4}';
-        final day = rangeStart.add(Duration(days: i));
-        return '${day.day}/${day.month}';
-      });
 
       for (final json in rawOrders) {
         final status = json['status'] as String? ?? 'pending';
@@ -147,15 +203,23 @@ class ReportsNotifier extends Notifier<AsyncValue<ReportData>> {
         totalOrders++;
         totalRevenue += price;
 
-        // Trend bucket
+        // Trend bucket placement
         if (range == ReportRange.today) {
           final bucket = (createdAt.hour ~/ 4).clamp(0, bucketCount - 1);
           trend[bucket] += price;
+        } else if (range == ReportRange.all) {
+          final monthsDiff = (now.year - createdAt.year) * 12 + (now.month - createdAt.month);
+          if (monthsDiff >= 0 && monthsDiff < bucketCount) {
+            final bucket = (bucketCount - 1 - monthsDiff);
+            trend[bucket] += price;
+          }
         } else {
           final dayIndex = DateTime(createdAt.year, createdAt.month, createdAt.day)
-              .difference(rangeStart)
+              .difference(DateTime(rangeStart!.year, rangeStart.month, rangeStart.day))
               .inDays;
-          if (dayIndex >= 0 && dayIndex < bucketCount) trend[dayIndex] += price;
+          if (dayIndex >= 0 && dayIndex < bucketCount) {
+            trend[dayIndex] += price;
+          }
         }
 
         // Payment breakdown
