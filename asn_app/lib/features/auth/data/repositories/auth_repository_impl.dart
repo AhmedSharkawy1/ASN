@@ -277,10 +277,15 @@ class AuthRepositoryImpl implements AuthRepository {
         return null;
       }
 
-      // 1. Check if Supabase already has a currentUser in memory
+      // 1. Check if Supabase already has a currentUser and valid active session in memory
       final supabaseUser = SupabaseClientManager.client.auth.currentUser;
-      if (supabaseUser != null) {
+      final currentSession = SupabaseClientManager.client.auth.currentSession;
+      if (supabaseUser != null && currentSession != null && !currentSession.isExpired) {
         if (cached != null && cached.id == supabaseUser.id) {
+          await _localDataSource.saveAuthToken(currentSession.accessToken);
+          if (currentSession.refreshToken != null && currentSession.refreshToken!.isNotEmpty) {
+            await _localDataSource.saveRefreshToken(currentSession.refreshToken!);
+          }
           try {
             final refreshed = await _buildProfile(
               user: supabaseUser,
@@ -321,6 +326,15 @@ class AuthRepositoryImpl implements AuthRepository {
           }
         } catch (e) {
           AppLogger.warning('setSession failed: $e', name: 'AuthRepo');
+          final errStr = e.toString().toLowerCase();
+          if (errStr.contains('already_used') ||
+              errStr.contains('already used') ||
+              errStr.contains('invalid refresh token') ||
+              errStr.contains('invalid_grant')) {
+            AppLogger.error('Refresh token revoked or already used. Clearing zombie session.', error: e, name: 'AuthRepo');
+            await logout();
+            return null;
+          }
         }
       }
 
@@ -332,6 +346,14 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     } catch (e, stackTrace) {
       AppLogger.error('Check session check failed', error: e, stackTrace: stackTrace, name: 'AuthRepo');
+      final errStr = e.toString().toLowerCase();
+      if (errStr.contains('already_used') ||
+          errStr.contains('already used') ||
+          errStr.contains('invalid refresh token') ||
+          errStr.contains('invalid_grant')) {
+        await logout();
+        return null;
+      }
       final cached = await _localDataSource.getCachedUserSession();
       if (cached != null) return cached.toEntity();
     }

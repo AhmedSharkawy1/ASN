@@ -122,6 +122,7 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
       final res = await ref.read(imageUploadServiceProvider).uploadImageWithThumb(
         File(picked.path),
         restaurantId: restaurantId,
+        itemId: widget.product?.id,
       );
       if (mounted) {
         setState(() {

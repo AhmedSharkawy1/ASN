@@ -123,6 +123,7 @@ class CategoryManagerSheet extends ConsumerWidget {
       final res = await ref.read(imageUploadServiceProvider).uploadImageWithThumb(
         File(picked.path),
         restaurantId: restaurantId,
+        categoryId: category.id,
       );
       await ref.read(categoriesNotifierProvider.notifier).updateCategoryImage(
         category.id,

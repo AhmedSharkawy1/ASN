@@ -42,8 +42,13 @@ export async function POST(req: NextRequest) {
       revalidatePath(`/menu/${slug}`, 'page');
     }
 
-    return NextResponse.json({ revalidated: true, slug });
-  } catch {
-    return NextResponse.json({ error: "Failed to revalidate" }, { status: 500 });
+    return NextResponse.json({ revalidated: true, actualId, slug });
+  } catch (err: any) {
+    console.error("[REVALIDATE_MENU_ERROR]", err);
+    return NextResponse.json({
+      error: "Failed to revalidate",
+      message: err?.message || String(err),
+      stack: err?.stack || null
+    }, { status: 500 });
   }
 }

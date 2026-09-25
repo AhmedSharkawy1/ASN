@@ -101,10 +101,18 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
 
   Future<void> toggleAvailability(String productId, bool currentStatus) async {
     try {
-      await SupabaseClientManager.client
+      final updated = await SupabaseClientManager.client
           .from('items')
           .update({'is_available': !currentStatus})
-          .eq('id', productId);
+          .eq('id', productId)
+          .select('id');
+      if ((updated as List).isEmpty) {
+        final session = SupabaseClientManager.client.auth.currentSession;
+        if (session == null || session.isExpired) {
+          throw Exception('انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول لتحديث البيانات.');
+        }
+      }
+      _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to toggle product availability', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
@@ -193,7 +201,7 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     required bool isSpicy,
   }) async {
     try {
-      await SupabaseClientManager.client
+      final updated = await SupabaseClientManager.client
           .from('items')
           .update(_payload(
             titleAr: titleAr,
@@ -207,7 +215,14 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
             isSpicy: isSpicy,
             categoryId: categoryId,
           ))
-          .eq('id', productId);
+          .eq('id', productId)
+          .select('id');
+      if ((updated as List).isEmpty) {
+        final session = SupabaseClientManager.client.auth.currentSession;
+        if (session == null || session.isExpired) {
+          throw Exception('انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول لتحديث البيانات.');
+        }
+      }
       _triggerMenuRevalidation();
       await refresh();
     } catch (e, stackTrace) {

@@ -30,13 +30,26 @@ class ImageUploadService {
   /// Uploads an image and returns both originalUrl and thumbUrl.
   /// If [restaurantId] is provided, the server will also revalidate
   /// the public menu cache for that restaurant.
-  Future<ImageUploadResult> uploadImageWithThumb(File file, {String? restaurantId}) async {
+  /// If [itemId] or [categoryId] is provided, the server will also directly
+  /// update the database record with the new image and thumbnail URLs.
+  Future<ImageUploadResult> uploadImageWithThumb(
+    File file, {
+    String? restaurantId,
+    String? itemId,
+    String? categoryId,
+  }) async {
     try {
       final map = <String, dynamic>{
         'file': await MultipartFile.fromFile(file.path, filename: 'image.webp'),
       };
       if (restaurantId != null && restaurantId.isNotEmpty) {
         map['restaurantId'] = restaurantId;
+      }
+      if (itemId != null && itemId.isNotEmpty) {
+        map['itemId'] = itemId;
+      }
+      if (categoryId != null && categoryId.isNotEmpty) {
+        map['categoryId'] = categoryId;
       }
       final formData = FormData.fromMap(map);
 
@@ -62,8 +75,18 @@ class ImageUploadService {
   }
 
   /// Legacy method — returns only the originalUrl for backward compatibility.
-  Future<String> uploadImage(File file, {String? restaurantId}) async {
-    final result = await uploadImageWithThumb(file, restaurantId: restaurantId);
+  Future<String> uploadImage(
+    File file, {
+    String? restaurantId,
+    String? itemId,
+    String? categoryId,
+  }) async {
+    final result = await uploadImageWithThumb(
+      file,
+      restaurantId: restaurantId,
+      itemId: itemId,
+      categoryId: categoryId,
+    );
     return result.originalUrl;
   }
 }

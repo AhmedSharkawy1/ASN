@@ -121,9 +121,6 @@ export async function POST(req: NextRequest) {
 
     stage = 'formdata';
     const formData = await req.formData();
-    
-    // Optional: restaurant ID for menu cache invalidation after upload
-    const restaurantId = formData.get('restaurantId');
 
     stage = 'file-validation';
     // formData.get() is typed `string | File | null`; narrow once here so the
@@ -197,18 +194,75 @@ export async function POST(req: NextRequest) {
       thumbUrl = thumbUrlData.publicUrl;
     }
 
-    // Revalidate the public menu cache if a restaurantId was provided
-    if (restaurantId && typeof restaurantId === 'string') {
+    // Optional: restaurant ID, item ID, or category ID for direct updates and cache invalidation
+    const restaurantId = formData.get('restaurantId');
+    const itemId = formData.get('itemId');
+    const categoryId = formData.get('categoryId');
+    let effectiveRestaurantId = restaurantId;
+
+    // Direct database update for item images (bypasses client-side RLS hurdles)
+    if (itemId && typeof itemId === 'string') {
+      try {
+        const { data: updatedItem, error: itemErr } = await supabaseAdmin
+          .from('items')
+          .update({
+            image_url: originalUrl,
+            thumbnail_url: thumbUrl,
+          })
+          .eq('id', itemId)
+          .select('category_id')
+          .maybeSingle();
+
+        if (itemErr) {
+          console.error('[UPLOAD_IMAGE] Direct item image update failed:', itemErr);
+        } else if (!effectiveRestaurantId && updatedItem?.category_id) {
+          const { data: cat } = await supabaseAdmin
+            .from('categories')
+            .select('restaurant_id')
+            .eq('id', updatedItem.category_id)
+            .maybeSingle();
+          if (cat?.restaurant_id) effectiveRestaurantId = cat.restaurant_id;
+        }
+      } catch (err) {
+        console.error('[UPLOAD_IMAGE] Direct item update exception:', err);
+      }
+    }
+
+    // Direct database update for category images
+    if (categoryId && typeof categoryId === 'string') {
+      try {
+        const { data: updatedCat, error: catErr } = await supabaseAdmin
+          .from('categories')
+          .update({
+            image_url: originalUrl,
+            thumbnail_url: thumbUrl,
+          })
+          .eq('id', categoryId)
+          .select('restaurant_id')
+          .maybeSingle();
+
+        if (catErr) {
+          console.error('[UPLOAD_IMAGE] Direct category image update failed:', catErr);
+        } else if (!effectiveRestaurantId && updatedCat?.restaurant_id) {
+          effectiveRestaurantId = updatedCat.restaurant_id;
+        }
+      } catch (err) {
+        console.error('[UPLOAD_IMAGE] Direct category update exception:', err);
+      }
+    }
+
+    // Revalidate the public menu cache if an effective restaurantId is available
+    if (effectiveRestaurantId && typeof effectiveRestaurantId === 'string') {
       stage = 'revalidation';
       try {
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(restaurantId);
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(effectiveRestaurantId);
         const query = supabaseAdmin.from('restaurants').select('id, slug');
         const { data: rest } = isUuid
-          ? await query.eq('id', restaurantId).maybeSingle()
-          : await query.eq('slug', restaurantId).maybeSingle();
+          ? await query.eq('id', effectiveRestaurantId).maybeSingle()
+          : await query.eq('slug', effectiveRestaurantId).maybeSingle();
 
-        const actualId = rest?.id || (isUuid ? restaurantId : null);
-        const slug = rest?.slug || (!isUuid ? restaurantId : null);
+        const actualId = rest?.id || (isUuid ? effectiveRestaurantId : null);
+        const slug = rest?.slug || (!isUuid ? effectiveRestaurantId : null);
 
         if (actualId) {
           revalidateTag(`menu-${actualId}`);
