@@ -177,7 +177,8 @@ class ForgotPasswordScreen extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
-                            height: 1.3,
+                            fontSize: 22,
+                            height: 1.35,
                           ),
                     ),
                     AppSpacing.heightSm,
@@ -219,7 +220,10 @@ class ForgotPasswordScreen extends StatelessWidget {
                         children: [
                           // Phone Number Display Tile
                           Container(
-                            padding: const EdgeInsets.all(AppSpacing.md),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: AppSpacing.md,
+                            ),
                             decoration: BoxDecoration(
                               color: isDark
                                   ? AppColors.darkCardElevated
@@ -244,10 +248,11 @@ class ForgotPasswordScreen extends StatelessWidget {
                                     size: 22,
                                   ),
                                 ),
-                                AppSpacing.widthMd,
+                                AppSpacing.widthSm,
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
                                         isAr ? 'رقم الهاتف والدعم' : 'Support Phone Number',
@@ -260,14 +265,20 @@ class ForgotPasswordScreen extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 2),
-                                      const Text(
-                                        formattedPhone,
-                                        textDirection: TextDirection.ltr,
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 1.2,
-                                          color: AppColors.oceanBlue,
+                                      const FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: AlignmentDirectional.centerStart,
+                                        child: Text(
+                                          contactPhone,
+                                          textDirection: TextDirection.ltr,
+                                          maxLines: 1,
+                                          softWrap: false,
+                                          style: TextStyle(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 1.2,
+                                            color: AppColors.oceanBlue,
+                                          ),
                                         ),
                                       ),
                                     ],

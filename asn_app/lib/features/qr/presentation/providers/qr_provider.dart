@@ -33,11 +33,8 @@ class QrInfo {
     final query = params.isEmpty
         ? ''
         : '?${params.entries.map((e) => '${e.key}=${Uri.encodeQueryComponent(e.value)}').join('&')}';
-    if (slug != null && slug!.isNotEmpty) {
-      base = 'https://$slug.asntechnology.net';
-      return '$base$query';
-    }
-    base = '${AppConfig.apiBaseUrl}/menu/$restaurantId';
+    final identifier = (slug != null && slug!.isNotEmpty) ? slug! : restaurantId;
+    base = '${AppConfig.apiBaseUrl}/menu/$identifier';
     return '$base$query';
   }
 }
