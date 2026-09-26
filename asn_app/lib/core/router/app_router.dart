@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:asn_app/features/auth/presentation/screens/splash_screen.dart';
 import 'package:asn_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:asn_app/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:asn_app/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:asn_app/features/orders/presentation/screens/orders_list_screen.dart';
 import 'package:asn_app/features/settings/presentation/screens/settings_screen.dart';
@@ -76,13 +77,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Handle loading/initial state on boot
       final isSplash = location == '/';
       final isLogin = location == '/login';
+      final isForgotPassword = location == '/forgot-password';
 
       return authState.maybeWhen(
         initial: () => isSplash ? null : '/',
-        loading: () => isSplash ? null : '/',
+        loading: () {
+          // If on splash, stay on splash while checking session.
+          // If on login, stay on login (the login screen manages its own smooth loading transition).
+          // NEVER bounce the user from login back to splash during authentication!
+          return null;
+        },
         authenticated: (user) {
-          // If logged in, prevent going to splash or login
-          if (isSplash || isLogin) {
+          // If logged in, prevent going to splash, login, or forgot-password
+          if (isSplash || isLogin || isForgotPassword) {
             return '/dashboard';
           }
           final perms = ref.read(permissionsProvider.notifier);
@@ -113,15 +120,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           return null;
         },
         unauthenticated: () {
-          // If not logged in, force to login screen
-          if (!isLogin) {
+          // If not logged in, force to login screen unless already on login or forgot-password
+          if (isSplash) {
+            return '/login';
+          }
+          if (!isLogin && !isForgotPassword) {
             return '/login';
           }
           return null;
         },
         error: (_) {
-          // Force to login on authentication error
-          if (!isLogin) {
+          // Force to login on authentication error unless already on login or forgot-password
+          if (!isLogin && !isForgotPassword) {
             return '/login';
           }
           return null;
@@ -137,6 +147,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         pageBuilder: (context, state) => _fadePage(state, const LoginScreen()),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        pageBuilder: (context, state) => _fadePage(state, const ForgotPasswordScreen()),
       ),
       // Signed-in area: adaptive shell adds bottom navigation / rail
       ShellRoute(
