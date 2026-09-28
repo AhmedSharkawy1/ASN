@@ -63,24 +63,45 @@ async function convertToWebP(file: File | Blob, maxWidth = 2000, quality = 0.88)
     });
 }
 
+export interface UploadImageOptions {
+    highQuality?: boolean;
+    restaurantId?: string;
+}
+
 /**
  * Upload an image to the server-side API.
- * Converts to WebP client-side before uploading.
+ * Converts to WebP client-side before uploading unless highQuality is enabled.
  * Returns the public URL of the original image.
  */
-export async function uploadImage(file: File | Blob, folder: string): Promise<string | null> {
+export async function uploadImage(file: File | Blob, folder: string, options?: UploadImageOptions): Promise<string | null> {
     try {
-        // Convert to WebP on client side first
+        const isHQ = Boolean(options?.highQuality);
         let uploadBlob: Blob = file;
-        try {
-            uploadBlob = await convertToWebP(file);
-        } catch (convErr) {
-            console.warn('WebP conversion failed, uploading original:', convErr);
+
+        if (isHQ) {
+            // High quality mode: upload original directly if within 4.2MB, or high-fidelity WebP if larger
+            if (file.size > 4.2 * 1024 * 1024) {
+                try {
+                    uploadBlob = await convertToWebP(file, 4000, 0.95);
+                } catch (convErr) {
+                    console.warn('HQ WebP pre-compression failed, uploading original:', convErr);
+                }
+            }
+        } else {
+            // Standard mode: convert to WebP client-side first
+            try {
+                uploadBlob = await convertToWebP(file);
+            } catch (convErr) {
+                console.warn('WebP conversion failed, uploading original:', convErr);
+            }
         }
 
+        const fileName = (file instanceof File && file.name) ? file.name : 'image.webp';
         const formData = new FormData();
-        formData.append('file', uploadBlob, 'image.webp');
+        formData.append('file', uploadBlob, fileName);
         formData.append('folder', folder);
+        if (isHQ) formData.append('highQuality', 'true');
+        if (options?.restaurantId) formData.append('restaurantId', options.restaurantId);
 
         const response = await fetch('/api/upload-image', {
             method: 'POST',
@@ -168,26 +189,40 @@ export async function deleteImage(publicUrl: string): Promise<boolean> {
     }
 }
 
-/**
- * Uploads an image using the new NodeJS Sharp API route which guarantees
- * a true WebP optimized original and a 400px thumbnail.
- * @returns { originalUrl: string, thumbUrl: string } or null on failure.
- */
-export async function uploadImageWithThumb(file: File | Blob, customPath: string): Promise<{ originalUrl: string; thumbUrl: string } | null> {
+export async function uploadImageWithThumb(
+    file: File | Blob, 
+    customPath: string,
+    options?: UploadImageOptions
+): Promise<{ originalUrl: string; thumbUrl: string } | null> {
     try {
+        const isHQ = Boolean(options?.highQuality);
         let uploadBlob: Blob = file;
-        try {
-            // Compress client-side first to avoid Next.js / Vercel 4.5MB payload limit
-            // Use 2000px and 0.88 quality for HD high-resolution images
-            uploadBlob = await convertToWebP(file, 2000, 0.88);
-        } catch (convErr) {
-            console.warn('WebP pre-compression failed, uploading original:', convErr);
+
+        if (isHQ) {
+            // High quality mode: preserve original untouched if within 4.2MB, or high-fidelity WebP if huge
+            if (file.size > 4.2 * 1024 * 1024) {
+                try {
+                    uploadBlob = await convertToWebP(file, 4000, 0.95);
+                } catch (convErr) {
+                    console.warn('HQ WebP pre-compression failed, uploading original:', convErr);
+                }
+            }
+        } else {
+            // Standard mode: compress client-side first to avoid Next.js / Vercel 4.5MB payload limit
+            try {
+                uploadBlob = await convertToWebP(file, 2000, 0.88);
+            } catch (convErr) {
+                console.warn('WebP pre-compression failed, uploading original:', convErr);
+            }
         }
 
+        const fileName = (file instanceof File && file.name) ? file.name : 'image.webp';
         const formData = new FormData();
         // The API route expects "file"
-        formData.append('file', uploadBlob, 'image.webp');
+        formData.append('file', uploadBlob, fileName);
         formData.append('path', customPath);
+        if (isHQ) formData.append('highQuality', 'true');
+        if (options?.restaurantId) formData.append('restaurantId', options.restaurantId);
 
         const response = await fetch('/api/upload-image', {
             method: 'POST',

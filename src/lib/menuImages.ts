@@ -180,10 +180,26 @@ export async function exportMenuImages(restaurantId: string, onProgress?: (msg: 
 export async function importMenuImages(
     restaurantId: string,
     file: File,
-    onProgress?: (msg: string) => void
+    onProgress?: (msg: string) => void,
+    options?: { highQuality?: boolean }
 ): Promise<{ success: boolean; message: string }> {
     try {
         onProgress?.('جاري قراءة ملف ZIP...');
+
+        // Determine if high quality is enabled
+        let isHighQuality = options?.highQuality;
+        if (typeof isHighQuality !== 'boolean' && restaurantId) {
+            try {
+                const { data: rest } = await supabase
+                    .from('restaurants')
+                    .select('high_quality_images')
+                    .eq('id', restaurantId)
+                    .maybeSingle();
+                isHighQuality = Boolean(rest?.high_quality_images);
+            } catch {
+                isHighQuality = false;
+            }
+        }
 
         const zip = await JSZip.loadAsync(file);
         const fileNames = Object.keys(zip.files).filter(name => !zip.files[name].dir);
@@ -294,9 +310,15 @@ export async function importMenuImages(
                     }
 
                     if (targetCat) {
-                        const result = await uploadImageWithThumb(blob, `categories/${targetCat.id}`);
+                        const result = await uploadImageWithThumb(blob, `categories/${targetCat.id}`, {
+                            highQuality: isHighQuality,
+                            restaurantId
+                        });
                         if (result) {
-                            await supabase.from('categories').update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl }).eq('id', targetCat.id);
+                            await supabase.from('categories').update({ 
+                                image_url: result.originalUrl, 
+                                thumbnail_url: isHighQuality ? result.originalUrl : result.thumbUrl 
+                            }).eq('id', targetCat.id);
                             uploaded++;
                         } else {
                             failed++;
@@ -326,9 +348,15 @@ export async function importMenuImages(
                 }
 
                 if (targetItem) {
-                    const result = await uploadImageWithThumb(blob, `items/${targetItem.id}`);
+                    const result = await uploadImageWithThumb(blob, `items/${targetItem.id}`, {
+                        highQuality: isHighQuality,
+                        restaurantId
+                    });
                     if (result) {
-                        await supabase.from('items').update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl }).eq('id', targetItem.id);
+                        await supabase.from('items').update({ 
+                            image_url: result.originalUrl, 
+                            thumbnail_url: isHighQuality ? result.originalUrl : result.thumbUrl 
+                        }).eq('id', targetItem.id);
                         uploaded++;
                     } else {
                         failed++;
@@ -905,18 +933,39 @@ export async function analyzeSmartImport(
     }
 }
 
+export interface ExecuteConfirmedImportOptions {
+    highQuality?: boolean;
+}
+
 /**
  * Uploads only the items confirmed by the user in the review screen.
+ * Respects high_quality_images setting from the restaurant (admin setting) or options.
  */
 export async function executeConfirmedImport(
     restaurantId: string,
     confirmedMatches: SmartMatchItem[],
-    onProgress?: (msg: string) => void
+    onProgress?: (msg: string) => void,
+    options?: ExecuteConfirmedImportOptions
 ): Promise<{ success: boolean; message: string; uploadedCount: number }> {
     try {
         const total = confirmedMatches.length;
         if (total === 0) {
             return { success: false, message: 'لم تقم بتأكيد أي صورة لرفعها.', uploadedCount: 0 };
+        }
+
+        // Determine if high quality is enabled for this restaurant: from options or directly from restaurants table
+        let isHighQuality = options?.highQuality;
+        if (typeof isHighQuality !== 'boolean' && restaurantId) {
+            try {
+                const { data: rest } = await supabase
+                    .from('restaurants')
+                    .select('high_quality_images')
+                    .eq('id', restaurantId)
+                    .maybeSingle();
+                isHighQuality = Boolean(rest?.high_quality_images);
+            } catch {
+                isHighQuality = false;
+            }
         }
 
         let uploaded = 0;
@@ -925,28 +974,43 @@ export async function executeConfirmedImport(
 
         for (let i = 0; i < total; i++) {
             const item = confirmedMatches[i];
-            onProgress?.(`جاري رفع الصور وتحديث المنيو... (${i + 1}/${total})`);
+            const hqProgressLabel = isHighQuality ? ' (HD)' : '';
+            onProgress?.(`جاري رفع الصور وتحديث المنيو${hqProgressLabel}... (${i + 1}/${total})`);
 
             try {
                 if (item.isCover && item.matchedCategoryId) {
-                    const result = await uploadImageWithThumb(item.blob, `categories/${item.matchedCategoryId}`);
+                    const result = await uploadImageWithThumb(item.blob, `categories/${item.matchedCategoryId}`, {
+                        highQuality: isHighQuality,
+                        restaurantId
+                    });
                     if (result) {
                         await supabase.from('categories')
-                            .update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl })
+                            .update({ 
+                                image_url: result.originalUrl, 
+                                thumbnail_url: isHighQuality ? result.originalUrl : result.thumbUrl 
+                            })
                             .eq('id', item.matchedCategoryId);
-                        matchLog.push(`🖼️ [غلاف قسم: ${item.matchedCategoryName}]`);
+                        const hqBadge = isHighQuality ? ' [HD]' : '';
+                        matchLog.push(`🖼️ [غلاف قسم: ${item.matchedCategoryName}]${hqBadge}`);
                         uploaded++;
                     } else {
                         failed++;
                     }
                 } else if (item.matchedItemId) {
-                    const result = await uploadImageWithThumb(item.blob, `items/${item.matchedItemId}`);
+                    const result = await uploadImageWithThumb(item.blob, `items/${item.matchedItemId}`, {
+                        highQuality: isHighQuality,
+                        restaurantId
+                    });
                     if (result) {
                         await supabase.from('items')
-                            .update({ image_url: result.originalUrl, thumbnail_url: result.thumbUrl })
+                            .update({ 
+                                image_url: result.originalUrl, 
+                                thumbnail_url: isHighQuality ? result.originalUrl : result.thumbUrl 
+                            })
                             .eq('id', item.matchedItemId);
                         const pct = Math.round(item.score * 100);
-                        matchLog.push(`✅ [${item.matchedCategoryName}] ${item.matchedItemName} (${pct}%)`);
+                        const hqBadge = isHighQuality ? ' [HD]' : '';
+                        matchLog.push(`✅ [${item.matchedCategoryName}] ${item.matchedItemName} (${pct}%)${hqBadge}`);
                         uploaded++;
                     } else {
                         failed++;
@@ -963,6 +1027,7 @@ export async function executeConfirmedImport(
         }
 
         const summary = `🎉 تم رفع وتحديث ${uploaded} صورة بنجاح` +
+            (isHighQuality ? ' (بأعلى جودة دقة عالية HD)' : '') +
             (failed > 0 ? `\n❌ فشل رفع ${failed} صورة` : '') +
             (matchLog.length > 0 ? `\n\n📋 تفاصيل الصور المرفوعة:\n${matchLog.join('\n')}` : '');
 
@@ -984,9 +1049,13 @@ export async function executeConfirmedImport(
 export async function smartImportMenuImages(
     restaurantId: string,
     files: File | FileList | File[],
-    onProgress?: (msg: string) => void
+    onProgress?: (msg: string) => void,
+    options?: {
+        skipExistingImages?: boolean;
+        highQuality?: boolean;
+    }
 ): Promise<{ success: boolean; message: string }> {
-    const analysis = await analyzeSmartImport(restaurantId, files, onProgress);
+    const analysis = await analyzeSmartImport(restaurantId, files, onProgress, { skipExistingImages: options?.skipExistingImages });
     if (!analysis.success || analysis.matches.length === 0) {
         return { success: false, message: analysis.message || 'لم يتم العثور على صور لمطابقتها.' };
     }
@@ -999,7 +1068,7 @@ export async function smartImportMenuImages(
         };
     }
 
-    return await executeConfirmedImport(restaurantId, confirmed, onProgress);
+    return await executeConfirmedImport(restaurantId, confirmed, onProgress, { highQuality: options?.highQuality });
 }
 
 /**

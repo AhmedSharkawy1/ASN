@@ -6,7 +6,7 @@ export async function getResolvedRestaurant(supabase: SupabaseClient, user: any,
     if (impersonatingTenant) {
         const { data: rest } = await supabase
             .from('restaurants')
-            .select('id, currency, name, parent_id')
+            .select('id, currency, name, parent_id, high_quality_images')
             .eq('id', impersonatingTenant)
             .maybeSingle();
         if (rest) return rest;
@@ -15,7 +15,7 @@ export async function getResolvedRestaurant(supabase: SupabaseClient, user: any,
     // Try finding a direct restaurant match by email
     const { data: rest } = await supabase
         .from('restaurants')
-        .select('id, currency, name, parent_id')
+        .select('id, currency, name, parent_id, high_quality_images')
         .eq('email', user.email)
         .maybeSingle();
     
@@ -24,7 +24,7 @@ export async function getResolvedRestaurant(supabase: SupabaseClient, user: any,
     // Fallback: check if they are a team member
     const { data: staff } = await supabase
         .from('team_members')
-        .select('restaurant_id, restaurants(id, currency, name, parent_id)')
+        .select('restaurant_id, restaurants(id, currency, name, parent_id, high_quality_images)')
         .eq('auth_id', user.id)
         .maybeSingle();
     

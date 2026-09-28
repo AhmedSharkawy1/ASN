@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage, uploadImageWithThumb } from "@/lib/uploadImage";
 import { getBestImageFromClipboard, getBestImageFromPasteEvent } from "@/lib/clipboardImage";
-import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Edit2, Image as ImageIcon, Utensils, Star, Upload, X, Save, ChevronDown, ChevronUp, Download, FileSpreadsheet, RefreshCw, Loader2, FileDown, ImageDown, ImageUp, PackageOpen, ClipboardPaste, Eye, EyeOff, Sparkles } from "lucide-react";
 import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } from "@/lib/excel";
 import { exportMenuImages, importMenuImages, smartImportMenuImages, deleteAllMenuImages, analyzeSmartImport, executeConfirmedImport, SmartMatchItem } from "@/lib/menuImages";
 import { SmartImportReviewModal } from "@/components/SmartImportReviewModal";
@@ -50,6 +50,7 @@ export default function MenuBuilderPage() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
+    const [highQualityImages, setHighQualityImages] = useState(false);
     const [previewKey, setPreviewKey] = useState(0);
     const [editingItem, setEditingItem] = useState<string | null>(null);
     const [editingCat, setEditingCat] = useState<string | null>(null);
@@ -87,13 +88,23 @@ export default function MenuBuilderPage() {
 
                 if (!restaurant && !impersonatingTenant) {
                     const { data: newRest } = await supabase
-                        .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency, name, parent_id').single();
+                        .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency, name, parent_id, high_quality_images').single();
                     restaurant = newRest;
                 }
 
                 if (restaurant) {
                     setRestaurantId(restaurant.id);
                     setCurrency(restaurant.currency || "");
+                    if (typeof (restaurant as any)?.high_quality_images === 'boolean') {
+                        setHighQualityImages(Boolean((restaurant as any).high_quality_images));
+                    } else {
+                        const { data: rData } = await supabase
+                            .from('restaurants')
+                            .select('high_quality_images')
+                            .eq('id', restaurant.id)
+                            .maybeSingle();
+                        setHighQualityImages(Boolean(rData?.high_quality_images));
+                    }
                     const { data: catsData } = await supabase
                         .from('categories').select('*').eq('restaurant_id', restaurant.id).order('sort_order', { ascending: true });
 
@@ -236,9 +247,20 @@ export default function MenuBuilderPage() {
             return;
         }
         setIsUploadingConfirmed(true);
-        setImageProgress(language === 'ar' ? `جاري رفع وتحديث ${confirmedList.length} صورة...` : `Uploading ${confirmedList.length} images...`);
+        const hqSuffix = highQualityImages 
+            ? (language === 'ar' ? ' (بأعلى جودة HD)' : ' (High Quality HD)') 
+            : '';
+        setImageProgress(language === 'ar' 
+            ? `جاري رفع وتحديث ${confirmedList.length} صورة${hqSuffix}...` 
+            : `Uploading ${confirmedList.length} images${hqSuffix}...`
+        );
         try {
-            const res = await executeConfirmedImport(restaurantId, confirmedList, (msg) => setImageProgress(msg));
+            const res = await executeConfirmedImport(
+                restaurantId, 
+                confirmedList, 
+                (msg) => setImageProgress(msg),
+                { highQuality: highQualityImages }
+            );
             alert(res.message);
             if (res.success) {
                 triggerRevalidate();
@@ -320,13 +342,25 @@ export default function MenuBuilderPage() {
     };
 
     const handleItemImageUpload = async (catId: string, itemId: string, file: File) => {
-        const result = await uploadImageWithThumb(file, `items/${itemId}`);
-        if (result) await updateItem(catId, itemId, { image_url: result.originalUrl, thumbnail_url: result.thumbUrl });
+        const result = await uploadImageWithThumb(file, `items/${itemId}`, {
+            highQuality: highQualityImages,
+            restaurantId: restaurantId || undefined
+        });
+        if (result) await updateItem(catId, itemId, { 
+            image_url: result.originalUrl, 
+            thumbnail_url: highQualityImages ? result.originalUrl : result.thumbUrl 
+        });
     };
 
     const handleCatImageUpload = async (catId: string, file: File) => {
-        const result = await uploadImageWithThumb(file, `categories/${catId}`);
-        if (result) await updateCategory(catId, { image_url: result.originalUrl, thumbnail_url: result.thumbUrl });
+        const result = await uploadImageWithThumb(file, `categories/${catId}`, {
+            highQuality: highQualityImages,
+            restaurantId: restaurantId || undefined
+        });
+        if (result) await updateCategory(catId, { 
+            image_url: result.originalUrl, 
+            thumbnail_url: highQualityImages ? result.originalUrl : result.thumbUrl 
+        });
     };
 
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري تحميل المنيو..." : "Loading Menu Builder..."}</div>;
@@ -477,6 +511,7 @@ export default function MenuBuilderPage() {
                     <AddCategoryPanel
                         restaurantId={restaurantId}
                         language={language}
+                        highQuality={highQualityImages}
                         onCreated={(newCat) => { 
                             setCategories([...categories, { ...newCat, items: [] }]); 
                             setShowAddCategory(false); 
@@ -508,6 +543,7 @@ export default function MenuBuilderPage() {
                                 <div className={`px-6 py-4 border-b transition-colors ${isCatHidden ? 'bg-red-50/20 dark:bg-red-950/20 border-red-500/20' : 'bg-slate-50 dark:bg-glass-dark border-glass-border'}`}>
                                     {editingCat === cat.id ? (
                                         <CategoryEditor cat={cat} language={language}
+                                            highQuality={highQualityImages}
                                             onUpdate={(u) => updateCategory(cat.id, u)}
                                             onImageUpload={(f) => handleCatImageUpload(cat.id, f)}
                                             onClose={() => setEditingCat(null)} />
@@ -516,7 +552,7 @@ export default function MenuBuilderPage() {
                                             <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => toggleCollapse(cat.id)}>
                                                 {cat.image_url ? (
                                                     <div className="w-12 h-12 rounded-xl overflow-hidden border border-glass-border flex-shrink-0">
-                                                        <img src={cat.thumbnail_url || cat.image_url} alt="" className="w-full h-full object-cover" onError={(e) => { if (cat.image_url && e.currentTarget.src !== cat.image_url) e.currentTarget.src = cat.image_url; }} />
+                                                        <img src={(highQualityImages ? (cat.image_url || cat.thumbnail_url) : (cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-full h-full object-cover" onError={(e) => { if (cat.image_url && e.currentTarget.src !== cat.image_url) e.currentTarget.src = cat.image_url; }} />
                                                     </div>
                                                 ) : (
                                                     <div className="w-10 h-10 rounded-full bg-blue/10 flex items-center justify-center text-xl shadow-inner">
@@ -583,11 +619,13 @@ export default function MenuBuilderPage() {
                                                     <div key={item.id} className={`group rounded-2xl border p-3 sm:p-4 transition-colors ${item.is_available === false ? 'border-red-500/30 bg-red-50/30 dark:bg-red-950/10 opacity-70 hover:opacity-100' : 'border-glass-border bg-slate-50/50 dark:bg-card hover:border-blue/30'}`}>
                                                         {editingItem === item.id ? (
                                                             <ItemEditor item={item} language={language} currency={currency}
+                                                                highQuality={highQualityImages}
                                                                 onUpdate={(u) => updateItem(cat.id, item.id, u)}
                                                                 onImageUpload={(f) => handleItemImageUpload(cat.id, item.id, f)}
                                                                 onClose={() => setEditingItem(null)} />
                                                         ) : (
                                                             <ItemRow item={item} language={language}
+                                                                highQuality={highQualityImages}
                                                                 onImageUpload={(f) => handleItemImageUpload(cat.id, item.id, f)}
                                                                 onEdit={() => { setEditingItem(item.id); setEditingCat(null); setAddingItemToCat(null); }}
                                                                 onDelete={() => handleDeleteItem(cat.id, item.id)}
@@ -605,6 +643,8 @@ export default function MenuBuilderPage() {
                                                 <AnimatePresence>
                                                     {addingItemToCat === cat.id && (
                                                         <AddItemPanel catId={cat.id} language={language} currency={currency}
+                                                            highQuality={highQualityImages}
+                                                            restaurantId={restaurantId}
                                                             onCreated={(newItem) => {
                                                                 setCategories(categories.map(c => c.id === cat.id ? { ...c, items: [...c.items, newItem] } : c));
                                                                 setAddingItemToCat(null);
@@ -705,6 +745,40 @@ export default function MenuBuilderPage() {
                                     ? 'يمكنك اختيار مجلد صور كامل من جهازك أو ملف مضغوط ZIP، وسيقوم النظام بمطابقة وتحديث صور الأصناف بدقة حسب القسم واستبدال أو إضافة الصور بدقة عالية.'
                                     : 'Choose an image folder from your PC or a ZIP file. The system will match images strictly within their matching categories.'}
                             </p>
+
+                            {/* High Quality indicator badge */}
+                            <div className={`flex items-start gap-3 p-3.5 mb-4 rounded-xl border text-xs transition-colors ${
+                                highQualityImages
+                                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
+                                    : 'bg-slate-100 dark:bg-slate-800/60 border-glass-border text-slate-700 dark:text-zinc-300'
+                            }`}>
+                                <Sparkles className={`w-5 h-5 shrink-0 mt-0.5 ${highQualityImages ? 'text-amber-500 animate-pulse' : 'text-slate-400'}`} />
+                                <div className="flex-1 text-right">
+                                    <div className="flex items-center justify-between gap-2 mb-1">
+                                        <span className="font-bold text-foreground">
+                                            {highQualityImages
+                                                ? (language === 'ar' ? 'جودة الصور العالية (HD) مفعلة' : 'High Quality (HD) Images Enabled')
+                                                : (language === 'ar' ? 'جودة الصور القياسية (مضغوطة تلقائياً)' : 'Standard Quality Images')}
+                                        </span>
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                                            highQualityImages
+                                                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                                : 'bg-slate-200 dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'
+                                        }`}>
+                                            {highQualityImages ? 'HD ON' : 'HD OFF'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-silver leading-relaxed">
+                                        {highQualityImages
+                                            ? (language === 'ar'
+                                                ? 'سيتم رفع الصور بأعلى دقة وجودة كاملة كما تم تحديدها لهذا الحساب في صفحة الأدمن.'
+                                                : 'Images will be uploaded at full original HD quality as configured for this account in admin.')
+                                            : (language === 'ar'
+                                                ? 'سيتم ضغط الصور بالحجم القياسي لأن خيار الجودة العالية مقفول لهذا الحساب في صفحة الأدمن.'
+                                                : 'Images will use standard compression because HD quality is disabled in admin.')}
+                                    </p>
+                                </div>
+                            </div>
 
                             {/* Skip already uploaded photos toggle */}
                             <label className="flex items-center gap-3 p-3 mb-4 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-glass-border hover:border-teal-500/40 transition cursor-pointer select-none">
@@ -919,10 +993,11 @@ export default function MenuBuilderPage() {
 }
 
 // ===================== ADD CATEGORY PANEL =====================
-function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
+function AddCategoryPanel({ restaurantId, language, onCreated, onCancel, highQuality }: {
     restaurantId: string; language: string;
     onCreated: (cat: Category) => void;
     onCancel: () => void;
+    highQuality?: boolean;
 }) {
     const [nameAr, setNameAr] = useState('');
     const [nameEn, setNameEn] = useState('');
@@ -972,10 +1047,13 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
                 let imgUrl = null;
                 let thumbUrl = null;
                 if (imageFile) {
-                    const result = await uploadImageWithThumb(imageFile, `categories/${data.id}`);
+                    const result = await uploadImageWithThumb(imageFile, `categories/${data.id}`, {
+                        highQuality,
+                        restaurantId
+                    });
                     if (result) {
                         imgUrl = result.originalUrl;
-                        thumbUrl = result.thumbUrl;
+                        thumbUrl = highQuality ? result.originalUrl : result.thumbUrl;
                         await supabase.from('categories').update({ image_url: imgUrl, thumbnail_url: thumbUrl }).eq('id', data.id);
                     }
                 }
@@ -1040,11 +1118,13 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel }: {
 }
 
 // ===================== ADD ITEM PANEL =====================
-function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
+function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQuality, restaurantId }: {
     catId: string; language: string;
     onCreated: (item: Item) => void;
     onCancel: () => void;
     currency?: string;
+    highQuality?: boolean;
+    restaurantId?: string | null;
 }) {
     const [titleAr, setTitleAr] = useState('');
     const [titleEn, setTitleEn] = useState('');
@@ -1110,10 +1190,13 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
                 let imgUrl = null;
                 let thumbUrl = null;
                 if (imageFile) {
-                    const result = await uploadImageWithThumb(imageFile, `items/${data.id}`);
+                    const result = await uploadImageWithThumb(imageFile, `items/${data.id}`, {
+                        highQuality,
+                        restaurantId: restaurantId || undefined
+                    });
                     if (result) {
                         imgUrl = result.originalUrl;
-                        thumbUrl = result.thumbUrl;
+                        thumbUrl = highQuality ? result.originalUrl : result.thumbUrl;
                         await supabase.from('items').update({ image_url: imgUrl, thumbnail_url: thumbUrl }).eq('id', data.id);
                     }
                 }
@@ -1248,7 +1331,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency }: {
 }
 
 // ===================== ITEM ROW (read-only) =====================
-function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload }: {
+function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload, highQuality }: {
     item: Item; language: string;
     onEdit: () => void; onDelete: () => void;
     onToggleVisibility?: () => void;
@@ -1256,6 +1339,7 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
     onMoveUp?: () => void; onMoveDown?: () => void;
     currency?: string;
     onImageUpload?: (file: File) => Promise<void>;
+    highQuality?: boolean;
 }) {
     const [uploading, setUploading] = useState(false);
 
@@ -1283,7 +1367,7 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
                 <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
                     <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-glass-light flex items-center justify-center flex-shrink-0 border border-glass-border overflow-hidden group">
                         {item.thumbnail_url || item.image_url ? (
-                            <img src={item.thumbnail_url || item.image_url} alt={item.title_ar} className="w-full h-full object-cover" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />
+                            <img src={(highQuality ? (item.image_url || item.thumbnail_url) : (item.thumbnail_url || item.image_url)) || undefined} alt={item.title_ar} className="w-full h-full object-cover" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />
                         ) : (
                             <button 
                                 onClick={handlePasteImage}
@@ -1346,11 +1430,12 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
 }
 
 // ===================== CATEGORY EDITOR =====================
-function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
+function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose, highQuality }: {
     cat: Category; language: string;
     onUpdate: (updates: Partial<Category>) => Promise<void>;
     onImageUpload: (file: File) => Promise<void>;
     onClose: () => void;
+    highQuality?: boolean;
 }) {
     const [nameAr, setNameAr] = useState(cat.name_ar);
     const [nameEn, setNameEn] = useState(cat.name_en || '');
@@ -1443,19 +1528,20 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose }: {
                     className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-sm rounded-lg disabled:opacity-50" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
                     <ClipboardPaste className="w-4 h-4" /> {language === "ar" ? "لصق" : "Paste"}
                 </button>
-                {cat.image_url && <img src={cat.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
+                {cat.image_url && <img src={(highQuality ? (cat.image_url || cat.thumbnail_url) : (cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
             </div>
         </div>
     );
 }
 
 // ===================== ITEM EDITOR =====================
-function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency }: {
+function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency, highQuality }: {
     item: Item; language: string;
     onUpdate: (updates: Partial<Item>) => Promise<void>;
     onImageUpload: (file: File) => Promise<void>;
     onClose: () => void;
     currency?: string;
+    highQuality?: boolean;
 }) {
     const [titleAr, setTitleAr] = useState(item.title_ar);
     const [titleEn, setTitleEn] = useState(item.title_en || '');
@@ -1582,7 +1668,7 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
                     className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-sm rounded-lg disabled:opacity-50" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
                     <ClipboardPaste className="w-4 h-4" /> {language === "ar" ? "لصق" : "Paste"}
                 </button>
-                {item.image_url && <img src={item.thumbnail_url || item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />}
+                {item.image_url && <img src={(highQuality ? (item.image_url || item.thumbnail_url) : (item.thumbnail_url || item.image_url)) || undefined} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />}
             </div>
         </div>
     );
