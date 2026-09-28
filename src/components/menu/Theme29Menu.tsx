@@ -18,6 +18,7 @@ import { parseCurrency } from '@/lib/currency';
 import ASNFooter from '@/components/menu/ASNFooter';
 import SharedMarquee from '@/components/menu/SharedMarquee';
 import { supabase } from '@/lib/supabase/client';
+import { getStoreOpenStatus, useStoreHours } from '@/lib/helpers/storeHours';
 import { submitOrder, buildWhatsAppMessage, OrderItem } from '@/lib/helpers/submitOrder';
 import { 
     fetchActivePromotions, 
@@ -181,55 +182,7 @@ function parseTimeToMinutes(str: string): number | null {
 }
 
 export function checkIsStoreOpen(workingHoursStr?: string, timeOpen?: string, timeClose?: string): boolean {
-    const raw = (workingHoursStr || '').trim();
-    if (!raw && !timeOpen) return true; // Default to open if not specified
-
-    const normalized = raw
-        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d).toString())
-        .toLowerCase();
-
-    // 24-hours indicators
-    if (
-        normalized.includes('24') || 
-        normalized.includes('طوال') || 
-        normalized.includes('مدار') || 
-        normalized.includes('always') ||
-        normalized.includes('مفتوح دائما')
-    ) {
-        return true;
-    }
-
-    try {
-        let openMins: number | null = null;
-        let closeMins: number | null = null;
-
-        if (timeOpen && timeClose) {
-            openMins = parseTimeToMinutes(timeOpen);
-            closeMins = parseTimeToMinutes(timeClose);
-        } else if (raw) {
-            const parts = raw.split(/[-–—~]|(?:\s+إلى\s+)|(?:\s+الى\s+)|(?:\s+حتى\s+)|(?:\s+to\s+)/i);
-            if (parts.length >= 2) {
-                openMins = parseTimeToMinutes(parts[0]);
-                closeMins = parseTimeToMinutes(parts[1]);
-            }
-        }
-
-        if (openMins === null || closeMins === null) {
-            return true;
-        }
-
-        const now = new Date();
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-
-        // Overnight shift (e.g., 10:00 AM to 02:00 AM)
-        if (closeMins <= openMins) {
-            return currentMins >= openMins || currentMins < closeMins;
-        } else {
-            return currentMins >= openMins && currentMins < closeMins;
-        }
-    } catch {
-        return true;
-    }
+    return getStoreOpenStatus({ working_hours: workingHoursStr, time_open: timeOpen, time_close: timeClose }).isOpen;
 }
 
 export default function Theme29Menu({ config, categories = [], restaurantId, language: initialLanguage }: Theme29MenuProps) {
@@ -265,9 +218,8 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     }, [config?.menu_title_word, isAr]);
 
     // Store Open / Closed Status (مفتوح الآن / مغلق الآن حسب أوقات العمل في الإعدادات)
-    const isStoreOpen = useMemo(() => {
-        return checkIsStoreOpen(config?.working_hours, config?.time_open, config?.time_close);
-    }, [config?.working_hours, config?.time_open, config?.time_close]);
+    const storeStatus = useStoreHours(config);
+    const isStoreOpen = storeStatus.isOpen;
 
     // Check if merchant registered any custom payment methods in store settings
     const hasPaymentMethods = useMemo(() => {

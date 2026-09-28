@@ -17,7 +17,7 @@ import { parseCurrency } from '@/lib/currency';
 import ASNFooter from '@/components/menu/ASNFooter';
 import CheckoutModal from '@/components/menu/CheckoutModal';
 import SharedMarquee from '@/components/menu/SharedMarquee';
-import { getStoreOpenStatus } from '@/lib/helpers/storeHours';
+import { getStoreOpenStatus, useStoreHours } from '@/lib/helpers/storeHours';
 import { itemMatchesSmartSearch } from '@/lib/helpers/smartMenuSearch';
 
 // Types
@@ -141,7 +141,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
     const isAr = currentLang === 'ar';
     const isDark = mounted && theme === 'dark';
     const cur = parseCurrency(config?.currency, isAr);
-    const storeStatus = useMemo(() => getStoreOpenStatus(config), [config]);
+    const storeStatus = useStoreHours(config);
 
     // Color resolution
     const getPrimaryColor = (themeName?: string, customPrimary?: string) => {

@@ -9,6 +9,7 @@ import { posDb } from "@/lib/pos-db";
 import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle, Send, Moon, Sun, Monitor } from "lucide-react";
 import { FaTiktok, FaTelegramPlane, FaSnapchatGhost, FaYoutube, FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
+import WorkingHoursSettings from "@/components/dashboard/WorkingHoursSettings";
 
 export type PhoneEntry = { label: string; number: string };
 
@@ -632,17 +633,19 @@ export default function SettingsPage() {
                             );
                         })()}
                         <div className="space-y-2 md:col-span-2">
-                            <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "أوقات العمل" : "Working Hours"}</label>
-                            <input type="text" value={profile.working_hours || ''} onChange={e => setProfile({ ...profile, working_hours: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: من 10 صباحاً إلى 2 صباحاً" : "e.g., 10 AM to 2 AM"} />
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "عنوان المكان" : "Restaurant Address"}</label>
                             <input type="text" value={profile.address || ''} onChange={e => setProfile({ ...profile, address: e.target.value })}
                                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: شارع النيل، المعادي، القاهرة" : "e.g., El Nile St, Maadi, Cairo"} />
                         </div>
                     </div>
                 </div>
+
+                {/* Working Hours & Schedule */}
+                <WorkingHoursSettings
+                    value={profile.working_hours || ''}
+                    onChange={(val) => setProfile({ ...profile, working_hours: val })}
+                    language={language}
+                />
 
                 {/* Marquee Banner Info */}
                 <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">

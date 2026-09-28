@@ -48,6 +48,7 @@ export type RestaurantConfig = {
   cover_url?: string;
   cover_images?: string[];
   working_hours?: string;
+  working_schedule?: any;
   payment_methods?: PaymentMethodEntry[];
   marquee_enabled?: boolean;
   marquee_text_ar?: string;
@@ -183,6 +184,25 @@ export async function loadMenu(restaurantId: string, previewTheme?: string): Pro
   }
 
   if (!config) return null;
+
+  if (config.working_hours) {
+    try {
+      const trimmed = typeof config.working_hours === 'string' ? config.working_hours.trim() : '';
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed === 'object') {
+          config.working_schedule = parsed;
+          if (parsed.displayText) {
+            config.working_hours = parsed.displayText;
+          } else if (parsed.manualText) {
+            config.working_hours = parsed.manualText;
+          }
+        }
+      }
+    } catch {
+      // Keep legacy string
+    }
+  }
 
   if (previewTheme) config.theme = previewTheme;
 
