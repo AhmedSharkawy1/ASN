@@ -161,7 +161,7 @@ export default function SettingsPage() {
                     name: profile.name,
                     slogan_ar: profile.slogan_ar,
                     slogan_en: profile.slogan_en,
-                    menu_title_word: profile.menu_title_word,
+                    menu_title_word: profile.menu_title_word ?? '',
                     slug: profile.slug?.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''),
                     phone: profile.phone,
                     whatsapp_number: profile.whatsapp_number,
@@ -216,7 +216,7 @@ export default function SettingsPage() {
                         slug: profile.slug?.toLowerCase().trim().replace(/[^a-z0-9-]/g, ''),
                         slogan_ar: profile.slogan_ar,
                         slogan_en: profile.slogan_en,
-                        menu_title_word: profile.menu_title_word,
+                        menu_title_word: profile.menu_title_word ?? '',
                         phone: profile.phone,
                         whatsapp_number: profile.whatsapp_number,
                         address: profile.address,
@@ -561,8 +561,13 @@ export default function SettingsPage() {
                         </div>
                         <div className="space-y-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "كلمة النشاط (تظهر في العنوان، مثل: مطعم، كافيه)" : "Business Word (e.g. Restaurant, Cafe)"}</label>
-                            <input type="text" value={profile.menu_title_word || ''} onChange={e => setProfile({ ...profile, menu_title_word: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: كافيه (الافتراضي: مطعم)" : "e.g., Cafe (Default: Restaurant)"} />
+                            <input type="text" value={profile.menu_title_word ?? ''} onChange={e => setProfile({ ...profile, menu_title_word: e.target.value })}
+                                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none transition-all text-base" placeholder={language === "ar" ? "مثال: كافيه (اتركه فارغاً أو مسافة للإخفاء)" : "e.g., Cafe (Leave empty or space to hide)"} />
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 px-1">
+                                {language === "ar"
+                                    ? "عند ترك الحقل فارغاً أو وضع مسافة، سيظهر العنوان للعميل: منيو + اسم المطعم فقط (بدون كلمة مطعم أو نشاط)."
+                                    : "Leaving this blank or entering a space will display: Menu + Venue Name only (without any business word)."}
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <label className="text-base font-medium text-silver px-1 block">{language === "ar" ? "جملة ملاحظة الإضافة للسلة (لإخفائها اترك الحقل فارغاً)" : "Add to Cart Hint (Leave empty to hide)"}</label>

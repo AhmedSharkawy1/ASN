@@ -37,7 +37,7 @@ export async function generateMetadata({
 
         if (!restData) {
             return {
-                title: "منيو مطعم | ASN Technology",
+                title: "منيو | ASN Technology",
                 description: "استعرض المنيو الإلكتروني",
                 other: {
                     google: "notranslate",
@@ -45,8 +45,8 @@ export async function generateMetadata({
             };
         }
 
-        const titleWord = restData.menu_title_word && restData.menu_title_word.trim() !== "" ? restData.menu_title_word : "مطعم";
-        const title = `منيو ${titleWord} ${restData.name}`;
+        const titleWord = restData.menu_title_word?.trim();
+        const title = titleWord ? `منيو ${titleWord} ${restData.name}` : `منيو ${restData.name}`;
         const description = restData.slogan_ar || `استعرض منيو ${restData.name} الإلكتروني - اطلب الآن!`;
         const image = restData.logo_url || restData.cover_url || "/logo.png";
 
@@ -79,7 +79,7 @@ export async function generateMetadata({
     } catch (error) {
         console.error("Failed to generate metadata:", error);
         return {
-            title: "منيو مطعم | ASN Technology",
+            title: "منيو | ASN Technology",
             description: "استعرض المنيو الإلكتروني",
             other: {
                 google: "notranslate",
