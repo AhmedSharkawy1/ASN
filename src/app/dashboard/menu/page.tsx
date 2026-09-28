@@ -418,9 +418,13 @@ export default function MenuBuilderPage() {
                         onClick={async () => {
                             if (!restaurantId) return;
                             setIsExportingImages(true);
-                            setImageProgress('جاري التجهيز...');
-                            await exportMenuImages(restaurantId, (msg) => setImageProgress(msg));
-                            setTimeout(() => { setIsExportingImages(false); setImageProgress(null); }, 2000);
+                            setImageProgress(language === 'ar' ? 'جاري تجهيز وتصدير صور المنيو...' : 'Preparing images for export...');
+                            const success = await exportMenuImages(restaurantId, (msg) => setImageProgress(msg), categories);
+                            if (success) {
+                                setTimeout(() => { setIsExportingImages(false); setImageProgress(null); }, 3000);
+                            } else {
+                                setTimeout(() => { setIsExportingImages(false); setImageProgress(null); }, 4000);
+                            }
                         }}
                         disabled={isExportingImages}
                         className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-purple-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-purple-500/60 transition-all disabled:opacity-50 active:scale-95 text-sm"

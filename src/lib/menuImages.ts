@@ -3,6 +3,7 @@ import { supabase } from './supabase/client';
 import { uploadImage, uploadImageWithThumb } from './uploadImage';
 import { findBestMatch, calculateSimilarity, normalizeArabic } from './fuzzyMatch';
 import { calculateSmartItemSimilarity, calculateCategorySimilarity } from './arabicLinguisticMatch';
+import { getProxiedImageUrl } from './imageProxy';
 
 /**
  * Sanitize a string to be used as part of a filename.
@@ -16,32 +17,154 @@ function sanitizeFileName(name: string): string {
 }
 
 /**
+ * Safely fetches an image as a Blob, bypassing CORS issues using our local /api/img/ proxy
+ * or the /api/proxy-image fallback.
+ */
+async function fetchImageBlob(imageUrl: string): Promise<Blob | null> {
+    if (!imageUrl) return null;
+
+    // 1. Try via our local edge proxy (/api/img/...) first - same origin, zero CORS issue
+    const proxied = getProxiedImageUrl(imageUrl);
+    if (proxied && proxied.startsWith('/api/img/')) {
+        try {
+            const res = await fetch(proxied);
+            if (res.ok) {
+                const b = await res.blob();
+                if (b && b.size > 0) return b;
+            }
+        } catch (_e) {
+            // fallback
+        }
+    }
+
+    // 2. Try direct fetch (works if origin sends Access-Control-Allow-Origin: * or is relative)
+    try {
+        const res = await fetch(imageUrl);
+        if (res.ok) {
+            const b = await res.blob();
+            if (b && b.size > 0) return b;
+        }
+    } catch (_e) {
+        // fallback to server-side proxy
+    }
+
+    // 3. Fallback to /api/proxy-image which fetches server-side and returns the blob
+    try {
+        const proxyRes = await fetch('/api/proxy-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: imageUrl }),
+        });
+        if (proxyRes.ok) {
+            const b = await proxyRes.blob();
+            if (b && b.size > 0) return b;
+        }
+    } catch (_e) {
+        // failed
+    }
+
+    return null;
+}
+
+/**
  * Export all menu images as a ZIP file.
  * Each image is named: "CategoryName__ItemName.ext"
  * Category cover images are named: "CategoryName__COVER.ext"
  * A manifest.json is included to map filenames back to IDs for re-import.
  */
-export async function exportMenuImages(restaurantId: string, onProgress?: (msg: string) => void): Promise<boolean> {
+export async function exportMenuImages(
+    restaurantId: string, 
+    onProgress?: (msg: string) => void,
+    preloadedCategories?: {
+        id: string;
+        name_ar: string;
+        name_en?: string;
+        image_url?: string | null;
+        thumbnail_url?: string | null;
+        items?: {
+            id: string;
+            category_id?: string;
+            title_ar: string;
+            title_en?: string;
+            image_url?: string | null;
+            thumbnail_url?: string | null;
+        }[];
+    }[]
+): Promise<boolean> {
     try {
         onProgress?.('جاري تحميل بيانات المنيو...');
 
-        // Fetch categories
-        const { data: cats } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('restaurant_id', restaurantId)
-            .order('sort_order', { ascending: true });
+        let cats: {
+            id: string;
+            name_ar: string;
+            name_en?: string;
+            image_url?: string | null;
+            thumbnail_url?: string | null;
+            items?: {
+                id: string;
+                category_id?: string;
+                title_ar: string;
+                title_en?: string;
+                image_url?: string | null;
+                thumbnail_url?: string | null;
+            }[];
+        }[] = [];
 
-        if (!cats || cats.length === 0) {
-            onProgress?.('لا توجد أقسام في المنيو');
-            return false;
+        let allItems: {
+            id: string;
+            category_id: string;
+            title_ar: string;
+            title_en?: string;
+            image_url?: string | null;
+            thumbnail_url?: string | null;
+        }[] = [];
+
+        if (preloadedCategories && preloadedCategories.length > 0) {
+            cats = preloadedCategories;
+            cats.forEach(c => {
+                if (c.items && c.items.length > 0) {
+                    c.items.forEach(i => {
+                        allItems.push({
+                            id: i.id,
+                            category_id: i.category_id || c.id,
+                            title_ar: i.title_ar,
+                            title_en: i.title_en,
+                            image_url: i.image_url,
+                            thumbnail_url: i.thumbnail_url,
+                        });
+                    });
+                }
+            });
+        } else {
+            // Fetch categories
+            const { data: dbCats, error: catsErr } = await supabase
+                .from('categories')
+                .select('*')
+                .eq('restaurant_id', restaurantId)
+                .order('sort_order', { ascending: true });
+
+            if (catsErr || !dbCats || dbCats.length === 0) {
+                onProgress?.('لا توجد أقسام في المنيو للتصدير.');
+                return false;
+            }
+
+            cats = dbCats;
+
+            // Fetch all items
+            const catIds = cats.map(c => c.id);
+            const { data: dbItems } = catIds.length > 0
+                ? await supabase.from('items').select('*').in('category_id', catIds).order('sort_order', { ascending: true })
+                : { data: [] };
+
+            allItems = (dbItems || []).map(i => ({
+                id: i.id,
+                category_id: i.category_id,
+                title_ar: i.title_ar,
+                title_en: i.title_en,
+                image_url: i.image_url,
+                thumbnail_url: i.thumbnail_url,
+            }));
         }
-
-        // Fetch all items
-        const catIds = cats.map(c => c.id);
-        const { data: items } = catIds.length > 0
-            ? await supabase.from('items').select('*').in('category_id', catIds).order('sort_order', { ascending: true })
-            : { data: [] };
 
         const zip = new JSZip();
 
@@ -56,32 +179,30 @@ export async function exportMenuImages(restaurantId: string, onProgress?: (msg: 
 
         // Count total images
         cats.forEach(cat => {
-            if (cat.image_url) imageCount++;
+            if (cat.image_url || cat.thumbnail_url) imageCount++;
         });
-        (items || []).forEach(item => {
-            if (item.image_url) imageCount++;
+        allItems.forEach(item => {
+            if (item.image_url || item.thumbnail_url) imageCount++;
         });
 
         if (imageCount === 0) {
-            onProgress?.('لا توجد صور في المنيو للتصدير');
+            onProgress?.('لا توجد صور في المنيو للتصدير.');
             return false;
         }
 
         // Process category cover images
         for (const cat of cats) {
-            const catName = sanitizeFileName(cat.name_ar);
+            const catName = sanitizeFileName(cat.name_ar || 'قسم');
+            const targetUrl = cat.image_url || cat.thumbnail_url;
 
-            if (cat.image_url) {
+            if (targetUrl) {
                 try {
-                    onProgress?.(`جاري تحميل صورة قسم: ${cat.name_ar} (${downloadedCount + 1}/${imageCount})`);
-                    let response = await fetch(cat.image_url);
-                    let targetUrl = cat.image_url;
-                    if (!response.ok && cat.thumbnail_url) {
-                        response = await fetch(cat.thumbnail_url);
-                        targetUrl = cat.thumbnail_url;
+                    onProgress?.(`جاري تحميل صورة قسم: ${cat.name_ar} (${downloadedCount + 1}/${imageCount})...`);
+                    let blob = await fetchImageBlob(targetUrl);
+                    if (!blob && cat.thumbnail_url && cat.thumbnail_url !== targetUrl) {
+                        blob = await fetchImageBlob(cat.thumbnail_url);
                     }
-                    if (response.ok) {
-                        const blob = await response.blob();
+                    if (blob) {
                         const ext = getExtFromUrl(targetUrl) || 'webp';
                         const filename = `${catName}__COVER.${ext}`;
                         zip.file(filename, blob);
@@ -106,32 +227,28 @@ export async function exportMenuImages(restaurantId: string, onProgress?: (msg: 
         }
 
         // Process item images
-        for (const item of (items || [])) {
-            if (!item.image_url) continue;
+        for (const item of allItems) {
+            const targetUrl = item.image_url || item.thumbnail_url;
+            if (!targetUrl) continue;
 
             const cat = cats.find(c => c.id === item.category_id);
-            if (!cat) continue;
-
-            const catName = sanitizeFileName(cat.name_ar);
-            const itemName = sanitizeFileName(item.title_ar);
+            const catName = sanitizeFileName(cat?.name_ar || 'قسم');
+            const itemName = sanitizeFileName(item.title_ar || 'صنف');
 
             try {
-                onProgress?.(`جاري تحميل صورة: ${item.title_ar} (${downloadedCount + 1}/${imageCount})`);
-                let response = await fetch(item.image_url);
-                let targetUrl = item.image_url;
-                if (!response.ok && item.thumbnail_url) {
-                    response = await fetch(item.thumbnail_url);
-                    targetUrl = item.thumbnail_url;
+                onProgress?.(`جاري تحميل صورة: ${item.title_ar} (${downloadedCount + 1}/${imageCount})...`);
+                let blob = await fetchImageBlob(targetUrl);
+                if (!blob && item.thumbnail_url && item.thumbnail_url !== targetUrl) {
+                    blob = await fetchImageBlob(item.thumbnail_url);
                 }
-                if (response.ok) {
-                    const blob = await response.blob();
+                if (blob) {
                     const ext = getExtFromUrl(targetUrl) || 'webp';
                     const filename = `${catName}__${itemName}.${ext}`;
                     zip.file(filename, blob);
                     manifest.items.push({
                         id: item.id,
                         category_id: item.category_id,
-                        category_name_ar: cat.name_ar,
+                        category_name_ar: cat?.name_ar || '',
                         title_ar: item.title_ar,
                         title_en: item.title_en || undefined,
                         filename
@@ -143,10 +260,15 @@ export async function exportMenuImages(restaurantId: string, onProgress?: (msg: 
             }
         }
 
+        if (downloadedCount === 0) {
+            onProgress?.('❌ تعذر تحميل أي صورة من صور المنيو. يرجى التأكد من اتصال الإنترنت.');
+            return false;
+        }
+
         // Add manifest
         zip.file('manifest.json', JSON.stringify(manifest, null, 2));
 
-        onProgress?.('جاري ضغط الملفات...');
+        onProgress?.('جاري ضغط الملفات داخل ملف ZIP...');
 
         // Generate and download
         const content = await zip.generateAsync({ type: 'blob' }, (metadata) => {
@@ -163,7 +285,7 @@ export async function exportMenuImages(restaurantId: string, onProgress?: (msg: 
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        onProgress?.(`تم تصدير ${downloadedCount} صورة بنجاح ✅`);
+        onProgress?.(`🎉 تم تصدير ${downloadedCount} صورة بنجاح داخل ملف ZIP!`);
         return true;
     } catch (err) {
         console.error('Export menu images error:', err);
