@@ -959,7 +959,7 @@ export default function MenuClient({
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-gray-100 font-sans pb-32 transition-colors duration-500 relative">
+    <main className="min-h-screen bg-[#0a0a0a] text-gray-100 font-sans pb-32 transition-colors duration-500 relative notranslate" translate="no">
       {/* Floating Cart Button */}
       <AnimatePresence>
         {cart.length > 0 && !showCart && !selectedItem && (

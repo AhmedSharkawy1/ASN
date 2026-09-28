@@ -305,6 +305,12 @@ export default function SuperAdminClientsPage() {
             if (brandingError) {
                 console.error('Branding/HQ save error:', brandingError);
                 toast.error('Failed to save branding setting');
+            } else {
+                fetch('/api/revalidate-menu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ restaurantId: selectedClient.id })
+                }).catch(() => {});
             }
 
             setIsAccessModalOpen(false);
@@ -370,9 +376,16 @@ export default function SuperAdminClientsPage() {
                 .eq('id', client.id);
             if (error) throw error;
             setClients(clients.map(c => c.id === client.id ? { ...c, high_quality_images: newValue } : c));
+            // Revalidate public menu cache so customers immediately see the change
+            fetch('/api/revalidate-menu', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ restaurantId: client.id })
+            }).catch(() => {});
+
             toast.success(newValue 
                 ? (language === "ar" ? `تم تفعيل جودة الصور العالية (HD) لمطعم ${client.name}` : `High Quality HD Images Enabled for ${client.name}`)
-                : (language === "ar" ? `تم إيقاف جودة الصور العالية لمطعم ${client.name}` : `High Quality HD Images Disabled for ${client.name}`)
+                : (language === "ar" ? `تم إيقاف جودة الصور العالية لمطعم ${client.name} (استخدام النسخ الخفيفة لتوفير الكاش)` : `High Quality HD Images Disabled for ${client.name} (Lightweight thumbnails enabled)`)
             );
         } catch (err: unknown) {
             console.error(err);

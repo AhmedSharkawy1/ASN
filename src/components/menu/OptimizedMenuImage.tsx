@@ -6,6 +6,7 @@ import React, { useMemo, useRef, useCallback } from 'react';
 import { getOriginalUrl, getThumbnailUrl } from '@/lib/imageUtils';
 import { getProxiedImageUrl } from '@/lib/imageProxy';
 import { logImageDebug, logImageFallback, logImageMount } from '@/lib/imageDebug';
+import { useMenuConfig } from '@/lib/context/MenuConfigContext';
 
 interface OptimizedMenuImageProps {
   src?: string | null;           // Legacy support
@@ -61,7 +62,7 @@ export default function OptimizedMenuImage({
   sizes = '(max-width: 768px) 100vw, 400px',
   priority = false,
   useOriginal = false,
-  highQuality = false,
+  highQuality,
   onClick,
   style,
 }: OptimizedMenuImageProps) {
@@ -70,7 +71,9 @@ export default function OptimizedMenuImage({
   const fallbackStageRef = useRef(0);
   const currentSrcRef = useRef<string>('');
 
-  const isHQ = useOriginal || highQuality;
+  const menuConfig = useMenuConfig();
+  const effectiveHQ = useOriginal ? true : (highQuality !== undefined ? highQuality : Boolean(menuConfig?.highQualityImages));
+  const isHQ = effectiveHQ;
 
   const primarySrc = useMemo(() => {
     fallbackStageRef.current = 0;
@@ -90,14 +93,12 @@ export default function OptimizedMenuImage({
       return DEFAULT_FALLBACK;
     }
 
-    // If HQ is requested, convert to original; otherwise preserve thumbnail / egress
+    // If HQ is requested, convert to original; otherwise preserve/force thumbnail to save cache & bandwidth
     let targetUrl = bestSrc;
     if (isHQ) {
       targetUrl = getOriginalUrl(bestSrc);
-    } else if (thumbnailSrc) {
-      targetUrl = thumbnailSrc;
     } else {
-      targetUrl = getThumbnailUrl(bestSrc);
+      targetUrl = getThumbnailUrl(thumbnailSrc || bestSrc);
     }
     
     // Route through Vercel edge CDN to avoid Supabase egress
@@ -114,7 +115,7 @@ export default function OptimizedMenuImage({
 
     currentSrcRef.current = proxiedUrl;
     return proxiedUrl;
-  }, [src, thumbnailSrc, originalSrc, useOriginal, highQuality, isHQ]);
+  }, [src, thumbnailSrc, originalSrc, isHQ]);
 
   // One-shot error handler — each stage fires at most once
   const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {

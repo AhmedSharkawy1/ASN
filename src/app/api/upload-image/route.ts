@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
           .from('items')
           .update({
             image_url: originalUrl,
-            thumbnail_url: isHighQuality ? originalUrl : thumbUrl,
+            thumbnail_url: thumbUrl,
           })
           .eq('id', itemId)
           .select('category_id')
@@ -275,7 +275,7 @@ export async function POST(req: NextRequest) {
           .from('categories')
           .update({
             image_url: originalUrl,
-            thumbnail_url: isHighQuality ? originalUrl : thumbUrl,
+            thumbnail_url: thumbUrl,
           })
           .eq('id', categoryId)
           .select('restaurant_id')

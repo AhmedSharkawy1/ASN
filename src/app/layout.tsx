@@ -15,6 +15,9 @@ const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit", display: 
 export const metadata: Metadata = {
   title: "ASN Technology | Futuristic AI Solutions",
   description: "Next-generation AI solutions for the enterprise. Experience the future with ASN Technology.",
+  other: {
+    google: "notranslate",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -63,18 +66,21 @@ export default function RootLayout({
   const isRestaurantSubdomain = currentHost !== host && currentHost !== rootDomain && !reservedSubdomains.includes(currentHost);
 
   return (
-    <html lang="en" suppressHydrationWarning className="scroll-smooth">
+    <html lang="ar" dir="rtl" translate="no" suppressHydrationWarning className="scroll-smooth notranslate">
       <head>
+        <meta name="google" content="notranslate" />
+        <meta name="googlebot" content="notranslate" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://supabase.co" />
       </head>
       <body
+        translate="no"
         className={clsx(
           inter.variable,
           cairo.variable,
           outfit.variable,
-          "font-sans antialiased selection:bg-blue selection:text-white"
+          "font-sans antialiased selection:bg-blue selection:text-white notranslate"
         )}
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

@@ -987,7 +987,7 @@ export async function executeConfirmedImport(
                         await supabase.from('categories')
                             .update({ 
                                 image_url: result.originalUrl, 
-                                thumbnail_url: isHighQuality ? result.originalUrl : result.thumbUrl 
+                                thumbnail_url: result.thumbUrl 
                             })
                             .eq('id', item.matchedCategoryId);
                         const hqBadge = isHighQuality ? ' [HD]' : '';
@@ -1005,7 +1005,7 @@ export async function executeConfirmedImport(
                         await supabase.from('items')
                             .update({ 
                                 image_url: result.originalUrl, 
-                                thumbnail_url: isHighQuality ? result.originalUrl : result.thumbUrl 
+                                thumbnail_url: result.thumbUrl 
                             })
                             .eq('id', item.matchedItemId);
                         const pct = Math.round(item.score * 100);

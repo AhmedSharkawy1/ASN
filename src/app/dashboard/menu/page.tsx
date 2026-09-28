@@ -11,6 +11,7 @@ import { exportMenuToExcel, importMenuFromExcel, downloadEmptyMenuTemplate } fro
 import { exportMenuImages, importMenuImages, smartImportMenuImages, deleteAllMenuImages, analyzeSmartImport, executeConfirmedImport, SmartMatchItem } from "@/lib/menuImages";
 import { SmartImportReviewModal } from "@/components/SmartImportReviewModal";
 import { parseCurrency } from "@/lib/currency";
+import { getOriginalUrl, getThumbnailUrl } from "@/lib/imageUtils";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Item = {
@@ -348,7 +349,7 @@ export default function MenuBuilderPage() {
         });
         if (result) await updateItem(catId, itemId, { 
             image_url: result.originalUrl, 
-            thumbnail_url: highQualityImages ? result.originalUrl : result.thumbUrl 
+            thumbnail_url: result.thumbUrl 
         });
     };
 
@@ -359,7 +360,7 @@ export default function MenuBuilderPage() {
         });
         if (result) await updateCategory(catId, { 
             image_url: result.originalUrl, 
-            thumbnail_url: highQualityImages ? result.originalUrl : result.thumbUrl 
+            thumbnail_url: result.thumbUrl 
         });
     };
 
@@ -552,7 +553,7 @@ export default function MenuBuilderPage() {
                                             <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => toggleCollapse(cat.id)}>
                                                 {cat.image_url ? (
                                                     <div className="w-12 h-12 rounded-xl overflow-hidden border border-glass-border flex-shrink-0">
-                                                        <img src={(highQualityImages ? (cat.image_url || cat.thumbnail_url) : (cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-full h-full object-cover" onError={(e) => { if (cat.image_url && e.currentTarget.src !== cat.image_url) e.currentTarget.src = cat.image_url; }} />
+                                                        <img src={(highQualityImages ? getOriginalUrl(cat.image_url || cat.thumbnail_url) : getThumbnailUrl(cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-full h-full object-cover" onError={(e) => { if (cat.image_url && e.currentTarget.src !== cat.image_url) e.currentTarget.src = cat.image_url; }} />
                                                     </div>
                                                 ) : (
                                                     <div className="w-10 h-10 rounded-full bg-blue/10 flex items-center justify-center text-xl shadow-inner">
@@ -1053,7 +1054,7 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel, highQua
                     });
                     if (result) {
                         imgUrl = result.originalUrl;
-                        thumbUrl = highQuality ? result.originalUrl : result.thumbUrl;
+                        thumbUrl = result.thumbUrl;
                         await supabase.from('categories').update({ image_url: imgUrl, thumbnail_url: thumbUrl }).eq('id', data.id);
                     }
                 }
@@ -1196,7 +1197,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
                     });
                     if (result) {
                         imgUrl = result.originalUrl;
-                        thumbUrl = highQuality ? result.originalUrl : result.thumbUrl;
+                        thumbUrl = result.thumbUrl;
                         await supabase.from('items').update({ image_url: imgUrl, thumbnail_url: thumbUrl }).eq('id', data.id);
                     }
                 }
@@ -1367,7 +1368,7 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
                 <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
                     <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl bg-glass-light flex items-center justify-center flex-shrink-0 border border-glass-border overflow-hidden group">
                         {item.thumbnail_url || item.image_url ? (
-                            <img src={(highQuality ? (item.image_url || item.thumbnail_url) : (item.thumbnail_url || item.image_url)) || undefined} alt={item.title_ar} className="w-full h-full object-cover" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />
+                            <img src={(highQuality ? getOriginalUrl(item.image_url || item.thumbnail_url) : getThumbnailUrl(item.thumbnail_url || item.image_url)) || undefined} alt={item.title_ar} className="w-full h-full object-cover" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />
                         ) : (
                             <button 
                                 onClick={handlePasteImage}
@@ -1528,7 +1529,7 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose, highQ
                     className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-sm rounded-lg disabled:opacity-50" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
                     <ClipboardPaste className="w-4 h-4" /> {language === "ar" ? "لصق" : "Paste"}
                 </button>
-                {cat.image_url && <img src={(highQuality ? (cat.image_url || cat.thumbnail_url) : (cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
+                {cat.image_url && <img src={(highQuality ? getOriginalUrl(cat.image_url || cat.thumbnail_url) : getThumbnailUrl(cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" />}
             </div>
         </div>
     );
@@ -1668,7 +1669,7 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
                     className="flex items-center gap-2 px-3 py-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-sm rounded-lg disabled:opacity-50" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
                     <ClipboardPaste className="w-4 h-4" /> {language === "ar" ? "لصق" : "Paste"}
                 </button>
-                {item.image_url && <img src={(highQuality ? (item.image_url || item.thumbnail_url) : (item.thumbnail_url || item.image_url)) || undefined} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />}
+                {item.image_url && <img src={(highQuality ? getOriginalUrl(item.image_url || item.thumbnail_url) : getThumbnailUrl(item.thumbnail_url || item.image_url)) || undefined} alt="" className="w-10 h-10 rounded-lg object-cover border border-glass-border" onError={(e) => { if (item.image_url && e.currentTarget.src !== item.image_url) e.currentTarget.src = item.image_url; }} />}
             </div>
         </div>
     );

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import MenuClient from "./MenuClient";
 import MenuOffline from "./MenuOffline";
 import { loadMenu } from "./menuData";
+import { MenuConfigProvider } from "@/lib/context/MenuConfigContext";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -26,5 +27,9 @@ export default async function SmartMenuPage({
     return <MenuOffline name={data.config.name} logoUrl={data.config.logo_url} />;
   }
 
-  return <MenuClient config={data.config} categories={data.categories} />;
+  return (
+    <MenuConfigProvider highQualityImages={Boolean(data.config.high_quality_images)}>
+      <MenuClient config={data.config} categories={data.categories} />
+    </MenuConfigProvider>
+  );
 }

@@ -66,6 +66,14 @@ const nextConfig = {
                         key: 'Cache-Control',
                         value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
                     },
+                    {
+                        key: 'Content-Language',
+                        value: 'ar',
+                    },
+                    {
+                        key: 'X-Robots-Tag',
+                        value: 'notranslate',
+                    },
                 ],
             },
             {

@@ -39,6 +39,9 @@ export async function generateMetadata({
             return {
                 title: "منيو مطعم | ASN Technology",
                 description: "استعرض المنيو الإلكتروني",
+                other: {
+                    google: "notranslate",
+                },
             };
         }
 
@@ -50,6 +53,9 @@ export async function generateMetadata({
         return {
             title,
             description,
+            other: {
+                google: "notranslate",
+            },
             openGraph: {
                 title,
                 description,
@@ -75,6 +81,9 @@ export async function generateMetadata({
         return {
             title: "منيو مطعم | ASN Technology",
             description: "استعرض المنيو الإلكتروني",
+            other: {
+                google: "notranslate",
+            },
         };
     }
 }
@@ -87,7 +96,7 @@ export default function MenuLayout({
     params: { restaurantId: string };
 }) {
     return (
-        <>
+        <div className="notranslate w-full" translate="no">
             {children}
             {/*
               Floats above whichever theme is rendering. Living here rather than
@@ -96,6 +105,6 @@ export default function MenuLayout({
               switched it on and the menu was opened from a table QR code.
             */}
             <CallWaiterButton restaurantId={params.restaurantId} />
-        </>
+        </div>
     );
 }
