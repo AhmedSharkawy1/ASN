@@ -19,6 +19,9 @@ import CheckoutModal from '@/components/menu/CheckoutModal';
 import SharedMarquee from '@/components/menu/SharedMarquee';
 import { getStoreOpenStatus, useStoreHours } from '@/lib/helpers/storeHours';
 import { itemMatchesSmartSearch } from '@/lib/helpers/smartMenuSearch';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay } from 'swiper/modules';
+import 'swiper/css';
 
 // Types
 export type MenuItem = {
@@ -186,6 +189,23 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterTag>('all');
     const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+    const [coverActiveIndex, setCoverActiveIndex] = useState(0);
+
+    // Cover images extracted from settings (cover_images or cover_url)
+    const coverImagesList = useMemo(() => {
+        const list: string[] = [];
+        if (Array.isArray(config.cover_images)) {
+            config.cover_images.forEach(img => {
+                if (typeof img === 'string' && img.trim()) {
+                    list.push(img.trim());
+                }
+            });
+        }
+        if (list.length === 0 && config.cover_url && typeof config.cover_url === 'string' && config.cover_url.trim()) {
+            list.push(config.cover_url.trim());
+        }
+        return list;
+    }, [config.cover_images, config.cover_url]);
 
     // Modals
     const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string; categoryId: string | number } | null>(null);
@@ -334,22 +354,13 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
             .reduce((sum, c) => sum + c.quantity, 0);
     };
 
-    // Quick add or open modal with optional initial size
+    // Open add modal with optional initial size (always opens even for single-size items)
     const handleItemClick = (item: MenuItem, catNameStr: string, catId: string | number, initialSizeIdx = 0) => {
-        const hasSizes = (item.prices && item.prices.length > 1) || (item.size_labels && item.size_labels.length > 1);
-        const hasExtras = item.extras && item.extras.length > 0;
-
-        // If item has sizes, extras, or details, open rich modal
-        if (hasSizes || hasExtras || itemDesc(item)) {
-            setSelectedItem({ item, catName: catNameStr, categoryId: catId });
-            setModalSizeIdx(initialSizeIdx);
-            setModalQty(1);
-            setModalNotes('');
-            setModalExtras([]);
-        } else {
-            // Instant add to cart
-            quickAddToCart(item, catNameStr, initialSizeIdx);
-        }
+        setSelectedItem({ item, catName: catNameStr, categoryId: catId });
+        setModalSizeIdx(initialSizeIdx);
+        setModalQty(1);
+        setModalNotes('');
+        setModalExtras([]);
     };
 
     // Quick direct add
@@ -505,20 +516,34 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
     if (!mounted) {
         return (
             <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+                <div 
+                    className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin" 
+                    style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }}
+                />
             </div>
         );
     }
 
     return (
         <div 
-            className="min-w-0 w-full max-w-full min-h-screen font-cairo pb-36 relative transition-colors duration-300 selection:bg-indigo-500 selection:text-white"
+            className="min-w-0 w-full max-w-full min-h-screen font-cairo pb-36 relative transition-colors duration-300"
             style={{ 
                 backgroundColor: hasBgImage ? 'transparent' : (isDark ? '#0b0f19' : '#f8fafc'),
                 color: isDark ? '#f8fafc' : '#0f172a'
             }}
             dir={isAr ? 'rtl' : 'ltr'}
         >
+            <style dangerouslySetInnerHTML={{ __html: `
+                .theme30-item-card:hover .theme30-item-title {
+                    color: ${primaryColor} !important;
+                }
+                .theme30-item-card:hover {
+                    border-color: ${primaryColor}55 !important;
+                }
+                .theme30-size-btn:hover {
+                    border-color: ${primaryColor}80 !important;
+                }
+            `}} />
             {/* Custom Background Image Layer */}
             {hasBgImage && (
                 <>
@@ -557,7 +582,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 shrink-0"
                                 title={isAr ? 'Switch to English' : 'التحويل للعربية'}
                             >
-                                <Globe className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                                <Globe className="w-3.5 h-3.5 shrink-0" style={{ color: primaryColor }} />
                                 <span>{isAr ? 'EN' : 'عربي'}</span>
                             </button>
 
@@ -573,7 +598,8 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                             {/* Payment Methods Button */}
                             <button
                                 onClick={() => setIsPaymentModalOpen(true)}
-                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 text-indigo-600 dark:text-indigo-400 shrink-0"
+                                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 shrink-0"
+                                style={{ color: primaryColor }}
                                 title={isAr ? 'وسائل الدفع المتاحة' : 'Payment Methods'}
                             >
                                 <CreditCard className="w-3.5 h-3.5" />
@@ -657,7 +683,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                             {/* Name & Slogan */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <h1 className="text-xl sm:text-2xl font-black tracking-tight truncate">
+                                    <h1 className="text-xl sm:text-2xl font-black tracking-tight break-words leading-tight">
                                         {config.name}
                                     </h1>
 
@@ -676,20 +702,20 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 </div>
 
                                 {(config.slogan_ar || config.slogan_en) && (
-                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 font-medium leading-relaxed">
+                                    <p className="text-xs sm:text-sm text-slate-700 dark:text-zinc-200 mt-1 font-semibold leading-relaxed">
                                         {isAr ? (config.slogan_ar || config.slogan_en) : (config.slogan_en || config.slogan_ar)}
                                     </p>
                                 )}
 
                                 {/* Meta details bar: Dining & Delivery / Fast Service */}
-                                <div className="flex items-center gap-2.5 mt-2 text-[11px] text-slate-600 dark:text-zinc-300 font-semibold flex-wrap">
+                                <div className="flex items-center gap-2.5 mt-2 text-xs text-slate-800 dark:text-zinc-100 font-bold flex-wrap">
                                     <span className="flex items-center gap-1">
                                         <Utensils className="w-3.5 h-3.5 text-amber-500" />
                                         <span>{isAr ? 'صالة ودليفري' : 'Dine-in & Delivery'}</span>
                                     </span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
-                                        <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                                        <Clock className="w-3.5 h-3.5 text-amber-500" />
                                         <span>{isAr ? 'خدمة سريعة' : 'Fast Service'}</span>
                                     </span>
                                 </div>
@@ -710,7 +736,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                         <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 mt-0.5 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-colors">
                                             <MapPin className="w-3.5 h-3.5" />
                                         </div>
-                                        <span className="font-semibold text-xs text-slate-700 dark:text-zinc-200 group-hover/loc:text-rose-500 transition-colors leading-relaxed">
+                                        <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-zinc-100 group-hover/loc:text-rose-500 transition-colors leading-relaxed">
                                             {config.address || (isAr ? 'الموقع الجغرافي للمطعم' : 'Restaurant Location')}
                                         </span>
                                     </div>
@@ -729,9 +755,9 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                     <a
                                         key={idx}
                                         href={`tel:${ph}`}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-[11px] font-bold text-slate-700 dark:text-zinc-200 transition-all border border-black/5 dark:border-white/5 shadow-2xs active:scale-95"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-xs font-bold text-slate-800 dark:text-zinc-100 transition-all border border-slate-200 dark:border-zinc-700 shadow-2xs active:scale-95"
                                     >
-                                        <Phone className="w-3 h-3 text-indigo-500" />
+                                        <Phone className="w-3.5 h-3.5 text-emerald-500" />
                                         <span dir="ltr">{ph}</span>
                                     </a>
                                 ))}
@@ -740,7 +766,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                         href={`https://wa.me/${whatsappClean}`}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-black text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-2xs active:scale-95"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-xs font-black text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-2xs active:scale-95"
                                     >
                                         <FaWhatsapp className="w-3.5 h-3.5 text-emerald-500" />
                                         <span dir="ltr">{config.whatsapp_number}</span>
@@ -751,13 +777,18 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                         {/* Accepted Payment Methods Banner */}
                         <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-zinc-300 font-bold">
-                                <CreditCard className="w-3.5 h-3.5 text-indigo-500" />
+                            <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-zinc-200 font-bold">
+                                <CreditCard className="w-3.5 h-3.5 text-amber-500" />
                                 <span>{isAr ? 'طرق الدفع المتاحة:' : 'Accepted Payments:'}</span>
                             </div>
                             <button
                                 onClick={() => setIsPaymentModalOpen(true)}
-                                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-[11px] font-black text-indigo-600 dark:text-indigo-400 transition-all border border-indigo-500/20 shadow-2xs active:scale-95 cursor-pointer"
+                                className="inline-flex items-center gap-1 px-3 py-1 rounded-xl text-[11px] font-black transition-all border shadow-2xs active:scale-95 cursor-pointer"
+                                style={{
+                                    backgroundColor: `${primaryColor}15`,
+                                    color: primaryColor,
+                                    borderColor: `${primaryColor}35`
+                                }}
                             >
                                 <span>{isAr ? 'كاش / انستا باي / محافظ' : 'Cash / InstaPay / Wallets'}</span>
                                 {isAr ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
@@ -832,6 +863,70 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                     </div>
                 </header>
 
+                {/* 2.5 COVER BANNER HERO SLIDER (صور الغلاف / البانرات) */}
+                {!searchQuery && coverImagesList.length > 0 && (
+                    <div className="px-3 sm:px-4 mb-3.5">
+                        <div className="relative w-full rounded-3xl overflow-hidden shadow-lg border border-black/5 dark:border-white/10 group bg-slate-100 dark:bg-zinc-800/80">
+                            {coverImagesList.length > 1 ? (
+                                <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] min-h-[145px] max-h-[220px]">
+                                    <Swiper
+                                        key={isAr ? 'cover-ar' : 'cover-en'}
+                                        dir={isAr ? 'rtl' : 'ltr'}
+                                        modules={[Autoplay]}
+                                        autoplay={{ delay: 3500, disableOnInteraction: false }}
+                                        loop={true}
+                                        onSlideChange={(swiper) => setCoverActiveIndex(swiper.realIndex)}
+                                        className="w-full h-full"
+                                    >
+                                        {coverImagesList.map((img, idx) => (
+                                            <SwiperSlide key={idx}>
+                                                <div className="w-full h-full relative overflow-hidden">
+                                                    <OptimizedMenuImage 
+                                                        originalSrc={img}
+                                                        alt={`Cover ${idx + 1}`}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                        useOriginal={true}
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                                                </div>
+                                            </SwiperSlide>
+                                        ))}
+                                    </Swiper>
+
+                                    {/* Counter badge */}
+                                    <div className="absolute top-2.5 start-2.5 z-10 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-white text-[10px] font-bold">
+                                        {coverActiveIndex + 1} / {coverImagesList.length}
+                                    </div>
+
+                                    {/* Custom Glass Dots Indicator */}
+                                    <div className="absolute bottom-2.5 inset-x-0 flex items-center justify-center gap-1.5 z-10 pointer-events-none">
+                                        {coverImagesList.map((_, idx) => (
+                                            <span 
+                                                key={idx}
+                                                className={`transition-all duration-300 rounded-full ${
+                                                    coverActiveIndex === idx 
+                                                        ? 'w-5 h-1.5 bg-white shadow-md' 
+                                                        : 'w-1.5 h-1.5 bg-white/50'
+                                                }`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] min-h-[145px] max-h-[220px] overflow-hidden">
+                                    <OptimizedMenuImage 
+                                        originalSrc={coverImagesList[0]}
+                                        alt={config.name || 'Cover'}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                        useOriginal={true}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent pointer-events-none" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* 3. STORIES & HIGHLIGHTS BAR (Neo-Luxe Capsules) */}
                 {showStoriesBar && (
                     <div className="px-4 py-2">
@@ -844,20 +939,21 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 <div 
                                     className={`w-14 h-14 rounded-2xl p-0.5 transition-all shadow-sm ${
                                         activeCategory === 'all' && activeFilter === 'all' 
-                                            ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-zinc-950 scale-105' 
+                                            ? 'scale-105' 
                                             : 'opacity-80 group-hover:opacity-100'
                                     }`}
                                     style={{
+                                        boxShadow: activeCategory === 'all' && activeFilter === 'all' ? `0 0 0 2px ${primaryColor}` : undefined,
                                         background: activeCategory === 'all' && activeFilter === 'all'
-                                            ? `linear-gradient(135deg, ${primaryColor}, #818cf8)`
+                                            ? primaryColor
                                             : 'rgba(150, 150, 150, 0.2)'
                                     }}
                                 >
-                                    <div className="w-full h-full rounded-[14px] bg-white dark:bg-zinc-900 flex items-center justify-center text-indigo-500">
+                                    <div className="w-full h-full rounded-[14px] bg-white dark:bg-zinc-900 flex items-center justify-center" style={{ color: primaryColor }}>
                                         <Sparkles className="w-6 h-6" />
                                     </div>
                                 </div>
-                                <span className="text-[11px] font-bold truncate max-w-[64px] text-center">
+                                <span className="text-xs font-bold truncate max-w-[64px] text-center text-slate-800 dark:text-zinc-100">
                                     {isAr ? 'الكل' : 'All'}
                                 </span>
                             </button>
@@ -881,7 +977,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                         <Flame className="w-6 h-6" />
                                     </div>
                                 </div>
-                                <span className="text-[11px] font-bold truncate max-w-[64px] text-center">
+                                <span className="text-xs font-bold truncate max-w-[64px] text-center text-slate-800 dark:text-zinc-100">
                                     {isAr ? 'الأكثر طلباً' : 'Popular'}
                                 </span>
                             </button>
@@ -905,7 +1001,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                         <Tag className="w-6 h-6" />
                                     </div>
                                 </div>
-                                <span className="text-[11px] font-bold truncate max-w-[64px] text-center">
+                                <span className="text-xs font-bold truncate max-w-[64px] text-center text-slate-800 dark:text-zinc-100">
                                     {isAr ? 'عروض حصرية' : 'Offers'}
                                 </span>
                             </button>
@@ -922,12 +1018,13 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                         <div 
                                             className={`w-14 h-14 rounded-2xl p-0.5 transition-all shadow-sm ${
                                                 isCatActive 
-                                                    ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-zinc-950 scale-105' 
+                                                    ? 'scale-105' 
                                                     : 'opacity-85 group-hover:opacity-100'
                                             }`}
                                             style={{
+                                                boxShadow: isCatActive ? `0 0 0 2px ${primaryColor}` : undefined,
                                                 background: isCatActive 
-                                                    ? `linear-gradient(135deg, ${primaryColor}, #a855f7)`
+                                                    ? primaryColor
                                                     : 'rgba(150, 150, 150, 0.25)'
                                             }}
                                         >
@@ -940,11 +1037,11 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
-                                                    <Utensils className="w-5 h-5 text-slate-500 dark:text-zinc-400" />
+                                                    <Utensils className="w-5 h-5 text-slate-700 dark:text-zinc-200" />
                                                 )}
                                             </div>
                                         </div>
-                                        <span className="text-[11px] font-bold truncate max-w-[68px] text-center">
+                                        <span className="text-xs font-bold truncate max-w-[64px] text-center text-slate-800 dark:text-zinc-100">
                                             {catName(cat)}
                                         </span>
                                     </button>
@@ -958,18 +1055,19 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                 <div className="relative px-4 py-2 space-y-2">
                     {/* Search Input Bar */}
                     <div className="relative flex items-center">
-                        <Search className="w-4 h-4 absolute inset-y-0 my-auto text-slate-400 pointer-events-none" style={isAr ? { right: 14 } : { left: 14 }} />
+                        <Search className="w-4 h-4 absolute inset-y-0 my-auto text-slate-500 pointer-events-none" style={isAr ? { right: 14 } : { left: 14 }} />
                         <input 
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={isAr ? 'ابحث عن وجبة، مشروب، سندوتش...' : 'Search meals, drinks, sandwiches...'}
-                            className={`w-full h-11 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md text-sm font-semibold border border-black/5 dark:border-white/10 focus:ring-2 focus:ring-indigo-500/50 transition-all ${isAr ? 'pr-11 pl-10' : 'pl-11 pr-10'}`}
+                            placeholder={isAr ? 'ابحث عن الصنف هنا...' : 'Search items here...'}
+                            className={`w-full h-11 rounded-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-500 dark:placeholder:text-zinc-400 border border-slate-200 dark:border-zinc-700 focus:outline-none transition-all ${isAr ? 'pr-11 pl-10' : 'pl-11 pr-10'}`}
+                            style={{ borderColor: searchQuery ? primaryColor : undefined }}
                         />
                         {searchQuery && (
                             <button
                                 onClick={() => setSearchQuery('')}
-                                className={`absolute inset-y-0 my-auto ${isAr ? 'left-3' : 'right-3'} w-6 h-6 rounded-full bg-slate-300 dark:bg-zinc-700 flex items-center justify-center text-xs text-slate-600 dark:text-zinc-200`}
+                                className={`absolute inset-y-0 my-auto ${isAr ? 'left-3' : 'right-3'} w-6 h-6 rounded-full bg-slate-300 dark:bg-zinc-700 flex items-center justify-center text-xs text-slate-700 dark:text-zinc-200`}
                             >
                                 <X className="w-3.5 h-3.5" />
                             </button>
@@ -985,7 +1083,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-all ${
                                     activeFilter === 'all'
                                         ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-sm'
-                                        : 'bg-white/80 dark:bg-zinc-900/80 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-black/5 dark:border-white/5'
+                                        : 'bg-white/90 dark:bg-zinc-900/90 text-slate-800 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700'
                                 }`}
                             >
                                 {isAr ? 'الكل' : 'All'}
@@ -995,7 +1093,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-all flex items-center gap-1 ${
                                     activeFilter === 'popular'
                                         ? 'bg-amber-500 text-white shadow-sm'
-                                        : 'bg-white/80 dark:bg-zinc-900/80 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-black/5 dark:border-white/5'
+                                        : 'bg-white/90 dark:bg-zinc-900/90 text-slate-800 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700'
                                 }`}
                             >
                                 <Flame className="w-3 h-3 text-amber-300" />
@@ -1006,7 +1104,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 className={`px-3 py-1 rounded-full text-xs font-bold shrink-0 transition-all flex items-center gap-1 ${
                                     activeFilter === 'offers'
                                         ? 'bg-rose-500 text-white shadow-sm'
-                                        : 'bg-white/80 dark:bg-zinc-900/80 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-black/5 dark:border-white/5'
+                                        : 'bg-white/90 dark:bg-zinc-900/90 text-slate-800 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700'
                                 }`}
                             >
                                 <Tag className="w-3 h-3 text-rose-300" />
@@ -1015,31 +1113,35 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                         </div>
 
                         {/* View Switcher Controls (4 Modes) */}
-                        <div className="flex items-center bg-white/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/10 p-0.5 rounded-xl shrink-0 backdrop-blur-md">
+                        <div className="flex items-center bg-white/90 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-700 p-0.5 rounded-xl shrink-0 backdrop-blur-md">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-slate-100 dark:bg-zinc-800 text-indigo-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-100'}`}
+                                style={{ color: viewMode === 'grid' ? primaryColor : undefined }}
                                 title={isAr ? 'عرض شبكي' : 'Grid View'}
                             >
                                 <LayoutGrid className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-slate-100 dark:bg-zinc-800 text-indigo-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-100'}`}
+                                style={{ color: viewMode === 'list' ? primaryColor : undefined }}
                                 title={isAr ? 'قائمة تفصيلية' : 'List View'}
                             >
                                 <LayoutList className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('compact')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-slate-100 dark:bg-zinc-800 text-indigo-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-100'}`}
+                                style={{ color: viewMode === 'compact' ? primaryColor : undefined }}
                                 title={isAr ? 'عرض مكثف سريع' : 'Compact Rows'}
                             >
                                 <AlignJustify className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('showcase')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'showcase' ? 'bg-slate-100 dark:bg-zinc-800 text-indigo-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'showcase' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:hover:text-zinc-100'}`}
+                                style={{ color: viewMode === 'showcase' ? primaryColor : undefined }}
                                 title={isAr ? 'عرض استعراضي فاخر' : 'Showcase Mode'}
                             >
                                 <Maximize2 className="w-4 h-4" />
@@ -1178,7 +1280,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                             <div
                                                 key={`grid-item-t30-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                className="group relative bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-3xl p-2.5 sm:p-3 border border-black/5 dark:border-white/10 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer"
+                                                className="group theme30-item-card relative bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-3xl p-2.5 sm:p-3 border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md transition-all flex flex-col justify-between cursor-pointer"
                                             >
                                                 {/* Image & Badges */}
                                                 <div className="relative w-full aspect-square rounded-2xl overflow-hidden mb-2 bg-slate-100 dark:bg-zinc-800">
@@ -1216,11 +1318,11 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                                                 {/* Text Info */}
                                                 <div className="space-y-1">
-                                                    <h3 className="font-bold text-xs sm:text-sm line-clamp-1 group-hover:text-indigo-500 transition-colors">
+                                                    <h3 className="font-bold text-xs sm:text-sm leading-snug break-words transition-colors theme30-item-title">
                                                         {itemName(item)}
                                                     </h3>
                                                     {itemDesc(item) && (
-                                                        <p className="text-[11px] text-slate-400 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                                                        <p className="text-xs text-slate-600 dark:text-zinc-300 line-clamp-2 leading-relaxed font-medium">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
@@ -1228,7 +1330,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                                                 {/* Price & Add Controls */}
                                                 {hasMultipleSizes ? (
-                                                    <div className="mt-2.5 pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
+                                                    <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-zinc-700/80 space-y-1.5">
                                                         {/* Sizes Grid: 2 cols side-by-side like Theme 26; 3rd or odd-last size spans 2 cols underneath */}
                                                         <div className={`grid grid-cols-2 gap-1.5 w-full ${item.prices.length > 4 ? 'max-h-[160px] overflow-y-auto no-scrollbar' : ''}`}>
                                                             {item.prices.map((price, pIdx) => {
@@ -1247,15 +1349,21 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                             e.stopPropagation();
                                                                             handleItemClick(item, catName(cat), cat.id, pIdx);
                                                                         }}
-                                                                        className={`relative group/size flex flex-col items-center justify-between py-1.5 px-1.5 rounded-xl border transition-all text-center min-h-[52px] ${
+                                                                        className={`relative group/size theme30-size-btn flex flex-col items-center justify-between py-1.5 px-1.5 rounded-xl border-2 transition-all text-center min-h-[52px] ${
                                                                             isOddLast ? 'col-span-2' : ''
                                                                         } ${
                                                                             sizeCartQty > 0
-                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs ring-1 ring-indigo-500/50'
+                                                                                ? 'shadow-2xs ring-1'
                                                                                 : hasDisc
                                                                                     ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 hover:border-rose-500 shadow-2xs'
-                                                                                    : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
+                                                                                    : 'border-slate-200 dark:border-zinc-700/80 bg-slate-50/90 dark:bg-zinc-800/90 text-slate-800 dark:text-zinc-100 hover:border-slate-300 dark:hover:border-zinc-600'
                                                                         }`}
+                                                                        style={sizeCartQty > 0 ? {
+                                                                            borderColor: primaryColor,
+                                                                            backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
+                                                                            color: primaryColor,
+                                                                            boxShadow: `0 0 0 1px ${primaryColor}40`
+                                                                        } : undefined}
                                                                     >
                                                                         {/* Offer Badge on Top of Pill */}
                                                                         {hasDisc && sizeDiscountPercent && (
@@ -1276,7 +1384,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                         )}
 
                                                                         {/* Size Label */}
-                                                                        <span className={`text-[10.5px] font-bold truncate max-w-full leading-tight ${hasDisc ? 'text-rose-700 dark:text-rose-300 font-black' : 'text-slate-600 dark:text-zinc-400'}`}>
+                                                                        <span className={`text-xs font-extrabold truncate max-w-full leading-tight ${hasDisc ? 'text-rose-700 dark:text-rose-300' : 'text-slate-800 dark:text-zinc-100'}`}>
                                                                             {label}
                                                                         </span>
 
@@ -1291,7 +1399,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                                         <span className="text-xs font-black text-rose-600 dark:text-rose-400">
                                                                                             {price}
                                                                                         </span>
-                                                                                        <span className="text-[8px] font-bold text-slate-400">
+                                                                                        <span className="text-[9.5px] font-bold text-slate-600 dark:text-zinc-300">
                                                                                             {cur}
                                                                                         </span>
                                                                                     </div>
@@ -1301,7 +1409,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                                     <span className="text-xs font-black" style={{ color: primaryColor }}>
                                                                                         {price}
                                                                                     </span>
-                                                                                    <span className="text-[8px] font-bold text-slate-400">
+                                                                                    <span className="text-[9.5px] font-bold text-slate-600 dark:text-zinc-300">
                                                                                         {cur}
                                                                                     </span>
                                                                                 </div>
@@ -1313,10 +1421,10 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                         </div>
 
                                                         {/* Bottom row: Info & Action */}
-                                                        <div className="flex items-center justify-between gap-1 pt-1 mt-1 border-t border-black/5 dark:border-white/5">
+                                                        <div className="flex items-center justify-between gap-1 pt-1 mt-1 border-t border-slate-200 dark:border-zinc-700/80">
                                                             <div className="flex items-center gap-1.5 min-w-0">
                                                                 {/* Always preserve written size count */}
-                                                                <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-400 truncate">
+                                                                <span className="text-xs font-extrabold text-slate-700 dark:text-zinc-200 truncate">
                                                                     {item.prices.length} {isAr ? 'أحجام' : 'sizes'}
                                                                 </span>
                                                                 {hasDiscount && (
@@ -1326,7 +1434,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                     </span>
                                                                 )}
                                                                 {inCartQty > 0 && (
-                                                                    <span className="text-[9.5px] font-black text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                                    <span className="text-xs font-black shrink-0" style={{ color: primaryColor }}>
                                                                         ({inCartQty})
                                                                     </span>
                                                                 )}
@@ -1347,24 +1455,24 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                     </div>
                                                 ) : (
                                                     /* Single price layout */
-                                                    <div className="flex items-center justify-between gap-1 mt-2.5 pt-2 border-t border-black/5 dark:border-white/5">
+                                                    <div className="flex items-center justify-between gap-1 mt-2.5 pt-2 border-t border-slate-200 dark:border-zinc-700/80">
                                                         <div>
                                                             <div className="flex items-baseline gap-1">
                                                                 <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
                                                                     {item.prices?.[0] || 0}
                                                                 </span>
-                                                                <span className="text-[10px] font-bold text-slate-400">
+                                                                <span className="text-xs font-bold text-slate-600 dark:text-zinc-300">
                                                                     {cur}
                                                                 </span>
                                                             </div>
                                                             {hasDiscount && item.old_prices?.[0] && (
-                                                                <span className="text-[10px] text-slate-400 line-through">
+                                                                <span className="text-[11px] text-slate-400 line-through">
                                                                     {item.old_prices[0]} {cur}
                                                                 </span>
                                                             )}
                                                         </div>
 
-                                                        {/* Qty Stepper or Plus Button */}
+                                                        {/* Qty Stepper or Order Button */}
                                                         {inCartQty > 0 ? (
                                                             <div 
                                                                 className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 px-1.5 py-1 rounded-xl shadow-xs"
@@ -1393,11 +1501,12 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                     e.stopPropagation();
                                                                     handleItemClick(item, catName(cat), cat.id, 0);
                                                                 }}
-                                                                className="w-8 h-8 rounded-xl text-white flex items-center justify-center shadow-xs active:scale-90 transition-all"
+                                                                className="px-3 py-1 rounded-xl text-white text-[11px] font-black flex items-center gap-1 shadow-xs active:scale-95 transition-all shrink-0"
                                                                 style={{ backgroundColor: primaryColor }}
-                                                                title={isAr ? 'أضف للسلة' : 'Add to cart'}
+                                                                title={isAr ? 'طلب الصنف' : 'Order item'}
                                                             >
-                                                                <Plus className="w-4 h-4" />
+                                                                <Plus className="w-3.5 h-3.5" />
+                                                                <span>{isAr ? 'طلب' : 'Order'}</span>
                                                             </button>
                                                         )}
                                                     </div>
@@ -1408,56 +1517,153 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 </div>
                             )}
 
-                            {/* B. LIST MODE */}
+                            {/* B. LIST MODE (القائمة التفصيلية) */}
                             {viewMode === 'list' && (
                                 <div className="space-y-3">
                                     {cat.items?.map(item => {
                                         const inCartQty = getItemCartQty(item.id);
                                         const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
                                         const hasDiscount = item.old_prices && item.old_prices.some((op, idx) => op && op > (item.prices?.[idx] || 0));
+                                        const minPrice = item.prices?.length ? Math.min(...item.prices) : 0;
+                                        const basePrice = item.prices?.[0] || 0;
 
                                         return (
                                             <div
                                                 key={`list-item-t30-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                className="group bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-3xl p-3 border border-black/5 dark:border-white/10 shadow-xs hover:shadow-md transition-all flex items-center gap-3 cursor-pointer"
+                                                className="group theme30-item-card bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-3xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col"
                                             >
-                                                {/* Thumbnail */}
-                                                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0">
-                                                    {item.image_url || item.image ? (
-                                                        <OptimizedMenuImage 
-                                                            originalSrc={item.image_url || item.image || ''}
-                                                            thumbnailSrc={item.thumbnail_url}
-                                                            alt={itemName(item)}
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-zinc-600">
-                                                            <Utensils className="w-6 h-6" />
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Content */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-start justify-between gap-1">
-                                                        <h3 className="font-bold text-sm sm:text-base line-clamp-1 group-hover:text-indigo-500 transition-colors">
-                                                            {itemName(item)}
-                                                        </h3>
-                                                        {inCartQty > 0 && hasMultipleSizes && (
-                                                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                                                                {inCartQty} {isAr ? 'بالسلة' : 'in cart'}
-                                                            </span>
+                                                {/* Top Section: Thumbnail + Content + Action */}
+                                                <div className="flex items-start gap-3 sm:gap-3.5">
+                                                    {/* Thumbnail */}
+                                                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0">
+                                                        {item.image_url || item.image ? (
+                                                            <OptimizedMenuImage 
+                                                                originalSrc={item.image_url || item.image || ''}
+                                                                thumbnailSrc={item.thumbnail_url}
+                                                                alt={itemName(item)}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-zinc-600">
+                                                                <Utensils className="w-6 h-6" />
+                                                            </div>
+                                                        )}
+                                                        {hasDiscount && (
+                                                            <div className="absolute top-1.5 start-1.5 px-1.5 py-0.5 rounded-lg bg-rose-500 text-white text-[9px] font-black shadow-xs">
+                                                                {isAr ? 'خصم' : 'OFF'}
+                                                            </div>
                                                         )}
                                                     </div>
-                                                    {itemDesc(item) && (
-                                                        <p className="text-xs text-slate-400 dark:text-zinc-400 line-clamp-2 mt-0.5 leading-relaxed">
-                                                            {itemDesc(item)}
-                                                        </p>
-                                                    )}
 
-                                                    {hasMultipleSizes ? (
-                                                        <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                                    {/* Content */}
+                                                    <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch">
+                                                        <div>
+                                                            <div className="flex items-start justify-between gap-1.5">
+                                                                <h3 className="font-bold text-sm sm:text-base leading-snug break-words transition-colors text-slate-900 dark:text-white theme30-item-title">
+                                                                    {itemName(item)}
+                                                                </h3>
+                                                                {inCartQty > 0 && (
+                                                                    <span 
+                                                                        className="text-[10px] font-black px-2 py-0.5 rounded-full shrink-0"
+                                                                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                                                                    >
+                                                                        {inCartQty} {isAr ? 'بالسلة' : 'in cart'}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            {itemDesc(item) && (
+                                                                <p className="text-xs text-slate-600 dark:text-zinc-300 line-clamp-2 mt-1 leading-relaxed font-medium">
+                                                                    {itemDesc(item)}
+                                                                </p>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Price & Primary Action in Top Row */}
+                                                        <div className="flex items-center justify-between gap-2 mt-2 pt-1">
+                                                            <div className="flex items-baseline gap-1.5">
+                                                                {hasMultipleSizes ? (
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400">
+                                                                            {isAr ? 'يبدأ من' : 'From'}
+                                                                        </span>
+                                                                        <span className="text-sm sm:text-base font-black" style={{ color: primaryColor }}>
+                                                                            {minPrice}
+                                                                        </span>
+                                                                        <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">{cur}</span>
+                                                                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 mr-1">
+                                                                            {item.prices.length} {isAr ? 'أحجام' : 'sizes'}
+                                                                        </span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-baseline gap-1">
+                                                                        <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
+                                                                            {basePrice}
+                                                                        </span>
+                                                                        <span className="text-xs font-bold text-slate-600 dark:text-zinc-300">{cur}</span>
+                                                                        {hasDiscount && item.old_prices?.[0] && (
+                                                                            <span className="text-[11px] text-slate-400 line-through mr-1 font-semibold">
+                                                                                {item.old_prices[0]} {cur}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                                {hasMultipleSizes ? (
+                                                                    <button
+                                                                        onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                                        className="px-3 py-1.5 rounded-xl text-white text-xs font-black shadow-xs active:scale-95 flex items-center gap-1 transition-all"
+                                                                        style={{ backgroundColor: primaryColor }}
+                                                                    >
+                                                                        <Plus className="w-3.5 h-3.5" />
+                                                                        <span>{isAr ? 'اختر الحجم' : 'Select Size'}</span>
+                                                                    </button>
+                                                                ) : inCartQty > 0 ? (
+                                                                    <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 px-2 py-1 rounded-xl shadow-xs">
+                                                                        <button
+                                                                            onClick={() => quickDecrementFromCart(item.id)}
+                                                                            className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90"
+                                                                        >
+                                                                            <Minus className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        <span className="text-xs font-black min-w-[16px] text-center">
+                                                                            {inCartQty}
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={() => quickAddToCart(item, catName(cat), 0)}
+                                                                            className="w-6 h-6 rounded-lg text-white flex items-center justify-center active:scale-90 shadow-2xs"
+                                                                            style={{ backgroundColor: primaryColor }}
+                                                                        >
+                                                                            <Plus className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                                        className="px-3.5 py-1.5 rounded-xl text-white text-xs font-black shadow-xs active:scale-95 flex items-center gap-1 transition-all"
+                                                                        style={{ backgroundColor: primaryColor }}
+                                                                    >
+                                                                        <Plus className="w-3.5 h-3.5" />
+                                                                        <span>{isAr ? 'أضف' : 'Add'}</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Bottom Section: Full-width Horizontal Scrollable Sizes for Multi-size Items */}
+                                                {hasMultipleSizes && (
+                                                    <div 
+                                                        className="mt-2.5 pt-2 border-t border-slate-100 dark:border-zinc-800/80 flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <span className="text-[11px] font-extrabold text-slate-500 dark:text-zinc-400 shrink-0">
+                                                            {isAr ? 'الأحجام المتاحة:' : 'Sizes:'}
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5 min-w-0 flex-nowrap">
                                                             {item.prices.map((price, pIdx) => {
                                                                 const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                 const oldPrice = item.old_prices?.[pIdx];
@@ -1468,17 +1674,20 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                     <button
                                                                         key={pIdx}
                                                                         type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            handleItemClick(item, catName(cat), cat.id, pIdx);
-                                                                        }}
-                                                                        className={`relative inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all ${
+                                                                        onClick={() => handleItemClick(item, catName(cat), cat.id, pIdx)}
+                                                                        className={`shrink-0 relative theme30-size-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-xs font-bold transition-all ${
                                                                             sizeCartQty > 0
-                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-2xs'
+                                                                                ? 'shadow-2xs ring-1'
                                                                                 : hasDisc
-                                                                                    ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 shadow-2xs'
-                                                                                    : 'border-black/5 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 hover:border-indigo-500/40 hover:bg-slate-100 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200'
+                                                                                    ? 'border-rose-300 dark:border-rose-900 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200'
+                                                                                    : 'border-slate-200 dark:border-zinc-700/80 bg-slate-50 dark:bg-zinc-800/80 hover:border-slate-300 dark:hover:border-zinc-600 text-slate-800 dark:text-zinc-100'
                                                                         }`}
+                                                                        style={sizeCartQty > 0 ? {
+                                                                            borderColor: primaryColor,
+                                                                            backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
+                                                                            color: primaryColor,
+                                                                            boxShadow: `0 0 0 1px ${primaryColor}40`
+                                                                        } : undefined}
                                                                     >
                                                                         {hasDisc && oldPrice && (
                                                                             <span className="px-1 py-0.2 rounded-md bg-rose-500 text-white text-[8px] font-black shrink-0">
@@ -1493,113 +1702,85 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                                 {sizeCartQty}
                                                                             </span>
                                                                         )}
-                                                                        <span className="text-[11px] text-slate-500 dark:text-zinc-400">{label}:</span>
-                                                                        {hasDisc && <span className="text-[10px] text-rose-500/80 line-through decoration-rose-500/80 font-bold">{oldPrice}</span>}
+                                                                        <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">{label}:</span>
+                                                                        {hasDisc && <span className="text-[10px] text-rose-500/80 line-through font-bold">{oldPrice}</span>}
                                                                         <span className="font-black" style={{ color: hasDisc ? '#e11d48' : primaryColor }}>{price}</span>
-                                                                        <span className="text-[9px] font-bold text-slate-400">{cur}</span>
+                                                                        <span className="text-[9.5px] font-bold text-slate-500 dark:text-zinc-400">{cur}</span>
                                                                     </button>
                                                                 );
                                                             })}
                                                         </div>
-                                                    ) : (
-                                                        <div className="flex items-baseline gap-1 mt-1">
-                                                            <span className="text-sm sm:text-base font-black text-slate-900 dark:text-white">
-                                                                {item.prices?.[0] || 0}
-                                                            </span>
-                                                            <span className="text-[10px] font-bold text-slate-400">
-                                                                {cur}
-                                                            </span>
-                                                            {hasDiscount && item.old_prices?.[0] && (
-                                                                <span className="text-[10px] text-slate-400 line-through mr-1">
-                                                                    {item.old_prices[0]} {cur}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Action */}
-                                                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                    {hasMultipleSizes ? (
-                                                        <button
-                                                            onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                            className="px-3 py-2 rounded-xl text-white text-xs font-black shadow-xs active:scale-90 flex items-center gap-1 transition-all"
-                                                            style={{ backgroundColor: primaryColor }}
-                                                        >
-                                                            <Plus className="w-3.5 h-3.5" />
-                                                            <span>{isAr ? 'اختر الحجم' : 'Select Size'}</span>
-                                                        </button>
-                                                    ) : inCartQty > 0 ? (
-                                                        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-zinc-800 px-2 py-1.5 rounded-xl shadow-xs">
-                                                            <button
-                                                                onClick={() => quickDecrementFromCart(item.id)}
-                                                                className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center text-slate-700 dark:text-zinc-200 active:scale-90"
-                                                            >
-                                                                <Minus className="w-3.5 h-3.5" />
-                                                            </button>
-                                                            <span className="text-xs font-black min-w-[16px] text-center">
-                                                                {inCartQty}
-                                                            </span>
-                                                            <button
-                                                                onClick={() => quickAddToCart(item, catName(cat), 0)}
-                                                                className="w-6 h-6 rounded-lg text-white flex items-center justify-center active:scale-90 shadow-2xs"
-                                                                style={{ backgroundColor: primaryColor }}
-                                                            >
-                                                                <Plus className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                            className="px-3.5 py-2 rounded-xl text-white text-xs font-black shadow-xs active:scale-90 flex items-center gap-1 transition-all"
-                                                            style={{ backgroundColor: primaryColor }}
-                                                        >
-                                                            <Plus className="w-3.5 h-3.5" />
-                                                            <span>{isAr ? 'أضف' : 'Add'}</span>
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
                                 </div>
                             )}
 
-                            {/* C. COMPACT ROWS MODE */}
+                            {/* C. COMPACT ROWS MODE (عرض مكثف سريع) */}
                             {viewMode === 'compact' && (
-                                <div className="space-y-1.5">
+                                <div className="space-y-2">
                                     {cat.items?.map(item => {
                                         const inCartQty = getItemCartQty(item.id);
                                         const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
+                                        const hasDiscount = item.old_prices && item.old_prices.some((op, idx) => op && op > (item.prices?.[idx] || 0));
+                                        const minPrice = item.prices?.length ? Math.min(...item.prices) : 0;
+                                        const basePrice = item.prices?.[0] || 0;
 
                                         return (
                                             <div
                                                 key={`compact-item-t30-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                className="group bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-black/5 dark:border-white/10 shadow-2xs flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition-all"
+                                                className="group theme30-item-card bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md rounded-2xl px-3 py-2 border border-slate-200/90 dark:border-zinc-800 shadow-2xs flex items-center justify-between gap-3 cursor-pointer hover:border-slate-300 dark:hover:border-zinc-700 hover:bg-slate-50/50 dark:hover:bg-zinc-800/50 transition-all"
                                             >
+                                                {/* Mini Thumbnail */}
+                                                <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0 border border-slate-200/60 dark:border-zinc-700/60">
+                                                    {item.image_url || item.image ? (
+                                                        <OptimizedMenuImage 
+                                                            originalSrc={item.image_url || item.image || ''}
+                                                            thumbnailSrc={item.thumbnail_url}
+                                                            alt={itemName(item)}
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-zinc-600">
+                                                            <Utensils className="w-5 h-5" />
+                                                        </div>
+                                                    )}
+                                                    {hasDiscount && (
+                                                        <div className="absolute top-0.5 start-0.5 px-1 py-0.2 rounded-md bg-rose-500 text-white text-[8px] font-black">
+                                                            %
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Middle Info */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-1.5">
-                                                        <h3 className="font-bold text-xs sm:text-sm truncate">
+                                                        <h3 className="theme30-item-title font-bold text-xs sm:text-sm text-slate-900 dark:text-white break-words leading-tight">
                                                             {itemName(item)}
                                                         </h3>
                                                         {inCartQty > 0 && (
-                                                            <span className="text-[9px] font-black px-1.5 py-0.2 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                            <span 
+                                                                className="text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0"
+                                                                style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                                                            >
                                                                 {inCartQty}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    {itemDesc(item) && (
-                                                        <p className="text-[10px] text-slate-400 dark:text-zinc-400 truncate">
-                                                            {itemDesc(item)}
-                                                        </p>
-                                                    )}
-                                                    {/* Sizes Chips for Compact Mode */}
-                                                    {hasMultipleSizes && (
-                                                        <div className="flex flex-wrap items-center gap-1 mt-1">
+
+                                                    {hasMultipleSizes ? (
+                                                        <div className="flex items-center gap-1 mt-1 overflow-x-auto no-scrollbar py-0.5">
+                                                            <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-bold shrink-0">
+                                                                {item.prices.length} {isAr ? 'أحجام:' : 'sizes:'}
+                                                            </span>
                                                             {item.prices.map((price, pIdx) => {
                                                                 const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `S${pIdx + 1}`);
                                                                 const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                const isSelected = sizeCartQty > 0;
+
                                                                 return (
                                                                     <button
                                                                         key={pIdx}
@@ -1608,51 +1789,70 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                             e.stopPropagation();
                                                                             handleItemClick(item, catName(cat), cat.id, pIdx);
                                                                         }}
-                                                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg border text-[10px] font-bold transition-all ${
-                                                                            sizeCartQty > 0 
-                                                                                ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400' 
-                                                                                : 'border-black/5 dark:border-white/10 bg-slate-100/80 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-300 hover:border-indigo-500/40'
+                                                                        style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}18` } : {}}
+                                                                        className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg border text-[10px] font-bold transition-all ${
+                                                                            isSelected 
+                                                                                ? 'shadow-xs font-black' 
+                                                                                : 'border-slate-200 dark:border-zinc-700 bg-slate-100/90 dark:bg-zinc-800/90 text-slate-700 dark:text-zinc-300 hover:border-slate-400'
                                                                         }`}
                                                                     >
                                                                         <span>{label}:</span>
                                                                         <span className="font-black" style={{ color: primaryColor }}>{price}</span>
-                                                                        <span className="text-[8px] text-slate-400">{cur}</span>
+                                                                        {isSelected && <span className="text-[9px] font-black" style={{ color: primaryColor }}>✓</span>}
                                                                     </button>
                                                                 );
                                                             })}
                                                         </div>
+                                                    ) : (
+                                                        itemDesc(item) && (
+                                                            <p className="text-[11px] text-slate-600 dark:text-zinc-300 font-medium truncate mt-0.5">
+                                                                {itemDesc(item)}
+                                                            </p>
+                                                        )
                                                     )}
                                                 </div>
 
-                                                <div className="flex items-center gap-2.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                    {!hasMultipleSizes && (
-                                                        <div className="text-left font-black text-xs sm:text-sm">
-                                                            <span>{item.prices?.[0] || 0}</span>
-                                                            <span className="text-[10px] font-normal text-slate-400 ml-0.5">{cur}</span>
-                                                        </div>
-                                                    )}
+                                                {/* Price & Action Button */}
+                                                <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="text-left font-black text-xs sm:text-sm">
+                                                        {hasMultipleSizes ? (
+                                                            <div className="text-right">
+                                                                <span className="text-[10px] text-slate-400 font-medium block leading-none">{isAr ? 'من' : 'From'}</span>
+                                                                <span className="font-black text-xs sm:text-sm" style={{ color: primaryColor }}>{minPrice}</span>
+                                                                <span className="text-[9px] font-normal text-slate-400 ml-0.5">{cur}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-right">
+                                                                <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">{basePrice}</span>
+                                                                <span className="text-[10px] font-normal text-slate-400 ml-0.5">{cur}</span>
+                                                                {hasDiscount && item.old_prices?.[0] && (
+                                                                    <span className="text-[9px] text-slate-400 line-through block leading-none">{item.old_prices[0]}</span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
 
                                                     {hasMultipleSizes ? (
                                                         <button
                                                             onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                            className="px-2.5 py-1.5 rounded-xl text-white text-[11px] font-black flex items-center gap-1 shadow-2xs active:scale-90 transition-all"
+                                                            className="px-2.5 py-1 rounded-xl text-white text-[11px] font-black flex items-center gap-1 shadow-2xs active:scale-90 transition-all shrink-0"
                                                             style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <Plus className="w-3 h-3" />
                                                             <span>{isAr ? 'الأحجام' : 'Sizes'}</span>
                                                         </button>
                                                     ) : inCartQty > 0 ? (
-                                                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg">
+                                                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-zinc-800 p-0.5 rounded-lg shadow-2xs">
                                                             <button
                                                                 onClick={() => quickDecrementFromCart(item.id)}
-                                                                className="w-5 h-5 rounded bg-white dark:bg-zinc-700 flex items-center justify-center active:scale-90"
+                                                                className="w-5 h-5 rounded bg-white dark:bg-zinc-700 flex items-center justify-center active:scale-90 text-slate-700 dark:text-zinc-200"
                                                             >
                                                                 <Minus className="w-3 h-3" />
                                                             </button>
-                                                            <span className="text-xs font-bold px-1">{inCartQty}</span>
+                                                            <span className="text-xs font-bold px-1 min-w-[14px] text-center">{inCartQty}</span>
                                                             <button
                                                                 onClick={() => quickAddToCart(item, catName(cat), 0)}
-                                                                className="w-5 h-5 rounded text-white flex items-center justify-center active:scale-90"
+                                                                className="w-5 h-5 rounded text-white flex items-center justify-center active:scale-90 shadow-xs"
                                                                 style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <Plus className="w-3 h-3" />
@@ -1661,7 +1861,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                     ) : (
                                                         <button
                                                             onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                            className="w-7 h-7 rounded-lg text-white flex items-center justify-center active:scale-90 shadow-2xs"
+                                                            className="w-7 h-7 rounded-xl text-white flex items-center justify-center active:scale-90 shadow-2xs shrink-0"
                                                             style={{ backgroundColor: primaryColor }}
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
@@ -1674,21 +1874,25 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 </div>
                             )}
 
-                            {/* D. SHOWCASE MODE */}
+                            {/* D. SHOWCASE MODE (عرض استعراضي فاخر) */}
                             {viewMode === 'showcase' && (
-                                <div className="space-y-4">
+                                <div className="space-y-5">
                                     {cat.items?.map(item => {
                                         const inCartQty = getItemCartQty(item.id);
                                         const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
                                         const hasDiscount = item.old_prices && item.old_prices.some((op, idx) => op && op > (item.prices?.[idx] || 0));
+                                        const minPrice = item.prices?.length ? Math.min(...item.prices) : 0;
+                                        const basePrice = item.prices?.[0] || 0;
+                                        const oldPrice = item.old_prices?.[0];
 
                                         return (
                                             <div
                                                 key={`showcase-item-t30-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                className="group bg-white/85 dark:bg-zinc-900/85 backdrop-blur-md rounded-3xl overflow-hidden border border-black/5 dark:border-white/10 shadow-sm hover:shadow-lg transition-all cursor-pointer"
+                                                className="group bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-3xl overflow-hidden border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl transition-all cursor-pointer flex flex-col"
                                             >
-                                                <div className="relative w-full h-44 sm:h-52 bg-slate-100 dark:bg-zinc-800 overflow-hidden">
+                                                {/* Hero Media Container with 16:9 ratio */}
+                                                <div className="relative w-full aspect-[16/9] sm:aspect-[2/1] bg-slate-100 dark:bg-zinc-800 overflow-hidden">
                                                     {item.image_url || item.image ? (
                                                         <OptimizedMenuImage 
                                                             originalSrc={item.image_url || item.image || ''}
@@ -1701,121 +1905,163 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                             <Utensils className="w-12 h-12" />
                                                         </div>
                                                     )}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                                                    <div className="absolute bottom-3 right-3 left-3 flex items-end justify-between text-white">
-                                                        <div>
-                                                            <h3 className="font-black text-base sm:text-lg drop-shadow-md">
-                                                                {itemName(item)}
-                                                            </h3>
-                                                            {itemDesc(item) && (
-                                                                <p className="text-xs text-white/80 line-clamp-1 max-w-sm mt-0.5 drop-shadow-xs">
-                                                                    {itemDesc(item)}
-                                                                </p>
+
+                                                    {/* Top Badges Bar */}
+                                                    <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none z-10">
+                                                        <div className="flex items-center gap-1.5">
+                                                            {item.is_popular && (
+                                                                <span className="px-2.5 py-1 rounded-full bg-amber-500/95 text-white text-[11px] font-black shadow-md backdrop-blur-md flex items-center gap-1">
+                                                                    <Flame className="w-3 h-3" />
+                                                                    <span>{isAr ? 'الأكثر طلباً' : 'Best Seller'}</span>
+                                                                </span>
+                                                            )}
+                                                            {hasDiscount && (
+                                                                <span className="px-2.5 py-1 rounded-full bg-rose-500/95 text-white text-[11px] font-black shadow-md backdrop-blur-md">
+                                                                    {oldPrice && basePrice ? `%${Math.round(((oldPrice - basePrice) / oldPrice) * 100)} ` : ''}{isAr ? 'خصم' : 'OFF'}
+                                                                </span>
                                                             )}
                                                         </div>
-                                                        <div className="text-right">
+
+                                                        {inCartQty > 0 && (
+                                                            <span 
+                                                                className="px-2.5 py-1 rounded-full text-white text-[11px] font-black shadow-md backdrop-blur-md"
+                                                                style={{ backgroundColor: primaryColor }}
+                                                            >
+                                                                {inCartQty} {isAr ? 'بالسلة' : 'in cart'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Vignette Gradient & Overlaid Floating Price */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent pointer-events-none" />
+
+                                                    <div className="absolute bottom-3 inset-x-3.5 flex items-end justify-between text-white z-10">
+                                                        <span className="px-2.5 py-1 rounded-xl bg-black/50 backdrop-blur-md border border-white/15 text-white/90 text-xs font-bold">
+                                                            {catName(cat)}
+                                                        </span>
+
+                                                        {/* Floating Luxury Price Badge */}
+                                                        <div className="backdrop-blur-md bg-black/60 border border-white/20 px-3.5 py-1.5 rounded-2xl flex items-baseline gap-1.5 shadow-lg">
                                                             {hasMultipleSizes ? (
-                                                                <div>
-                                                                    <span className="text-[10px] text-white/80 block leading-tight">{isAr ? 'يبدأ من' : 'Starts from'}</span>
-                                                                    <div className="text-base sm:text-lg font-black drop-shadow-md text-amber-300">
-                                                                        {Math.min(...item.prices)} {cur}
-                                                                    </div>
-                                                                </div>
+                                                                <>
+                                                                    <span className="text-[11px] text-amber-300 font-bold">{isAr ? 'يبدأ من' : 'From'}</span>
+                                                                    <span className="text-base sm:text-xl font-black text-white">{minPrice}</span>
+                                                                    <span className="text-xs font-bold text-white/80">{cur}</span>
+                                                                </>
                                                             ) : (
-                                                                <div>
-                                                                    <div className="text-base sm:text-lg font-black drop-shadow-md">
-                                                                        {item.prices?.[0] || 0} {cur}
-                                                                    </div>
-                                                                    {hasDiscount && item.old_prices?.[0] && (
-                                                                        <span className="text-xs text-white/60 line-through">
-                                                                            {item.old_prices[0]} {cur}
-                                                                        </span>
+                                                                <>
+                                                                    <span className="text-base sm:text-xl font-black text-white">{basePrice}</span>
+                                                                    <span className="text-xs font-bold text-white/80">{cur}</span>
+                                                                    {hasDiscount && oldPrice && (
+                                                                        <span className="text-xs text-rose-300 line-through mr-1 font-semibold">{oldPrice}</span>
                                                                     )}
-                                                                </div>
+                                                                </>
                                                             )}
                                                         </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
-                                                    <div className="flex-1 min-w-0">
-                                                        {hasMultipleSizes ? (
-                                                            <div className="space-y-1.5">
-                                                                <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 block">
-                                                                    {isAr ? 'اختر الحجم مباشرة:' : 'Available Sizes:'}
-                                                                </span>
-                                                                <div className="flex flex-wrap items-center gap-1.5">
-                                                                    {item.prices.map((price, pIdx) => {
-                                                                        const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
-                                                                        const oldPrice = item.old_prices?.[pIdx];
-                                                                        const hasDisc = Boolean(oldPrice && oldPrice > price);
-                                                                        const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
-
-                                                                        return (
-                                                                            <button
-                                                                                key={pIdx}
-                                                                                type="button"
-                                                                                onClick={() => handleItemClick(item, catName(cat), cat.id, pIdx)}
-                                                                                className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                                                                                    sizeCartQty > 0
-                                                                                        ? 'border-indigo-500 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                                                                                        : 'border-black/5 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 hover:border-indigo-500/40 text-slate-700 dark:text-zinc-200'
-                                                                                }`}
-                                                                            >
-                                                                                {sizeCartQty > 0 && (
-                                                                                    <span 
-                                                                                        className="w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs"
-                                                                                        style={{ backgroundColor: primaryColor }}
-                                                                                    >
-                                                                                        {sizeCartQty}
-                                                                                    </span>
-                                                                                )}
-                                                                                <span className="text-slate-500 dark:text-zinc-400">{label}:</span>
-                                                                                {hasDisc && <span className="text-[10px] text-slate-400 line-through">{oldPrice}</span>}
-                                                                                <span className="font-black text-sm" style={{ color: primaryColor }}>{price}</span>
-                                                                                <span className="text-[10px] font-bold text-slate-400">{cur}</span>
-                                                                            </button>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-xs font-semibold text-slate-500">
-                                                                {catName(cat)}
-                                                            </span>
+                                                {/* Card Content Body */}
+                                                <div className="p-4 sm:p-5 flex flex-col gap-3">
+                                                    <div>
+                                                        <h3 className="font-black text-base sm:text-xl text-slate-900 dark:text-white leading-snug break-words transition-colors theme30-item-title">
+                                                            {itemName(item)}
+                                                        </h3>
+                                                        {itemDesc(item) && (
+                                                            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 font-medium mt-1 leading-relaxed line-clamp-2">
+                                                                {itemDesc(item)}
+                                                            </p>
                                                         )}
                                                     </div>
 
-                                                    <div className="shrink-0 flex items-center justify-end gap-2">
-                                                        {hasMultipleSizes ? (
-                                                            <button
-                                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                                className="px-4 py-2 rounded-2xl text-white text-xs font-black shadow-xs active:scale-95 flex items-center gap-1.5 transition-all"
-                                                                style={{ backgroundColor: primaryColor }}
-                                                            >
-                                                                <Plus className="w-3.5 h-3.5" />
-                                                                <span>{isAr ? 'عرض التفاصيل والطلب' : 'Select & Order'}</span>
-                                                            </button>
-                                                        ) : inCartQty > 0 ? (
-                                                            <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 rounded-2xl">
-                                                                <button onClick={() => quickDecrementFromCart(item.id)} className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center active:scale-90">
-                                                                    <Minus className="w-3.5 h-3.5" />
-                                                                </button>
-                                                                <span className="font-black text-sm px-1">{inCartQty}</span>
-                                                                <button onClick={() => quickAddToCart(item, catName(cat), 0)} className="w-6 h-6 rounded-lg text-white flex items-center justify-center active:scale-90" style={{ backgroundColor: primaryColor }}>
-                                                                    <Plus className="w-3.5 h-3.5" />
-                                                                </button>
+                                                    {/* Available Sizes Bar (for multi-size) */}
+                                                    {hasMultipleSizes && (
+                                                        <div className="space-y-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
+                                                            <span className="text-xs font-extrabold text-slate-700 dark:text-zinc-300 block">
+                                                                {isAr ? 'الأحجام المتاحة:' : 'Available Sizes:'}
+                                                            </span>
+                                                            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                                                                {item.prices.map((price, pIdx) => {
+                                                                    const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                    const oldP = item.old_prices?.[pIdx];
+                                                                    const hasDisc = Boolean(oldP && oldP > price);
+                                                                    const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                    const isSelected = sizeCartQty > 0;
+
+                                                                    return (
+                                                                        <button
+                                                                            key={pIdx}
+                                                                            type="button"
+                                                                            onClick={() => handleItemClick(item, catName(cat), cat.id, pIdx)}
+                                                                            style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}18` } : {}}
+                                                                            className={`relative inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border-2 text-xs font-bold transition-all shrink-0 ${
+                                                                                isSelected
+                                                                                    ? 'shadow-xs font-black'
+                                                                                    : 'border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-zinc-100 hover:border-slate-400'
+                                                                            }`}
+                                                                        >
+                                                                            {sizeCartQty > 0 && (
+                                                                                <span 
+                                                                                    className="w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs"
+                                                                                    style={{ backgroundColor: primaryColor }}
+                                                                                >
+                                                                                    {sizeCartQty}
+                                                                                </span>
+                                                                            )}
+                                                                            <span className={isSelected ? 'text-slate-900 dark:text-white font-black' : 'text-slate-700 dark:text-zinc-200'}>{label}:</span>
+                                                                            {hasDisc && <span className="text-[10px] text-slate-400 line-through">{oldP}</span>}
+                                                                            <span className="font-black text-sm" style={{ color: primaryColor }}>{price}</span>
+                                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">{cur}</span>
+                                                                            {isSelected && <span className="text-[10px] font-black" style={{ color: primaryColor }}>✓</span>}
+                                                                        </button>
+                                                                    );
+                                                                })}
                                                             </div>
-                                                        ) : (
-                                                            <button 
-                                                                onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
-                                                                className="px-4 py-2 rounded-2xl text-white text-xs font-black shadow-xs active:scale-95 flex items-center gap-1.5"
-                                                                style={{ backgroundColor: primaryColor }}
-                                                            >
-                                                                <ShoppingCart className="w-3.5 h-3.5" />
-                                                                <span>{isAr ? 'إضافة للسلة' : 'Add to Cart'}</span>
-                                                            </button>
-                                                        )}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Action Footer */}
+                                                    <div className="pt-3 border-t border-slate-100 dark:border-zinc-800/80 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                                                                {hasMultipleSizes 
+                                                                    ? `${item.prices.length} ${isAr ? 'أحجام متوفرة' : 'sizes available'}` 
+                                                                    : `${basePrice} ${cur}`
+                                                                }
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="shrink-0 flex items-center justify-end gap-2">
+                                                            {hasMultipleSizes ? (
+                                                                <button
+                                                                    onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                                    className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl text-white text-xs sm:text-sm font-black shadow-md active:scale-95 flex items-center gap-1.5 transition-all"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                >
+                                                                    <Plus className="w-4 h-4" />
+                                                                    <span>{isAr ? 'عرض التفاصيل والطلب' : 'Select & Order'}</span>
+                                                                </button>
+                                                            ) : inCartQty > 0 ? (
+                                                                <div className="flex items-center gap-2 bg-slate-100 dark:bg-zinc-800 px-3 py-1.5 rounded-2xl shadow-xs">
+                                                                    <button onClick={() => quickDecrementFromCart(item.id)} className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-700 flex items-center justify-center active:scale-90 text-slate-700 dark:text-zinc-200">
+                                                                        <Minus className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                    <span className="font-black text-sm px-1 min-w-[18px] text-center">{inCartQty}</span>
+                                                                    <button onClick={() => quickAddToCart(item, catName(cat), 0)} className="w-6 h-6 rounded-lg text-white flex items-center justify-center active:scale-90 shadow-xs" style={{ backgroundColor: primaryColor }}>
+                                                                        <Plus className="w-3.5 h-3.5" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <button 
+                                                                    onClick={() => handleItemClick(item, catName(cat), cat.id, 0)}
+                                                                    className="px-4 py-2 sm:px-5 sm:py-2.5 rounded-2xl text-white text-xs sm:text-sm font-black shadow-md active:scale-95 flex items-center gap-1.5 transition-all"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                >
+                                                                    <ShoppingCart className="w-4 h-4" />
+                                                                    <span>{isAr ? 'إضافة للسلة' : 'Add to Cart'}</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1882,7 +2128,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 {/* Header */}
                                 <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
                                     <div className="flex items-center gap-2">
-                                        <ShoppingCart className="w-5 h-5 text-indigo-500" />
+                                        <ShoppingCart className="w-5 h-5" style={{ color: primaryColor }} />
                                         <h3 className="font-black text-base sm:text-lg">
                                             {isAr ? 'سلة الطلبات' : 'Your Cart'} ({cartCount})
                                         </h3>
@@ -2027,55 +2273,65 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 {/* Modal Body */}
                                 <div className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-4 no-scrollbar">
                                     <div>
-                                        <span className="text-[11px] font-bold text-indigo-500 uppercase tracking-wider">
+                                        <span className="text-[11px] font-black uppercase tracking-wider" style={{ color: primaryColor }}>
                                             {selectedItem.catName}
                                         </span>
-                                        <h3 className="text-lg sm:text-xl font-black mt-0.5">
+                                        <h3 className="text-lg sm:text-xl font-black mt-0.5 text-slate-900 dark:text-white break-words leading-snug">
                                             {itemName(selectedItem.item)}
                                         </h3>
                                         {itemDesc(selectedItem.item) && (
-                                            <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 mt-1 leading-relaxed font-medium">
                                                 {itemDesc(selectedItem.item)}
                                             </p>
                                         )}
                                     </div>
 
-                                    {/* Sizes Selector */}
-                                    {selectedItem.item.prices && selectedItem.item.prices.length > 1 && (
+                                    {/* Sizes Selector (renders for 1 or more sizes) */}
+                                    {selectedItem.item.prices && selectedItem.item.prices.length > 0 && (
                                         <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-zinc-300 mb-1.5 block">
-                                                {isAr ? 'اختر الحجم:' : 'Select Size:'}
+                                            <label className="text-xs font-black text-slate-800 dark:text-zinc-200 mb-1.5 block">
+                                                {isAr ? 'الحجم والسعر:' : 'Size & Price:'}
                                             </label>
                                             <div className="grid grid-cols-2 gap-2">
                                                 {selectedItem.item.prices.map((p, idx) => {
-                                                    const lbl = selectedItem.item.size_labels?.[idx] || (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`);
+                                                    const lbl = selectedItem.item.size_labels?.[idx] || (selectedItem.item.prices.length === 1 ? (isAr ? 'الحجم القياسي' : 'Standard Size') : (isAr ? `حجم ${idx + 1}` : `Size ${idx + 1}`));
                                                     const oldP = selectedItem.item.old_prices?.[idx];
                                                     const hasDisc = Boolean(oldP && oldP > p);
                                                     const discPct = hasDisc && oldP ? Math.round(((oldP - p) / oldP) * 100) : null;
                                                     const isSelected = modalSizeIdx === idx;
+                                                    const isSingle = selectedItem.item.prices.length === 1;
                                                     const isOddLast = (selectedItem.item.prices.length % 2 !== 0) && (idx === selectedItem.item.prices.length - 1);
                                                     return (
                                                         <button
                                                             key={idx}
                                                             type="button"
                                                             onClick={() => setModalSizeIdx(idx)}
-                                                            className={`relative p-2.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between ${
-                                                                isOddLast ? 'col-span-2' : ''
+                                                            style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}15` } : {}}
+                                                            className={`relative p-3 rounded-2xl border-2 text-xs font-bold transition-all flex items-center justify-between ${
+                                                                isSingle || isOddLast ? 'col-span-2' : ''
                                                             } ${
                                                                 isSelected 
-                                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shadow-xs ring-1 ring-indigo-500/50' 
+                                                                    ? 'shadow-xs ring-2' 
                                                                     : hasDisc
-                                                                        ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 text-slate-700 dark:text-zinc-300 hover:border-rose-400'
-                                                                        : 'border-black/5 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                                                                        ? 'border-rose-300 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 text-slate-800 dark:text-zinc-200 hover:border-rose-400'
+                                                                        : 'border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 hover:border-slate-400'
                                                             }`}
                                                         >
-                                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                <div 
+                                                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 border transition-all ${
+                                                                        isSelected ? 'text-white border-transparent' : 'border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-transparent'
+                                                                    }`}
+                                                                    style={isSelected ? { backgroundColor: primaryColor } : {}}
+                                                                >
+                                                                    ✓
+                                                                </div>
                                                                 {hasDisc && discPct && (
                                                                     <span className="px-1.5 py-0.2 rounded-md bg-rose-500 text-white text-[8px] font-black shrink-0">
                                                                         %{discPct}
                                                                     </span>
                                                                 )}
-                                                                <span className="truncate">{lbl}</span>
+                                                                <span className={`break-words ${isSelected ? 'font-black text-slate-900 dark:text-white' : 'font-bold'}`}>{lbl}</span>
                                                             </div>
                                                             <div className="flex items-baseline gap-1 shrink-0">
                                                                 {hasDisc && (
@@ -2083,7 +2339,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                         {oldP}
                                                                     </span>
                                                                 )}
-                                                                <span className="font-black" style={{ color: isSelected ? undefined : hasDisc ? '#e11d48' : undefined }}>
+                                                                <span className="font-black text-sm" style={{ color: primaryColor }}>
                                                                     {p} {cur}
                                                                 </span>
                                                             </div>
@@ -2097,7 +2353,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                     {/* Extras Selector */}
                                     {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
                                         <div>
-                                            <label className="text-xs font-black text-slate-700 dark:text-zinc-300 mb-1.5 block">
+                                            <label className="text-xs font-black text-slate-800 dark:text-zinc-200 mb-1.5 block">
                                                 {isAr ? 'الإضافات المقترحة:' : 'Suggested Extras:'}
                                             </label>
                                             <div className="space-y-1.5">
@@ -2109,19 +2365,25 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                             key={idx}
                                                             type="button"
                                                             onClick={() => toggleModalExtra(exName, ex.price)}
-                                                            className={`w-full p-2.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between ${
+                                                            style={isChosen ? { borderColor: primaryColor, backgroundColor: `${primaryColor}15` } : {}}
+                                                            className={`w-full p-2.5 rounded-2xl border-2 text-xs font-bold transition-all flex items-center justify-between ${
                                                                 isChosen 
-                                                                    ? 'border-indigo-500 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
-                                                                    : 'border-black/5 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300'
+                                                                    ? 'shadow-xs' 
+                                                                    : 'border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 hover:border-slate-400'
                                                             }`}
                                                         >
                                                             <span className="flex items-center gap-2">
-                                                                <span className={`w-4 h-4 rounded-md border flex items-center justify-center text-[10px] ${isChosen ? 'bg-indigo-500 text-white border-indigo-500' : 'border-slate-300'}`}>
-                                                                    {isChosen && '✓'}
+                                                                <span 
+                                                                    className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs font-black transition-all ${
+                                                                        isChosen ? 'text-white border-transparent' : 'border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-transparent'
+                                                                    }`}
+                                                                    style={isChosen ? { backgroundColor: primaryColor } : {}}
+                                                                >
+                                                                    ✓
                                                                 </span>
-                                                                <span>{exName}</span>
-                                                            </span>
-                                                            <span className="font-black">+{ex.price} {cur}</span>
+                                                                <span className={isChosen ? 'font-black text-slate-900 dark:text-white' : 'font-bold'}>{exName}</span>
+                              </span>
+                                                            <span className="font-black" style={{ color: primaryColor }}>+{ex.price} {cur}</span>
                                                         </button>
                                                     );
                                                 })}
@@ -2131,7 +2393,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                                     {/* Notes */}
                                     <div>
-                                        <label className="text-xs font-black text-slate-700 dark:text-zinc-300 mb-1.5 block">
+                                        <label className="text-xs font-black text-slate-800 dark:text-zinc-200 mb-1.5 block">
                                             {isAr ? 'ملاحظات خاصة للطلب:' : 'Special Instructions:'}
                                         </label>
                                         <textarea 
@@ -2139,7 +2401,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                             onChange={(e) => setModalNotes(e.target.value)}
                                             placeholder={isAr ? 'مثال: بدون بصل، سكر زيادة...' : 'e.g. no onions, extra sauce...'}
                                             rows={2}
-                                            className="w-full p-3 rounded-2xl text-xs bg-slate-50 dark:bg-zinc-800 border border-black/5 dark:border-white/10 focus:ring-2 focus:ring-indigo-500/50 outline-none resize-none"
+                                            className="w-full p-3 rounded-2xl text-xs bg-slate-50 dark:bg-zinc-800 border-2 border-slate-200 dark:border-zinc-700 text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 outline-none resize-none focus:border-slate-400"
                                         />
                                     </div>
                                 </div>

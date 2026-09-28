@@ -19,6 +19,9 @@ import CheckoutModal from '@/components/menu/CheckoutModal';
 import SharedMarquee from '@/components/menu/SharedMarquee';
 import { getStoreOpenStatus, useStoreHours } from '@/lib/helpers/storeHours';
 import { itemMatchesSmartSearch } from '@/lib/helpers/smartMenuSearch';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay } from 'swiper/modules';
+import 'swiper/css';
 
 // Types
 export type MenuItem = {
@@ -184,6 +187,23 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState<FilterTag>('all');
     const [favorites, setFavorites] = useState<Record<string, boolean>>({});
+    const [coverActiveIndex, setCoverActiveIndex] = useState(0);
+
+    // Cover images extracted from settings (cover_images or cover_url)
+    const coverImagesList = useMemo(() => {
+        const list: string[] = [];
+        if (Array.isArray(config.cover_images)) {
+            config.cover_images.forEach(img => {
+                if (typeof img === 'string' && img.trim()) {
+                    list.push(img.trim());
+                }
+            });
+        }
+        if (list.length === 0 && config.cover_url && typeof config.cover_url === 'string' && config.cover_url.trim()) {
+            list.push(config.cover_url.trim());
+        }
+        return list;
+    }, [config.cover_images, config.cover_url]);
 
     // Modals
     const [selectedItem, setSelectedItem] = useState<{ item: MenuItem; catName: string; categoryId: string | number } | null>(null);
@@ -325,22 +345,20 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
             .reduce((sum, c) => sum + c.quantity, 0);
     };
 
-    // Quick add or open modal
-    const handleItemClick = (item: MenuItem, catNameStr: string, catId: string | number) => {
-        const hasSizes = (item.prices && item.prices.length > 1) || (item.size_labels && item.size_labels.length > 1);
-        const hasExtras = item.extras && item.extras.length > 0;
+    // Get specific size quantity in cart
+    const getItemSizeCartQty = (itemId: string | number, sizeIdx: number) => {
+        return cart
+            .filter(c => String(c.id) === String(itemId) && c.sizeIdx === sizeIdx)
+            .reduce((sum, c) => sum + c.quantity, 0);
+    };
 
-        // If item has sizes, extras, or details, open rich modal
-        if (hasSizes || hasExtras || itemDesc(item)) {
-            setSelectedItem({ item, catName: catNameStr, categoryId: catId });
-            setModalSizeIdx(0);
-            setModalQty(1);
-            setModalNotes('');
-            setModalExtras([]);
-        } else {
-            // Instant add to cart
-            quickAddToCart(item, catNameStr, 0);
-        }
+    // Open rich add / customization modal (always opens even for 1 size)
+    const handleItemClick = (item: MenuItem, catNameStr: string, catId: string | number, sizeIndex = 0) => {
+        setSelectedItem({ item, catName: catNameStr, categoryId: catId });
+        setModalSizeIdx(sizeIndex >= 0 ? sizeIndex : 0);
+        setModalQty(1);
+        setModalNotes('');
+        setModalExtras([]);
     };
 
     // Quick direct add
@@ -503,20 +521,30 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
     if (!mounted) {
         return (
             <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin" />
+                <div 
+                    className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin" 
+                    style={{ borderColor: `${primaryColor}30`, borderTopColor: primaryColor }}
+                />
             </div>
         );
     }
 
     return (
         <div 
-            className="min-w-0 w-full max-w-full min-h-screen font-cairo pb-36 relative transition-colors duration-300 selection:bg-emerald-500 selection:text-white"
+            className="min-w-0 w-full max-w-full min-h-screen font-cairo pb-36 relative transition-colors duration-300"
             style={{ 
                 backgroundColor: hasBgImage ? 'transparent' : (isDark ? '#090a0f' : '#f8fafc'),
                 color: isDark ? '#f8fafc' : '#0f172a'
             }}
             dir={isAr ? 'rtl' : 'ltr'}
         >
+            {/* Dynamic CSS styles for Theme 28 item hover & contrast */}
+            <style jsx global>{`
+                .theme28-item-card:hover .theme28-item-title {
+                    color: ${primaryColor} !important;
+                }
+            `}</style>
+
             {/* Custom Background Image Layer */}
             {hasBgImage && (
                 <>
@@ -555,7 +583,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                 className="h-8 sm:h-9 px-2.5 sm:px-3 rounded-full flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 shrink-0"
                                 title={isAr ? 'Switch to English' : 'التحويل للعربية'}
                             >
-                                <Globe className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                <Globe className="w-3.5 h-3.5 shrink-0" style={{ color: primaryColor }} />
                                 <span>{isAr ? 'EN' : 'عربي'}</span>
                             </button>
 
@@ -583,7 +611,8 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                             {primaryPhone && (
                                 <a 
                                     href={`tel:${primaryPhone}`}
-                                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 text-emerald-600 dark:text-emerald-400 active:scale-95 shrink-0"
+                                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md shadow-xs border border-black/5 dark:border-white/10 active:scale-95 shrink-0"
+                                    style={{ color: primaryColor }}
                                     title={isAr ? 'اتصال هاتفي' : 'Call'}
                                 >
                                     <Phone className="w-3.5 h-3.5" />
@@ -646,7 +675,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                             {/* Name & Slogan */}
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <h1 className="text-xl sm:text-2xl font-black tracking-tight truncate">
+                                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white break-words leading-tight">
                                         {config.name}
                                     </h1>
                                     {storeStatus.isOpen ? (
@@ -663,20 +692,20 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                 </div>
 
                                 {(config.slogan_ar || config.slogan_en) && (
-                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 font-medium leading-relaxed">
+                                    <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 mt-1 font-semibold leading-relaxed break-words">
                                         {isAr ? (config.slogan_ar || config.slogan_en) : (config.slogan_en || config.slogan_ar)}
                                     </p>
                                 )}
 
                                 {/* Meta details bar: Dining & Delivery / Fast Service */}
-                                <div className="flex items-center gap-2.5 mt-2 text-[11px] text-slate-600 dark:text-zinc-300 font-semibold flex-wrap">
+                                <div className="flex items-center gap-2.5 mt-2 text-[11px] text-slate-800 dark:text-zinc-200 font-extrabold flex-wrap">
                                     <span className="flex items-center gap-1">
                                         <Utensils className="w-3.5 h-3.5 text-amber-500" />
                                         <span>{isAr ? 'صالة ودليفري' : 'Dine-in & Delivery'}</span>
                                     </span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
-                                        <Clock className="w-3.5 h-3.5 text-emerald-500" />
+                                        <Clock className="w-3.5 h-3.5" style={{ color: primaryColor }} />
                                         <span>{isAr ? 'خدمة سريعة' : 'Fast Service'}</span>
                                     </span>
                                 </div>
@@ -690,14 +719,14 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                     href={locationUrl || (config.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config.address)}` : '#')}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-all group/loc cursor-pointer border border-black/5 dark:border-white/5"
+                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-all group/loc cursor-pointer border border-slate-200 dark:border-zinc-700/80"
                                     title={isAr ? 'اضغط لفتح الموقع على خرائط جوجل' : 'Click to open location in Google Maps'}
                                 >
                                     <div className="flex items-start gap-2.5 min-w-0 flex-1">
                                         <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 mt-0.5 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-colors">
                                             <MapPin className="w-3.5 h-3.5" />
                                         </div>
-                                        <span className="font-semibold text-xs text-slate-700 dark:text-zinc-200 group-hover/loc:text-rose-500 transition-colors leading-relaxed">
+                                        <span className="font-bold text-xs text-slate-800 dark:text-zinc-100 group-hover/loc:text-rose-500 transition-colors leading-relaxed break-words">
                                             {config.address || (isAr ? 'الموقع الجغرافي للمطعم' : 'Restaurant Location')}
                                         </span>
                                     </div>
@@ -716,9 +745,9 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                     <a
                                         key={idx}
                                         href={`tel:${ph}`}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-[11px] font-bold text-slate-700 dark:text-zinc-200 transition-all border border-black/5 dark:border-white/5 shadow-2xs active:scale-95"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-[11px] font-black text-slate-800 dark:text-zinc-100 transition-all border border-slate-200 dark:border-zinc-700/80 shadow-2xs active:scale-95"
                                     >
-                                        <Phone className="w-3 h-3 text-emerald-500" />
+                                        <Phone className="w-3 h-3" style={{ color: primaryColor }} />
                                         <span dir="ltr">{ph}</span>
                                     </a>
                                 ))}
@@ -738,7 +767,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
 
                         {/* Payment Methods Banner */}
                         <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 flex-wrap">
-                            <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-zinc-300 font-bold">
+                            <div className="flex items-center gap-1.5 text-xs text-slate-800 dark:text-zinc-200 font-black">
                                 <CreditCard className="w-3.5 h-3.5 text-amber-500" />
                                 <span>{isAr ? 'طرق الدفع المتاحة:' : 'Accepted Payments:'}</span>
                             </div>
@@ -819,6 +848,70 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                     </div>
                 </header>
 
+                {/* 2.5 COVER BANNER HERO SLIDER (صور الغلاف / البانرات) */}
+                {!searchQuery && coverImagesList.length > 0 && (
+                    <div className="px-3 sm:px-4 mb-3.5">
+                        <div className="relative w-full rounded-3xl overflow-hidden shadow-lg border border-black/5 dark:border-white/10 group bg-slate-100 dark:bg-zinc-800/80">
+                            {coverImagesList.length > 1 ? (
+                                <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] min-h-[145px] max-h-[220px]">
+                                    <Swiper
+                                        key={isAr ? 'cover-ar' : 'cover-en'}
+                                        dir={isAr ? 'rtl' : 'ltr'}
+                                        modules={[Autoplay]}
+                                        autoplay={{ delay: 3500, disableOnInteraction: false }}
+                                        loop={true}
+                                        onSlideChange={(swiper) => setCoverActiveIndex(swiper.realIndex)}
+                                        className="w-full h-full"
+                                    >
+                                        {coverImagesList.map((img, idx) => (
+                                            <SwiperSlide key={idx}>
+                                                <div className="w-full h-full relative overflow-hidden">
+                                                    <OptimizedMenuImage 
+                                                        originalSrc={img}
+                                                        alt={`Cover ${idx + 1}`}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                                        useOriginal={true}
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+                                                </div>
+                                            </SwiperSlide>
+                                        ))}
+                                    </Swiper>
+
+                                    {/* Counter badge */}
+                                    <div className="absolute top-2.5 start-2.5 z-10 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15 text-white text-[10px] font-bold">
+                                        {coverActiveIndex + 1} / {coverImagesList.length}
+                                    </div>
+
+                                    {/* Custom Glass Dots Indicator */}
+                                    <div className="absolute bottom-2.5 inset-x-0 flex items-center justify-center gap-1.5 z-10 pointer-events-none">
+                                        {coverImagesList.map((_, idx) => (
+                                            <span 
+                                                key={idx}
+                                                className={`transition-all duration-300 rounded-full ${
+                                                    coverActiveIndex === idx 
+                                                        ? 'w-5 h-1.5 bg-white shadow-md' 
+                                                        : 'w-1.5 h-1.5 bg-white/50'
+                                                }`}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="relative w-full aspect-[21/9] sm:aspect-[24/9] min-h-[145px] max-h-[220px] overflow-hidden">
+                                    <OptimizedMenuImage 
+                                        originalSrc={coverImagesList[0]}
+                                        alt={config.name || 'Cover'}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                                        useOriginal={true}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent pointer-events-none" />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {/* 3. STORIES & HIGHLIGHTS BAR (Instagram / TikTok Style) */}
                 {showStoriesBar && (
                     <div className="px-4 py-2">
@@ -831,16 +924,17 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                 <div 
                                     className={`w-14 h-14 rounded-full p-0.5 transition-all shadow-sm ${
                                         activeCategory === 'all' && activeFilter === 'all' 
-                                            ? 'ring-2 ring-offset-2 ring-emerald-500 dark:ring-offset-zinc-950' 
+                                            ? 'ring-2 ring-offset-2 dark:ring-offset-zinc-950' 
                                             : 'opacity-80 group-hover:opacity-100'
                                     }`}
                                     style={{
+                                        borderColor: activeCategory === 'all' && activeFilter === 'all' ? primaryColor : undefined,
                                         background: activeCategory === 'all' && activeFilter === 'all'
                                             ? `linear-gradient(135deg, ${primaryColor}, #10b981)`
                                             : 'rgba(150, 150, 150, 0.2)'
                                     }}
                                 >
-                                    <div className="w-full h-full rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center text-emerald-500">
+                                    <div className="w-full h-full rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center" style={{ color: primaryColor }}>
                                         <Sparkles className="w-6 h-6" />
                                     </div>
                                 </div>
@@ -909,10 +1003,11 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                         <div 
                                             className={`w-14 h-14 rounded-full p-0.5 transition-all shadow-sm ${
                                                 isCatActive 
-                                                    ? 'ring-2 ring-offset-2 ring-emerald-500 dark:ring-offset-zinc-950 scale-105' 
+                                                    ? 'ring-2 ring-offset-2 dark:ring-offset-zinc-950 scale-105' 
                                                     : 'opacity-85 group-hover:opacity-100'
                                             }`}
                                             style={{
+                                                borderColor: isCatActive ? primaryColor : undefined,
                                                 background: isCatActive 
                                                     ? `linear-gradient(135deg, ${primaryColor}, #3b82f6)`
                                                     : 'rgba(150, 150, 150, 0.25)'
@@ -950,8 +1045,8 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={isAr ? 'ابحث عن وجبة، مشروب، حلى...' : 'Search meals, drinks, dessert...'}
-                            className={`w-full h-11 rounded-2xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md text-sm font-semibold border border-black/5 dark:border-white/10 focus:ring-2 focus:ring-emerald-500/50 transition-all ${isAr ? 'pr-11 pl-10' : 'pl-11 pr-10'}`}
+                            placeholder={isAr ? 'ابحث عن الصنف هنا...' : 'Search items here...'}
+                            className={`w-full h-11 rounded-2xl bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md text-sm font-semibold border border-slate-300 dark:border-zinc-700 text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 transition-all ${isAr ? 'pr-11 pl-10' : 'pl-11 pr-10'}`}
                         />
                         {searchQuery && (
                             <button
@@ -1005,28 +1100,32 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                         <div className="flex items-center bg-white/80 dark:bg-zinc-900/80 border border-black/5 dark:border-white/10 p-0.5 rounded-xl shrink-0 backdrop-blur-md">
                             <button
                                 onClick={() => setViewMode('grid')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                style={viewMode === 'grid' ? { color: primaryColor } : {}}
                                 title={isAr ? 'عرض شبكي' : 'Grid View'}
                             >
                                 <LayoutGrid className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('list')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                style={viewMode === 'list' ? { color: primaryColor } : {}}
                                 title={isAr ? 'قائمة تفصيلية' : 'List View'}
                             >
                                 <LayoutList className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('compact')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'compact' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                style={viewMode === 'compact' ? { color: primaryColor } : {}}
                                 title={isAr ? 'عرض مكثف سريع' : 'Compact Rows'}
                             >
                                 <AlignJustify className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => setViewMode('showcase')}
-                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'showcase' ? 'bg-slate-100 dark:bg-zinc-800 text-emerald-500 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                className={`p-1.5 rounded-lg transition-all ${viewMode === 'showcase' ? 'bg-slate-100 dark:bg-zinc-800 shadow-xs' : 'text-slate-400 hover:text-slate-700 dark:hover:text-zinc-200'}`}
+                                style={viewMode === 'showcase' ? { color: primaryColor } : {}}
                                 title={isAr ? 'عرض استعراضي فاخر' : 'Showcase Mode'}
                             >
                                 <Maximize2 className="w-4 h-4" />
@@ -1085,11 +1184,14 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                 {/* 5. SEARCH RESULTS OR EMPTY STATE */}
                 {searchQuery && (
                     <div className="px-4 pt-4">
-                        <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-500/20 text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
+                        <div 
+                            className="p-3 rounded-2xl border text-xs font-bold flex items-center justify-between"
+                            style={{ backgroundColor: `${primaryColor}15`, borderColor: `${primaryColor}30`, color: primaryColor }}
+                        >
                             <span>
                                 {isAr ? `نتائج البحث عن "${searchQuery}"` : `Search results for "${searchQuery}"`}
                             </span>
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px]">
+                            <span className="px-2 py-0.5 rounded-full text-white text-[10px] font-black" style={{ backgroundColor: primaryColor }}>
                                 {totalMatchingItems} {isAr ? 'صنف' : 'items'}
                             </span>
                         </div>
@@ -1121,11 +1223,11 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                             {/* Section Header */}
                             <div className="flex items-center justify-between mb-3 px-1">
                                 <div className="flex items-center gap-2">
-                                    <h2 className="text-lg font-black tracking-tight flex items-center gap-2">
+                                    <h2 className="text-lg font-black tracking-tight flex items-center gap-2 text-slate-900 dark:text-white">
                                         <span className="w-2 h-5 rounded-full" style={{ backgroundColor: primaryColor }} />
                                         {catName(category)}
                                     </h2>
-                                    <span className="text-xs font-bold text-slate-400 dark:text-zinc-500">
+                                    <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">
                                         ({category.items?.length || 0})
                                     </span>
                                 </div>
@@ -1139,12 +1241,13 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                         const basePrice = item.prices?.[0] || 0;
                                         const oldPrice = item.old_prices?.[0];
                                         const hasDiscount = oldPrice && oldPrice > basePrice;
+                                        const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
 
                                         return (
                                             <div 
                                                 key={`grid-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(category), category.id)}
-                                                className="group rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-black/5 dark:border-white/10 p-2.5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden active:scale-[0.98]"
+                                                className="group theme28-item-card rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-slate-200 dark:border-zinc-700/80 p-2.5 flex flex-col justify-between shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden active:scale-[0.98]"
                                             >
                                                 {/* Image Container */}
                                                 <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 mb-2.5">
@@ -1188,28 +1291,59 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                 {/* Content */}
                                                 <div className="flex-1 flex flex-col justify-between text-center pt-1">
                                                     <div>
-                                                        <h3 className="font-bold text-sm leading-snug line-clamp-2 text-center">
+                                                        <h3 className="theme28-item-title font-bold text-sm leading-snug break-words text-slate-900 dark:text-white text-center">
                                                             {itemName(item)}
                                                         </h3>
                                                         {itemDesc(item) && (
-                                                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed text-center">
+                                                            <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-1 line-clamp-2 leading-relaxed text-center font-medium">
                                                                 {itemDesc(item)}
                                                             </p>
                                                         )}
                                                     </div>
 
+                                                    {/* Size Pills for Grid Mode */}
+                                                    {hasMultipleSizes && (
+                                                        <div className="flex flex-wrap items-center justify-center gap-1 mt-2 mb-1">
+                                                            {item.prices.map((p, pIdx) => {
+                                                                const lbl = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `S${pIdx + 1}`);
+                                                                const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                const isSelected = sizeCartQty > 0;
+                                                                return (
+                                                                    <button
+                                                                        key={pIdx}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleItemClick(item, catName(category), category.id, pIdx);
+                                                                        }}
+                                                                        style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}18` } : {}}
+                                                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg border-2 text-[10px] font-bold transition-all ${
+                                                                            isSelected 
+                                                                                ? 'shadow-xs font-black' 
+                                                                                : 'border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 hover:border-slate-400'
+                                                                        }`}
+                                                                    >
+                                                                        <span className={isSelected ? 'text-slate-900 dark:text-white font-black' : 'text-slate-600 dark:text-zinc-300'}>{lbl}:</span>
+                                                                        <span className="font-black" style={{ color: primaryColor }}>{p}</span>
+                                                                        {isSelected && <span className="text-[10px] font-black" style={{ color: primaryColor }}>✓</span>}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+
                                                     {/* Price & Add Stepper */}
-                                                    <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 flex flex-col items-center gap-2">
+                                                    <div className="mt-2.5 pt-2 border-t border-black/5 dark:border-white/5 flex flex-col items-center gap-2">
                                                         {/* Centered Price */}
                                                         <div className="flex items-baseline justify-center gap-1">
                                                             <span className="font-extrabold text-base" style={{ color: primaryColor }}>
                                                                 {basePrice}
                                                             </span>
-                                                            <span className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400">
+                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
                                                                 {cur}
                                                             </span>
                                                             {hasDiscount && (
-                                                                <span className="text-[10px] text-slate-400 line-through mr-1">
+                                                                <span className="text-[10px] text-slate-400 line-through mr-1 font-semibold">
                                                                     {oldPrice} {cur}
                                                                 </span>
                                                             )}
@@ -1249,7 +1383,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                                     style={{ backgroundColor: primaryColor }}
                                                                 >
                                                                     <Plus className="w-3.5 h-3.5" />
-                                                                    <span>{isAr ? 'أضف للسلة' : 'Add to Cart'}</span>
+                                                                    <span>{hasMultipleSizes ? (isAr ? 'اختر الحجم' : 'Select Size') : (isAr ? 'أضف للسلة' : 'Add to Cart')}</span>
                                                                 </button>
                                                             )}
                                                         </div>
@@ -1274,23 +1408,23 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                             <div 
                                                 key={`list-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(category), category.id)}
-                                                className="group rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-black/5 dark:border-white/10 p-3 flex gap-3.5 items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden active:scale-[0.99]"
+                                                className="group theme28-item-card rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-slate-200 dark:border-zinc-700/80 p-3 flex gap-3.5 items-center justify-between shadow-sm hover:shadow-md transition-all cursor-pointer relative overflow-hidden active:scale-[0.99]"
                                             >
                                                 {/* Details Left/Right */}
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2">
-                                                        <h3 className="font-bold text-sm sm:text-base leading-snug line-clamp-1">
+                                                        <h3 className="theme28-item-title font-bold text-sm sm:text-base leading-snug break-words text-slate-900 dark:text-white">
                                                             {itemName(item)}
                                                         </h3>
                                                         {item.is_popular && (
-                                                            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold">
+                                                            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-bold shrink-0">
                                                                 🔥 {isAr ? 'مفضل' : 'Popular'}
                                                             </span>
                                                         )}
                                                     </div>
 
                                                     {itemDesc(item) && (
-                                                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
+                                                        <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1 line-clamp-2 leading-relaxed font-medium">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
@@ -1301,18 +1435,18 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                             <span className="font-black text-sm sm:text-base" style={{ color: primaryColor }}>
                                                                 {basePrice}
                                                             </span>
-                                                            <span className="text-[10px] font-semibold text-slate-500 dark:text-zinc-400">
+                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
                                                                 {cur}
                                                             </span>
                                                             {hasDiscount && (
-                                                                <span className="text-[11px] text-slate-400 line-through mr-1">
+                                                                <span className="text-[11px] text-slate-400 line-through mr-1 font-semibold">
                                                                     {oldPrice} {cur}
                                                                 </span>
                                                             )}
                                                         </div>
 
                                                         {item.size_labels && item.size_labels.length > 1 && (
-                                                            <span className="text-[10px] text-slate-400 font-medium bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full">
+                                                            <span className="text-[10px] text-slate-700 dark:text-zinc-200 font-bold bg-slate-100 dark:bg-zinc-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-zinc-700">
                                                                 {item.size_labels.length} {isAr ? 'أحجام' : 'sizes'}
                                                             </span>
                                                         )}
@@ -1387,7 +1521,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
 
                             {/* --- MODE 3: COMPACT (HIGH DENSITY ROWS) --- */}
                             {viewMode === 'compact' && (
-                                <div className="divide-y divide-black/5 dark:divide-white/5 rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-black/5 dark:border-white/10 overflow-hidden shadow-sm">
+                                <div className="divide-y divide-slate-200 dark:divide-zinc-700/80 rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-slate-200 dark:border-zinc-700/80 overflow-hidden shadow-sm">
                                     {category.items?.map((item) => {
                                         const inCartQty = getItemCartQty(item.id);
                                         const basePrice = item.prices?.[0] || 0;
@@ -1398,7 +1532,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                             <div 
                                                 key={`compact-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(category), category.id)}
-                                                className="p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                                                className="group theme28-item-card p-3 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
                                             >
                                                 {/* Mini Thumbnail */}
                                                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0">
@@ -1418,11 +1552,11 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
 
                                                 {/* Title & Desc */}
                                                 <div className="flex-1 min-w-0">
-                                                    <h3 className="font-bold text-xs sm:text-sm truncate">
+                                                    <h3 className="theme28-item-title font-bold text-xs sm:text-sm text-slate-900 dark:text-white break-words leading-snug">
                                                         {itemName(item)}
                                                     </h3>
                                                     {itemDesc(item) && (
-                                                        <p className="text-[11px] text-slate-400 dark:text-zinc-500 truncate mt-0.5">
+                                                        <p className="text-[11px] text-slate-600 dark:text-zinc-300 line-clamp-2 mt-0.5 font-medium">
                                                             {itemDesc(item)}
                                                         </p>
                                                     )}
@@ -1432,10 +1566,10 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                 <div className="flex items-center gap-3 shrink-0">
                                                     <div className="text-right">
                                                         <div className="font-black text-xs sm:text-sm" style={{ color: primaryColor }}>
-                                                            {basePrice} <span className="text-[10px] font-normal">{cur}</span>
+                                                            {basePrice} <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">{cur}</span>
                                                         </div>
                                                         {hasDiscount && (
-                                                            <span className="text-[9px] text-slate-400 line-through">
+                                                            <span className="text-[9px] text-slate-400 line-through font-semibold">
                                                                 {oldPrice}
                                                             </span>
                                                         )}
@@ -1493,7 +1627,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                             <div 
                                                 key={`showcase-${item.id}`}
                                                 onClick={() => handleItemClick(item, catName(category), category.id)}
-                                                className="group rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-black/5 dark:border-white/10 overflow-hidden shadow-md hover:shadow-lg transition-all cursor-pointer relative"
+                                                className="group theme28-item-card rounded-3xl bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-slate-200 dark:border-zinc-700/80 overflow-hidden shadow-md hover:shadow-lg transition-all cursor-pointer relative"
                                             >
                                                 {/* Full width Hero Image */}
                                                 <div className="relative w-full aspect-[16/9] sm:aspect-[2/1] bg-slate-100 dark:bg-zinc-800 overflow-hidden">
@@ -1531,7 +1665,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                     {/* Bottom overlaid title and price */}
                                                     <div className="absolute bottom-3 inset-x-3 text-white flex items-end justify-between">
                                                         <div className="max-w-[75%]">
-                                                            <h3 className="text-lg sm:text-xl font-black drop-shadow-md">
+                                                            <h3 className="theme28-item-title text-lg sm:text-xl font-black drop-shadow-md text-white break-words leading-tight">
                                                                 {itemName(item)}
                                                             </h3>
                                                         </div>
@@ -1545,7 +1679,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
 
                                                 {/* Card body */}
                                                 <div className="p-4 flex items-center justify-between gap-4">
-                                                    <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 line-clamp-2">
+                                                    <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 font-medium line-clamp-2">
                                                         {itemDesc(item) || (isAr ? 'استمتع بطعم لا ينسى مع مكونات طازجة' : 'Enjoy fresh and delicious ingredients')}
                                                     </p>
 
@@ -1689,7 +1823,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                 <div className="p-5 space-y-5">
                                     <div>
                                         <div className="flex items-start justify-between gap-3">
-                                            <h2 className="text-xl font-black">
+                                            <h2 className="text-xl font-black text-slate-900 dark:text-white break-words leading-snug">
                                                 {itemName(selectedItem.item)}
                                             </h2>
                                             <div className="text-lg font-black shrink-0" style={{ color: primaryColor }}>
@@ -1698,22 +1832,25 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                         </div>
 
                                         {itemDesc(selectedItem.item) && (
-                                            <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                                            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 mt-2 leading-relaxed font-medium">
                                                 {itemDesc(selectedItem.item)}
                                             </p>
                                         )}
                                     </div>
 
-                                    {/* Size Options (if multi-size) */}
-                                    {selectedItem.item.prices && selectedItem.item.prices.length > 1 && (
+                                    {/* Size Options (renders for 1 or more sizes) */}
+                                    {selectedItem.item.prices && selectedItem.item.prices.length > 0 && (
                                         <div className="space-y-2">
-                                            <label className="text-xs font-black text-slate-700 dark:text-zinc-300">
-                                                {isAr ? 'اختر الحجم' : 'Select Size'}
+                                            <label className="text-xs font-black text-slate-800 dark:text-zinc-200 block">
+                                                {isAr ? 'اختر الحجم والسعر:' : 'Select Size & Price:'}
                                             </label>
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <div className={`grid gap-2 ${
+                                                selectedItem.item.prices.length === 1 ? 'grid-cols-1' : selectedItem.item.prices.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
+                                            }`}>
                                                 {selectedItem.item.prices.map((p, idx) => {
                                                     const isSelected = modalSizeIdx === idx;
                                                     const lbl = selectedItem.item.size_labels?.[idx] || (
+                                                        selectedItem.item.prices.length === 1 ? (isAr ? 'الحجم القياسي' : 'Standard Size') :
                                                         idx === 0 ? (isAr ? 'صغير' : 'Small') :
                                                         idx === 1 ? (isAr ? 'وسط' : 'Medium') : (isAr ? 'كبير' : 'Large')
                                                     );
@@ -1721,15 +1858,27 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                     return (
                                                         <button
                                                             key={`size-${idx}`}
+                                                            type="button"
                                                             onClick={() => setModalSizeIdx(idx)}
-                                                            className={`p-2.5 rounded-2xl border text-center transition-all ${
+                                                            style={isSelected ? { borderColor: primaryColor, backgroundColor: `${primaryColor}15` } : {}}
+                                                            className={`p-3 rounded-2xl border-2 text-center transition-all flex flex-col items-center justify-center gap-1 ${
                                                                 isSelected 
-                                                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-black shadow-sm ring-1 ring-emerald-500'
-                                                                    : 'border-black/5 dark:border-white/10 bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 font-bold'
+                                                                    ? 'shadow-xs font-black ring-1' 
+                                                                    : 'border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-bold hover:border-slate-400'
                                                             }`}
                                                         >
-                                                            <div className="text-xs">{lbl}</div>
-                                                            <div className="text-xs font-black mt-0.5">{p} {cur}</div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div 
+                                                                    className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 border transition-all ${
+                                                                        isSelected ? 'text-white border-transparent' : 'border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-transparent'
+                                                                    }`}
+                                                                    style={isSelected ? { backgroundColor: primaryColor } : {}}
+                                                                >
+                                                                    ✓
+                                                                </div>
+                                                                <span className={`text-xs ${isSelected ? 'text-slate-900 dark:text-white font-black' : 'text-slate-700 dark:text-zinc-300'}`}>{lbl}</span>
+                                                            </div>
+                                                            <div className="text-xs font-black" style={{ color: primaryColor }}>{p} {cur}</div>
                                                         </button>
                                                     );
                                                 })}
@@ -1740,8 +1889,8 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                     {/* Extras & Add-ons (if available) */}
                                     {selectedItem.item.extras && selectedItem.item.extras.length > 0 && (
                                         <div className="space-y-2">
-                                            <label className="text-xs font-black text-slate-700 dark:text-zinc-300">
-                                                {isAr ? 'إضافات مقترحة' : 'Optional Extras'}
+                                            <label className="text-xs font-black text-slate-800 dark:text-zinc-200 block">
+                                                {isAr ? 'إضافات مقترحة:' : 'Optional Extras:'}
                                             </label>
                                             <div className="space-y-1.5">
                                                 {selectedItem.item.extras.map((extra, idx) => {
@@ -1752,19 +1901,25 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                         <div 
                                                             key={`extra-${idx}`}
                                                             onClick={() => toggleModalExtra(exName, extra.price)}
-                                                            className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
+                                                            style={isChecked ? { borderColor: primaryColor, backgroundColor: `${primaryColor}15` } : {}}
+                                                            className={`p-3 rounded-2xl border-2 flex items-center justify-between cursor-pointer transition-all ${
                                                                 isChecked
-                                                                    ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30'
-                                                                    : 'border-black/5 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                                                                    ? 'shadow-xs font-black'
+                                                                    : 'border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 hover:border-slate-400'
                                                             }`}
                                                         >
                                                             <div className="flex items-center gap-2.5">
-                                                                <div className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs transition-colors ${isChecked ? 'bg-emerald-500 text-white' : 'border border-slate-300 dark:border-zinc-700'}`}>
-                                                                    {isChecked && <Check className="w-3.5 h-3.5" />}
+                                                                <div 
+                                                                    className={`w-5 h-5 rounded-lg flex items-center justify-center text-xs font-black border transition-colors ${
+                                                                        isChecked ? 'text-white border-transparent' : 'border-slate-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-transparent'
+                                                                    }`}
+                                                                    style={isChecked ? { backgroundColor: primaryColor } : {}}
+                                                                >
+                                                                    <Check className="w-3.5 h-3.5" />
                                                                 </div>
-                                                                <span className="text-xs font-bold">{exName}</span>
+                                                                <span className={`text-xs ${isChecked ? 'text-slate-900 dark:text-white font-black' : 'font-bold'}`}>{exName}</span>
                                                             </div>
-                                                            <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                                                            <span className="text-xs font-black" style={{ color: primaryColor }}>
                                                                 +{extra.price} {cur}
                                                             </span>
                                                         </div>
@@ -1776,15 +1931,15 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
 
                                     {/* Special Notes Input */}
                                     <div className="space-y-1.5">
-                                        <label className="text-xs font-black text-slate-700 dark:text-zinc-300">
-                                            {isAr ? 'ملاحظات خاصة على الطلب' : 'Special Instructions'}
+                                        <label className="text-xs font-black text-slate-800 dark:text-zinc-200 block">
+                                            {isAr ? 'ملاحظات خاصة على الطلب:' : 'Special Instructions:'}
                                         </label>
                                         <input 
                                             type="text"
                                             value={modalNotes}
                                             onChange={(e) => setModalNotes(e.target.value)}
                                             placeholder={isAr ? 'مثال: بدون بصل، سكر زيادة، صوص جانبي...' : 'e.g. No onions, extra sugar...'}
-                                            className="w-full h-11 px-3.5 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-xs font-medium border-none focus:ring-2 focus:ring-emerald-500/50"
+                                            className="w-full h-11 px-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800 text-xs font-medium border-2 border-slate-200 dark:border-zinc-700 text-slate-800 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-slate-400"
                                         />
                                     </div>
 
@@ -1868,7 +2023,10 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                         <h3 className="font-black text-base">
                                             {isAr ? 'سلة الطلبات' : 'Your Order'}
                                         </h3>
-                                        <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                                        <span 
+                                            className="text-xs px-2.5 py-0.5 rounded-full font-bold border"
+                                            style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderColor: `${primaryColor}30` }}
+                                        >
                                             {cartCount} {isAr ? 'صنف' : 'items'}
                                         </span>
                                     </div>
@@ -1892,7 +2050,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                 className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 flex items-center justify-between gap-3"
                                             >
                                                 <div className="flex-1 min-w-0">
-                                                    <h4 className="font-black text-xs sm:text-sm truncate">
+                                                    <h4 className="font-black text-xs sm:text-sm break-words leading-snug">
                                                         {itemName(cartItem.item)}
                                                     </h4>
                                                     <div className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
@@ -1904,7 +2062,7 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
 
                                                     {/* Extras in cart */}
                                                     {cartItem.extras && cartItem.extras.length > 0 && (
-                                                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">
+                                                        <div className="text-[10px] mt-1 font-semibold" style={{ color: primaryColor }}>
                                                             {cartItem.extras.map(e => e.name).join(', ')}
                                                         </div>
                                                     )}
@@ -1930,7 +2088,8 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                         </span>
                                                         <button 
                                                             onClick={() => quickAddToCart(cartItem.item, cartItem.catName, cartItem.sizeIdx)}
-                                                            className="w-5 h-5 rounded-lg flex items-center justify-center text-slate-500 hover:text-emerald-500"
+                                                            className="w-5 h-5 rounded-lg flex items-center justify-center text-slate-500 hover:opacity-80"
+                                                            style={{ color: primaryColor }}
                                                         >
                                                             <Plus className="w-3.5 h-3.5" />
                                                         </button>
@@ -2105,13 +2264,16 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                         <span className="font-black text-xs sm:text-sm text-slate-800 dark:text-zinc-100">
                                                             {title}
                                                         </span>
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                                        <span 
+                                                            className="text-[10px] font-black px-2 py-0.5 rounded-full border"
+                                                            style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderColor: `${primaryColor}30` }}
+                                                        >
                                                             {isAr ? 'متاح' : 'Available'}
                                                         </span>
                                                     </div>
 
                                                     {desc && (
-                                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 leading-relaxed font-medium">
+                                                        <p className="text-[11px] text-slate-600 dark:text-zinc-300 leading-relaxed font-medium">
                                                             {desc}
                                                         </p>
                                                     )}
@@ -2153,32 +2315,38 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                     ) : (
                                         <>
                                             {/* Default Fallback Payment Methods */}
-                                            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 space-y-1">
+                                            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/80 space-y-1">
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-black text-xs sm:text-sm text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
                                                         <span>💵</span>
                                                         <span>{isAr ? 'الدفع عند الاستلام (كاش)' : 'Cash on Delivery'}</span>
                                                     </span>
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                    <span 
+                                                        className="text-[10px] font-black px-2 py-0.5 rounded-full border"
+                                                        style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderColor: `${primaryColor}30` }}
+                                                    >
                                                         {isAr ? 'متاح' : 'Active'}
                                                     </span>
                                                 </div>
-                                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                                                <p className="text-[11px] text-slate-600 dark:text-zinc-300 font-medium">
                                                     {isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو مع مندوب الدليفري.' : 'Pay cash upon delivery or dine-in.'}
                                                 </p>
                                             </div>
 
-                                            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 space-y-1">
+                                            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/80 space-y-1">
                                                 <div className="flex items-center justify-between">
                                                     <span className="font-black text-xs sm:text-sm text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
                                                         <span>📱</span>
                                                         <span>{isAr ? 'انستا باي / محافظ إلكترونية' : 'InstaPay & E-Wallets'}</span>
                                                     </span>
-                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                    <span 
+                                                        className="text-[10px] font-black px-2 py-0.5 rounded-full border"
+                                                        style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderColor: `${primaryColor}30` }}
+                                                    >
                                                         {isAr ? 'متاح' : 'Active'}
                                                     </span>
                                                 </div>
-                                                <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                                                <p className="text-[11px] text-slate-600 dark:text-zinc-300 font-medium">
                                                     {isAr ? 'متاح التحويل اللحظي عبر انستا باي أو المحافظ الإلكترونية (فودافون كاش، اتصالات، أورنج).' : 'Instant transfer via InstaPay or Mobile Wallets.'}
                                                 </p>
                                             </div>
