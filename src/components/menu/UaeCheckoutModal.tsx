@@ -123,7 +123,7 @@ export default function UaeCheckoutModal({
     const discountAmount = appliedPromo 
         ? (appliedPromo.discount_type === 'percentage' 
             ? (subtotal * appliedPromo.discount_value) / 100 
-            : appliedPromo.discount_value) 
+            : appliedPromo.discount_value || 0) 
         : 0;
     const finalTotal = Math.max(0, subtotal + deliveryFee - discountAmount);
 

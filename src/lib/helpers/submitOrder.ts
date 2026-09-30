@@ -168,7 +168,7 @@ export function buildWhatsAppMessage(params: {
     }
     if (promotionName && discountAmount && discountAmount > 0) {
         msg += `🎁 *عرض مطبق:* ${promotionName}\n`;
-        msg += `💰 *الخصم:* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})` : ''}\n`;
+        msg += `💰 *الخصم:* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ` (${isAr ? 'شحن مجاني' : 'Free Shipping'})` : discountType === 'buy_x_get_y' ? ` (${isAr ? 'عرض اشتري و احصل مجاناً' : 'BOGO Offer'})` : ''}\n`;
     }
     msg += `💵 *${isAr ? 'الإجمالي المطلوب:' : 'Total Due:'} ${total} ${cur}*\n`;
     msg += `------------------------------\n`;
@@ -268,7 +268,7 @@ function buildTelegramMessage(params: {
     }
     if (promotionName && discountAmount && discountAmount > 0) {
         msg += `🎁 *عرض مطبق:* ${promotionName}\n`;
-        msg += `💰 *الخصم:* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ' (شحن مجاني)' : ''}\n`;
+        msg += `💰 *الخصم:* -${discountAmount} ${cur}${discountType === 'free_shipping' ? ' (شحن مجاني)' : discountType === 'buy_x_get_y' ? ' (عرض اشتري و احصل مجاناً)' : ''}\n`;
     }
     msg += `💵 *الإجمالي المطلوب: ${total} ${cur}*\n`;
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;

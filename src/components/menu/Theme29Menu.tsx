@@ -26,6 +26,7 @@ import {
     hasPromoCodeOffers, 
     requiresPromoCode, 
     isAllItemsPromotion,
+    isBogoPromotion,
     AppliedPromotion, 
     Promotion,
     CartItemForPromo 
@@ -619,14 +620,30 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const grandTotal = finalDiscountedTotal + effectiveDeliveryFee;
     const isWhatsAppEnabled = (config?.order_channel === 'whatsapp' || config?.order_channel === 'both' || !config?.order_channel) && Boolean(config?.whatsapp_number || config?.phone);
 
-    // Free shipping threshold simulation (or from free_shipping promo)
-    const freeShippingThreshold = 250;
+    // Free shipping promotion check (only active if merchant configured free_shipping promotion or promo code applied)
+    const activeFreeShippingPromo = useMemo(() => {
+        return promotions.find(p => p.is_active && p.discount_type === 'free_shipping');
+    }, [promotions]);
+
+    const hasFreeShippingOffer = Boolean(activeFreeShippingPromo || isFreeShippingApplied);
+    const freeShippingThreshold = useMemo(() => {
+        if (activeFreeShippingPromo) {
+            return Number(activeFreeShippingPromo.min_order_amount) || 0;
+        }
+        return 0;
+    }, [activeFreeShippingPromo]);
+
     const progressToFreeShipping = isFreeShippingApplied 
         ? 100 
-        : Math.min(100, Math.round((cartTotal / freeShippingThreshold) * 100));
+        : (hasFreeShippingOffer && freeShippingThreshold > 0)
+            ? Math.min(100, Math.round((cartTotal / freeShippingThreshold) * 100))
+            : (hasFreeShippingOffer && freeShippingThreshold === 0 ? 100 : 0);
+
     const amountNeededForFreeShipping = isFreeShippingApplied 
         ? 0 
-        : Math.max(0, freeShippingThreshold - cartTotal);
+        : (hasFreeShippingOffer && freeShippingThreshold > 0)
+            ? Math.max(0, freeShippingThreshold - cartTotal)
+            : 0;
 
     // Direct Checkout Form Validation (يتحقق من ملء كافة البيانات المطلوبة لإتاحة زر التأكيد)
     const isCheckoutFormValid = useMemo(() => {
@@ -914,10 +931,14 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
         if (promotions.length === 0) return null;
         const coded = promotions.find(p => p.promo_code);
         if (coded) {
-            const val = coded.discount_type === 'percentage' ? `${coded.discount_value}%` : `${coded.discount_value} ${cur}`;
+            const val = coded.discount_type === 'percentage' 
+                ? `${coded.discount_value}%` 
+                : (coded.discount_type === 'buy_x_get_y' || isBogoPromotion(coded))
+                ? (isAr ? 'عرض 1+1 مجاناً' : 'BOGO Free')
+                : `${coded.discount_value} ${cur}`;
             return isAr 
-                ? `🏷️ كود الخصم: ${coded.promo_code} | احصل على خصم ${val}!`
-                : `🏷️ Promo Code: ${coded.promo_code} | Get ${val} OFF!`;
+                ? `🏷️ كود الخصم: ${coded.promo_code} | احصل على ${val}!`
+                : `🏷️ Promo Code: ${coded.promo_code} | Get ${val}!`;
         }
         const auto = promotions[0];
         if (auto) {
@@ -943,13 +964,33 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                     <Sparkles className="w-4 h-4 shrink-0 animate-pulse text-yellow-300" />
                     <div className="flex-1 overflow-hidden min-w-0">
                         {config?.marquee_enabled ? (
-                            <SharedMarquee text={isAr ? (config?.marquee_text_ar || `أهلاً بكم في ${placeWord}! تسوقوا أفضل المنتجات والعروض الحصرية`) : (config?.marquee_text_en || 'Welcome to our store! Shop exclusive deals and offers')} />
+                            <SharedMarquee 
+                                text={isAr ? (config?.marquee_text_ar || `أهلاً بكم في ${placeWord}! تسوقوا أفضل المنتجات والعروض الحصرية`) : (config?.marquee_text_en || 'Welcome to our store! Shop exclusive deals and offers')} 
+                                bgColor="transparent"
+                                direction={isAr ? 'rtl' : 'ltr'}
+                            />
                         ) : promoHighlightText ? (
-                            <SharedMarquee text={promoHighlightText} />
+                            <SharedMarquee 
+                                text={promoHighlightText} 
+                                bgColor="transparent"
+                                direction={isAr ? 'rtl' : 'ltr'}
+                            />
+                        ) : (hasFreeShippingOffer && freeShippingThreshold > 0) ? (
+                            <SharedMarquee 
+                                text={isAr 
+                                    ? `🚀 شحن مجاني للطلبات فوق ${freeShippingThreshold} ${cur} | جودة وضمان عالمي` 
+                                    : `🚀 Free shipping on orders over ${freeShippingThreshold} ${cur} | Guaranteed Quality`} 
+                                bgColor="transparent"
+                                direction={isAr ? 'rtl' : 'ltr'}
+                            />
                         ) : (
-                            <SharedMarquee text={isAr 
-                                ? `🚀 شحن مجاني للطلبات فوق ${freeShippingThreshold} ${cur} | جودة وضمان عالمي` 
-                                : `🚀 Free shipping on orders over ${freeShippingThreshold} ${cur} | Guaranteed Quality`} />
+                            <SharedMarquee 
+                                text={isAr 
+                                    ? `✨ أهلاً بكم في ${config?.name || placeWord}! تسوقوا أفضل المنتجات والعروض الحصرية` 
+                                    : `✨ Welcome to ${config?.name || 'our store'}! Shop exclusive deals and offers`} 
+                                bgColor="transparent"
+                                direction={isAr ? 'rtl' : 'ltr'}
+                            />
                         )}
                     </div>
                 </div>
@@ -983,15 +1024,15 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                 }}
             >
                 <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4">
-                    {/* Row 1: Brand (Logo + Name) on Start, Action Buttons on End */}
-                    <div className="flex items-center justify-between gap-2">
-                        {/* Store Brand / Logo */}
+                    {/* Row 1: Brand (Logo + Name + Open Now Badge) on Start, Cart & Wishlist on End */}
+                    <div className="flex items-center justify-between gap-3">
+                        {/* Store Brand / Logo + Title + Status */}
                         <div 
-                            className="flex items-center gap-2 sm:gap-3 cursor-pointer min-w-0" 
+                            className="flex items-center gap-2.5 sm:gap-3 cursor-pointer min-w-0 flex-1" 
                             onClick={() => { scrollToCategory('all'); setSearchQuery(''); }}
                         >
                             {config?.logo_url ? (
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm border shrink-0 relative bg-white">
+                                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm border shrink-0 relative bg-white">
                                     <OptimizedMenuImage 
                                         src={config.logo_url} 
                                         alt={config.name || 'Store Logo'} 
@@ -1000,7 +1041,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </div>
                             ) : (
                                 <div 
-                                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-white shadow-sm text-sm sm:text-base shrink-0"
+                                    className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-white shadow-sm text-sm sm:text-base shrink-0"
                                     style={{ backgroundColor: primaryColor }}
                                 >
                                     {config?.name ? config.name.slice(0, 2).toUpperCase() : 'SN'}
@@ -1011,70 +1052,83 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 <h1 className="font-black text-sm sm:text-base lg:text-lg tracking-tight truncate leading-tight">
                                     {config?.name || 'Shopify Store'}
                                 </h1>
-                                <div className="flex items-center gap-1.5 mt-0.5">
-                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold shrink-0 border transition-colors ${
-                                        isStoreOpen
-                                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                            : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
-                                    }`}>
-                                        <span className={`w-1.5 h-1.5 rounded-full me-1 shrink-0 ${
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setIsInfoModalOpen(true);
+                                        }}
+                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold shrink-0 border transition-all hover:scale-105 active:scale-95 shadow-2xs ${
+                                            isStoreOpen
+                                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                                : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30'
+                                        }`}
+                                        title={isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Info & Hours`}
+                                    >
+                                        <span className={`w-1.5 h-1.5 rounded-full me-1.5 shrink-0 ${
                                             isStoreOpen ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'
                                         }`} />
-                                        {isStoreOpen 
-                                            ? (isAr ? 'مفتوح الآن' : 'Open Now') 
-                                            : (isAr ? 'مغلق الآن' : 'Closed Now')
-                                        }
-                                    </span>
+                                        <span>
+                                            {isStoreOpen 
+                                                ? (isAr ? 'مفتوح الآن' : 'Open Now') 
+                                                : (isAr ? 'مغلق الآن' : 'Closed Now')
+                                            }
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
                         {/* Header Action Buttons */}
                         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-                            {/* Store Profile & Hours Button */}
-                            <button
-                                onClick={() => setIsInfoModalOpen(true)}
-                                className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
-                                style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
-                                title={isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Info & Hours`}
-                            >
-                                <Store className="w-4 h-4 text-emerald-500" />
-                                <span className="hidden md:inline">{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} & Hours`}</span>
-                            </button>
-
-                            {/* Payment Methods Button - Only rendered if merchant registered payment methods in settings */}
-                            {hasPaymentMethods && (
+                            {/* Desktop-only auxiliary buttons: Store Profile, Payment, Share */}
+                            <div className="hidden sm:flex items-center gap-1 sm:gap-1.5">
+                                {/* Store Profile & Hours Button */}
                                 <button
-                                    onClick={() => setIsPaymentModalOpen(true)}
+                                    onClick={() => setIsInfoModalOpen(true)}
                                     className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
                                     style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
-                                    title={isAr ? 'طرق ووسائل الدفع' : 'Payment Methods'}
+                                    title={isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Info & Hours`}
                                 >
-                                    <CreditCard className="w-4 h-4 text-amber-500" />
-                                    <span className="hidden md:inline">{isAr ? 'طرق الدفع' : 'Payments'}</span>
+                                    <Store className="w-4 h-4 text-emerald-500" />
+                                    <span className="hidden md:inline">{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} & Hours`}</span>
                                 </button>
-                            )}
 
-                            {/* Share Button */}
-                            <button
-                                onClick={handleShare}
-                                className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
-                                style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
-                                title={isAr ? `مشاركة ${placeWord}` : 'Share'}
-                            >
-                                <Share2 className="w-4 h-4 text-blue-500" />
-                            </button>
+                                {/* Payment Methods Button - Only rendered if merchant registered payment methods in settings */}
+                                {hasPaymentMethods && (
+                                    <button
+                                        onClick={() => setIsPaymentModalOpen(true)}
+                                        className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-sm shrink-0"
+                                        style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
+                                        title={isAr ? 'طرق ووسائل الدفع' : 'Payment Methods'}
+                                    >
+                                        <CreditCard className="w-4 h-4 text-amber-500" />
+                                        <span className="hidden md:inline">{isAr ? 'طرق الدفع' : 'Payments'}</span>
+                                    </button>
+                                )}
+
+                                {/* Share Button */}
+                                <button
+                                    onClick={handleShare}
+                                    className="p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
+                                    style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
+                                    title={isAr ? `مشاركة ${placeWord}` : 'Share'}
+                                >
+                                    <Share2 className="w-4 h-4 text-blue-500" />
+                                </button>
+                            </div>
 
                             {/* Wishlist Button */}
                             <button
                                 onClick={() => setIsWishlistOpen(true)}
-                                className="relative p-1.5 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0"
+                                className="relative p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shrink-0 shadow-2xs"
                                 style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f1f5f9' }}
                                 title={isAr ? 'المفضلة' : 'Wishlist'}
                             >
                                 <Heart className={`w-4 h-4 ${wishlist.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-500'}`} />
                                 {wishlist.length > 0 && (
-                                    <span className="absolute -top-1 -end-1 bg-rose-500 text-white text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center shadow">
+                                    <span className="absolute -top-1 -end-1 bg-rose-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow">
                                         {wishlist.length}
                                     </span>
                                 )}
@@ -1083,7 +1137,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                             {/* Cart Drawer Trigger Button (Shopify Style Pill) */}
                             <button
                                 onClick={() => setIsCartOpen(true)}
-                                className="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl font-bold text-white shadow-md transition-all hover:opacity-95 active:scale-95 shrink-0"
+                                className="flex items-center gap-1.5 px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl font-bold text-white shadow-md transition-all hover:opacity-95 active:scale-95 shrink-0"
                                 style={{ backgroundColor: primaryColor }}
                                 title={isAr ? 'عرض سلة المشتريات' : 'View Cart'}
                             >
@@ -1100,6 +1154,38 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </span>
                             </button>
                         </div>
+                    </div>
+
+                    {/* Mobile Quick Action Chips (Store Info, Payment Methods, Share) */}
+                    <div className="flex sm:hidden items-center gap-1.5 mt-2.5 overflow-x-auto no-scrollbar pb-0.5">
+                        <button
+                            onClick={() => setIsInfoModalOpen(true)}
+                            className="px-2.5 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all active:scale-95 shrink-0 shadow-2xs"
+                            style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f8fafc' }}
+                        >
+                            <Store className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>{isAr ? `بيانات ومواعيد ${placeWord}` : `${placeWord} Info`}</span>
+                        </button>
+
+                        {hasPaymentMethods && (
+                            <button
+                                onClick={() => setIsPaymentModalOpen(true)}
+                                className="px-2.5 py-1 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all active:scale-95 shrink-0 shadow-2xs"
+                                style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f8fafc' }}
+                            >
+                                <CreditCard className="w-3.5 h-3.5 text-amber-500" />
+                                <span>{isAr ? 'طرق الدفع' : 'Payments'}</span>
+                            </button>
+                        )}
+
+                        <button
+                            onClick={handleShare}
+                            className="px-2.5 py-1 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all active:scale-95 shrink-0 shadow-2xs"
+                            style={{ borderColor: borderColor, backgroundColor: isDark ? '#1e1e24' : '#f8fafc' }}
+                        >
+                            <Share2 className="w-3.5 h-3.5 text-blue-500" />
+                            <span>{isAr ? 'مشاركة' : 'Share'}</span>
+                        </button>
                     </div>
 
                     {/* Row 2: Store Slogan (Full Width below Brand & Actions, cleanly separated) */}
@@ -1946,6 +2032,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 </div>
 
                                 {/* Free Shipping Progress Bar */}
+                                {hasFreeShippingOffer && (
                                 <div className="p-3.5 bg-slate-50 dark:bg-slate-900 border-b text-xs" style={{ borderColor: borderColor }}>
                                     <div className="flex items-center justify-between mb-1.5">
                                         <span className="font-bold flex items-center gap-1.5">
@@ -1966,6 +2053,7 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                         />
                                     </div>
                                 </div>
+                                )}
 
                                 {/* Drawer Body: Cart Items & In-Drawer Checkout OR Success View */}
                                 {orderSuccessDetails ? (

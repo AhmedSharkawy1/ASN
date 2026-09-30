@@ -72,6 +72,13 @@ class _PromotionCard extends ConsumerWidget {
   const _PromotionCard({required this.promo});
 
   ({String label, IconData icon, Color color}) get _type {
+    if (promo.isBogo) {
+      return (
+        label: '1+1 مجاناً',
+        icon: Icons.card_giftcard,
+        color: AppColors.coral,
+      );
+    }
     switch (promo.discountType) {
       case PromotionModel.typePercentage:
         return (

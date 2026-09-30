@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { submitOrder, buildWhatsAppMessage, OrderItem, OrderItemExtra } from "@/lib/helpers/submitOrder";
-import { fetchActivePromotions, evaluatePromotions, hasPromoCodeOffers, requiresPromoCode, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
+import { fetchActivePromotions, evaluatePromotions, hasPromoCodeOffers, requiresPromoCode, getBogoSuggestion, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
 import { parseCurrency } from "@/lib/currency";
 import { FaWhatsapp } from "react-icons/fa";
-import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag } from "lucide-react";
+import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag, Gift, Sparkles } from "lucide-react";
 
 type DeliveryZone = {
     id: string;
@@ -347,6 +347,13 @@ export default function CheckoutModal({
         setCodeInput("");
         setCodeError("");
     };
+
+    const bogoSuggestion = useMemo(() => {
+        if (!appliedPromo && promotions.length > 0) {
+            return getBogoSuggestion(cartForPromo, promotions, appliedCode);
+        }
+        return null;
+    }, [appliedPromo, cartForPromo, promotions, appliedCode]);
 
     const promoDiscount = appliedPromo ? appliedPromo.discountAmount : 0;
     const total = subtotal + extrasTotal + deliveryFee - promoDiscount;
@@ -781,12 +788,25 @@ export default function CheckoutModal({
                                     {appliedPromo && promoDiscount > 0 && (
                                         <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-500/10 p-2.5 rounded-xl border border-amber-200 dark:border-amber-500/20 mt-2">
                                             <div className="flex items-center gap-1.5">
-                                                <Tag className="w-3.5 h-3.5 text-amber-500" />
-                                                <span className="text-amber-700 dark:text-amber-300 font-bold text-xs">
+                                                {appliedPromo.isBogo ? <Gift className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <Tag className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
+                                                <span className="text-amber-700 dark:text-amber-300 font-bold text-xs flex items-center gap-1.5 flex-wrap">
                                                     {isAr ? appliedPromo.promotion.name_ar : (appliedPromo.promotion.name_en || appliedPromo.promotion.name_ar)}
+                                                    {appliedPromo.isBogo && (
+                                                        <span className="text-[10px] bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.5 rounded-md font-bold">
+                                                            {isAr ? `(صنف مجاني ×${appliedPromo.bogoFreeItemsCount || 1})` : `(Free item ×${appliedPromo.bogoFreeItemsCount || 1})`}
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </div>
-                                            <span className="font-bold text-amber-600 text-sm">-{promoDiscount} {currency}</span>
+                                            <span className="font-bold text-amber-600 text-sm shrink-0">-{promoDiscount} {currency}</span>
+                                        </div>
+                                    )}
+                                    {bogoSuggestion && (
+                                        <div className="flex items-start gap-2 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 p-2.5 rounded-xl border border-emerald-200 dark:border-emerald-500/30 mt-2 text-start">
+                                            <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 animate-pulse" />
+                                            <p className="text-emerald-800 dark:text-emerald-300 text-xs font-bold leading-relaxed">
+                                                {isAr ? bogoSuggestion.messageAr : bogoSuggestion.messageEn}
+                                            </p>
                                         </div>
                                     )}
                                 </div>

@@ -36,17 +36,19 @@ class PromotionModel {
   /// fails to match it, which means "no discount" — never a surprise blanket
   /// discount. The web engine understands the same marker.
   static const String allItemsId = '__all_items__';
+  static const String bogoMarker = '__bogo__';
 
   static const String typeFixed = 'fixed_amount';
   static const String typePercentage = 'percentage';
   static const String typeFreeShipping = 'free_shipping';
+  static const String typeBogo = 'buy_x_get_y';
 
   final String id;
   final String nameAr;
   final String? nameEn;
   final String? descriptionAr;
   final String? descriptionEn;
-  final String discountType; // fixed_amount | percentage | free_shipping
+  final String discountType; // fixed_amount | percentage | free_shipping | buy_x_get_y
   final double discountValue;
 
   /// Coupon code that unlocks this offer. Null means it applies automatically.
@@ -80,14 +82,21 @@ class PromotionModel {
 
   bool get isExpired => endsAt != null && endsAt!.isBefore(DateTime.now());
 
+  bool get isBogo =>
+      discountType == typeBogo ||
+      requiredItems.any((i) => i['item_id']?.toString() == bogoMarker);
+
   /// Applies to the whole menu, including items added after it was created.
   bool get appliesToAllItems =>
       requiredItems.any((i) => i['item_id']?.toString() == allItemsId);
 
-  /// The real items this promotion is tied to, with the all-items marker
-  /// filtered out so the UI never lists it as a product.
+  /// The real items this promotion is tied to, with internal markers
+  /// filtered out so the UI never lists them as a product.
   List<PromotionItem> get items => requiredItems
-      .where((i) => i['item_id']?.toString() != allItemsId)
+      .where((i) {
+        final id = i['item_id']?.toString() ?? '';
+        return id != allItemsId && id != bogoMarker && !id.startsWith('__');
+      })
       .map(PromotionItem.fromJson)
       .toList();
 
