@@ -89,7 +89,6 @@ export default function POS2ClassicPage() {
     /* ── Options Checkboxes ── */
     const [printOnSave, setPrintOnSave] = useState<boolean>(true);
     const [printKitchen, setPrintKitchen] = useState<boolean>(false);
-    const [kitchenCopies, setKitchenCopies] = useState<number>(1);
     const [addTax, setAddTax] = useState<boolean>(false);
     const [taxRate, setTaxRate] = useState<number>(14);
 
@@ -100,7 +99,6 @@ export default function POS2ClassicPage() {
     const [selectedDriver, setSelectedDriver] = useState<string>("");
     const [orderNotes, setOrderNotes] = useState("");
     const [showCustomerModal, setShowCustomerModal] = useState(false);
-    const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
 
     /* ── Numpad State ── */
     const [numpadTarget, setNumpadTarget] = useState<NumpadTarget>("qty");
@@ -131,10 +129,6 @@ export default function POS2ClassicPage() {
     const [weightInput, setWeightInput] = useState<string>("");
     const [printModalHtml, setPrintModalHtml] = useState<string | null>(null);
     const [showShiftReport, setShowShiftReport] = useState(false);
-    const [shiftStats, setShiftStats] = useState({
-        count: 0, revenue: 0, cash: 0, deposit: 0, delivery: 0, orderNumbers: [] as number[],
-        posOrders: 0, posRevenue: 0, websiteOrders: 0, websiteRevenue: 0
-    });
 
     const searchRef = useRef<HTMLInputElement>(null);
     const receiptRef = useRef<HTMLDivElement>(null);
@@ -293,6 +287,40 @@ export default function POS2ClassicPage() {
         return Math.max(0, tenderedCash - total);
     }, [tenderedCash, paymentMethod, total]);
 
+    /* ── Flattened Menu Items for Direct Fast Display ── */
+    const flattenedCards = useMemo(() => {
+        const filtered = menuItems.filter(item => {
+            if (activeCategory !== "all" && item.category_id !== activeCategory) return false;
+            if (searchQ) {
+                const q = searchQ.toLowerCase();
+                return item.title_ar.toLowerCase().includes(q) || (item.title_en || "").toLowerCase().includes(q);
+            }
+            return true;
+        });
+
+        const cards: { item: PosMenuItem, sizeIdx: number, title: string, price: number }[] = [];
+        filtered.forEach(item => {
+            if (item.prices.length > 1 && item.size_labels && item.size_labels.length === item.prices.length) {
+                item.prices.forEach((p, idx) => {
+                    cards.push({
+                        item,
+                        sizeIdx: idx,
+                        title: `${item.title_ar} (${item.size_labels![idx]})`,
+                        price: p
+                    });
+                });
+            } else {
+                cards.push({
+                    item,
+                    sizeIdx: 0,
+                    title: item.title_ar,
+                    price: item.prices[0] || 0
+                });
+            }
+        });
+        return cards;
+    }, [menuItems, activeCategory, searchQ]);
+
     /* ── Cart Operations ── */
     const addItemToCart = useCallback((item: PosMenuItem, sizeIdx: number = 0, specificQty?: number, specificPrice?: number) => {
         const price = specificPrice !== undefined ? specificPrice : (item.prices[sizeIdx] || item.prices[0]);
@@ -312,7 +340,6 @@ export default function POS2ClassicPage() {
             return next;
         });
 
-        // Reset fast input row
         setInputQty("1");
         setInputPrice(price.toString());
         setSelectedMenuItem(item);
@@ -434,7 +461,7 @@ export default function POS2ClassicPage() {
         }
     };
 
-    /* ── Physical Keyboard Bindings (Classic POS Style) ── */
+    /* ── Physical Keyboard Bindings ── */
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             const activeTag = document.activeElement?.tagName;
@@ -670,10 +697,10 @@ export default function POS2ClassicPage() {
 
     /* ═══════════════════════════ RENDER ═══════════════════════════ */
     return (
-        <div className="flex flex-col h-[calc(100vh-84px)] bg-[#c9d4e2] dark:bg-[#111923] text-slate-900 dark:text-slate-100 select-none font-sans text-xs border-2 border-[#54799e] rounded-md shadow-2xl overflow-hidden" dir="rtl">
+        <div className="flex flex-col h-[calc(100vh-84px)] bg-[#c9d4e2] dark:bg-[#0a1017] text-slate-900 dark:text-slate-100 select-none font-sans text-xs border-2 border-[#54799e] dark:border-slate-800 rounded-md shadow-2xl overflow-hidden" dir="rtl">
             
             {/* ═══ 1. CLASSIC DESKTOP WINDOW TITLE BAR ═══ */}
-            <div className="flex items-center justify-between px-2.5 py-1 bg-gradient-to-r from-[#1b4363] via-[#245780] to-[#1b4363] text-white border-b-2 border-[#0e273c] shadow-sm shrink-0">
+            <div className="flex items-center justify-between px-2.5 py-1.5 bg-gradient-to-r from-[#1b4363] via-[#245780] to-[#1b4363] dark:from-[#0f1e2c] dark:via-[#162d42] dark:to-[#0f1e2c] text-white border-b-2 border-[#0e273c] dark:border-slate-900 shadow-sm shrink-0">
                 <div className="flex items-center gap-2">
                     <Calculator className="w-4 h-4 text-cyan-300 drop-shadow" />
                     <span className="font-bold text-sm tracking-wide text-white drop-shadow">
@@ -686,7 +713,7 @@ export default function POS2ClassicPage() {
 
                 <div className="flex items-center gap-3 text-xs">
                     {/* Status Lights */}
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/30 rounded border border-white/10 font-mono text-[11px]">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 rounded border border-white/10 font-mono text-[11px]">
                         <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
                         <span>{isOnline ? "متصل" : "أوفلاين"}</span>
                         {pendingSyncCount > 0 && <span className="text-amber-300">({pendingSyncCount})</span>}
@@ -705,7 +732,7 @@ export default function POS2ClassicPage() {
                     {/* Return to Modern POS */}
                     <Link
                         href="/dashboard/pos"
-                        className="px-2 py-0.5 bg-[#316999] hover:bg-[#3d83bd] border border-[#7fb3dd] text-white rounded text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
+                        className="px-2 py-0.5 bg-[#316999] hover:bg-[#3d83bd] dark:bg-[#1a3d5e] dark:hover:bg-[#23517c] border border-[#7fb3dd] dark:border-cyan-700 text-white rounded text-[11px] font-bold transition flex items-center gap-1 shadow-sm"
                     >
                         <ArrowLeftRight className="w-3 h-3" />
                         <span>النمط العصري</span>
@@ -714,25 +741,25 @@ export default function POS2ClassicPage() {
             </div>
 
             {/* ═══ 2. CLASSIC MENU STRIP (ملف | القائمة | الحركات | تقارير | الورديات) ═══ */}
-            <div className="flex items-center justify-between px-2 py-0.5 bg-[#e4ebf3] dark:bg-[#1a2330] border-b border-[#a9bad0] dark:border-slate-800 text-[11px] font-bold text-slate-800 dark:text-slate-200 shrink-0">
+            <div className="flex items-center justify-between px-2 py-1 bg-[#e4ebf3] dark:bg-[#131b26] border-b border-[#a9bad0] dark:border-slate-800 text-[11px] font-bold text-slate-800 dark:text-slate-200 shrink-0">
                 <div className="flex items-center gap-4">
-                    <button onClick={clearCart} className="hover:text-blue-700 dark:hover:text-cyan-400 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800">ملف</button>
-                    <button onClick={() => setActiveTab("menu")} className="hover:text-blue-700 dark:hover:text-cyan-400 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800">القائمة</button>
-                    <button onClick={() => setActiveTab("today_invoices")} className="hover:text-blue-700 dark:hover:text-cyan-400 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800">الحركات</button>
-                    <button onClick={() => setShowShiftReport(true)} className="hover:text-blue-700 dark:hover:text-cyan-400 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800">الورديات</button>
-                    <button onClick={() => { triggerCashDrawerIfEnabled(getPrinterSettings()); toast.info("تم فتح الدرج"); }} className="hover:text-blue-700 dark:hover:text-cyan-400 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800">فتح الدرج</button>
+                    <button onClick={clearCart} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">ملف</button>
+                    <button onClick={() => setActiveTab("menu")} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">القائمة</button>
+                    <button onClick={() => setActiveTab("today_invoices")} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">الحركات</button>
+                    <button onClick={() => setShowShiftReport(true)} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">الورديات</button>
+                    <button onClick={() => { triggerCashDrawerIfEnabled(getPrinterSettings()); toast.info("تم فتح الدرج"); }} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">فتح الدرج</button>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <button onClick={() => setSoundEnabled(!soundEnabled)} className="text-slate-600 dark:text-slate-300">
-                        {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-600" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
+                    <button onClick={() => setSoundEnabled(!soundEnabled)} className="text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white">
+                        {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-400" />}
                     </button>
-                    <span className="text-[10px] text-slate-500 font-mono">ASN POS System 2026</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">ASN POS System 2026</span>
                 </div>
             </div>
 
-            {/* ═══ 3. TOP HORIZONTAL NAVIGATION TABS (فواتير اليوم، الطاولات، القائمة...) ═══ */}
-            <div className="flex items-center gap-1 px-2 pt-1.5 bg-[#b9cbe0] dark:bg-[#151e2b] border-b-2 border-[#486e92] shrink-0 overflow-x-auto hide-scrollbar">
+            {/* ═══ 3. TOP HORIZONTAL NAVIGATION TABS ═══ */}
+            <div className="flex items-center gap-1 px-2 pt-1.5 bg-[#b9cbe0] dark:bg-[#111722] border-b-2 border-[#486e92] dark:border-slate-700 shrink-0 overflow-x-auto hide-scrollbar">
                 {[
                     { id: "menu", label: "القائمة والطلب", count: menuItems.length },
                     { id: "today_invoices", label: "فواتير اليوم", count: todayOrders.length },
@@ -754,8 +781,8 @@ export default function POS2ClassicPage() {
                             }}
                             className={`px-3 py-1.5 rounded-t-md font-bold text-xs transition-all border-t-2 border-x-2 shrink-0 ${
                                 isActive
-                                    ? "bg-white dark:bg-[#1a2332] text-[#1b4363] dark:text-cyan-300 border-[#486e92] shadow font-black -mb-[2px] pb-2 z-10"
-                                    : "bg-[#8ea8c4] dark:bg-[#202c3d] text-slate-800 dark:text-slate-300 border-[#6c8aa8] hover:bg-[#a2bad3]"
+                                    ? "bg-white dark:bg-[#182333] text-[#1b4363] dark:text-cyan-300 border-[#486e92] dark:border-cyan-500 shadow font-black -mb-[2px] pb-2 z-10"
+                                    : "bg-[#8ea8c4] dark:bg-[#17202d] text-slate-800 dark:text-slate-300 border-[#6c8aa8] dark:border-slate-800 hover:bg-[#a2bad3] dark:hover:bg-[#202c3d]"
                             }`}
                         >
                             <span>{tab.label}</span>
@@ -768,44 +795,44 @@ export default function POS2ClassicPage() {
             </div>
 
             {/* ═══ 4. SPLIT SCREEN (LEFT: INVOICE TAPE & ENTRY | RIGHT: MENU / TABLES / INVOICES) ═══ */}
-            <div className="flex-1 grid grid-cols-12 gap-1.5 p-1.5 min-h-0 bg-[#d8e2ed] dark:bg-[#0d141e] overflow-hidden">
+            <div className="flex-1 grid grid-cols-12 gap-1.5 p-1.5 min-h-0 bg-[#d8e2ed] dark:bg-[#0c1219] overflow-hidden">
                 
                 {/* ══════════════════════════════════════════════════════════
                     LEFT PANEL: CLASSIC CURRENT INVOICE (5 COLS)
                 ══════════════════════════════════════════════════════════ */}
-                <div className="col-span-12 lg:col-span-5 flex flex-col h-full bg-[#f4f7fa] dark:bg-[#151c27] border-2 border-[#7693b1] dark:border-slate-800 rounded shadow-md overflow-hidden min-h-0">
+                <div className="col-span-12 lg:col-span-5 flex flex-col h-full bg-[#f4f7fa] dark:bg-[#111823] border-2 border-[#7693b1] dark:border-slate-800 rounded shadow-md overflow-hidden min-h-0">
                     
                     {/* Top Row: Date, User station, Order Sequence Numbers */}
-                    <div className="p-1.5 bg-[#e5ecf5] dark:bg-[#1b2535] border-b border-[#a8bbd1] dark:border-slate-800 flex items-center justify-between gap-1 text-[11px] shrink-0 font-bold">
+                    <div className="p-1.5 bg-[#e5ecf5] dark:bg-[#162232] border-b border-[#a8bbd1] dark:border-slate-800 flex items-center justify-between gap-1 text-[11px] shrink-0 font-bold">
                         <div className="flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5 text-blue-700 dark:text-cyan-400" />
                             <input
                                 type="text"
                                 readOnly
                                 value={new Date().toLocaleDateString("en-GB")}
-                                className="w-20 px-1 py-0.5 bg-white dark:bg-black border border-slate-400 text-center font-mono font-bold"
+                                className="w-20 px-1 py-0.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 text-center font-mono font-bold text-slate-900 dark:text-cyan-300"
                             />
                         </div>
 
                         <div className="flex items-center gap-1">
                             <span className="text-slate-600 dark:text-slate-400">الكاشير:</span>
-                            <span className="px-2 py-0.5 bg-white dark:bg-black border border-slate-400 text-blue-900 dark:text-cyan-300 font-bold truncate max-w-[100px]">
+                            <span className="px-2 py-0.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 text-blue-900 dark:text-cyan-300 font-bold truncate max-w-[100px]">
                                 {cashierName || "مبيعات"}
                             </span>
                         </div>
 
                         <div className="flex items-center gap-1 font-mono">
-                            <span className="px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-950/60 border border-cyan-400 text-cyan-900 dark:text-cyan-200 font-black">
+                            <span className="px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-400 dark:border-cyan-700 text-cyan-950 dark:text-cyan-200 font-black">
                                 #{lastOrderNumber || 1}
                             </span>
-                            <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/60 border border-amber-400 text-amber-900 dark:text-amber-200 font-black">
+                            <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/70 border border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 font-black">
                                 {cart.length} صنف
                             </span>
                         </div>
                     </div>
 
                     {/* Quick Item Input Row: [السعر] [الكمية] [إضافة] [وزن] [إلغاء صنف] */}
-                    <div className="p-1.5 bg-[#dbe5f2] dark:bg-[#18212e] border-b border-[#a3b8cf] dark:border-slate-800 flex items-center gap-1.5 shrink-0 text-xs font-bold">
+                    <div className="p-1.5 bg-[#dbe5f2] dark:bg-[#151f2c] border-b border-[#a3b8cf] dark:border-slate-800 flex items-center gap-1.5 shrink-0 text-xs font-bold">
                         <div className="flex items-center gap-1 flex-1">
                             <span className="text-slate-700 dark:text-slate-300">السعر:</span>
                             <input
@@ -818,7 +845,7 @@ export default function POS2ClassicPage() {
                                 }}
                                 onFocus={() => setNumpadTarget("price")}
                                 placeholder="0"
-                                className="w-16 px-1 py-1 bg-white dark:bg-black border-2 border-slate-400 text-center font-black font-mono text-blue-900 dark:text-cyan-300"
+                                className="w-16 px-1 py-1 bg-white dark:bg-[#0c121a] border-2 border-slate-400 dark:border-slate-700 text-center font-black font-mono text-blue-900 dark:text-cyan-300"
                             />
                         </div>
 
@@ -834,13 +861,13 @@ export default function POS2ClassicPage() {
                                 }}
                                 onFocus={() => setNumpadTarget("qty")}
                                 placeholder="1"
-                                className="w-14 px-1 py-1 bg-white dark:bg-black border-2 border-slate-400 text-center font-black font-mono text-slate-900 dark:text-white"
+                                className="w-14 px-1 py-1 bg-white dark:bg-[#0c121a] border-2 border-slate-400 dark:border-slate-700 text-center font-black font-mono text-slate-900 dark:text-white"
                             />
                         </div>
 
                         <button
                             onClick={handleAddCurrentInput}
-                            className="px-2.5 py-1 bg-[#1e5885] hover:bg-[#256ea6] text-white border border-[#0d3452] font-black rounded shadow-sm text-[11px] active:scale-95 transition"
+                            className="px-2.5 py-1 bg-[#1e5885] hover:bg-[#256ea6] dark:bg-[#1a4a6e] dark:hover:bg-[#246291] text-white border border-[#0d3452] dark:border-cyan-800 font-black rounded shadow-sm text-[11px] active:scale-95 transition"
                         >
                             إضافة للفاتورة
                         </button>
@@ -853,23 +880,23 @@ export default function POS2ClassicPage() {
                                     toast.info("اختر صنفاً أولاً");
                                 }
                             }}
-                            className="px-2 py-1 bg-[#476882] hover:bg-[#5881a2] text-white border border-[#2d4457] font-bold rounded text-[11px] active:scale-95 transition"
+                            className="px-2 py-1 bg-[#476882] hover:bg-[#5881a2] dark:bg-[#2d4253] dark:hover:bg-[#3d5970] text-white border border-[#2d4457] dark:border-slate-700 font-bold rounded text-[11px] active:scale-95 transition"
                         >
                             وزن
                         </button>
 
                         <button
                             onClick={removeSelectedItem}
-                            className="px-2 py-1 bg-[#a33939] hover:bg-[#c24444] text-white border border-[#6b2222] font-bold rounded text-[11px] active:scale-95 transition"
+                            className="px-2 py-1 bg-[#a33939] hover:bg-[#c24444] dark:bg-[#7a2828] dark:hover:bg-[#9c3333] text-white border border-[#6b2222] dark:border-red-900 font-bold rounded text-[11px] active:scale-95 transition"
                         >
                             إلغاء صنف
                         </button>
                     </div>
 
                     {/* Middle: Order Type Selector + INVOICE ITEMS SPREADSHEET TABLE */}
-                    <div className="flex-1 flex min-h-0 bg-white dark:bg-black/40">
+                    <div className="flex-1 flex min-h-0 bg-white dark:bg-[#0d141e]">
                         {/* Vertical Order Type Selector Bar (صالة | دليفري | تيك أواي) */}
-                        <div className="w-16 bg-[#c5d5e7] dark:bg-[#1a2535] border-l-2 border-[#839cb5] flex flex-col p-1 gap-1 shrink-0">
+                        <div className="w-16 bg-[#c5d5e7] dark:bg-[#16212e] border-l-2 border-[#839cb5] dark:border-slate-800 flex flex-col p-1 gap-1 shrink-0">
                             {[
                                 { key: "dine_in", label: "صالة" },
                                 { key: "takeaway", label: "تيك أواي" },
@@ -880,8 +907,8 @@ export default function POS2ClassicPage() {
                                     onClick={() => setOrderType(t.key as any)}
                                     className={`flex-1 flex items-center justify-center font-black text-xs rounded transition-all border shadow-sm ${
                                         orderType === t.key
-                                            ? "bg-[#18486e] text-white border-[#0c283f] ring-2 ring-cyan-400"
-                                            : "bg-[#e5ecf5] dark:bg-[#243347] text-slate-700 dark:text-slate-300 border-[#9bb1c7] hover:bg-[#d0deee]"
+                                            ? "bg-[#18486e] dark:bg-cyan-600 text-white border-[#0c283f] dark:border-cyan-400 ring-2 ring-cyan-400"
+                                            : "bg-[#e5ecf5] dark:bg-[#1c293a] text-slate-700 dark:text-slate-300 border-[#9bb1c7] dark:border-slate-700 hover:bg-[#d0deee] dark:hover:bg-[#24354b]"
                                     }`}
                                     style={{ writingMode: "vertical-rl" }}
                                 >
@@ -893,18 +920,18 @@ export default function POS2ClassicPage() {
                         {/* Invoice Items Spreadsheet Table */}
                         <div className="flex-1 overflow-y-auto divide-y divide-slate-300 dark:divide-slate-800 min-h-0 bg-[#eef3f8] dark:bg-[#111822]">
                             <table className="w-full border-collapse text-right text-xs">
-                                <thead className="bg-[#cbdcf0] dark:bg-[#1c293c] text-slate-800 dark:text-slate-200 border-b-2 border-[#839cb5] sticky top-0 font-black shadow-sm">
+                                <thead className="bg-[#cbdcf0] dark:bg-[#182638] text-slate-800 dark:text-slate-200 border-b-2 border-[#839cb5] dark:border-slate-700 sticky top-0 font-black shadow-sm">
                                     <tr>
-                                        <th className="p-1.5 border-l border-[#9cb3cc]">اسم الصنف</th>
-                                        <th className="p-1.5 border-l border-[#9cb3cc] text-center w-12">العدد</th>
-                                        <th className="p-1.5 border-l border-[#9cb3cc] text-center w-14">السعر</th>
+                                        <th className="p-1.5 border-l border-[#9cb3cc] dark:border-slate-700">اسم الصنف</th>
+                                        <th className="p-1.5 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-12">العدد</th>
+                                        <th className="p-1.5 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-14">السعر</th>
                                         <th className="p-1.5 text-center w-16">الإجمالي</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {cart.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="py-12 text-center text-slate-400">
+                                            <td colSpan={4} className="py-12 text-center text-slate-400 dark:text-slate-600 font-bold">
                                                 الفاتورة فارغة — اضغط على الأصناف في القائمة لإضافتها
                                             </td>
                                         </tr>
@@ -925,16 +952,16 @@ export default function POS2ClassicPage() {
                                                     }}
                                                     className={`cursor-pointer transition-colors border-b border-slate-300 dark:border-slate-800 ${
                                                         isSelected
-                                                            ? "bg-[#b8d6f5] dark:bg-[#1c3857] text-[#0a2f55] dark:text-cyan-200 font-bold"
+                                                            ? "bg-[#b8d6f5] dark:bg-[#1d3550] text-[#0a2f55] dark:text-cyan-200 font-bold border-l-4 border-l-cyan-500"
                                                             : i % 2 === 0
-                                                                ? "bg-white dark:bg-[#151d29]"
-                                                                : "bg-[#eaf1f8] dark:bg-[#192331]"
+                                                                ? "bg-white dark:bg-[#0e1520] text-slate-900 dark:text-slate-100"
+                                                                : "bg-[#eaf1f8] dark:bg-[#131b26] text-slate-900 dark:text-slate-100"
                                                     }`}
                                                 >
                                                     <td className="p-1.5 border-l border-slate-300 dark:border-slate-800 font-bold truncate max-w-[130px]">
                                                         {c.menuItem.title_ar}
                                                         {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 && (
-                                                            <span className="text-[10px] text-blue-600 dark:text-cyan-400 mr-1">
+                                                            <span className="text-[10px] text-blue-600 dark:text-cyan-400 mr-1 font-mono">
                                                                 ({c.menuItem.size_labels[c.selectedSizeIdx]})
                                                             </span>
                                                         )}
@@ -945,7 +972,7 @@ export default function POS2ClassicPage() {
                                                     <td className="p-1.5 border-l border-slate-300 dark:border-slate-800 text-center font-mono">
                                                         {c.unitPrice}
                                                     </td>
-                                                    <td className="p-1.5 text-center font-mono font-black text-blue-900 dark:text-cyan-300">
+                                                    <td className="p-1.5 text-center font-mono font-black text-blue-900 dark:text-emerald-400">
                                                         {c.unitPrice * c.qty}
                                                     </td>
                                                 </tr>
@@ -957,12 +984,12 @@ export default function POS2ClassicPage() {
                         </div>
                     </div>
 
-                    {/* Bottom Invoice Calculations & Checkboxes Panel (Exact Replica of image) */}
-                    <div className="p-2 bg-[#d7e3f1] dark:bg-[#17212e] border-t-2 border-[#839cb5] shrink-0 text-xs space-y-1.5">
+                    {/* Bottom Invoice Calculations & Checkboxes Panel */}
+                    <div className="p-2 bg-[#d7e3f1] dark:bg-[#16212e] border-t-2 border-[#839cb5] dark:border-slate-800 shrink-0 text-xs space-y-1.5">
                         <div className="grid grid-cols-12 gap-2 items-center">
                             
-                            {/* Left Calculations Box (الإجمالي، الخصم، الصافي، المدفوع، الباقي) */}
-                            <div className="col-span-7 bg-white dark:bg-black/30 border border-slate-400 p-1.5 space-y-1 font-mono font-bold">
+                            {/* Left Calculations Box */}
+                            <div className="col-span-7 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 p-1.5 space-y-1 font-mono font-bold">
                                 <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                                     <span className="font-sans font-bold">الإجمالي:</span>
                                     <span className="text-sm font-black">{subtotal}</span>
@@ -980,14 +1007,14 @@ export default function POS2ClassicPage() {
                                             }}
                                             onFocus={() => setNumpadTarget("discount")}
                                             placeholder="0"
-                                            className="w-12 px-1 py-0.5 bg-slate-100 dark:bg-black border border-slate-400 text-center text-xs font-black text-rose-600"
+                                            className="w-12 px-1 py-0.5 bg-slate-100 dark:bg-[#151f2b] border border-slate-400 dark:border-slate-700 text-center text-xs font-black text-rose-600 dark:text-rose-400"
                                         />
                                         <span className="text-[10px]">ج.م</span>
                                     </div>
                                 </div>
-                                <div className="flex justify-between items-center text-slate-900 dark:text-white pt-0.5 border-t border-slate-300">
-                                    <span className="font-sans font-black text-blue-900 dark:text-cyan-300">الصافي:</span>
-                                    <span className="text-base font-black text-blue-900 dark:text-cyan-300">{total}</span>
+                                <div className="flex justify-between items-center text-slate-900 dark:text-white pt-0.5 border-t border-slate-300 dark:border-slate-800">
+                                    <span className="font-sans font-black text-blue-900 dark:text-cyan-400">الصافي:</span>
+                                    <span className="text-base font-black text-blue-900 dark:text-cyan-400">{total}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                                     <span className="font-sans">المدفوع:</span>
@@ -1000,10 +1027,10 @@ export default function POS2ClassicPage() {
                                         }}
                                         onFocus={() => setNumpadTarget("tendered")}
                                         placeholder="0"
-                                        className="w-16 px-1 py-0.5 bg-emerald-50 dark:bg-black border border-emerald-500 text-center font-black text-emerald-800 dark:text-emerald-400"
+                                        className="w-16 px-1 py-0.5 bg-emerald-50 dark:bg-[#0f241a] border border-emerald-500 dark:border-emerald-600 text-center font-black text-emerald-800 dark:text-emerald-400"
                                     />
                                 </div>
-                                <div className="flex justify-between items-center text-emerald-700 dark:text-emerald-400 pt-0.5 border-t border-slate-300">
+                                <div className="flex justify-between items-center text-emerald-700 dark:text-emerald-400 pt-0.5 border-t border-slate-300 dark:border-slate-800">
                                     <span className="font-sans font-black">الباقي:</span>
                                     <span className="text-base font-black font-mono">{changeDue}</span>
                                 </div>
@@ -1016,7 +1043,7 @@ export default function POS2ClassicPage() {
                                         type="checkbox"
                                         checked={printOnSave}
                                         onChange={e => setPrintOnSave(e.target.checked)}
-                                        className="w-3.5 h-3.5 rounded text-blue-600"
+                                        className="w-3.5 h-3.5 rounded text-blue-600 dark:bg-[#0c121a] dark:border-slate-700"
                                     />
                                     <span>طباعة مع الحفظ</span>
                                 </label>
@@ -1026,7 +1053,7 @@ export default function POS2ClassicPage() {
                                         type="checkbox"
                                         checked={printKitchen}
                                         onChange={e => setPrintKitchen(e.target.checked)}
-                                        className="w-3.5 h-3.5 rounded text-blue-600"
+                                        className="w-3.5 h-3.5 rounded text-blue-600 dark:bg-[#0c121a] dark:border-slate-700"
                                     />
                                     <span>طباعة المطبخ</span>
                                 </label>
@@ -1038,7 +1065,7 @@ export default function POS2ClassicPage() {
                                         value={deliveryFee || ""}
                                         onChange={e => setDeliveryFee(Number(e.target.value))}
                                         placeholder="0"
-                                        className="w-12 px-1 py-0.5 bg-white dark:bg-black border border-slate-400 text-center font-bold"
+                                        className="w-12 px-1 py-0.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 text-center font-bold text-slate-900 dark:text-white"
                                     />
                                 </div>
 
@@ -1047,7 +1074,7 @@ export default function POS2ClassicPage() {
                                     <select
                                         value={paymentMethod}
                                         onChange={e => setPaymentMethod(e.target.value)}
-                                        className="px-1 py-0.5 bg-white dark:bg-black border border-slate-400 text-[11px] font-bold"
+                                        className="px-1 py-0.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 text-[11px] font-bold text-slate-900 dark:text-white"
                                     >
                                         <option value="cash">نقدي</option>
                                         <option value="visa">فيزا</option>
@@ -1057,18 +1084,18 @@ export default function POS2ClassicPage() {
 
                                 <button
                                     onClick={() => setShowCustomerModal(true)}
-                                    className="w-full py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 border border-slate-400 rounded text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate"
+                                    className="w-full py-1 bg-slate-200 hover:bg-slate-300 dark:bg-[#182332] dark:hover:bg-[#202f43] border border-slate-400 dark:border-slate-700 rounded text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate transition"
                                 >
                                     {customerName || customerPhone ? `👤 ${customerName || customerPhone}` : "بيانات العميل"}
                                 </button>
                             </div>
                         </div>
 
-                        {/* Big Bottom Action Buttons (جديد | حفظ | تعليق | حذف) */}
+                        {/* Big Bottom Action Buttons */}
                         <div className="grid grid-cols-4 gap-1.5 pt-1">
                             <button
                                 onClick={clearCart}
-                                className="py-2.5 bg-[#2b6cb0] hover:bg-[#3182ce] text-white font-black rounded border-2 border-[#1a4971] text-xs shadow active:scale-95 transition"
+                                className="py-2.5 bg-[#2b6cb0] hover:bg-[#3182ce] dark:bg-[#1b4b7a] dark:hover:bg-[#235f9a] text-white font-black rounded border-2 border-[#1a4971] dark:border-slate-700 text-xs shadow active:scale-95 transition"
                             >
                                 جديد (F2)
                             </button>
@@ -1076,14 +1103,14 @@ export default function POS2ClassicPage() {
                             <button
                                 onClick={() => handleSubmitOrder(false)}
                                 disabled={cart.length === 0 || submitting}
-                                className="col-span-2 py-2.5 bg-[#0d826a] hover:bg-[#0f9b7e] text-white font-black rounded border-2 border-[#065041] text-sm shadow-md active:scale-95 transition disabled:opacity-50"
+                                className="col-span-2 py-2.5 bg-[#0d826a] hover:bg-[#0f9b7e] dark:bg-[#0c735d] dark:hover:bg-[#0f8c72] text-white font-black rounded border-2 border-[#065041] dark:border-emerald-700 text-sm shadow-md active:scale-95 transition disabled:opacity-50"
                             >
                                 {submitting ? "جاري الحفظ..." : "حفظ وطباعة (F12)"}
                             </button>
 
                             <button
                                 onClick={removeSelectedItem}
-                                className="py-2.5 bg-[#c53030] hover:bg-[#e53e3e] text-white font-black rounded border-2 border-[#742a2a] text-xs shadow active:scale-95 transition"
+                                className="py-2.5 bg-[#c53030] hover:bg-[#e53e3e] dark:bg-[#852222] dark:hover:bg-[#a32a2a] text-white font-black rounded border-2 border-[#742a2a] dark:border-red-900 text-xs shadow active:scale-95 transition"
                             >
                                 حذف صنف
                             </button>
@@ -1094,14 +1121,14 @@ export default function POS2ClassicPage() {
                 {/* ══════════════════════════════════════════════════════════
                     RIGHT PANEL: WORKSPACE (MENU / TODAY INVOICES / NUMPAD) (7 COLS)
                 ══════════════════════════════════════════════════════════ */}
-                <div className="col-span-12 lg:col-span-7 flex flex-col h-full bg-[#f4f7fa] dark:bg-[#151c27] border-2 border-[#7693b1] dark:border-slate-800 rounded shadow-md overflow-hidden min-h-0">
+                <div className="col-span-12 lg:col-span-7 flex flex-col h-full bg-[#f4f7fa] dark:bg-[#111823] border-2 border-[#7693b1] dark:border-slate-800 rounded shadow-md overflow-hidden min-h-0">
                     
                     {/* ═══ VIEW A: MENU & TACTILE NUMPAD (WHEN activeTab === "menu") ═══ */}
                     {activeTab === "menu" && (
                         <div className="flex-1 flex flex-col min-h-0 p-1.5 space-y-1.5">
                             
                             {/* Top Search & Filter Bar */}
-                            <div className="flex items-center gap-2 p-1.5 bg-[#e5ecf5] dark:bg-[#1b2535] border border-[#a8bbd1] dark:border-slate-800 rounded shrink-0">
+                            <div className="flex items-center gap-2 p-1.5 bg-[#e5ecf5] dark:bg-[#151f2c] border border-[#a8bbd1] dark:border-slate-800 rounded shrink-0">
                                 <div className="relative flex-1">
                                     <Search className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
@@ -1109,10 +1136,10 @@ export default function POS2ClassicPage() {
                                         value={searchQ}
                                         onChange={e => setSearchQ(e.target.value)}
                                         placeholder="بحث عن صنف بالاسم أو السعر..."
-                                        className="w-full pr-8 pl-2 py-1 bg-white dark:bg-black border border-slate-400 rounded text-xs font-bold text-slate-900 dark:text-white outline-none"
+                                        className="w-full pr-8 pl-2 py-1.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-blue-500 dark:focus:border-cyan-500"
                                     />
                                     {searchQ && (
-                                        <button onClick={() => setSearchQ("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">
+                                        <button onClick={() => setSearchQ("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white">
                                             <X className="w-3.5 h-3.5" />
                                         </button>
                                     )}
@@ -1120,7 +1147,11 @@ export default function POS2ClassicPage() {
 
                                 <button
                                     onClick={() => setActiveCategory("all")}
-                                    className={`px-2.5 py-1 rounded text-xs font-bold border ${activeCategory === "all" ? "bg-[#18486e] text-white border-[#0c283f]" : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-400"}`}
+                                    className={`px-3 py-1.5 rounded text-xs font-bold border transition-colors ${
+                                        activeCategory === "all"
+                                            ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400 shadow-sm"
+                                            : "bg-white dark:bg-[#182332] text-slate-700 dark:text-slate-300 border-slate-400 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-[#202f43]"
+                                    }`}
                                 >
                                     الكل ({menuItems.length})
                                 </button>
@@ -1134,8 +1165,8 @@ export default function POS2ClassicPage() {
                                         onClick={() => setActiveCategory(cat.id)}
                                         className={`px-3 py-1.5 rounded font-bold text-xs shrink-0 border transition-all ${
                                             activeCategory === cat.id
-                                                ? "bg-[#18486e] text-white border-[#0c283f] shadow font-black"
-                                                : "bg-[#e5ecf5] dark:bg-[#1f2c3d] text-slate-700 dark:text-slate-200 border-[#9bb1c7] hover:bg-[#d0deee]"
+                                                ? "bg-[#18486e] dark:bg-cyan-600 text-white border-[#0c283f] dark:border-cyan-400 shadow font-black"
+                                                : "bg-[#e5ecf5] dark:bg-[#172230] text-slate-700 dark:text-slate-200 border-[#9bb1c7] dark:border-slate-700 hover:bg-[#d0deee] dark:hover:bg-[#202e40]"
                                         }`}
                                     >
                                         {cat.name_ar}
@@ -1146,50 +1177,40 @@ export default function POS2ClassicPage() {
                             {/* Middle Split: Product Buttons Grid (Left) + Tactile POS Numpad (Right) */}
                             <div className="flex-1 grid grid-cols-12 gap-1.5 min-h-0">
                                 
-                                {/* Product Tiles Grid (8 Cols) */}
-                                <div className="col-span-12 md:col-span-8 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1.5 content-start min-h-0 p-1 bg-[#eaf1f8] dark:bg-[#111822] border border-slate-300 dark:border-slate-800 rounded">
-                                    {menuItems
-                                        .filter(item => {
-                                            if (activeCategory !== "all" && item.category_id !== activeCategory) return false;
-                                            if (searchQ) {
-                                                const q = searchQ.toLowerCase();
-                                                return item.title_ar.toLowerCase().includes(q) || (item.title_en || "").toLowerCase().includes(q);
-                                            }
-                                            return true;
-                                        })
-                                        .map(item => {
-                                            const isItemSelected = selectedMenuItem?.id === item.id;
-                                            return (
-                                                <button
-                                                    key={item.id}
-                                                    onClick={() => handleSelectMenuItem(item, 0)}
-                                                    className={`p-2 rounded border-2 transition-all flex flex-col justify-between text-right active:scale-95 cursor-pointer shadow-sm ${
-                                                        isItemSelected
-                                                            ? "bg-[#c1e0fc] dark:bg-[#1d3d61] border-[#18486e] dark:border-cyan-400 font-bold"
-                                                            : "bg-white dark:bg-[#192230] border-[#9bb1c7] dark:border-slate-700 hover:border-blue-600 hover:bg-[#f0f6fc]"
-                                                    }`}
-                                                >
-                                                    <span className="font-extrabold text-[13px] leading-snug text-slate-900 dark:text-white line-clamp-2">
-                                                        {item.title_ar}
+                                {/* Product Tiles Grid (8 Cols) - ONLY ITEM NAME & PRICE WITH CLEAR BOLD FONT */}
+                                <div className="col-span-12 md:col-span-8 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1.5 content-start min-h-0 p-1 bg-[#eaf1f8] dark:bg-[#0d141e] border border-slate-300 dark:border-slate-800 rounded">
+                                    {flattenedCards.map(({ item, sizeIdx, title, price }, cardIdx) => {
+                                        const isItemSelected = selectedMenuItem?.id === item.id && selectedSizeIdx === sizeIdx;
+                                        return (
+                                            <button
+                                                key={`${item.id}-${sizeIdx}-${cardIdx}`}
+                                                onClick={() => handleSelectMenuItem(item, sizeIdx)}
+                                                className={`rounded-lg border-2 transition-all flex flex-col justify-between overflow-hidden active:scale-95 cursor-pointer shadow-sm min-h-[90px] xl:min-h-[105px] ${
+                                                    isItemSelected
+                                                        ? "bg-[#c1e0fc] dark:bg-[#1a385c] border-[#18486e] dark:border-cyan-400 ring-2 ring-cyan-400/40"
+                                                        : "bg-white dark:bg-[#15202e] border-[#9bb1c7] dark:border-slate-700 hover:border-blue-500 hover:dark:border-cyan-500 hover:bg-[#f3f8fd] dark:hover:bg-[#1c2a3d]"
+                                                }`}
+                                            >
+                                                {/* ONLY Item Title (Big, bold, crisp font) */}
+                                                <div className="flex-1 flex items-center justify-center p-2.5 text-center">
+                                                    <span className="font-black text-sm xl:text-base leading-snug text-slate-900 dark:text-slate-100 line-clamp-2">
+                                                        {title}
                                                     </span>
+                                                </div>
 
-                                                    <div className="mt-2 flex items-center justify-between pt-1 border-t border-slate-200 dark:border-slate-700">
-                                                        {item.sell_by_weight ? (
-                                                            <span className="text-[10px] text-indigo-700 dark:text-indigo-400 font-bold">⚖️ وزن</span>
-                                                        ) : (
-                                                            <span className="text-[11px] text-slate-500 font-bold">قطعة</span>
-                                                        )}
-                                                        <span className="font-black text-sm text-[#006090] dark:text-cyan-400 font-mono">
-                                                            {formatCurrency(item.prices[0])}
-                                                        </span>
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
+                                                {/* ONLY Price (Big, bold, high-contrast font) */}
+                                                <div className="w-full py-1.5 bg-[#eaf1f8] dark:bg-[#0c131c] border-t border-slate-200 dark:border-slate-800 flex justify-center items-center">
+                                                    <span className="font-black text-sm xl:text-base font-mono text-emerald-700 dark:text-emerald-400 tracking-tight">
+                                                        {formatCurrency(price)}
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Tactile Classic Numpad (4 Cols) */}
-                                <div className="col-span-12 md:col-span-4 bg-[#e5ecf5] dark:bg-[#17212f] border-2 border-[#7693b1] dark:border-slate-800 rounded p-1.5 flex flex-col justify-between shadow-inner">
+                                <div className="col-span-12 md:col-span-4 bg-[#e5ecf5] dark:bg-[#141d28] border-2 border-[#7693b1] dark:border-slate-800 rounded p-1.5 flex flex-col justify-between shadow-inner">
                                     <div>
                                         {/* Numpad Display & Target Selector */}
                                         <div className="mb-1 text-center">
@@ -1206,7 +1227,7 @@ export default function POS2ClassicPage() {
                                                             setNumpadTarget(m.id as NumpadTarget);
                                                             setNumpadBuffer("");
                                                         }}
-                                                        className={`py-1 rounded transition-colors ${numpadTarget === m.id ? "bg-[#18486e] text-white font-black" : "text-slate-700 dark:text-slate-300"}`}
+                                                        className={`py-1 rounded transition-colors ${numpadTarget === m.id ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black" : "text-slate-700 dark:text-slate-300"}`}
                                                     >
                                                         {m.label}
                                                     </button>
@@ -1214,46 +1235,46 @@ export default function POS2ClassicPage() {
                                             </div>
 
                                             {/* Digital Display */}
-                                            <div className="px-2 py-1.5 bg-black text-emerald-400 font-mono font-black text-xl rounded text-left border border-slate-600 truncate shadow-inner tracking-wider">
+                                            <div className="px-2 py-1.5 bg-black text-emerald-400 font-mono font-black text-xl rounded text-left border border-slate-700 truncate shadow-inner tracking-wider">
                                                 {numpadBuffer || "0"}
                                             </div>
                                         </div>
 
                                         {/* Quick Cash Buttons */}
                                         <div className="grid grid-cols-4 gap-1 mb-1 text-[10px] font-bold font-mono">
-                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(total); setNumpadBuffer(total.toString()); }} className="py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-sans font-black">بالضبط</button>
-                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(50); setNumpadBuffer("50"); }} className="py-1 bg-white dark:bg-slate-800 border rounded font-black">+50</button>
-                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(100); setNumpadBuffer("100"); }} className="py-1 bg-white dark:bg-slate-800 border rounded font-black">+100</button>
-                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(200); setNumpadBuffer("200"); }} className="py-1 bg-white dark:bg-slate-800 border rounded font-black">+200</button>
+                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(total); setNumpadBuffer(total.toString()); }} className="py-1 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white rounded font-sans font-black">بالضبط</button>
+                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(50); setNumpadBuffer("50"); }} className="py-1 bg-white dark:bg-[#1b2737] border border-slate-400 dark:border-slate-700 text-slate-900 dark:text-slate-200 rounded font-black">+50</button>
+                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(100); setNumpadBuffer("100"); }} className="py-1 bg-white dark:bg-[#1b2737] border border-slate-400 dark:border-slate-700 text-slate-900 dark:text-slate-200 rounded font-black">+100</button>
+                                            <button onClick={() => { setNumpadTarget("tendered"); setTenderedCash(200); setNumpadBuffer("200"); }} className="py-1 bg-white dark:bg-[#1b2737] border border-slate-400 dark:border-slate-700 text-slate-900 dark:text-slate-200 rounded font-black">+200</button>
                                         </div>
 
                                         {/* Classic Keypad 4x4 Grid */}
                                         <div className="grid grid-cols-4 gap-1 font-mono text-sm font-black">
-                                            <button onClick={() => handleNumpadKey("7")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">7</button>
-                                            <button onClick={() => handleNumpadKey("8")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">8</button>
-                                            <button onClick={() => handleNumpadKey("9")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">9</button>
-                                            <button onClick={() => { if (selectedCartIdx !== null && cart[selectedCartIdx]) setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty + 1 } : c)); }} className="py-2.5 bg-[#8da5be] hover:bg-[#a1b8d0] rounded border border-[#647c94] text-slate-900 active:scale-95 shadow-sm flex items-center justify-center font-bold">
+                                            <button onClick={() => handleNumpadKey("7")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">7</button>
+                                            <button onClick={() => handleNumpadKey("8")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">8</button>
+                                            <button onClick={() => handleNumpadKey("9")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">9</button>
+                                            <button onClick={() => { if (selectedCartIdx !== null && cart[selectedCartIdx]) setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty + 1 } : c)); }} className="py-2.5 bg-[#8da5be] hover:bg-[#a1b8d0] dark:bg-[#25364b] dark:hover:bg-[#314763] rounded border border-[#647c94] dark:border-slate-700 text-slate-900 dark:text-cyan-200 active:scale-95 shadow-sm flex items-center justify-center font-bold">
                                                 <Plus className="w-4 h-4" />
                                             </button>
 
-                                            <button onClick={() => handleNumpadKey("4")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">4</button>
-                                            <button onClick={() => handleNumpadKey("5")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">5</button>
-                                            <button onClick={() => handleNumpadKey("6")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">6</button>
-                                            <button onClick={() => { if (selectedCartIdx !== null && cart[selectedCartIdx] && cart[selectedCartIdx].qty > 1) setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty - 1 } : c)); }} className="py-2.5 bg-[#8da5be] hover:bg-[#a1b8d0] rounded border border-[#647c94] text-slate-900 active:scale-95 shadow-sm flex items-center justify-center font-bold">
+                                            <button onClick={() => handleNumpadKey("4")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">4</button>
+                                            <button onClick={() => handleNumpadKey("5")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">5</button>
+                                            <button onClick={() => handleNumpadKey("6")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">6</button>
+                                            <button onClick={() => { if (selectedCartIdx !== null && cart[selectedCartIdx] && cart[selectedCartIdx].qty > 1) setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty - 1 } : c)); }} className="py-2.5 bg-[#8da5be] hover:bg-[#a1b8d0] dark:bg-[#25364b] dark:hover:bg-[#314763] rounded border border-[#647c94] dark:border-slate-700 text-slate-900 dark:text-cyan-200 active:scale-95 shadow-sm flex items-center justify-center font-bold">
                                                 <Minus className="w-4 h-4" />
                                             </button>
 
-                                            <button onClick={() => handleNumpadKey("1")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">1</button>
-                                            <button onClick={() => handleNumpadKey("2")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">2</button>
-                                            <button onClick={() => handleNumpadKey("3")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">3</button>
-                                            <button onClick={() => handleNumpadKey("BACKSPACE")} className="py-2.5 bg-[#e08b8b] hover:bg-[#ec9e9e] rounded border border-[#b46565] text-red-950 active:scale-95 shadow-sm flex items-center justify-center">
+                                            <button onClick={() => handleNumpadKey("1")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">1</button>
+                                            <button onClick={() => handleNumpadKey("2")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">2</button>
+                                            <button onClick={() => handleNumpadKey("3")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">3</button>
+                                            <button onClick={() => handleNumpadKey("BACKSPACE")} className="py-2.5 bg-[#e08b8b] hover:bg-[#ec9e9e] dark:bg-[#522226] dark:hover:bg-[#692a30] rounded border border-[#b46565] dark:border-red-900 text-red-950 dark:text-red-200 active:scale-95 shadow-sm flex items-center justify-center">
                                                 <Delete className="w-4 h-4" />
                                             </button>
 
-                                            <button onClick={() => handleNumpadKey("C")} className="py-2.5 bg-[#6c859e] hover:bg-[#7e99b4] text-white rounded border border-[#4d6379] active:scale-95 shadow-sm">C</button>
-                                            <button onClick={() => handleNumpadKey("0")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">0</button>
-                                            <button onClick={() => handleNumpadKey("00")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">00</button>
-                                            <button onClick={() => handleNumpadKey(".")} className="py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-100 rounded border border-slate-400 active:scale-95 shadow-sm">.</button>
+                                            <button onClick={() => handleNumpadKey("C")} className="py-2.5 bg-[#6c859e] hover:bg-[#7e99b4] dark:bg-[#2c3d52] dark:hover:bg-[#384d66] text-white rounded border border-[#4d6379] dark:border-slate-700 active:scale-95 shadow-sm">C</button>
+                                            <button onClick={() => handleNumpadKey("0")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">0</button>
+                                            <button onClick={() => handleNumpadKey("00")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">00</button>
+                                            <button onClick={() => handleNumpadKey(".")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">.</button>
                                         </div>
                                     </div>
 
@@ -1261,7 +1282,7 @@ export default function POS2ClassicPage() {
                                     <button
                                         onClick={() => handleSubmitOrder(false)}
                                         disabled={cart.length === 0 || submitting}
-                                        className="w-full mt-2 py-2.5 bg-[#0d826a] hover:bg-[#0f9b7e] text-white font-black rounded border-2 border-[#065041] text-xs shadow-md active:scale-95 transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                        className="w-full mt-2 py-2.5 bg-[#0d826a] hover:bg-[#0f9b7e] dark:bg-[#0c735d] dark:hover:bg-[#0f8c72] text-white font-black rounded border-2 border-[#065041] dark:border-emerald-700 text-xs shadow-md active:scale-95 transition disabled:opacity-50 flex items-center justify-center gap-1.5"
                                     >
                                         <CheckSquare className="w-4 h-4" />
                                         <span>تنفيذ الفاتورة (ENTER)</span>
@@ -1276,41 +1297,41 @@ export default function POS2ClassicPage() {
                         <div className="flex-1 flex flex-col min-h-0 p-1.5 space-y-1.5">
                             
                             {/* Filter and Search Bar matching screenshot */}
-                            <div className="p-1.5 bg-[#dbe5f2] dark:bg-[#18212e] border-2 border-[#8da5bf] dark:border-slate-800 rounded flex items-center justify-between gap-1.5 text-xs font-bold shrink-0 flex-wrap">
+                            <div className="p-1.5 bg-[#dbe5f2] dark:bg-[#151f2c] border-2 border-[#8da5bf] dark:border-slate-800 rounded flex items-center justify-between gap-1.5 text-xs font-bold shrink-0 flex-wrap">
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-slate-800 dark:text-slate-200">عرض الفواتير:</span>
                                     <button
                                         onClick={() => setInvoicesFilterType("all")}
-                                        className={`px-3 py-1 rounded border ${invoicesFilterType === "all" ? "bg-[#18486e] text-white font-black" : "bg-white dark:bg-slate-800 border-slate-400"}`}
+                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "all" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         كل الفواتير
                                     </button>
                                     <button
                                         onClick={() => setInvoicesFilterType("takeaway")}
-                                        className={`px-3 py-1 rounded border ${invoicesFilterType === "takeaway" ? "bg-[#18486e] text-white font-black" : "bg-white dark:bg-slate-800 border-slate-400"}`}
+                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "takeaway" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         فواتير التك اواي
                                     </button>
                                     <button
                                         onClick={() => setInvoicesFilterType("delivery")}
-                                        className={`px-3 py-1 rounded border ${invoicesFilterType === "delivery" ? "bg-[#18486e] text-white font-black" : "bg-white dark:bg-slate-800 border-slate-400"}`}
+                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "delivery" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         فواتير الدليفرى
                                     </button>
                                     <button
                                         onClick={() => setInvoicesFilterType("dine_in")}
-                                        className={`px-3 py-1 rounded border ${invoicesFilterType === "dine_in" ? "bg-[#18486e] text-white font-black" : "bg-white dark:bg-slate-800 border-slate-400"}`}
+                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "dine_in" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         فواتير الصالة
                                     </button>
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <span>نوع الدفع:</span>
+                                    <span className="text-slate-800 dark:text-slate-200">نوع الدفع:</span>
                                     <select
                                         value={invoicesFilterPayment}
                                         onChange={e => setInvoicesFilterPayment(e.target.value)}
-                                        className="px-2 py-1 bg-white dark:bg-black border border-slate-400 rounded text-xs font-bold"
+                                        className="px-2 py-1 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded text-xs font-bold text-slate-900 dark:text-white"
                                     >
                                         <option value="all">كل طرق الدفع</option>
                                         <option value="cash">نقدي</option>
@@ -1323,28 +1344,28 @@ export default function POS2ClassicPage() {
                                         value={invoicesSearchQ}
                                         onChange={e => setInvoicesSearchQ(e.target.value)}
                                         placeholder="بحث برقم الفاتورة أو العميل..."
-                                        className="w-48 px-2 py-1 bg-white dark:bg-black border border-slate-400 rounded text-xs font-bold"
+                                        className="w-48 px-2 py-1 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded text-xs font-bold text-slate-900 dark:text-white"
                                     />
                                 </div>
                             </div>
 
                             {/* Invoices Spreadsheet Table (Replica of Screenshot) */}
-                            <div className="flex-1 overflow-y-auto border-2 border-[#8da5bf] dark:border-slate-800 rounded bg-white dark:bg-[#0f1722] min-h-0">
+                            <div className="flex-1 overflow-y-auto border-2 border-[#8da5bf] dark:border-slate-800 rounded bg-white dark:bg-[#0d141e] min-h-0">
                                 <table className="w-full border-collapse text-right text-xs">
-                                    <thead className="bg-[#cbdcf0] dark:bg-[#1a2638] text-slate-900 dark:text-slate-100 border-b-2 border-[#7693b1] sticky top-0 font-black shadow-sm">
+                                    <thead className="bg-[#cbdcf0] dark:bg-[#182638] text-slate-900 dark:text-slate-100 border-b-2 border-[#7693b1] dark:border-slate-700 sticky top-0 font-black shadow-sm">
                                         <tr>
-                                            <th className="p-2 border-l border-[#9cb3cc] text-center w-24">رقم_الفاتورة</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] text-center w-28">الإجمالي</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] text-center w-28">المستخدم</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] text-center w-24">الدفع</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] text-center w-32">الوقت</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-24">رقم_الفاتورة</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-28">الإجمالي</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-28">المستخدم</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-24">الدفع</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-32">الوقت</th>
                                             <th className="p-2 text-center w-32">التاريخ</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-300 dark:divide-slate-800 font-bold">
                                         {filteredTodayInvoices.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="py-16 text-center text-slate-400">
+                                                <td colSpan={6} className="py-16 text-center text-slate-400 dark:text-slate-600 font-bold">
                                                     لا توجد فواتير مسجلة اليوم ضمن هذا التصنيف
                                                 </td>
                                             </tr>
@@ -1356,28 +1377,28 @@ export default function POS2ClassicPage() {
                                                         const html = renderReceiptHtml(o, restaurant, isAr);
                                                         executePrint(html, getPrinterSettings(), modalHtml => setPrintModalHtml(modalHtml));
                                                     }}
-                                                    className={`hover:bg-[#d8e8f8] dark:hover:bg-[#1c2e44] cursor-pointer transition-colors ${
-                                                        idx % 2 === 0 ? "bg-white dark:bg-[#121a26]" : "bg-[#f2f7fc] dark:bg-[#151f2e]"
+                                                    className={`hover:bg-[#d8e8f8] dark:hover:bg-[#1a293d] cursor-pointer transition-colors ${
+                                                        idx % 2 === 0 ? "bg-white dark:bg-[#0f1722]" : "bg-[#f2f7fc] dark:bg-[#141c27]"
                                                     }`}
                                                 >
                                                     <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono font-black text-blue-900 dark:text-cyan-300 text-sm">
                                                         {o.order_number}
                                                     </td>
-                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono font-black text-sm">
+                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono font-black text-sm text-slate-900 dark:text-emerald-400">
                                                         {o.total}
                                                     </td>
-                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center">
+                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center text-slate-800 dark:text-slate-200">
                                                         {o.cashier_name || "مدير"}
                                                     </td>
                                                     <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center">
-                                                        <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[11px]">
+                                                        <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">
                                                             {o.payment_method === "cash" ? "نقدي" : o.payment_method === "visa" ? "فيزا" : o.payment_method}
                                                         </span>
                                                     </td>
-                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono text-[11px]" dir="ltr">
+                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono text-[11px] text-slate-700 dark:text-slate-300" dir="ltr">
                                                         {new Date(o.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                                     </td>
-                                                    <td className="p-2 text-center font-mono text-[11px]" dir="ltr">
+                                                    <td className="p-2 text-center font-mono text-[11px] text-slate-700 dark:text-slate-300" dir="ltr">
                                                         {new Date(o.created_at).toLocaleDateString("en-GB")}
                                                     </td>
                                                 </tr>
@@ -1387,19 +1408,19 @@ export default function POS2ClassicPage() {
                                 </table>
                             </div>
 
-                            {/* Bottom Classic Invoices Summary Strip (Replica of Screenshot) */}
-                            <div className="p-2 bg-[#c5d6e8] dark:bg-[#172230] border-2 border-[#7693b1] dark:border-slate-800 rounded flex items-center justify-between text-xs font-bold shrink-0">
+                            {/* Bottom Classic Invoices Summary Strip */}
+                            <div className="p-2 bg-[#c5d6e8] dark:bg-[#151f2c] border-2 border-[#7693b1] dark:border-slate-800 rounded flex items-center justify-between text-xs font-bold shrink-0">
                                 <div className="flex items-center gap-6">
                                     <div className="flex items-center gap-1.5 font-mono">
                                         <span className="font-sans font-bold text-slate-700 dark:text-slate-300">إجمالي الفواتير:</span>
-                                        <span className="px-3 py-1 bg-white dark:bg-black border border-slate-400 font-black text-sm text-blue-900 dark:text-cyan-300">
+                                        <span className="px-3 py-1 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 font-black text-sm text-blue-900 dark:text-cyan-300">
                                             {totalInvoicesSum}
                                         </span>
                                     </div>
 
                                     <div className="flex items-center gap-1.5 font-mono">
                                         <span className="font-sans font-bold text-slate-700 dark:text-slate-300">إجمالي خدمة التوصيل:</span>
-                                        <span className="px-3 py-1 bg-white dark:bg-black border border-slate-400 font-black text-sm text-slate-800 dark:text-slate-200">
+                                        <span className="px-3 py-1 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 font-black text-sm text-slate-800 dark:text-slate-200">
                                             {totalDeliveryFeesSum}
                                         </span>
                                     </div>
@@ -1420,12 +1441,12 @@ export default function POS2ClassicPage() {
             {/* ═══ CUSTOMER & DELIVERY MODAL ═══ */}
             {showCustomerModal && (
                 <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowCustomerModal(false)}>
-                    <div className="bg-[#e9f1f8] dark:bg-slate-900 border-2 border-[#18486e] rounded-lg w-full max-w-md shadow-2xl p-4 text-xs font-bold" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-400">
+                    <div className="bg-[#e9f1f8] dark:bg-[#131b26] border-2 border-[#18486e] dark:border-cyan-600 rounded-lg w-full max-w-md shadow-2xl p-4 text-xs font-bold" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-400 dark:border-slate-700">
                             <span className="font-black text-sm text-[#18486e] dark:text-cyan-300 flex items-center gap-1.5">
                                 <Users className="w-4 h-4" /> بيانات العميل والتوصيل
                             </span>
-                            <button onClick={() => setShowCustomerModal(false)} className="text-slate-500 hover:text-slate-800">
+                            <button onClick={() => setShowCustomerModal(false)} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
@@ -1439,7 +1460,7 @@ export default function POS2ClassicPage() {
                                     value={customerPhone}
                                     onChange={e => setCustomerPhone(e.target.value)}
                                     placeholder="01xxxxxxxxx"
-                                    className="w-full p-1.5 bg-white dark:bg-black border border-slate-400 rounded font-mono font-bold"
+                                    className="w-full p-1.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded font-mono font-bold text-slate-900 dark:text-white"
                                 />
                             </div>
 
@@ -1450,7 +1471,7 @@ export default function POS2ClassicPage() {
                                     value={customerName}
                                     onChange={e => setCustomerName(e.target.value)}
                                     placeholder="اسم العميل..."
-                                    className="w-full p-1.5 bg-white dark:bg-black border border-slate-400 rounded"
+                                    className="w-full p-1.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white"
                                 />
                             </div>
 
@@ -1461,31 +1482,31 @@ export default function POS2ClassicPage() {
                                     value={customerAddress}
                                     onChange={e => setCustomerAddress(e.target.value)}
                                     placeholder="الشارع، العمارة، الشقة..."
-                                    className="w-full p-1.5 bg-white dark:bg-black border border-slate-400 rounded"
+                                    className="w-full p-1.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white"
                                 />
                             </div>
 
                             {orderType === "delivery" && (
-                                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-300">
+                                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-300 dark:border-slate-700">
                                     <div>
-                                        <label className="block mb-1">الطيار:</label>
+                                        <label className="block mb-1 text-slate-700 dark:text-slate-300">الطيار:</label>
                                         <select
                                             value={selectedDriver}
                                             onChange={e => setSelectedDriver(e.target.value)}
-                                            className="w-full p-1 bg-white dark:bg-black border border-slate-400 rounded"
+                                            className="w-full p-1 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white"
                                         >
                                             <option value="">اختر الطيار...</option>
                                             {drivers.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block mb-1">رسوم التوصيل:</label>
+                                        <label className="block mb-1 text-slate-700 dark:text-slate-300">رسوم التوصيل:</label>
                                         <input
                                             type="number"
                                             value={deliveryFee || ""}
                                             onChange={e => setDeliveryFee(Number(e.target.value))}
                                             placeholder="0"
-                                            className="w-full p-1 bg-white dark:bg-black border border-slate-400 rounded font-black text-blue-900"
+                                            className="w-full p-1 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded font-black text-blue-900 dark:text-cyan-300"
                                         />
                                     </div>
                                 </div>
@@ -1498,7 +1519,7 @@ export default function POS2ClassicPage() {
                                     value={orderNotes}
                                     onChange={e => setOrderNotes(e.target.value)}
                                     placeholder="ملاحظات..."
-                                    className="w-full p-1.5 bg-white dark:bg-black border border-slate-400 rounded"
+                                    className="w-full p-1.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded text-slate-900 dark:text-white"
                                 />
                             </div>
                         </div>
@@ -1506,7 +1527,7 @@ export default function POS2ClassicPage() {
                         <div className="pt-2 flex justify-end">
                             <button
                                 onClick={() => setShowCustomerModal(false)}
-                                className="w-full py-2 bg-[#18486e] hover:bg-[#205b8a] text-white rounded font-black text-xs transition"
+                                className="w-full py-2 bg-[#18486e] dark:bg-cyan-600 hover:bg-[#205b8a] dark:hover:bg-cyan-500 text-white rounded font-black text-xs transition"
                             >
                                 حفظ وإغلاق
                             </button>
@@ -1518,8 +1539,8 @@ export default function POS2ClassicPage() {
             {/* ═══ WEIGHT MODAL ═══ */}
             {weightPrompt && (
                 <div className="fixed inset-0 z-[250] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-[#e9f1f8] dark:bg-slate-900 border-2 border-[#18486e] rounded-lg w-full max-w-sm shadow-2xl p-5 text-center" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-base font-black mb-1">⚖️ وزن الصنف المطلوب</h3>
+                    <div className="bg-[#e9f1f8] dark:bg-[#131b26] border-2 border-[#18486e] dark:border-cyan-600 rounded-lg w-full max-w-sm shadow-2xl p-5 text-center" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-base font-black mb-1 text-slate-900 dark:text-white">⚖️ وزن الصنف المطلوب</h3>
                         <p className="text-xs text-blue-800 dark:text-cyan-300 font-bold mb-3">{weightPrompt.item.title_ar}</p>
                         
                         <input
@@ -1538,7 +1559,7 @@ export default function POS2ClassicPage() {
                             }}
                             placeholder="0.00"
                             step="0.01"
-                            className="w-full py-2 text-center text-3xl font-black font-mono bg-white dark:bg-black border-2 border-slate-500 rounded mb-3"
+                            className="w-full py-2 text-center text-3xl font-black font-mono bg-white dark:bg-[#0c121a] border-2 border-slate-500 dark:border-slate-700 text-slate-900 dark:text-white rounded mb-3"
                         />
 
                         <div className="grid grid-cols-4 gap-1.5 mb-3 font-mono text-xs font-bold">
@@ -1546,7 +1567,7 @@ export default function POS2ClassicPage() {
                                 <button
                                     key={w}
                                     onClick={() => setWeightInput(w.toString())}
-                                    className="py-1.5 bg-white dark:bg-slate-800 border rounded"
+                                    className="py-1.5 bg-white dark:bg-[#182332] border border-slate-300 dark:border-slate-700 rounded text-slate-900 dark:text-white"
                                 >
                                     {w}
                                 </button>
@@ -1554,7 +1575,7 @@ export default function POS2ClassicPage() {
                         </div>
 
                         <div className="flex gap-2">
-                            <button onClick={() => setWeightPrompt(null)} className="flex-1 py-2 bg-slate-300 text-slate-800 rounded font-bold">إلغاء</button>
+                            <button onClick={() => setWeightPrompt(null)} className="flex-1 py-2 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded font-bold">إلغاء</button>
                             <button
                                 onClick={() => {
                                     const w = parseFloat(weightInput);
@@ -1563,7 +1584,7 @@ export default function POS2ClassicPage() {
                                         setWeightPrompt(null);
                                     }
                                 }}
-                                className="flex-1 py-2 bg-[#18486e] text-white rounded font-black"
+                                className="flex-1 py-2 bg-[#18486e] dark:bg-cyan-600 hover:bg-[#205b8a] dark:hover:bg-cyan-500 text-white rounded font-black"
                             >
                                 تأكيد
                             </button>
@@ -1575,23 +1596,23 @@ export default function POS2ClassicPage() {
             {/* ═══ SHIFT REPORT MODAL ═══ */}
             {showShiftReport && (
                 <div className="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowShiftReport(false)}>
-                    <div className="bg-[#e9f1f8] dark:bg-slate-900 border-2 border-[#18486e] rounded-lg w-full max-w-sm shadow-2xl p-4 text-xs font-bold" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-400">
+                    <div className="bg-[#e9f1f8] dark:bg-[#131b26] border-2 border-[#18486e] dark:border-cyan-600 rounded-lg w-full max-w-sm shadow-2xl p-4 text-xs font-bold" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-400 dark:border-slate-700">
                             <span className="font-black text-sm text-[#18486e] dark:text-cyan-300 flex items-center gap-1.5">
                                 <Banknote className="w-4 h-4" /> تقفيل وإيرادات الوردية
                             </span>
-                            <button onClick={() => setShowShiftReport(false)} className="text-slate-500 hover:text-slate-800">
+                            <button onClick={() => setShowShiftReport(false)} className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         <div className="py-4 space-y-3">
-                            <div className="text-center pb-2 border-b border-slate-300">
-                                <span className="text-slate-600 block text-[11px]">الكاشير الحالي</span>
+                            <div className="text-center pb-2 border-b border-slate-300 dark:border-slate-700">
+                                <span className="text-slate-600 dark:text-slate-400 block text-[11px]">الكاشير الحالي</span>
                                 <span className="text-base font-black text-blue-900 dark:text-cyan-300">{cashierName}</span>
                             </div>
 
-                            <div className="bg-white dark:bg-black p-3 border border-slate-400 text-center rounded">
+                            <div className="bg-white dark:bg-[#0c121a] p-3 border border-slate-400 dark:border-slate-700 text-center rounded">
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider block">إجمالي مبيعات اليوم</span>
                                 <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
                                     {todayOrders.reduce((s, o) => s + (o.total || 0), 0)} ج.م
@@ -1599,13 +1620,13 @@ export default function POS2ClassicPage() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 text-center font-mono">
-                                <div className="p-2 bg-white dark:bg-black border border-slate-300 rounded">
+                                <div className="p-2 bg-white dark:bg-[#0c121a] border border-slate-300 dark:border-slate-700 rounded">
                                     <span className="text-[10px] text-slate-500 block font-sans">عدد الفواتير</span>
-                                    <span className="text-base font-black">{todayOrders.length}</span>
+                                    <span className="text-base font-black text-slate-900 dark:text-white">{todayOrders.length}</span>
                                 </div>
-                                <div className="p-2 bg-white dark:bg-black border border-slate-300 rounded">
+                                <div className="p-2 bg-white dark:bg-[#0c121a] border border-slate-300 dark:border-slate-700 rounded">
                                     <span className="text-[10px] text-slate-500 block font-sans">خدمات التوصيل</span>
-                                    <span className="text-base font-black">{todayOrders.reduce((s, o) => s + (o.delivery_fee || 0), 0)}</span>
+                                    <span className="text-base font-black text-slate-900 dark:text-white">{todayOrders.reduce((s, o) => s + (o.delivery_fee || 0), 0)}</span>
                                 </div>
                             </div>
                         </div>
@@ -1632,11 +1653,11 @@ export default function POS2ClassicPage() {
                                     });
                                     executePrint(html, getPrinterSettings(), modalHtml => setPrintModalHtml(modalHtml));
                                 }}
-                                className="flex-1 py-2 bg-[#18486e] text-white rounded font-black text-xs"
+                                className="flex-1 py-2 bg-[#18486e] dark:bg-cyan-600 hover:bg-[#205b8a] dark:hover:bg-cyan-500 text-white rounded font-black text-xs"
                             >
                                 طباعة تقرير الوردية
                             </button>
-                            <button onClick={() => setShowShiftReport(false)} className="px-3 py-2 bg-slate-300 text-slate-800 rounded font-bold">
+                            <button onClick={() => setShowShiftReport(false)} className="px-3 py-2 bg-slate-300 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded font-bold">
                                 إغلاق
                             </button>
                         </div>
