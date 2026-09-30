@@ -120,11 +120,18 @@ function startNextServer() {
         // Set environment variables for the Next.js server
         const env = {
             ...process.env,
+            ELECTRON_RUN_AS_NODE: '1',
             PORT: PORT.toString(),
             HOSTNAME: 'localhost',
             NODE_ENV: 'production',
             NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
             NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+            R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
+            R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
+            R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
+            R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
+            R2_PUBLIC_URL: process.env.R2_PUBLIC_URL,
         };
 
         nextServer = spawn(process.execPath, [serverFile], {

@@ -105,6 +105,7 @@ async function main() {
         appPkg.description = 'ASN POS Desktop - Next.js Standalone Server';
         appPkg.version = '1.0.0';
         appPkg.author = 'ASN Technology';
+        appPkg.main = 'server.js';
         fs.writeFileSync(appPkgPath, JSON.stringify(appPkg, null, 2));
         console.log('  [✓] app/package.json fixed');
     }

@@ -13,7 +13,7 @@ import {
     UserCog, Printer, Store, Palette, QrCode,
     PanelLeftClose, PanelLeftOpen,
     Fingerprint, CalendarClock, DollarSign, AlertTriangle, FileBarChart, Megaphone, Cloud, Tag,
-    Smartphone, Download, UserCheck, MessageCircle, Sparkles
+    Smartphone, Download, UserCheck, MessageCircle, Sparkles, Calculator
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -581,7 +581,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             label: language === "ar" ? "الطلبات" : "Orders",
             items: [
                 { href: "/dashboard/orders", icon: ClipboardList, labelAr: "نظام الطلبيات", labelEn: "Orders", key: "orders" },
-                { href: "/dashboard/pos", icon: CreditCard, labelAr: "POS", labelEn: "POS", key: "pos" },
+                { href: "/dashboard/pos", icon: CreditCard, labelAr: "POS (عصري)", labelEn: "POS (Modern)", key: "pos" },
+                { href: "/dashboard/pos2", icon: Calculator, labelAr: "POS 2 (كلاسيك)", labelEn: "POS 2 (Classic)", key: "pos2" },
                 { href: "/dashboard/kitchen", icon: ChefHat, labelAr: "شاشة المطبخ", labelEn: "Kitchen Display", key: "kitchen" },
                 { href: "/dashboard/reports", icon: BarChart3, labelAr: "التقارير", labelEn: "Reports", key: "reports" },
                 { href: "/dashboard/cashier-shifts", icon: UserCheck, labelAr: "ورديات الكاشير", labelEn: "Cashier Shifts", key: "cashier_shifts" },
@@ -664,7 +665,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     // Backward-compat: expand old broad permission keys to specific nav keys
     const BROAD_TO_SPECIFIC: Record<string, string[]> = {
-        orders: ['orders', 'pos', 'kitchen'], // cashier_shifts has its own granular permission
+        orders: ['orders', 'pos', 'kitchen'], // pos2 and cashier_shifts have their own granular permissions
         products: ['products', 'tables', 'delivery', 'promotions'],
         settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme27_settings', 'theme28_settings', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'popup_settings', 'qr'],
         team: ['team'],
@@ -702,12 +703,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     if (item.key === 'whatsapp') {
                         return p['whatsapp'] === true;
                     }
+                    // For POS 2 (Classic): STRICTLY hidden from everyone unless explicitly enabled (true) by Super Admin
+                    if (item.key === 'pos2') {
+                        return p['pos2'] === true;
+                    }
                     // Admin/Owner sees all other pages by default unless explicitly disabled
                     return true;
                 } else {
                     // For WhatsApp: only show if explicitly enabled
                     if (item.key === 'whatsapp') {
                         return p['whatsapp'] === true;
+                    }
+                    // For POS 2 (Classic): only show if explicitly enabled
+                    if (item.key === 'pos2') {
+                        return p['pos2'] === true;
                     }
                     // Staff: show ONLY explicitly enabled pages
                     return p[item.key] === true;

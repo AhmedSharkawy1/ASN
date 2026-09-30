@@ -24,7 +24,8 @@ const ALL_PAGE_PERMS = [
     { section: "الطلبات", sectionEn: "Orders", items: [
         { key: "orders", ar: "نظام الطلبيات", en: "Orders" },
         { key: "orders_edit_delete", ar: "تعديل وحذف الطلبات (مدير وصاحب مطعم فقط)", en: "Edit & Delete Orders (Manager & Owner Only)" },
-        { key: "pos", ar: "نقطة البيع (POS)", en: "POS" },
+        { key: "pos", ar: "نقطة البيع (POS عصري)", en: "POS (Modern)" },
+        { key: "pos2", ar: "نقطة البيع 2 (POS كلاسيك)", en: "POS 2 (Classic)" },
         { key: "kitchen", ar: "شاشة المطبخ", en: "Kitchen" },
         { key: "reports", ar: "التقارير", en: "Reports" },
         { key: "cashier_shifts", ar: "ورديات الكاشير", en: "Cashier Shifts" },

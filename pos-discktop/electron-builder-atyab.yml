@@ -4,6 +4,7 @@ copyright: "Copyright © 2026 ASN Technology"
 
 directories:
   output: dist-atyab
+  app: .
 
 files:
   - electron/**/*
@@ -19,8 +20,13 @@ extraResources:
     to: app
     filter:
       - "**/*"
+  - from: app/node_modules
+    to: app/node_modules
+    filter:
+      - "**/*"
 
 win:
+  signAndEditExecutable: false
   target:
     - target: nsis
       arch:

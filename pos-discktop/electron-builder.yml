@@ -5,6 +5,7 @@ copyright: "Copyright © 2026 ASN Technology"
 directories:
   output: dist
   buildResources: assets
+  app: .
 
 files:
   - electron/**/*
@@ -14,16 +15,26 @@ files:
   - node_modules/**/*
   - "!node_modules/electron/**"
   - "!node_modules/electron-builder/**"
+  - "!app/**/*"
+  - "!dist/**/*"
+  - "!dist-atyab/**/*"
+  - "!*.log"
+  - "!build_log.txt"
 
 extraResources:
   - from: app
     to: app
     filter:
       - "**/*"
+  - from: app/node_modules
+    to: app/node_modules
+    filter:
+      - "**/*"
 
 win:
+  signAndEditExecutable: false
   target:
-    - target: portable
+    - target: nsis
       arch:
         - x64
   icon: assets/icon.png
@@ -34,6 +45,6 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: ASN POS
 
-asar: false
+asar: true
 npmRebuild: false
 compression: store

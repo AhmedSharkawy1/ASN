@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, EyeOff, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle, Tag } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, EyeOff, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle, Tag, Calculator } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -44,6 +44,7 @@ export default function SuperAdminClientsPage() {
     const [highQualityImages, setHighQualityImages] = useState(false);
     const [whatsappAccessMap, setWhatsappAccessMap] = useState<Record<string, boolean>>({});
     const [popupAccessMap, setPopupAccessMap] = useState<Record<string, boolean>>({});
+    const [pos2AccessMap, setPos2AccessMap] = useState<Record<string, boolean>>({});
 
     // Parent Link Modal Options
     const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -78,7 +79,8 @@ export default function SuperAdminClientsPage() {
             titleEn: 'Orders', titleAr: 'الطلبات',
             pages: [
                 { key: 'orders', nameEn: 'Orders Management', nameAr: 'نظام الطلبيات' },
-                { key: 'pos', nameEn: 'POS System', nameAr: 'نقطة البيع (POS)' },
+                { key: 'pos', nameEn: 'POS System (Modern)', nameAr: 'نقطة البيع (POS عصري)' },
+                { key: 'pos2', nameEn: 'POS 2 (Classic)', nameAr: 'نقطة البيع 2 (كلاسيك)' },
                 { key: 'kitchen', nameEn: 'Kitchen Display', nameAr: 'شاشة المطبخ' },
                 { key: 'reports', nameEn: 'Statistics & Reports', nameAr: 'التقارير والإحصائيات' },
                 { key: 'cashier_shifts', nameEn: 'Cashier Shifts', nameAr: 'ورديات الكاشير' },
@@ -218,6 +220,20 @@ export default function SuperAdminClientsPage() {
                 });
             }
             setPopupAccessMap(popMap);
+
+            // Fetch pos2 permission states for quick toggle
+            const { data: pos2Data } = await supabase
+                .from('client_page_access')
+                .select('tenant_id, enabled')
+                .eq('page_key', 'pos2');
+
+            const pos2Map: Record<string, boolean> = {};
+            if (pos2Data) {
+                (pos2Data as { tenant_id: string; enabled: boolean }[]).forEach(item => {
+                    pos2Map[item.tenant_id] = item.enabled;
+                });
+            }
+            setPos2AccessMap(pos2Map);
         } catch (err: unknown) {
             console.error("Fetch clients error:", err);
             const message = err instanceof Error ? err.message : 'Failed to load clients';
@@ -251,7 +267,7 @@ export default function SuperAdminClientsPage() {
             if (error) throw error;
             
             const perms: Record<string, boolean> = {};
-            ALL_PAGE_KEYS.forEach(k => { perms[k] = (k === 'whatsapp' ? false : true); });
+            ALL_PAGE_KEYS.forEach(k => { perms[k] = (k === 'whatsapp' || k === 'pos2' ? false : true); });
             if (data && data.length > 0) {
                 (data as PageAccess[]).forEach(p => { perms[p.page_key] = p.enabled });
             }
@@ -289,6 +305,9 @@ export default function SuperAdminClientsPage() {
                }
                if ('popup_settings' in clientPermissions) {
                    setPopupAccessMap(prev => ({ ...prev, [selectedClient.id]: clientPermissions['popup_settings'] }));
+               }
+               if ('pos2' in clientPermissions) {
+                   setPos2AccessMap(prev => ({ ...prev, [selectedClient.id]: clientPermissions['pos2'] }));
                }
             }
             
@@ -445,6 +464,34 @@ export default function SuperAdminClientsPage() {
         } catch (err: unknown) {
             console.error("Failed to toggle pop-up access:", err);
             const message = err instanceof Error ? err.message : 'Failed to toggle pop-up access';
+            toast.error(message);
+        }
+    };
+
+    const handleTogglePos2Access = async (client: Client) => {
+        try {
+            const currentVal = pos2AccessMap[client.id] === true;
+            const newVal = !currentVal;
+
+            const { error } = await supabase
+                .from('client_page_access')
+                .upsert({
+                    tenant_id: client.id,
+                    page_key: 'pos2',
+                    enabled: newVal
+                }, { onConflict: 'tenant_id, page_key' });
+
+            if (error) throw error;
+
+            setPos2AccessMap(prev => ({ ...prev, [client.id]: newVal }));
+
+            toast.success(newVal
+                ? (language === "ar" ? `تم إظهار صفحة POS 2 (كلاسيك) لمطعم ${client.name} ✅` : `POS 2 (Classic) enabled for ${client.name} ✅`)
+                : (language === "ar" ? `تم إخفاء صفحة POS 2 (كلاسيك) عن مطعم ${client.name} ❌` : `POS 2 (Classic) hidden for ${client.name} ❌`)
+            );
+        } catch (err: unknown) {
+            console.error("Failed to toggle POS 2 access:", err);
+            const message = err instanceof Error ? err.message : 'Failed to toggle POS 2 access';
             toast.error(message);
         }
     };
@@ -868,6 +915,20 @@ export default function SuperAdminClientsPage() {
                                                        >
                                                            <Tag className="w-4 h-4" />
                                                        </button>
+                                                       <button 
+                                                            onClick={() => handleTogglePos2Access(client)} 
+                                                            className={`p-2 rounded-lg transition-colors ${
+                                                                pos2AccessMap[client.id] === true 
+                                                                    ? 'text-cyan-500 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border border-cyan-500/30' 
+                                                                    : 'text-stone-400 hover:text-cyan-500 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-500/10'
+                                                            }`} 
+                                                            title={pos2AccessMap[client.id] === true 
+                                                                ? (language === 'ar' ? 'صفحة POS 2 (كلاسيك) مفعلة وظاهرة للمطعم (اضغط للإخفاء)' : 'POS 2 (Classic) is active (click to hide)') 
+                                                                : (language === 'ar' ? 'صفحة POS 2 (كلاسيك) مخفية عن المطعم (اضغط للإظهار والتفعيل)' : 'POS 2 (Classic) is hidden (click to show)')
+                                                            }
+                                                        >
+                                                            <Calculator className="w-4 h-4" />
+                                                        </button>
                                                     {/* Views tracking toggle — amber when on, gray when off */}
                                                     <button
                                                         onClick={() => handleToggleViewsTracking(client)}
