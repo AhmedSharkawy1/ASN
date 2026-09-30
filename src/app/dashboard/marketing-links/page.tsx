@@ -200,7 +200,16 @@ const MarketingThemes = [
     { key: "theme30-rose", nameEn: "Theme 30 (Ruby Crimson)", nameAr: "ثيم 30 (ياقوت أحمر قرمزي)" },
     { key: "theme30-cyan", nameEn: "Theme 30 (Ocean Cyan)", nameAr: "ثيم 30 (سماوي بحري)" },
     { key: "theme30-violet", nameEn: "Theme 30 (Royal Violet)", nameAr: "ثيم 30 (بنفسجي ملكي فاخر)" },
-    { key: "theme30-dark", nameEn: "Theme 30 (Obsidian Dark)", nameAr: "ثيم 30 (أوبسيديان ليلي داكن)" }
+    { key: "theme30-dark", nameEn: "Theme 30 (Obsidian Dark)", nameAr: "ثيم 30 (أوبسيديان ليلي داكن)" },
+
+    // Theme 31: Aura Future Glassmorphism 2026/2027
+    { key: "theme31", nameEn: "Theme 31 (Aura Future - Cyber Ultra-Violet)", nameAr: "ثيم 31 (أورا فيوتشر - شفق بنفسجي نيلي سايبر)" },
+    { key: "theme31-emerald", nameEn: "Theme 31 (Neon Cyber Emerald)", nameAr: "ثيم 31 (أورا نيون زمردي ملكي)" },
+    { key: "theme31-amber", nameEn: "Theme 31 (Liquid Amber Gold & Coffee)", nameAr: "ثيم 31 (عنبر كافيه وذهب سائل فاخر)" },
+    { key: "theme31-rose", nameEn: "Theme 31 (Hyper Ruby Rose Velvet)", nameAr: "ثيم 31 (ياقوت قرمزي مخملي متوهج)" },
+    { key: "theme31-cyan", nameEn: "Theme 31 (Electric Ice Glaze Cyan)", nameAr: "ثيم 31 (أزرق جليدي كهربائي منعش)" },
+    { key: "theme31-sunset", nameEn: "Theme 31 (Sunset Flame & Radiant Orange)", nameAr: "ثيم 31 (غروب ناري متوهج)" },
+    { key: "theme31-dark", nameEn: "Theme 31 (Cosmic Obsidian Matrix Dark)", nameAr: "ثيم 31 (ماتريكس أوبسيديان كوني فاخر)" }
 ];
 
 export default function MarketingLinksPage() {

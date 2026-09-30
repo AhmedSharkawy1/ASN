@@ -250,7 +250,7 @@ class CartNotifier extends Notifier<CartState> {
     final best = PromotionEngine.evaluate(
       cartItems: [
         for (final i in state.items)
-          PromotionCartItem(itemId: i.product.id, qty: i.quantity),
+          PromotionCartItem(itemId: i.product.id, qty: i.quantity, price: i.size.price),
       ],
       promotions: promotions,
       subtotal: state.subtotal,

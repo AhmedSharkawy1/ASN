@@ -131,19 +131,20 @@ export default function PopupSettingsPage() {
                     const existing27 = tc.theme27_popup;
                     const existing28 = tc.theme28_popup;
                     const existing30 = tc.theme30_popup;
+                    const existing31 = tc.theme31_popup;
 
-                    if (existing27?.enabled || existing28?.enabled || existing30?.enabled) {
+                    if (existing27?.enabled || existing28?.enabled || existing30?.enabled || existing31?.enabled) {
                         setTheme27Enabled(true);
                     }
 
                     // Default or prefill values
                     const initialConfig: PromoPopupConfig = {
                         enabled: existingUniversal?.enabled ?? false,
-                        title: existingUniversal?.title || existing30?.title || existing27?.title || existing28?.title || "",
-                        description: existingUniversal?.description || existing30?.description || existing27?.description || existing28?.description || "",
-                        image_url: existingUniversal?.image_url || existing30?.image_url || existing27?.image_url || existing28?.image_url || "",
-                        button_text: existingUniversal?.button_text || existing30?.button_text || existing27?.button_text || existing28?.button_text || (isAr ? "تصفح العرض الآن" : "View Offer Now"),
-                        target_category_id: existingUniversal?.target_category_id || existing30?.target_category_id || existing27?.target_category_id || existing28?.target_category_id || ""
+                        title: existingUniversal?.title || existing31?.title || existing30?.title || existing27?.title || existing28?.title || "",
+                        description: existingUniversal?.description || existing31?.description || existing30?.description || existing27?.description || existing28?.description || "",
+                        image_url: existingUniversal?.image_url || existing31?.image_url || existing30?.image_url || existing27?.image_url || existing28?.image_url || "",
+                        button_text: existingUniversal?.button_text || existing31?.button_text || existing30?.button_text || existing27?.button_text || existing28?.button_text || (isAr ? "تصفح العرض الآن" : "View Offer Now"),
+                        target_category_id: existingUniversal?.target_category_id || existing31?.target_category_id || existing30?.target_category_id || existing27?.target_category_id || existing28?.target_category_id || ""
                     };
 
                     setPopupConfig(initialConfig);

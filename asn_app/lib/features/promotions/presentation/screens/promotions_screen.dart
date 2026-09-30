@@ -74,7 +74,7 @@ class _PromotionCard extends ConsumerWidget {
   ({String label, IconData icon, Color color}) get _type {
     if (promo.isBogo) {
       return (
-        label: '1+1 مجاناً',
+        label: '${promo.bogoBuyQty}+${promo.bogoGetQty} مجاناً',
         icon: Icons.card_giftcard,
         color: AppColors.coral,
       );

@@ -232,6 +232,15 @@ const ALL_THEMES = [
     { id: "theme30-cyan", name_ar: "ثيم 30 (سماوي بحري)", name_en: "Theme 30 (Ocean Cyan)", preview_color: "#0284c7" },
     { id: "theme30-violet", name_ar: "ثيم 30 (بنفسجي ملكي فاخر)", name_en: "Theme 30 (Royal Violet)", preview_color: "#7c3aed" },
     { id: "theme30-dark", name_ar: "ثيم 30 (أوبسيديان ليلي داكن)", name_en: "Theme 30 (Obsidian Dark)", preview_color: "#0f172a" },
+
+    // ===== Theme 31: Aura Future Glassmorphism 2026/2027 Family =====
+    { id: "theme31", name_ar: "ثيم 31 (أورا فيوتشر - شفق بنفسجي نيلي سايبر)", name_en: "Theme 31 (Aura Future - Cyber Ultra-Violet)", preview_color: "#6366f1" },
+    { id: "theme31-emerald", name_ar: "ثيم 31 (أورا نيون زمردي ملكي)", name_en: "Theme 31 (Neon Cyber Emerald)", preview_color: "#10b981" },
+    { id: "theme31-amber", name_ar: "ثيم 31 (عنبر كافيه وذهب سائل فاخر)", name_en: "Theme 31 (Liquid Amber Gold & Coffee)", preview_color: "#f59e0b" },
+    { id: "theme31-rose", name_ar: "ثيم 31 (ياقوت قرمزي مخملي متوهج)", name_en: "Theme 31 (Hyper Ruby Rose Velvet)", preview_color: "#f43f5e" },
+    { id: "theme31-cyan", name_ar: "ثيم 31 (أزرق جليدي كهربائي منعش)", name_en: "Theme 31 (Electric Ice Glaze Cyan)", preview_color: "#06b6d4" },
+    { id: "theme31-sunset", name_ar: "ثيم 31 (غروب ناري متوهج)", name_en: "Theme 31 (Sunset Flame & Radiant Orange)", preview_color: "#f97316" },
+    { id: "theme31-dark", name_ar: "ثيم 31 (ماتريكس أوبسيديان كوني فاخر)", name_en: "Theme 31 (Cosmic Obsidian Matrix Dark)", preview_color: "#0f172a" },
 ];
 
 interface ThemeOverride {

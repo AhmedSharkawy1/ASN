@@ -71,17 +71,31 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
   static List<Map<String, dynamic>> _buildTarget({
     required bool allItems,
     required List<PromotionItem> items,
+    bool isBogo = false,
+    int bogoBuyQty = 1,
+    int bogoGetQty = 1,
   }) {
+    final list = <Map<String, dynamic>>[];
     if (allItems) {
-      return [
-        const PromotionItem(
-          itemId: PromotionModel.allItemsId,
-          titleAr: 'كل الأصناف',
-          titleEn: 'All items',
-        ).toJson(),
-      ];
+      list.add(const PromotionItem(
+        itemId: PromotionModel.allItemsId,
+        titleAr: 'كل الأصناف',
+        titleEn: 'All items',
+      ).toJson());
+    } else {
+      list.addAll(items.map((i) => i.toJson()));
     }
-    return items.map((i) => i.toJson()).toList();
+    if (isBogo) {
+      list.add({
+        'item_id': PromotionModel.bogoMarker,
+        'item_title_ar': 'اشتري $bogoBuyQty واحصل على $bogoGetQty مجاناً',
+        'item_title_en': 'Buy $bogoBuyQty Get $bogoGetQty Free',
+        'buy_qty': bogoBuyQty,
+        'get_qty': bogoGetQty,
+        'qty': bogoBuyQty,
+      });
+    }
+    return list;
   }
 
   Future<void> addPromotion({
@@ -93,6 +107,8 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     required double minOrderAmount,
     required bool appliesToAllItems,
     List<PromotionItem> items = const [],
+    int bogoBuyQty = 1,
+    int bogoGetQty = 1,
     String? promoCode,
     DateTime? startsAt,
     DateTime? endsAt,
@@ -100,7 +116,14 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     final restaurantId = _restaurantId;
     if (restaurantId == null) throw Exception('User not authenticated or missing restaurant ID');
 
-    final target = _buildTarget(allItems: appliesToAllItems, items: items);
+    final isBogo = discountType == PromotionModel.typeBogo;
+    final target = _buildTarget(
+      allItems: appliesToAllItems,
+      items: items,
+      isBogo: isBogo,
+      bogoBuyQty: bogoBuyQty,
+      bogoGetQty: bogoGetQty,
+    );
     if (target.isEmpty) throw Exception('اختر كل الأصناف أو صنفاً واحداً على الأقل');
 
     try {
@@ -110,7 +133,7 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
         'name_en': nameEn,
         'description_ar': descriptionAr,
         'discount_type': discountType,
-        'discount_value': discountValue,
+        'discount_value': isBogo ? bogoGetQty.toDouble() : discountValue,
         'required_items': target,
         // Blank means no coupon, so normalise it to null rather than an empty
         // string the engine would treat as a code.
@@ -136,11 +159,20 @@ class PromotionsNotifier extends Notifier<AsyncValue<List<PromotionModel>>> {
     required double minOrderAmount,
     required bool appliesToAllItems,
     List<PromotionItem> items = const [],
+    int bogoBuyQty = 1,
+    int bogoGetQty = 1,
     String? promoCode,
     DateTime? startsAt,
     DateTime? endsAt,
   }) async {
-    final target = _buildTarget(allItems: appliesToAllItems, items: items);
+    final isBogo = discountType == PromotionModel.typeBogo;
+    final target = _buildTarget(
+      allItems: appliesToAllItems,
+      items: items,
+      isBogo: isBogo,
+      bogoBuyQty: bogoBuyQty,
+      bogoGetQty: bogoGetQty,
+    );
     if (target.isEmpty) throw Exception('اختر كل الأصناف أو صنفاً واحداً على الأقل');
 
     try {

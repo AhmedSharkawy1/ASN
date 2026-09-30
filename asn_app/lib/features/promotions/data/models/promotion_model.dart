@@ -86,6 +86,24 @@ class PromotionModel {
       discountType == typeBogo ||
       requiredItems.any((i) => i['item_id']?.toString() == bogoMarker);
 
+  int get bogoBuyQty {
+    final entry = requiredItems.firstWhere(
+      (i) => i['item_id']?.toString() == bogoMarker,
+      orElse: () => const {},
+    );
+    final val = (entry['buy_qty'] as num?)?.toInt();
+    return (val != null && val > 0) ? val : 1;
+  }
+
+  int get bogoGetQty {
+    final entry = requiredItems.firstWhere(
+      (i) => i['item_id']?.toString() == bogoMarker,
+      orElse: () => const {},
+    );
+    final val = (entry['get_qty'] as num?)?.toInt();
+    return (val != null && val > 0) ? val : 1;
+  }
+
   /// Applies to the whole menu, including items added after it was created.
   bool get appliesToAllItems =>
       requiredItems.any((i) => i['item_id']?.toString() == allItemsId);

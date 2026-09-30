@@ -4,8 +4,9 @@ import 'package:asn_app/features/promotions/data/models/promotion_model.dart';
 class PromotionCartItem {
   final String itemId;
   final int qty;
+  final double? price;
 
-  const PromotionCartItem({required this.itemId, required this.qty});
+  const PromotionCartItem({required this.itemId, required this.qty, this.price});
 }
 
 class AppliedPromotion {
@@ -87,6 +88,16 @@ class PromotionEngine {
     // No target at all — the offer is incomplete, so it never fires.
     if (promotion.requiredItems.isEmpty) return false;
 
+    if (promotion.isBogo) {
+      final setSize = promotion.bogoBuyQty + promotion.bogoGetQty;
+      final targetIds = promotion.items.map((i) => i.itemId).toSet();
+      final eligibleQty = cartItems.fold<int>(
+        0,
+        (sum, c) => (promotion.appliesToAllItems || targetIds.contains(c.itemId)) ? sum + c.qty : sum,
+      );
+      return eligibleQty >= setSize;
+    }
+
     if (promotion.appliesToAllItems) {
       return cartItems.any((c) => c.qty > 0);
     }
@@ -98,8 +109,40 @@ class PromotionEngine {
   static ({double discountAmount, bool freeShipping}) discountFor(
     PromotionModel promotion,
     double subtotal,
-    double deliveryFee,
-  ) {
+    double deliveryFee, {
+    List<PromotionCartItem> cartItems = const [],
+  }) {
+    if (promotion.isBogo) {
+      final buyQty = promotion.bogoBuyQty;
+      final getQty = promotion.bogoGetQty;
+      final setSize = buyQty + getQty;
+      final targetIds = promotion.items.map((i) => i.itemId).toSet();
+      final prices = <double>[];
+      final totalQty = cartItems.fold<int>(0, (s, c) => s + c.qty);
+      final avgPrice = totalQty > 0 ? subtotal / totalQty : 0.0;
+
+      for (final c in cartItems) {
+        if (promotion.appliesToAllItems || targetIds.contains(c.itemId)) {
+          final p = c.price ?? avgPrice;
+          for (var i = 0; i < c.qty; i++) {
+            prices.add(p);
+          }
+        }
+      }
+
+      if (prices.length < setSize) return (discountAmount: 0, freeShipping: false);
+
+      final sets = prices.length ~/ setSize;
+      final freeCount = sets * getQty;
+      prices.sort();
+      final discount = prices.take(freeCount).fold<double>(0, (s, p) => s + p);
+
+      return (
+        discountAmount: (discount * 100).roundToDouble() / 100,
+        freeShipping: false,
+      );
+    }
+
     switch (promotion.discountType) {
       case PromotionModel.typeFixed:
         // Never discount more than the order is worth.
@@ -137,7 +180,7 @@ class PromotionEngine {
     for (final promo in active(promotions, now: now)) {
       if (!isApplicable(promo, cartItems, subtotal, enteredCode: enteredCode)) continue;
 
-      final result = discountFor(promo, subtotal, deliveryFee);
+      final result = discountFor(promo, subtotal, deliveryFee, cartItems: cartItems);
       final candidate = AppliedPromotion(
         promotion: promo,
         discountAmount: result.discountAmount,

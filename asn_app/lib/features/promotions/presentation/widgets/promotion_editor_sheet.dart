@@ -44,6 +44,8 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
   late final TextEditingController _promoCode;
 
   late String _type;
+  late int _bogoBuyQty;
+  late int _bogoGetQty;
   late bool _requiresCode;
   late bool _allItems;
   late Map<String, PromotionItem> _selected;
@@ -67,7 +69,9 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
       text: p == null || p.minOrderAmount == 0 ? '' : _trimZeros(p.minOrderAmount),
     );
     _promoCode = TextEditingController(text: p?.promoCode ?? '');
-    _type = p?.discountType ?? PromotionModel.typePercentage;
+    _type = p?.isBogo == true ? PromotionModel.typeBogo : (p?.discountType ?? PromotionModel.typeBogo);
+    _bogoBuyQty = p?.bogoBuyQty ?? 1;
+    _bogoGetQty = p?.bogoGetQty ?? 1;
     _requiresCode = p?.requiresPromoCode ?? false;
     _allItems = p?.appliesToAllItems ?? true;
     _selected = {for (final i in p?.items ?? const <PromotionItem>[]) i.itemId: i};
@@ -89,8 +93,8 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
     super.dispose();
   }
 
-  /// Free shipping has no amount of its own — it waives the delivery fee.
-  bool get _needsValue => _type != PromotionModel.typeFreeShipping;
+  /// Free shipping and BOGO have no manual discount amount input.
+  bool get _needsValue => _type != PromotionModel.typeFreeShipping && _type != PromotionModel.typeBogo;
 
   Future<void> _pickDate({required bool isStart}) async {
     final initial = (isStart ? _startsAt : _endsAt) ?? DateTime.now();
@@ -141,6 +145,8 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
           minOrderAmount: minOrder,
           appliesToAllItems: _allItems,
           items: items,
+          bogoBuyQty: _bogoBuyQty,
+          bogoGetQty: _bogoGetQty,
           promoCode: _requiresCode ? _promoCode.text.trim() : null,
           startsAt: _startsAt,
           endsAt: _endsAt,
@@ -155,6 +161,8 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
           minOrderAmount: minOrder,
           appliesToAllItems: _allItems,
           items: items,
+          bogoBuyQty: _bogoBuyQty,
+          bogoGetQty: _bogoGetQty,
           promoCode: _requiresCode ? _promoCode.text.trim() : null,
           startsAt: _startsAt,
           endsAt: _endsAt,
@@ -226,7 +234,10 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
                     AppSpacing.heightMd,
 
                     _sectionTitle('القيمة'),
-                    if (_needsValue) ...[
+                    if (_type == PromotionModel.typeBogo) ...[
+                      _bogoSelector(),
+                      AppSpacing.heightSm,
+                    ] else if (_needsValue) ...[
                       TextFormField(
                         controller: _value,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -249,8 +260,10 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
                         },
                       ),
                       AppSpacing.heightXs,
-                    ] else
+                    ] else ...[
                       _infoBox('العميل لن يدفع رسوم التوصيل عند تحقق شروط العرض.'),
+                      AppSpacing.heightXs,
+                    ],
                     TextFormField(
                       controller: _minOrder,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -378,8 +391,91 @@ class _PromotionEditorSheetState extends ConsumerState<PromotionEditorSheet> {
         ),
       );
 
+  Widget _bogoSelector() {
+    final presets = [
+      (1, 1, '1 + 1 مجاناً'),
+      (2, 1, '2 + 1 مجاناً'),
+      (3, 1, '3 + 1 مجاناً'),
+    ];
+    final isPreset = presets.any((p) => p.$1 == _bogoBuyQty && p.$2 == _bogoGetQty);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (buy, get, label) in presets)
+              ChoiceChip(
+                label: Text(label),
+                selected: _bogoBuyQty == buy && _bogoGetQty == get,
+                onSelected: (selected) {
+                  if (selected) {
+                    setState(() {
+                      _bogoBuyQty = buy;
+                      _bogoGetQty = get;
+                    });
+                  }
+                },
+              ),
+            ChoiceChip(
+              label: const Text('مخصص'),
+              selected: !isPreset,
+              onSelected: (selected) {
+                if (selected && isPreset) {
+                  setState(() {
+                    _bogoBuyQty = 2;
+                    _bogoGetQty = 2;
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+        if (!isPreset) ...[
+          AppSpacing.heightSm,
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: _bogoBuyQty.toString(),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'اشتري كمية (X)'),
+                  onChanged: (v) {
+                    final n = int.tryParse(v);
+                    if (n != null && n > 0) setState(() => _bogoBuyQty = n);
+                  },
+                ),
+              ),
+              AppSpacing.widthSm,
+              Expanded(
+                child: TextFormField(
+                  initialValue: _bogoGetQty.toString(),
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: const InputDecoration(labelText: 'احصل مجاناً (Y)'),
+                  onChanged: (v) {
+                    final n = int.tryParse(v);
+                    if (n != null && n > 0) setState(() => _bogoGetQty = n);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+        AppSpacing.heightSm,
+        _infoBox(
+          'عند طلب (${_bogoBuyQty + _bogoGetQty}) أصناف مؤهلة في السلة، يحصل العميل على ($_bogoGetQty) أصناف مجاناً (يُخصم الصنف الأقل سعراً تلقائياً لصالح العميل).',
+        ),
+      ],
+    );
+  }
+
   Widget _typeSelector() {
     const options = [
+      (PromotionModel.typeBogo, '1+1 مجاناً', Icons.card_giftcard),
       (PromotionModel.typePercentage, 'خصم بنسبة', Icons.percent),
       (PromotionModel.typeFixed, 'خصم ثابت', Icons.payments_outlined),
       (PromotionModel.typeFreeShipping, 'شحن مجاني', Icons.local_shipping_outlined),

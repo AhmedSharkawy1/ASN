@@ -87,6 +87,7 @@ class AppColors {
   static const Color moduleTables = Color(0xFFB06A54);
   static const Color moduleDelivery = Color(0xFFCF8B34);
   static const Color modulePromotions = Color(0xFFC25E6B);
+  static const Color coral = Color(0xFFC25E6B);
   static const Color moduleHr = Color(0xFF4A7FA8);
 
   // ------------------------------------------------------------ Gradients

@@ -41,6 +41,7 @@ const LametZamanCompactMenu = dynamic(() => import("@/components/menu/LametZaman
 const Theme28Menu = dynamic(() => import("@/components/menu/Theme28Menu"));
 const Theme29Menu = dynamic(() => import("@/components/menu/Theme29Menu"));
 const Theme30Menu = dynamic(() => import("@/components/menu/Theme30Menu"));
+const Theme31Menu = dynamic(() => import("@/components/menu/Theme31Menu"));
 const ThemeVicinoMenu = dynamic(() => import("@/components/menu/ThemeVicinoMenu"));
 const ThemeAswanMenu = dynamic(() => import("@/components/menu/ThemeAswanMenu"));
 const ThemeAswanArMenu = dynamic(() => import("@/components/menu/ThemeAswanArMenu"));
@@ -471,6 +472,9 @@ export default function MenuClient({
   }
   if (config?.theme?.startsWith("theme29")) {
     return <Theme29Menu config={config} categories={categories} restaurantId={config.id} language={language} />;
+  }
+  if (config?.theme?.startsWith("theme31")) {
+    return <Theme31Menu config={config} categories={categories} restaurantId={config.id} suppressInternalPopup={true} />;
   }
   if (config?.theme?.startsWith("theme30")) {
     return <Theme30Menu config={config} categories={categories} restaurantId={config.id} suppressInternalPopup={true} />;
