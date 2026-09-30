@@ -8,6 +8,7 @@ import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { logActivity } from "@/lib/activity-logger";
 
 // Lazy load heavy components
 const StarsBackground = lazy(() => import("@/components/ui/StarsBackground"));
@@ -169,17 +170,23 @@ function LoginContent() {
             }
 
             let targetPath = '/dashboard';
+            const userId = finalAuthData.user.id;
+            const userEmail = finalAuthData.user.email || loginEmail;
+            let restaurantId: string | null = null;
+            let role = 'admin';
 
             // Cache for offline
             try {
-                const userId = finalAuthData.user.id;
-                const userEmail = finalAuthData.user.email || loginEmail;
                 const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle();
 
-                let restaurantId = null;
-                let role = 'admin';
-
                 if (roleData?.role === 'super_admin') {
+                    logActivity({
+                        action: 'تسجيل دخول مدير النظام (Super Admin)',
+                        description: `تم تسجيل الدخول بنجاح بواسطة ${userEmail}`,
+                        targetType: 'auth',
+                        targetId: userId,
+                        userId: userId,
+                    });
                     setSuccess(true);
                     setTimeout(() => router.push('/super-admin'), 800);
                     return;
@@ -267,6 +274,15 @@ function LoginContent() {
             } catch (cacheErr) {
                 console.warn('[Login] Failed to cache credentials for offline:', cacheErr);
             }
+
+            logActivity({
+                action: `تسجيل دخول (${role})`,
+                description: `تم تسجيل الدخول بواسطة ${userEmail}`,
+                targetType: 'auth',
+                targetId: userId,
+                tenantId: restaurantId,
+                userId: userId,
+            });
 
             setSuccess(true);
             setTimeout(() => router.push(targetPath), 800);

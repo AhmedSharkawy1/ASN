@@ -84,7 +84,8 @@ export default function SuperAdminBackupsPage() {
             const { data, error } = await supabase
                 .from('system_backups')
                 .select('*, restaurants(name)')
-                .order('created_at', { ascending: false });
+                .order('created_at', { ascending: false })
+                .limit(100);
 
             if (error) throw error;
             setBackups((data as BackupRecord[]) || []);

@@ -6,6 +6,7 @@ import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, L
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
+import { logActivity } from "@/lib/activity-logger";
 
 interface Client {
     id: string;
@@ -332,6 +333,14 @@ export default function SuperAdminClientsPage() {
                 }).catch(() => {});
             }
 
+            logActivity({
+                action: `تعديل صلاحيات العميل (${selectedClient.name})`,
+                description: `تم حفظ صلاحيات الصفحات، العلامة التجارية (${showAsnBranding ? 'مفعلة' : 'معطلة'}) والجودة (${highQualityImages ? 'عالية' : 'عادية'})`,
+                targetType: 'client',
+                targetId: selectedClient.id,
+                tenantId: selectedClient.id,
+            });
+
             setIsAccessModalOpen(false);
         } catch (err: unknown) {
             console.error(err);
@@ -359,6 +368,13 @@ export default function SuperAdminClientsPage() {
                 .eq('id', selectedClient.id);
                 
             if (error) throw error;
+            logActivity({
+                action: `ربط فرع (${selectedClient.name})`,
+                description: newParentId ? `تم ربط الفرع بحساب رئيسي` : `تم فك ربط الفرع ليصبح مستقلاً`,
+                targetType: 'client',
+                targetId: selectedClient.id,
+                tenantId: selectedClient.id,
+            });
             toast.success(language === "ar" ? "تم ربط الفرع بنجاح" : "Branch linked successfully");
             setIsLinkModalOpen(false);
             fetchClients(); // refresh list
@@ -514,6 +530,13 @@ export default function SuperAdminClientsPage() {
                 .update({ menu_enabled: newValue })
                 .eq('id', client.id);
             if (error) throw error;
+            logActivity({
+                action: newValue ? `تشغيل منيو العميل (${client.name})` : `إيقاف منيو العميل (${client.name})`,
+                description: newValue ? 'تم تفعيل رابط وقائمة المنيو للزبائن' : 'تم إيقاف رابط وقائمة المنيو للزبائن',
+                targetType: 'client',
+                targetId: client.id,
+                tenantId: client.id,
+            });
             setClients(clients.map(c => c.id === client.id ? { ...c, menu_enabled: newValue } : c));
             toast.success(newValue ? `تم تشغيل منيو ${client.name}` : `تم إيقاف منيو ${client.name}`);
         } catch (err: unknown) {
@@ -648,6 +671,14 @@ export default function SuperAdminClientsPage() {
 
             if (error) throw error;
 
+            logActivity({
+                action: `تحديث اشتراك العميل (${selectedClient.name})`,
+                description: `تم تحديث نوع الباقة إلى (${subType}) ${expiresAt ? `ينتهي في ${new Date(expiresAt).toLocaleDateString('ar-EG')}` : 'مدى الحياة'}`,
+                targetType: 'client',
+                targetId: selectedClient.id,
+                tenantId: selectedClient.id,
+            });
+
             toast.success(language === "ar" ? "تم تحديث الاشتراك بنجاح" : "Subscription updated successfully");
             setIsSubModalOpen(false);
             fetchClients();
@@ -702,6 +733,13 @@ export default function SuperAdminClientsPage() {
             
             if (error) throw error;
             
+            logActivity({
+                action: `حذف حساب العميل (${selectedClient.name})`,
+                description: `تم حذف حساب العميل ومسح بياناته من النظام`,
+                targetType: 'client',
+                targetId: selectedClient.id,
+            });
+
             toast.success(language === "ar" ? "تم الحذف بنجاح" : "Deleted successfully");
             setIsDeleteModalOpen(false);
             fetchClients();

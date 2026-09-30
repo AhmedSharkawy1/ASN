@@ -63,7 +63,6 @@ export default function middleware(req: NextRequest) {
     if (mappedSlug) {
         if (path === '/' || (!path.startsWith('/menu/') && !path.startsWith('/api'))) {
             const targetPath = path === '/' ? `/menu/${mappedSlug}` : `/menu/${mappedSlug}${path}`;
-            console.log(`[Middleware] Custom Host ${hostname} -> Dynamic Rewrite to ${targetPath}`);
             return NextResponse.rewrite(new URL(`${targetPath}${url.search || ''}`, req.url));
         }
         return NextResponse.next();
@@ -85,7 +84,6 @@ export default function middleware(req: NextRequest) {
     if (subdomain && THEME_SUBDOMAINS.includes(subdomain)) {
         if (path === '/' || !path.startsWith('/menu/')) {
             const targetPath = path === '/' ? `/menu/demo` : `/menu/demo${path}`;
-            console.log(`[Middleware] Theme Subdomain ${subdomain} -> Dynamic Rewrite to demo marketing account`);
             const targetUrl = new URL(targetPath, req.url);
             // Append the preview_theme param, preserve existing search params
             targetUrl.searchParams.set('preview_theme', subdomain);
@@ -115,7 +113,6 @@ export default function middleware(req: NextRequest) {
             }
         }
         const redirectUrl = `https://www.asntechnology.net${targetPath}${url.search || ''}`;
-        console.log(`[Middleware] Subdomain ${subdomain} -> Redirect to ${redirectUrl}`);
         const response = NextResponse.redirect(redirectUrl, 301);
         response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
         return response;

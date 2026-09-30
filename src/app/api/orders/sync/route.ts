@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { appendFileSync } from "fs";
 import { processOrderInventory } from "@/lib/helpers/inventoryService";
 import { calculateOrderCostServer } from "@/lib/helpers/costService";
 
@@ -98,7 +97,7 @@ export async function POST(request: Request) {
                 for (const cleanOrder of cleanOrders) {
                     const { error } = await supabaseAdmin.from('orders').upsert(cleanOrder);
                     if (error) {
-                        appendFileSync('sync_errors.log', `\nOrder Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(cleanOrder)}\n`);
+                        console.error('[Sync] Order Error:', error.message, 'ID:', cleanOrder.id);
                         results.errors.push(`Order ${cleanOrder.id}: ${error.message}`);
                     } else {
                         results.orders++;
@@ -118,7 +117,7 @@ export async function POST(request: Request) {
                 for (const cleanCust of cleanCusts) {
                     const { error } = await supabaseAdmin.from('customers').upsert(cleanCust);
                     if (error) {
-                        appendFileSync('sync_errors.log', `\nCustomer Error: ${JSON.stringify(error)}\nPayload: ${JSON.stringify(cleanCust)}\n`);
+                        console.error('[Sync] Customer Error:', error.message, 'ID:', cleanCust.id);
                         results.errors.push(`Customer ${cleanCust.id}: ${error.message}`);
                     } else {
                         results.customers++;
@@ -143,27 +142,9 @@ export async function POST(request: Request) {
             })().catch(e => console.error('[Sync] Background task error:', e));
         }
 
-        // Trigger auto-backup check (will skip if last backup < 24h ago)
-        if (results.orders > 0 || results.customers > 0) {
-            try {
-                const firstOrder = orders?.[0];
-                const tenantId = firstOrder?.restaurant_id;
-                if (tenantId) {
-                    fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/backup/create`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ tenant_id: tenantId, backup_type: 'auto' }),
-                    }).catch(err => console.error('[Sync] Auto-backup trigger failed:', err));
-                }
-            } catch (backupErr) {
-                console.error('[Sync] Auto-backup trigger error:', backupErr);
-            }
-        }
-
         return NextResponse.json({ success: true, ...results });
     } catch (err: unknown) {
         const error = err as Error;
-        appendFileSync('sync_errors.log', `\nFatal Exception: ${error.message}\n${error.stack}\n`);
         console.error("Orders Sync API Error:", err);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

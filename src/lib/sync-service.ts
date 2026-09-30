@@ -63,7 +63,7 @@ if (isElectron()) {
         } catch (err) {
             console.error('[SyncService] Failed to get sync status:', err);
         }
-    }, 5000);
+    }, 30000);
 }
 
 /* ── Pull: Supabase → Dexie ── */

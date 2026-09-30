@@ -69,6 +69,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, ignored: true }, { headers: CORS_HEADERS });
     }
 
+    // Use single RPC call instead of 3 separate queries (reduces Postgres log volume)
+    const { data: rpcResult, error: rpcError } = await supabaseAdmin
+      .rpc('increment_menu_views', { p_restaurant_id: restaurant_id });
+
+    if (!rpcError && rpcResult) {
+      return NextResponse.json(rpcResult, { headers: CORS_HEADERS });
+    }
+
+    // Fallback: if RPC function not deployed yet, use original multi-query logic
     const planKey = `menu_views_${restaurant_id}`;
 
     // Check if views tracking is enabled for this restaurant

@@ -114,6 +114,20 @@ export async function POST(request: Request) {
             }
         }
 
+        // Log restore into activity_logs
+        try {
+            await supabaseAdmin.from('activity_logs').insert({
+                tenant_id: tenantId,
+                action: 'استعادة نسخة احتياطية',
+                target_type: 'backup',
+                target_id: backup.id,
+                description: `تمت استعادة النسخة الاحتياطية (${backup.backup_name}) بنجاح`,
+                created_at: new Date().toISOString()
+            });
+        } catch (e) {
+            console.warn('[Backup Restore] Failed to log activity:', e);
+        }
+
         return NextResponse.json({
             success: true,
             backup_id: backup.id,

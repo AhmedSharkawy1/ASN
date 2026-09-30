@@ -23,7 +23,6 @@ export async function POST(req: Request) {
         });
 
         const textResponse = await response.text();
-        console.log("Google Apps Script response:", textResponse);
 
         if (!response.ok) {
             console.error("Failed Google Apps Script:", response.status, textResponse);

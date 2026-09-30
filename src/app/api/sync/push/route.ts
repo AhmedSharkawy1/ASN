@@ -110,7 +110,7 @@ export async function POST(request: Request) {
                     console.warn('[SyncPush] Revalidation failed for', rid, revalErr);
                 }
             }
-            console.log(`[SyncPush] Revalidated menu for ${restaurantIdsToRevalidate.size} restaurant(s)`);
+
         }
 
         return NextResponse.json({ ...results, revalidated: restaurantIdsToRevalidate.size });

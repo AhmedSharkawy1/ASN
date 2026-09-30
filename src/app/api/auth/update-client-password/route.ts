@@ -72,6 +72,19 @@ export async function POST(request: Request) {
             // IGNORE
         }
 
+        // 4. Record in activity_logs
+        try {
+            await supabaseAdmin.from('activity_logs').insert({
+                action: 'تحديث كلمة مرور العميل',
+                description: `تم تغيير كلمة المرور للمستخدم (${email}) بنجاح`,
+                target_type: 'auth',
+                target_id: targetUser.id,
+                created_at: new Date().toISOString()
+            });
+        } catch (e) {
+            console.warn('[UpdatePassword] Failed to log activity:', e);
+        }
+
         return NextResponse.json({ success: true, message: "Password updated successfully" });
 
     } catch (err: unknown) {

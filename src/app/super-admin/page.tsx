@@ -51,7 +51,7 @@ export default function SuperAdminDashboard() {
         // Fetch recent activity
         const { data: activityData } = await supabase
           .from("activity_logs")
-          .select("*")
+          .select("*, restaurants(name)")
           .order("created_at", { ascending: false })
           .limit(5);
 
@@ -284,9 +284,16 @@ export default function SuperAdminDashboard() {
                     <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-stone-900 dark:text-white">
-                      {activity.action || "-"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-stone-900 dark:text-white truncate">
+                        {activity.action || "-"}
+                      </p>
+                      {activity.restaurants?.name && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 flex-shrink-0">
+                          {activity.restaurants.name}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5 truncate">
                       {activity.description || ""}
                     </p>

@@ -105,7 +105,7 @@ async function renderVariants(input: Buffer, fallbackType: string, isHighQuality
 
 export async function POST(req: NextRequest) {
   let stage = 'route-entered';
-  console.log('[UPLOAD_IMAGE_ROUTE_ENTERED]');
+
 
   try {
     stage = 'env-validation';

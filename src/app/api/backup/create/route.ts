@@ -235,6 +235,20 @@ export async function POST(request: Request) {
                     completed_at: new Date().toISOString(),
                 }).eq('id', backupRecord.id);
 
+                // Log into activity_logs
+                try {
+                    await supabaseAdmin.from('activity_logs').insert({
+                        tenant_id: tid,
+                        action: 'إنشاء نسخة احتياطية',
+                        target_type: 'backup',
+                        target_id: backupRecord.id,
+                        description: `تم إنشاء نسخة احتياطية بنجاح لمطعم (${restaurant.name}) بحجم ${(fileSizeBytes / 1024).toFixed(1)} KB`,
+                        created_at: new Date().toISOString()
+                    });
+                } catch (e) {
+                    console.warn('[Backup] Failed to log activity:', e);
+                }
+
                 results.push({
                     backup_id: backupRecord.id,
                     tenant_id: tid,

@@ -1,6 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+const supabaseAdmin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+);
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -10,12 +16,6 @@ export async function GET(request: Request) {
         if (!restaurantId) {
             return NextResponse.json({ error: "Missing restaurant_id" }, { status: 400 });
         }
-
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
 
         let query = supabaseAdmin
             .from('notifications')
@@ -47,12 +47,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
-
         const { data, error } = await supabaseAdmin
             .from('notifications')
             .insert({
@@ -79,12 +73,6 @@ export async function PATCH(request: Request) {
     try {
         const body = await request.json();
         const { id, is_read, mark_all_read, restaurant_id } = body;
-
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
 
         if (mark_all_read && restaurant_id) {
             const { error } = await supabaseAdmin
@@ -120,12 +108,6 @@ export async function DELETE(request: Request) {
         if (!id) {
             return NextResponse.json({ error: "Missing notification id" }, { status: 400 });
         }
-
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
 
         const { error } = await supabaseAdmin
             .from('notifications')

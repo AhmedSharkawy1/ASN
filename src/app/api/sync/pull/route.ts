@@ -18,16 +18,24 @@ export async function GET(request: Request) {
             auth: { autoRefreshToken: false, persistSession: false }
         });
 
-        const tables = ['orders', 'order_items', 'customers', 'inventory_items', 'delivery_zones', 'branches', 'payments'];
+        // Select only needed columns per table to reduce data transfer and log volume
+        const tableSelects: Record<string, string> = {
+            orders: 'id, restaurant_id, order_number, items, subtotal, discount, discount_type, total, payment_method, customer_name, customer_phone, customer_address, cashier_id, cashier_name, notes, deposit_amount, order_type, status, is_draft, source, branch_name, created_at, updated_at',
+            order_items: 'id, order_id, item_id, item_name, quantity, price, total, notes, updated_at',
+            customers: 'id, restaurant_id, name, phone, email, loyalty_points, total_spent, total_orders, last_order_date, notes, created_at, updated_at',
+            inventory_items: 'id, restaurant_id, name, unit, quantity, min_quantity, cost_per_unit, updated_at',
+            delivery_zones: 'id, restaurant_id, zone_name, delivery_fee, min_order, is_active, updated_at',
+            branches: 'id, tenant_id, branch_name, is_active, updated_at',
+            payments: 'id, order_id, amount, payment_method, created_at, updated_at',
+        };
+        const tables = Object.keys(tableSelects);
         const data: Record<string, any[]> = {};
 
         for (const table of tables) {
             const { data: records, error } = await supabaseAdmin
                 .from(table)
-                .select('*')
+                .select(tableSelects[table])
                 .gt('updated_at', since)
-                // Optionally filter by device_id if we want to avoid downloading our own changes
-                // .neq('device_id', deviceId) 
                 .limit(1000);
 
             if (error) {
