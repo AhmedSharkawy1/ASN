@@ -125,15 +125,8 @@ export default function NotificationsPage() {
                 }
             )
             .subscribe();
-
-        // 20-second background poll fallback
-        const pollInterval = setInterval(() => {
-            fetchNotifications();
-        }, 20000);
-
         return () => {
             supabase.removeChannel(channel);
-            clearInterval(pollInterval);
         };
     }, [restaurantId, fetchNotifications]);
 

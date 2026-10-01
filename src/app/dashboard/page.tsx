@@ -130,8 +130,6 @@ export default function UserDashboardPage() {
             }
         };
         fetchDashboardData();
-        window.addEventListener('focus', fetchDashboardData);
-        return () => window.removeEventListener('focus', fetchDashboardData);
     }, []);
 
     const [refreshingViews, setRefreshingViews] = useState(false);

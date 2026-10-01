@@ -286,7 +286,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         if (rest.is_marketing_account) tempPermissions['marketing_links'] = true;
                     } else {
                         // Fallback: check if this auth user is linked as a team member by auth_id
-                        console.log("ASN_LOG: No restaurant found for email, trying team_members by auth_id:", userId);
                         const { data: staffFallback } = await supabase.from('team_members').select('*, restaurants(name, logo_url, subscription_expires_at, theme)').eq('auth_id', userId).maybeSingle();
                         
                         if (staffFallback) {
@@ -311,7 +310,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             if (staffFallback.restaurants?.is_marketing_account) tempPermissions['marketing_links'] = true;
                         } else {
                             // AUTO-CREATE: New account with no restaurant — create one automatically
-                            console.log("ASN_LOG: Auto-creating restaurant for new user:", email);
                             const newName = email!.split('@')[0] || 'My Restaurant';
                             const { data: newRest, error: createErr } = await supabase
                                 .from('restaurants')
@@ -325,7 +323,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                             if (createErr) {
                                 console.error("ASN_LOG: Failed to auto-create restaurant:", createErr);
                             } else if (newRest) {
-                                console.log("ASN_LOG: Auto-created restaurant:", newRest.id, newRest.name);
                                 rId = newRest.id;
                                 rName = newRest.name;
                                 rLogo = newRest.logo_url || null;
@@ -351,7 +348,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }
 
             if (rId) {
-                console.log("ASN_LOG: Final rId for check:", rId);
                 const { data: cpa, error: cpaError } = await supabase.from('client_page_access').select('page_key, enabled').eq('tenant_id', rId);
                 
                 const tenantPerms: Record<string, boolean> = {};
@@ -451,7 +447,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setLoading(false);
                 }
             } catch (err) {
-                console.log("ASN_LOG: Auth fallback triggered", err);
                 if (hasCache) {
                     setLoading(false);
                 } else {
