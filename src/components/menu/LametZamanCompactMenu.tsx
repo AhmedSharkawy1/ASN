@@ -10,7 +10,7 @@ import {
     ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, 
     Tag, Home, ShoppingBag, User, Moon, Sun, ArrowLeft, ArrowRight,
     LayoutGrid, LayoutList, CreditCard, Maximize2, ExternalLink,
-    AlignJustify, Check, Sparkles, Megaphone
+    AlignJustify, Check, Sparkles, Megaphone, Flame
 } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay } from 'swiper/modules';
@@ -54,6 +54,7 @@ interface CategoryWithItemsType {
     items?: MenuItem[];
     image_url?: string;
     image?: string;
+    is_popular?: boolean;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
@@ -623,6 +624,7 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                     const isActive = activeCategory === catIdStr;
                                     const catImg = cat.image_url || cat.image || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
 
+                                    const isCatFeatured = Boolean(cat.is_popular || (cat.items && cat.items.length > 0 && cat.items.every(it => it.is_popular)));
                                     return (
                                         <button 
                                             key={cat.id}
@@ -637,19 +639,26 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                             }}
                                             className="flex flex-col items-center gap-0.5 shrink-0 group transition-all"
                                         >
-                                            <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
-                                                 style={{ 
-                                                     borderColor: isActive ? primaryColor : 'transparent',
-                                                     boxShadow: isActive ? `0 2px 8px ${primaryColor}35` : 'none'
-                                                 }}>
-                                                <img 
-                                                    src={getProxiedImageUrl(catImg)} 
-                                                    alt={catName(cat)} 
-                                                    className="w-full h-full object-cover shrink-0 pointer-events-none"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
-                                                    }}
-                                                />
+                                            <div className="relative">
+                                                <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden transition-all border-2 bg-white dark:bg-[#1c1c1e]"
+                                                     style={{ 
+                                                         borderColor: isActive ? primaryColor : 'transparent',
+                                                         boxShadow: isActive ? `0 2px 8px ${primaryColor}35` : 'none'
+                                                     }}>
+                                                    <img 
+                                                        src={getProxiedImageUrl(catImg)} 
+                                                        alt={catName(cat)} 
+                                                        className="w-full h-full object-cover shrink-0 pointer-events-none"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c";
+                                                        }}
+                                                    />
+                                                </div>
+                                                {isCatFeatured && (
+                                                    <div className="absolute -top-1 -end-1 w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                                                        <Flame className="w-2.5 h-2.5 fill-current" />
+                                                    </div>
+                                                )}
                                             </div>
                                             <span className="font-bold text-[10px] whitespace-nowrap max-w-[62px] truncate text-center leading-none mt-0.5" style={{ color: isDark ? (isActive ? primaryColor : textMain) : '#000000' }}>
                                                 {catName(cat)}
@@ -737,12 +746,28 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                             const items = category.items || [];
                             if (items.length === 0) return null;
 
+                            const isCatFeatured = Boolean((category as any).is_popular || (items.length > 0 && items.every(it => it.is_popular)));
                             return (
                                 <div key={category.id} id={`cat-${category.id}`} className="mb-3.5 pt-0.5">
-                                    <div className="flex items-center justify-between mb-1.5">
-                                        <h3 className="font-black text-base sm:text-lg" style={{ color: isDark ? primaryColor : '#000000' }}>
-                                            {catName(category)}
-                                        </h3>
+                                    <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-black text-base sm:text-lg" style={{ color: isDark ? primaryColor : '#000000' }}>
+                                                {catName(category)}
+                                            </h3>
+                                            {isCatFeatured && (
+                                                <span 
+                                                    className="px-2 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-xs"
+                                                    style={{ 
+                                                        backgroundColor: `${primaryColor}15`, 
+                                                        color: primaryColor,
+                                                        border: `1px solid ${primaryColor}40`
+                                                    }}
+                                                >
+                                                    <Flame className="w-3 h-3 fill-current" />
+                                                    <span>{isAr ? "قسم مميز" : "Featured"}</span>
+                                                </span>
+                                            )}
+                                        </div>
                                         <span className="text-[11px] font-bold opacity-60">
                                             {items.length} {isAr ? 'صنف' : 'items'}
                                         </span>

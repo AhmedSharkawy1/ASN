@@ -44,6 +44,7 @@ type Category = {
     thumbnail_url?: string | null;
     items: Item[];
     is_available?: boolean;
+    is_popular?: boolean;
 };
 
 export default function MenuBuilderPage() {
@@ -115,12 +116,8 @@ export default function MenuBuilderPage() {
                             ? await supabase.from('items').select('*').in('category_id', catIds).order('sort_order', { ascending: true })
                             : { data: [] };
 
-                        setCategories(catsData.map(cat => ({
-                            id: cat.id, name_ar: cat.name_ar, name_en: cat.name_en,
-                            emoji: cat.emoji, image_url: cat.image_url,
-                            thumbnail_url: cat.thumbnail_url,
-                            is_available: typeof cat.is_available === 'boolean' ? cat.is_available : true,
-                            items: itemsData ? itemsData.filter(i => i.category_id === cat.id).map(item => {
+                        setCategories(catsData.map(cat => {
+                            const catItems = itemsData ? itemsData.filter(i => i.category_id === cat.id).map(item => {
                                 if (item.size_labels && item.size_labels.some((l: string) => l && l.includes('::'))) {
                                     const newLabels: string[] = [];
                                     const oldPrices: number[] = [];
@@ -138,8 +135,19 @@ export default function MenuBuilderPage() {
                                     return { ...item, size_labels: newLabels, old_prices: oldPrices };
                                 }
                                 return item;
-                            }) : []
-                        })));
+                            }) : [];
+                            const isCatPopular = typeof (cat as any).is_popular === 'boolean'
+                                ? (cat as any).is_popular
+                                : (catItems.length > 0 && catItems.every(i => i.is_popular));
+                            return {
+                                id: cat.id, name_ar: cat.name_ar, name_en: cat.name_en,
+                                emoji: cat.emoji, image_url: cat.image_url,
+                                thumbnail_url: cat.thumbnail_url,
+                                is_available: typeof cat.is_available === 'boolean' ? cat.is_available : true,
+                                is_popular: isCatPopular,
+                                items: catItems
+                            };
+                        }));
                     }
                 }
             } catch (error) { console.error("Error fetching menu:", error); }
@@ -329,6 +337,51 @@ export default function MenuBuilderPage() {
                 );
             }
         }
+        triggerRevalidate();
+    };
+
+    const toggleCategoryFeatured = async (catId: string) => {
+        const cat = categories.find(c => c.id === catId);
+        if (!cat) return;
+        const hasItems = (cat.items || []).length > 0;
+        const isCurrentlyPopular = Boolean(
+            cat.is_popular || 
+            (hasItems && cat.items.every(i => i.is_popular))
+        );
+        const targetState = !isCurrentlyPopular;
+
+        // 1. Optimistic UI update
+        setCategories(prev => prev.map(c => {
+            if (c.id !== catId) return c;
+            return {
+                ...c,
+                is_popular: targetState,
+                items: c.items.map(i => ({ ...i, is_popular: targetState }))
+            };
+        }));
+
+        // 2. Batch update all items of this category in Supabase
+        if (hasItems) {
+            const itemIds = cat.items.map(i => i.id);
+            const { error: itemsError } = await supabase
+                .from('items')
+                .update({ is_popular: targetState })
+                .in('id', itemIds);
+            if (itemsError) {
+                console.error("Error updating category items is_popular:", itemsError);
+            }
+        }
+
+        // 3. Gracefully update categories table if is_popular column exists
+        try {
+            await supabase
+                .from('categories')
+                .update({ is_popular: targetState })
+                .eq('id', catId);
+        } catch (_err) {
+            // column might not exist yet if migration not executed
+        }
+
         triggerRevalidate();
     };
 
@@ -550,6 +603,7 @@ export default function MenuBuilderPage() {
                                         <CategoryEditor cat={cat} language={language}
                                             highQuality={highQualityImages}
                                             onUpdate={(u) => updateCategory(cat.id, u)}
+                                            onToggleFeatured={() => toggleCategoryFeatured(cat.id)}
                                             onImageUpload={(f) => handleCatImageUpload(cat.id, f)}
                                             onClose={() => setEditingCat(null)} />
                                     ) : (
@@ -573,6 +627,11 @@ export default function MenuBuilderPage() {
                                                                 <EyeOff className="w-3 h-3" /> {language === "ar" ? "مخفي" : "Hidden"}
                                                             </span>
                                                         )}
+                                                        {Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular))) && (
+                                                            <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap">
+                                                                <Star className="w-3 h-3 fill-current" /> {language === "ar" ? "قسم مميز" : "Featured"}
+                                                            </span>
+                                                        )}
                                                         {isCollapsed ? <ChevronDown className="w-5 h-5 text-silver" /> : <ChevronUp className="w-5 h-5 text-silver" />}
                                                     </h2>
                                                     {cat.name_en && cat.name_en !== cat.name_ar && <span className="text-sm text-silver">{cat.name_en}</span>}
@@ -583,6 +642,29 @@ export default function MenuBuilderPage() {
                                                     <button onClick={() => handleMoveCategory(catIdx, 'up')} disabled={catIdx === 0} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-5 h-5" /></button>
                                                     <button onClick={() => handleMoveCategory(catIdx, 'down')} disabled={catIdx === categories.length - 1} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-5 h-5" /></button>
                                                 </div>
+                                                {(() => {
+                                                    const isCatFeatured = Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular)));
+                                                    return (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleCategoryFeatured(cat.id);
+                                                            }}
+                                                            className={`p-2 rounded-lg transition-colors ${
+                                                                isCatFeatured
+                                                                    ? 'text-yellow-500 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30'
+                                                                    : 'text-zinc-400 hover:text-yellow-500 hover:bg-yellow-500/10'
+                                                            }`}
+                                                            title={
+                                                                language === 'ar'
+                                                                    ? (isCatFeatured ? 'إلغاء تمييز القسم بالكامل' : 'تمييز كل أصناف القسم (قسم مميز)')
+                                                                    : (isCatFeatured ? 'Unfeature entire category' : 'Make entire category featured')
+                                                            }
+                                                        >
+                                                            <Star className={`w-4 h-4 md:w-5 md:h-5 ${isCatFeatured ? 'fill-current' : ''}`} />
+                                                        </button>
+                                                    );
+                                                })()}
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -635,6 +717,7 @@ export default function MenuBuilderPage() {
                                                                 onEdit={() => { setEditingItem(item.id); setEditingCat(null); setAddingItemToCat(null); }}
                                                                 onDelete={() => handleDeleteItem(cat.id, item.id)}
                                                                 onToggleVisibility={() => updateItem(cat.id, item.id, { is_available: !item.is_available })}
+                                                                onTogglePopular={() => updateItem(cat.id, item.id, { is_popular: !item.is_popular })}
                                                                 isFirst={iIdx === 0}
                                                                 isLast={iIdx === cat.items.length - 1}
                                                                 onMoveUp={() => handleMoveItem(cat.id, iIdx, 'up')}
@@ -650,6 +733,7 @@ export default function MenuBuilderPage() {
                                                         <AddItemPanel catId={cat.id} language={language} currency={currency}
                                                             highQuality={highQualityImages}
                                                             restaurantId={restaurantId}
+                                                            defaultPopular={Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular)))}
                                                             onCreated={(newItem) => {
                                                                 setCategories(categories.map(c => c.id === cat.id ? { ...c, items: [...c.items, newItem] } : c));
                                                                 setAddingItemToCat(null);
@@ -1123,13 +1207,14 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel, highQua
 }
 
 // ===================== ADD ITEM PANEL =====================
-function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQuality, restaurantId }: {
+function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQuality, restaurantId, defaultPopular }: {
     catId: string; language: string;
     onCreated: (item: Item) => void;
     onCancel: () => void;
     currency?: string;
     highQuality?: boolean;
     restaurantId?: string | null;
+    defaultPopular?: boolean;
 }) {
     const [titleAr, setTitleAr] = useState('');
     const [titleEn, setTitleEn] = useState('');
@@ -1138,7 +1223,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
     const [prices, setPrices] = useState<number[]>([0]);
     const [oldPrices, setOldPrices] = useState<number[]>([0]);
     const [sizeLabels, setSizeLabels] = useState<string[]>(['عادي']);
-    const [isPopular, setIsPopular] = useState(false);
+    const [isPopular, setIsPopular] = useState(Boolean(defaultPopular));
     const [isSpicy, setIsSpicy] = useState(false);
     const [sellByWeight, setSellByWeight] = useState(false);
     const [weightUnit, setWeightUnit] = useState('كجم');
@@ -1336,10 +1421,11 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
 }
 
 // ===================== ITEM ROW (read-only) =====================
-function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload, highQuality }: {
+function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, onTogglePopular, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload, highQuality }: {
     item: Item; language: string;
     onEdit: () => void; onDelete: () => void;
     onToggleVisibility?: () => void;
+    onTogglePopular?: () => void;
     isFirst?: boolean; isLast?: boolean;
     onMoveUp?: () => void; onMoveDown?: () => void;
     currency?: string;
@@ -1413,6 +1499,19 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
                         <button onClick={handlePasteImage} disabled={uploading} className="p-2 sm:p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-lg transition disabled:opacity-50" title={language === 'ar' ? 'لصق صورة' : 'Paste Image'}>
                             {uploading ? <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 animate-spin" /> : <ClipboardPaste className="w-5 h-5 sm:w-4 sm:h-4" />}
                         </button>
+                        {onTogglePopular && (
+                            <button
+                                onClick={onTogglePopular}
+                                className={`p-2 sm:p-1.5 rounded-lg transition-colors ${
+                                    item.is_popular
+                                        ? 'text-yellow-600 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30'
+                                        : 'text-zinc-400 hover:text-yellow-600 hover:bg-yellow-500/10'
+                                }`}
+                                title={language === 'ar' ? (item.is_popular ? 'إلغاء تمييز الصنف' : 'تمييز الصنف (مميز)') : (item.is_popular ? 'Unfeature Item' : 'Mark Item as Featured')}
+                            >
+                                <Star className={`w-5 h-5 sm:w-4 sm:h-4 ${item.is_popular ? 'fill-current' : ''}`} />
+                            </button>
+                        )}
                         <button onClick={onToggleVisibility} className={`p-2 sm:p-1.5 rounded-lg transition-colors ${item.is_available === false ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`} title={language === 'ar' ? (item.is_available === false ? 'إظهار في المنيو' : 'إخفاء من المنيو') : (item.is_available === false ? 'Show in menu' : 'Hide from menu')}>
                             {item.is_available === false ? <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" /> : <Eye className="w-5 h-5 sm:w-4 sm:h-4" />}
                         </button>
@@ -1435,9 +1534,10 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, isFirst
 }
 
 // ===================== CATEGORY EDITOR =====================
-function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose, highQuality }: {
+function CategoryEditor({ cat, language, onUpdate, onToggleFeatured, onImageUpload, onClose, highQuality }: {
     cat: Category; language: string;
     onUpdate: (updates: Partial<Category>) => Promise<void>;
+    onToggleFeatured?: () => Promise<void>;
     onImageUpload: (file: File) => Promise<void>;
     onClose: () => void;
     highQuality?: boolean;
@@ -1483,11 +1583,37 @@ function CategoryEditor({ cat, language, onUpdate, onImageUpload, onClose, highQ
         setUploading(false);
     };
 
+    const isCatFeatured = Boolean(cat.is_popular || (cat.items?.length > 0 && cat.items.every(i => i.is_popular)));
+
     return (
         <div onPaste={handlePaste} className="space-y-4 bg-blue/5 p-4 rounded-xl border border-blue/20">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل القسم" : "Edit Category"}</h3>
+                    {onToggleFeatured && (
+                        <button
+                            type="button"
+                            onClick={onToggleFeatured}
+                            disabled={!cat.items || cat.items.length === 0}
+                            className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold flex items-center gap-1 transition-colors disabled:opacity-40 ${
+                                isCatFeatured
+                                    ? 'border-yellow-500 bg-yellow-500/15 text-yellow-600 dark:text-yellow-400'
+                                    : 'border-glass-border text-silver hover:text-yellow-600 hover:border-yellow-500/30'
+                            }`}
+                            title={
+                                language === 'ar'
+                                    ? (isCatFeatured ? 'إلغاء تمييز كل أصناف القسم' : 'تمييز كل أصناف هذا القسم')
+                                    : (isCatFeatured ? 'Unfeature entire category' : 'Make entire category featured')
+                            }
+                        >
+                            <Star className={`w-3.5 h-3.5 ${isCatFeatured ? 'fill-current text-yellow-500' : ''}`} />
+                            <span>
+                                {language === "ar"
+                                    ? (isCatFeatured ? "إلغاء تمييز القسم" : "تمييز القسم كلو")
+                                    : (isCatFeatured ? "Unfeature Category" : "Make Whole Category Featured")}
+                            </span>
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={() => onUpdate({ is_available: cat.is_available === false })}

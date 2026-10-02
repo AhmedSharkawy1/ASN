@@ -297,6 +297,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
     // Filter items based on active tags & smart search
     const processedCategories = useMemo(() => {
         return categories.map(cat => {
+            const isCatFeatured = Boolean(cat.is_popular || (cat.items && cat.items.length > 0 && cat.items.every(it => it.is_popular)));
             const filteredItems = (cat.items || []).filter(item => {
                 // Availability
                 if (item.is_available === false) return false;
@@ -308,8 +309,8 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                     }
                 }
 
-                // Filter tags
-                if (activeFilter === 'popular' && !item.is_popular) return false;
+                // Filter tags: if category is featured, its items appear under popular
+                if (activeFilter === 'popular' && !item.is_popular && !isCatFeatured) return false;
                 if (activeFilter === 'new' && !item.is_new) return false;
                 if (activeFilter === 'offers') {
                     const hasDiscount = item.old_prices && item.old_prices.some((op, idx) => op > (item.prices?.[idx] || 0));
@@ -321,6 +322,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
             return {
                 ...cat,
+                is_popular: isCatFeatured,
                 items: filteredItems
             };
         }).filter(cat => cat.items.length > 0);
@@ -1173,6 +1175,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                         {categories.map(cat => {
                             const isCatActive = activeCategory === String(cat.id);
+                            const isCatFeatured = Boolean(cat.is_popular || (cat.items && cat.items.length > 0 && cat.items.every(it => it.is_popular)));
                             return (
                                 <button
                                     key={`nav-t30-${cat.id}`}
@@ -1187,6 +1190,9 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                         backgroundColor: isCatActive ? primaryColor : undefined
                                     }}
                                 >
+                                    {isCatFeatured && (
+                                        <Flame className={`w-3.5 h-3.5 shrink-0 ${isCatActive ? 'text-amber-200 fill-amber-200' : 'text-amber-500 fill-amber-500'}`} />
+                                    )}
                                     <span>{catName(cat)}</span>
                                     <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isCatActive ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-zinc-800 text-slate-500'}`}>
                                         {cat.items?.length || 0}
@@ -1228,24 +1234,39 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
                 {/* 7. MENU CATEGORIES & ITEMS LIST */}
                 <div className="px-3 sm:px-4 py-4 space-y-7">
-                    {processedCategories.map(cat => (
-                        <section 
-                            key={`section-t30-${cat.id}`}
-                            id={`cat-section-t30-${cat.id}`}
-                            className="scroll-mt-20"
-                        >
-                            {/* Category Title Header */}
-                            <div className="flex items-center justify-between gap-3 mb-3.5 px-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: primaryColor }} />
-                                    <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
-                                        {catName(cat)}
-                                    </h2>
-                                    <span className="text-xs font-bold text-slate-400">
-                                        ({cat.items?.length || 0})
-                                    </span>
+                    {processedCategories.map(cat => {
+                        const isCatFeatured = Boolean(cat.is_popular || (cat.items && cat.items.length > 0 && cat.items.every(it => it.is_popular)));
+                        return (
+                            <section 
+                                key={`section-t30-${cat.id}`}
+                                id={`cat-section-t30-${cat.id}`}
+                                className="scroll-mt-20"
+                            >
+                                {/* Category Title Header */}
+                                <div className="flex items-center justify-between gap-3 mb-3.5 px-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="w-1.5 h-5 rounded-full" style={{ backgroundColor: primaryColor }} />
+                                        <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                                            {catName(cat)}
+                                        </h2>
+                                        <span className="text-xs font-bold text-slate-400">
+                                            ({cat.items?.length || 0})
+                                        </span>
+                                        {isCatFeatured && (
+                                            <span 
+                                                className="px-2.5 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 shadow-xs"
+                                                style={{ 
+                                                    backgroundColor: `${primaryColor}15`, 
+                                                    color: primaryColor,
+                                                    border: `1px solid ${primaryColor}40`
+                                                }}
+                                            >
+                                                <Flame className="w-3 h-3 fill-current" />
+                                                <span>{isAr ? "قسم مميز" : "Featured"}</span>
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
 
                             {/* Category Banner if provided */}
                             {cat.image_url && viewMode === 'showcase' && (
@@ -1845,7 +1866,8 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                 </div>
                             )}
                         </section>
-                    ))}
+                    );
+                })}
                 </div>
 
                 {/* 8. FLOATING ULTRA-COMPACT CART DOCK */}

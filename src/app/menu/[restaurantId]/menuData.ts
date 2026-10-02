@@ -30,6 +30,7 @@ export type Category = {
   thumbnail_url?: string | null;
   items: Item[];
   is_available?: boolean;
+  is_popular?: boolean;
 };
 
 export type RestaurantConfig = {
@@ -242,17 +243,22 @@ export async function loadMenu(restaurantId: string, previewTheme?: string): Pro
     .eq("is_available", true)
     .order("sort_order", { ascending: true });
 
-  const categories: Category[] = catsData.map((cat: any) => ({
-    id: cat.id,
-    name_ar: cat.name_ar,
-    name_en: cat.name_en,
-    emoji: cat.emoji,
-    image_url: cat.image_url,
-    // 37 themes read cat.thumbnail_url; dropping it here forced every one of
-    // them onto the full-size image_url.
-    thumbnail_url: cat.thumbnail_url,
-    items: (itemsData ?? []).filter((i) => i.category_id === cat.id).map(splitOldPrices),
-  }));
+  const categories: Category[] = catsData.map((cat: any) => {
+    const catItems = (itemsData ?? []).filter((i) => i.category_id === cat.id).map(splitOldPrices);
+    const isPopular = Boolean(cat.is_popular || (catItems.length > 0 && catItems.every((i) => i.is_popular)));
+    return {
+      id: cat.id,
+      name_ar: cat.name_ar,
+      name_en: cat.name_en,
+      emoji: cat.emoji,
+      image_url: cat.image_url,
+      // 37 themes read cat.thumbnail_url; dropping it here forced every one of
+      // them onto the full-size image_url.
+      thumbnail_url: cat.thumbnail_url,
+      is_popular: isPopular,
+      items: catItems,
+    };
+  });
 
   return { config, categories };
 }
