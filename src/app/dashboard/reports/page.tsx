@@ -554,26 +554,26 @@ export default function ReportsPage() {
     ] as const;
 
     return (
-        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
+        <div className="flex flex-col gap-6 w-full max-w-full overflow-x-hidden mx-auto pb-20">
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-                        <BarChart3 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />{isAr ? "تقارير المبيعات" : "Sales Reports"}
+                    <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2.5 sm:gap-3">
+                        <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-600 dark:text-emerald-400" />{isAr ? "تقارير المبيعات" : "Sales Reports"}
                     </h1>
-                    <p className="text-slate-500 dark:text-zinc-400 text-base mt-1">{isAr ? "تحليل شامل لأداء المطعم من بيانات POS" : "Comprehensive restaurant performance from POS data"}</p>
+                    <p className="text-slate-500 dark:text-zinc-400 text-xs sm:text-base mt-1">{isAr ? "تحليل شامل لأداء المطعم من بيانات POS" : "Comprehensive restaurant performance from POS data"}</p>
                 </div>
-                <div className="flex flex-wrap gap-2 items-center">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
                     {range === "custom" && (
-                        <div className="flex items-center gap-2 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl px-3 py-2">
-                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-transparent text-sm text-slate-700 dark:text-zinc-300 outline-none" />
+                        <div className="flex items-center gap-2 bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2">
+                            <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} className="bg-transparent text-xs sm:text-sm text-slate-700 dark:text-zinc-300 outline-none" />
                             <span className="text-slate-400 dark:text-zinc-600">–</span>
-                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-transparent text-sm text-slate-700 dark:text-zinc-300 outline-none" />
+                            <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} className="bg-transparent text-xs sm:text-sm text-slate-700 dark:text-zinc-300 outline-none" />
                         </div>
                     )}
                     {(["today", "yesterday", "week", "month", "all", "custom"] as DateRange[]).map(r => (
                         <button key={r} onClick={() => setRange(r)}
-                            className={`px-3 py-2 rounded-xl text-sm font-bold border transition ${range === r ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
+                            className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold border transition ${range === r ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-white dark:bg-card text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-800/50 hover:text-slate-900 dark:hover:text-white"}`}>
                             {RANGE_LABELS[r]}
                         </button>
                     ))}
@@ -585,7 +585,7 @@ export default function ReportsPage() {
             ) : (
                 <>
                     {/* KPI Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
                         {[
                             {
                                 icon: DollarSign,
@@ -626,15 +626,28 @@ export default function ReportsPage() {
                                 bg: "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20"
                             },
                         ].map((card, i) => (
-                            <div key={i} className={`bg-white dark:bg-card border ${card.bg} rounded-xl p-4 flex items-center gap-3`}>
-                                <div className={`w-10 h-10 rounded-xl ${card.bg} flex items-center justify-center ${card.color} flex-shrink-0`}>
-                                    <card.icon className="w-5 h-5" />
+                            <div 
+                                key={i} 
+                                className={`bg-white dark:bg-card border ${card.bg} rounded-2xl p-3 sm:p-4 flex flex-col justify-between gap-2.5 transition-all shadow-sm ${
+                                    i === 4 ? "col-span-2 sm:col-span-1" : ""
+                                }`}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 font-bold truncate">
+                                        {card.label}
+                                    </span>
+                                    <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl ${card.bg} flex items-center justify-center ${card.color} shrink-0`}>
+                                        <card.icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
+                                    </div>
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-xs text-slate-500 dark:text-zinc-500 font-bold uppercase mb-0.5">{card.label}</p>
-                                    <p className={`text-xl font-extrabold ${card.color} tabular-nums truncate`}>{card.val}</p>
+                                    <p className={`text-base sm:text-xl font-extrabold ${card.color} tabular-nums leading-tight`}>
+                                        {card.val}
+                                    </p>
                                     {card.sub && (
-                                        <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 truncate mt-0.5">{card.sub}</p>
+                                        <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 dark:text-zinc-500 truncate mt-1">
+                                            {card.sub}
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -642,19 +655,19 @@ export default function ReportsPage() {
                     </div>
 
                     {/* Main analysis panel */}
-                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-xl overflow-hidden">
+                    <div className="bg-white dark:bg-card border border-slate-200 dark:border-zinc-800/50 rounded-2xl overflow-hidden shadow-sm">
                         {/* Tab bar */}
-                        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-zinc-800/50 flex-wrap gap-2">
-                            <div className="flex gap-2 flex-wrap">
+                        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-200 dark:border-zinc-800/50 flex-wrap gap-2">
+                            <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                                 {tabs.map(tab => (
                                     <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-bold border transition ${activeTab === tab.key ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-50 dark:bg-zinc-800/30 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
+                                        className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold border transition ${activeTab === tab.key ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-glass-border" : "bg-slate-50 dark:bg-zinc-800/30 text-slate-500 dark:text-zinc-500 border-slate-200 dark:border-zinc-700/30 hover:text-slate-900 dark:hover:text-white"}`}>
                                         <tab.icon className="w-3.5 h-3.5" /> {tab.label}
                                     </button>
                                 ))}
                             </div>
                             <button onClick={exportCSV}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-glass-border rounded-xl text-sm font-bold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition">
+                                className="flex items-center gap-1.5 px-3 py-1.5 sm:py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-glass-border rounded-xl text-xs sm:text-sm font-bold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition">
                                 <Download className="w-3.5 h-3.5" /> تصدير CSV
                             </button>
                         </div>
