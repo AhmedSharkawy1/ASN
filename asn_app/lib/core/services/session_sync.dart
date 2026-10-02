@@ -22,8 +22,11 @@ class SessionSync {
   SessionSync._();
 
   static const _storage = FlutterSecureStorage(aOptions: AndroidOptions());
+  static bool _isSyncing = false;
 
   static Future<void> adoptStoredSessionIfStale() async {
+    if (_isSyncing) return;
+    _isSyncing = true;
     try {
       final auth = SupabaseClientManager.client.auth;
       final session = auth.currentSession;
@@ -44,6 +47,8 @@ class SessionSync {
     } catch (e) {
       // A failure here only means the normal sign-in path has to handle it.
       AppLogger.warning('Could not adopt the stored session: $e', name: 'SessionSync');
+    } finally {
+      _isSyncing = false;
     }
   }
 }

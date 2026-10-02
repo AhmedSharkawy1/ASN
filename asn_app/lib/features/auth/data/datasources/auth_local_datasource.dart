@@ -24,6 +24,10 @@ abstract class AuthLocalDataSource {
 
   Future<void> saveRememberMe(bool value);
   bool getRememberMe();
+
+  Future<void> saveSavedCredentials(String username, String password);
+  Future<({String? username, String? password})> getSavedCredentials();
+  Future<void> deleteSavedCredentials();
 }
 
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
@@ -103,4 +107,18 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   bool getRememberMe() {
     return _preferences.rememberMe;
   }
+
+  @override
+  Future<void> saveSavedCredentials(String username, String password) =>
+      _secureStorage.saveSavedCredentials(username, password);
+
+  @override
+  Future<({String? username, String? password})> getSavedCredentials() async {
+    final username = await _secureStorage.getSavedUsername();
+    final password = await _secureStorage.getSavedPassword();
+    return (username: username, password: password);
+  }
+
+  @override
+  Future<void> deleteSavedCredentials() => _secureStorage.deleteSavedCredentials();
 }

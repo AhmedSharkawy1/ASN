@@ -28,7 +28,6 @@ class _AsnAppState extends ConsumerState<AsnApp> with WidgetsBindingObserver {
     // The background service must know the UI is up, or it will chime for an
     // order the in-app listener is already alerting.
     BackgroundOrderService.setAppForeground(true);
-    SessionSync.adoptStoredSessionIfStale();
     // If the app was cold-launched by tapping an order notification (or its
     // "call customer" action), replay that action once everything is ready.
     WidgetsBinding.instance.addPostFrameCallback((_) {

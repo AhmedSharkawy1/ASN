@@ -306,9 +306,13 @@ class _StatCard extends StatelessWidget {
             ],
           ),
           AppSpacing.heightXs,
-          Text(
-            value,
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              value,
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color),
+            ),
           ),
         ],
       ),

@@ -64,6 +64,25 @@ class SecureStorage {
   Future<void> deleteRefreshToken() => delete(_refreshTokenKey);
 
   // ---------------------------------------------------------------------
+  // Remember Me credentials persistence
+  // ---------------------------------------------------------------------
+  static const String _savedUsernameKey = 'saved_auth_username';
+  static const String _savedPasswordKey = 'saved_auth_password';
+
+  Future<void> saveSavedCredentials(String username, String password) async {
+    await write(_savedUsernameKey, username);
+    await write(_savedPasswordKey, password);
+  }
+
+  Future<String?> getSavedUsername() => read(_savedUsernameKey);
+  Future<String?> getSavedPassword() => read(_savedPasswordKey);
+
+  Future<void> deleteSavedCredentials() async {
+    await delete(_savedUsernameKey);
+    await delete(_savedPasswordKey);
+  }
+
+  // ---------------------------------------------------------------------
   // Offline login credential
   //
   // Stored as `salt:sha256(salt + password)` — never the password itself.

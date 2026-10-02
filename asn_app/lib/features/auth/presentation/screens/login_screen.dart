@@ -43,6 +43,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         curve: Curves.easeInOut,
       ),
     );
+
+    _initRememberMeAndUsername();
+  }
+
+  Future<void> _initRememberMeAndUsername() async {
+    try {
+      final remember = ref.read(authLocalDataSourceProvider).getRememberMe();
+      final creds = await ref.read(authLocalDataSourceProvider).getSavedCredentials();
+      if (mounted) {
+        setState(() {
+          _rememberMe = remember;
+          if (creds.username != null && creds.username!.isNotEmpty) {
+            _usernameController.text = creds.username!;
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   @override

@@ -28,6 +28,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<UserEntity> login(String usernameOrEmail, String password, {bool rememberMe = true}) async {
     await _localDataSource.saveRememberMe(rememberMe);
+    if (rememberMe) {
+      await _localDataSource.saveSavedCredentials(usernameOrEmail, password);
+    } else {
+      await _localDataSource.deleteSavedCredentials();
+    }
     final isOnline = await _networkInfo.isConnected;
 
     // Helper for offline fallback
@@ -265,6 +270,7 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     // Clear local storage
+    await _localDataSource.deleteSavedCredentials();
     await _localDataSource.deleteAuthToken();
     await _localDataSource.deleteRefreshToken();
     await _localDataSource.deleteOfflinePassword();
@@ -280,24 +286,29 @@ class AuthRepositoryImpl implements AuthRepository {
       return null;
     }
 
+    final cached = await _localDataSource.getCachedUserSession();
     final isOnline = await _networkInfo.isConnected;
 
     if (!isOnline) {
       // Offline fallback: load cached session
-      final cachedSession = await _localDataSource.getCachedUserSession();
-      return cachedSession?.toEntity();
+      AppLogger.info('Device is offline. Returning cached session if available: ${cached?.name}', name: 'AuthRepo');
+      return cached?.toEntity();
+    }
+
+    final token = await _localDataSource.getAuthToken();
+    final refreshToken = await _localDataSource.getRefreshToken();
+    final credentials = await _localDataSource.getSavedCredentials();
+    final hasCredentials = credentials.username != null && credentials.password != null;
+
+    // If no tokens, no cached session, and no saved credentials, user is not logged in
+    if ((token == null || token.isEmpty) &&
+        (refreshToken == null || refreshToken.isEmpty) &&
+        cached == null &&
+        !hasCredentials) {
+      return null;
     }
 
     try {
-      final cached = await _localDataSource.getCachedUserSession();
-      final token = await _localDataSource.getAuthToken();
-      final refreshToken = await _localDataSource.getRefreshToken();
-
-      // If no tokens and no cached session, definitely unauthenticated
-      if ((token == null || token.isEmpty) && (refreshToken == null || refreshToken.isEmpty) && cached == null) {
-        return null;
-      }
-
       // 1. Check if Supabase already has a currentUser and valid active session in memory
       final supabaseUser = SupabaseClientManager.client.auth.currentUser;
       final currentSession = SupabaseClientManager.client.auth.currentSession;
@@ -323,7 +334,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       // 2. Try silent session restoration using refresh token
       if (refreshToken != null && refreshToken.isNotEmpty) {
-        AppLogger.info('Refreshing user session silently...', name: 'AuthRepo');
+        AppLogger.info('Refreshing user session silently via refresh token...', name: 'AuthRepo');
         try {
           final response = await SupabaseClientManager.client.auth.setSession(refreshToken);
           final refreshedUser = response.user;
@@ -346,41 +357,66 @@ class AuthRepositoryImpl implements AuthRepository {
             }
           }
         } catch (e) {
-          AppLogger.warning('setSession failed: $e', name: 'AuthRepo');
-          final errStr = e.toString().toLowerCase();
-          if (errStr.contains('already_used') ||
-              errStr.contains('already used') ||
-              errStr.contains('invalid refresh token') ||
-              errStr.contains('refresh_token_not_found') ||
-              errStr.contains('invalid_grant')) {
-            AppLogger.info('Refresh token expired or revoked. Clearing zombie session.', name: 'AuthRepo');
-            await logout();
-            return null;
-          }
+          AppLogger.warning('setSession with refresh token failed: $e', name: 'AuthRepo');
+          // DO NOT LOG OUT! The user clicked "Remember Me".
+          // If the refresh token was expired, rotated, or invalid, try silent re-login with saved credentials below.
         }
       }
 
-      // 3. If online refresh encountered transient issues but we have a valid cached session,
-      // KEEP THE USER LOGGED IN!
+      // 3. Silent re-authentication using saved credentials (if token was rotated or expired)
+      if (hasCredentials) {
+        AppLogger.info('Attempting silent re-authentication with saved credentials for remember-me...', name: 'AuthRepo');
+        try {
+          String resolvedEmail = credentials.username!.trim();
+          if (!resolvedEmail.contains('@')) {
+            resolvedEmail = await _remoteDataSource.lookupEmail(resolvedEmail);
+          }
+          AuthResponse authResponse;
+          try {
+            authResponse = await _remoteDataSource.signIn(resolvedEmail, credentials.password!);
+          } catch (_) {
+            if (resolvedEmail.contains('@') && !resolvedEmail.endsWith('.asn')) {
+              final lookedUp = await _remoteDataSource.lookupEmail(resolvedEmail);
+              if (lookedUp.isNotEmpty && lookedUp != resolvedEmail) {
+                authResponse = await _remoteDataSource.signIn(lookedUp, credentials.password!);
+                resolvedEmail = lookedUp;
+              } else {
+                rethrow;
+              }
+            } else {
+              rethrow;
+            }
+          }
+          final session = authResponse.session;
+          final user = authResponse.user;
+          if (session != null && user != null) {
+            await _localDataSource.saveAuthToken(session.accessToken);
+            if (session.refreshToken != null && session.refreshToken!.isNotEmpty) {
+              await _localDataSource.saveRefreshToken(session.refreshToken!);
+            }
+            return await _buildProfile(
+              user: user,
+              resolvedEmail: resolvedEmail,
+              fallbackName: credentials.username!,
+            );
+          }
+        } catch (reAuthErr) {
+          AppLogger.warning('Silent re-login attempt encountered error: $reAuthErr', name: 'AuthRepo');
+          // If silent re-login failed (e.g. temporary server/network glitch), FALL THROUGH to cached session!
+        }
+      }
+
+      // 4. Fallback: If we have a cached session, ALWAYS keep the user logged in!
+      // The user chose "Remember Me", so never kick them out to login screen!
       if (cached != null) {
         AppLogger.info('Returning cached session for auto-login: ${cached.name}', name: 'AuthRepo');
         return cached.toEntity();
       }
     } catch (e) {
-      final errStr = e.toString().toLowerCase();
-      if (errStr.contains('already_used') ||
-          errStr.contains('already used') ||
-          errStr.contains('invalid refresh token') ||
-          errStr.contains('refresh_token_not_found') ||
-          errStr.contains('invalid_grant')) {
-        AppLogger.info('Session refresh token expired on check. Logged out gracefully.', name: 'AuthRepo');
-        await logout();
-        return null;
-      }
-      AppLogger.warning('Check session transient failure, using cached session: $e', name: 'AuthRepo');
-      final cached = await _localDataSource.getCachedUserSession();
+      AppLogger.warning('checkSession unexpected failure: $e', name: 'AuthRepo');
       if (cached != null) return cached.toEntity();
     }
+
     return null;
   }
 }
