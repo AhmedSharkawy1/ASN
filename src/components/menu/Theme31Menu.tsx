@@ -155,23 +155,34 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
     const getPrimaryColor = (themeName?: string, customPrimary?: string) => {
         if (customPrimary) return customPrimary;
         if (!themeName) return '#6366f1';
-        if (themeName.endsWith('-emerald') || themeName.endsWith('-green')) return '#10b981';
-        if (themeName.endsWith('-amber') || themeName.endsWith('-gold')) return '#f59e0b';
-        if (themeName.endsWith('-rose') || themeName.endsWith('-red')) return '#f43f5e';
-        if (themeName.endsWith('-cyan')) return '#06b6d4';
-        if (themeName.endsWith('-sunset') || themeName.endsWith('-orange')) return '#f97316';
-        if (themeName.endsWith('-dark')) return '#1e1b4b';
+        const t = themeName.toLowerCase();
+        if (t.includes('emerald') || t.includes('green')) return '#10b981';
+        if (t.includes('amber') || t.includes('gold')) return '#f59e0b';
+        if (t.includes('rose') || t.includes('red')) return '#f43f5e';
+        if (t.includes('cyan') || t.includes('sky')) return '#06b6d4';
+        if (t.includes('sunset') || t.includes('orange')) return '#f97316';
+        if (t.includes('dark')) return '#0f172a';
         return '#6366f1';
     };
 
-    const getSecondaryGlow = (themeName?: string) => {
+    const getSecondaryGlow = (themeName?: string, customSecondary?: string, resolvedPrimary?: string) => {
+        if (customSecondary) return customSecondary;
+        if (resolvedPrimary) {
+            if (resolvedPrimary === '#10b981') return '#06b6d4';
+            if (resolvedPrimary === '#f59e0b') return '#ef4444';
+            if (resolvedPrimary === '#f43f5e') return '#ec4899';
+            if (resolvedPrimary === '#06b6d4') return '#3b82f6';
+            if (resolvedPrimary === '#f97316') return '#fbbf24';
+            if (resolvedPrimary === '#0f172a' || resolvedPrimary === '#1e1b4b') return '#6366f1';
+        }
         if (!themeName) return '#a855f7';
-        if (themeName.endsWith('-emerald')) return '#06b6d4';
-        if (themeName.endsWith('-amber')) return '#ef4444';
-        if (themeName.endsWith('-rose')) return '#ec4899';
-        if (themeName.endsWith('-cyan')) return '#3b82f6';
-        if (themeName.endsWith('-sunset')) return '#fbbf24';
-        if (themeName.endsWith('-dark')) return '#6366f1';
+        const t = themeName.toLowerCase();
+        if (t.includes('emerald') || t.includes('green')) return '#06b6d4';
+        if (t.includes('amber') || t.includes('gold')) return '#ef4444';
+        if (t.includes('rose') || t.includes('red')) return '#ec4899';
+        if (t.includes('cyan') || t.includes('sky')) return '#3b82f6';
+        if (t.includes('sunset') || t.includes('orange')) return '#fbbf24';
+        if (t.includes('dark')) return '#6366f1';
         return '#a855f7';
     };
 
@@ -184,8 +195,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
         }
     }
 
-    const primaryColor = getPrimaryColor(config?.theme, tc.primary || config?.theme_colors?.primary);
-    const secondaryGlow = getSecondaryGlow(config?.theme);
+    const primaryColor = getPrimaryColor(config?.theme, tc.primary || config?.theme_colors?.primary || config?.primary_color);
+    const secondaryGlow = getSecondaryGlow(config?.theme, tc.secondary || config?.theme_colors?.secondary || config?.secondary_color, primaryColor);
 
     // Custom background images
     const bgImageLight = tc.theme31_bg_light || tc.theme30_bg_light || tc.theme28_bg_light || tc.bg_image_light || tc.bg_light || '';
@@ -635,7 +646,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
 
     return (
         <div 
-            className="theme31-root min-h-screen relative font-sans transition-colors duration-300 selection:bg-indigo-500 selection:text-white"
+            className="theme31-root min-h-screen relative font-sans transition-colors duration-300"
             style={{ 
                 backgroundColor: hasBgImage ? 'transparent' : (isDark ? '#05070e' : '#f8fafc'),
                 color: isDark ? '#f8fafc' : '#0f172a'
@@ -647,6 +658,10 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                 :root {
                     --theme-primary: ${primaryColor};
                     --theme-glow: ${secondaryGlow};
+                }
+                ::selection {
+                    background-color: ${primaryColor} !important;
+                    color: #ffffff !important;
                 }
                 .theme31-glow-border {
                     box-shadow: 0 0 25px -5px ${primaryColor}40;
@@ -663,6 +678,14 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                     border-color: ${primaryColor}66 !important;
                     box-shadow: 0 10px 30px -10px ${primaryColor}33 !important;
                     transform: translateY(-2px);
+                }
+                .theme31-card-hover:hover .theme31-title-hover,
+                .group:hover .theme31-title-hover {
+                    color: ${primaryColor} !important;
+                }
+                .theme31-search-input:focus {
+                    border-color: ${primaryColor} !important;
+                    box-shadow: 0 0 0 2px ${primaryColor}26 !important;
                 }
                 .theme31-accent-text {
                     color: ${primaryColor} !important;
@@ -919,7 +942,12 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                         <button
                             type="button"
                             onClick={() => setIsPaymentModalOpen(true)}
-                            className="px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/25 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                            className="px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                            style={{
+                                backgroundColor: `${primaryColor}15`,
+                                color: primaryColor,
+                                borderColor: `${primaryColor}40`
+                            }}
                         >
                             <CreditCard className="w-3.5 h-3.5" />
                             <span>{isAr ? "طرق الدفع" : "Payments"}</span>
@@ -1018,7 +1046,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     placeholder={isAr ? "ابحث باسم الصنف، المكونات، أو القسم..." : "Search dish, ingredients, category..."}
-                                    className="w-full bg-slate-100/80 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 rounded-xl sm:rounded-2xl text-xs py-2.5 px-9 text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-400"
+                                    className="w-full theme31-search-input bg-slate-100/80 dark:bg-zinc-800/80 border border-slate-200 dark:border-zinc-700 rounded-xl sm:rounded-2xl text-xs py-2.5 px-9 text-slate-900 dark:text-zinc-100 focus:outline-none transition-all placeholder:text-slate-400"
                                 />
                                 {searchQuery && (
                                     <button
@@ -1036,7 +1064,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('grid')}
-                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-zinc-700 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    style={viewMode === 'grid' ? { color: primaryColor } : undefined}
                                     title={isAr ? "عرض شبكي مزدوج" : "Grid View"}
                                 >
                                     <LayoutGrid className="w-3.5 h-3.5" />
@@ -1044,7 +1073,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('list')}
-                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'list' ? 'bg-white dark:bg-zinc-700 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    style={viewMode === 'list' ? { color: primaryColor } : undefined}
                                     title={isAr ? "عرض قائمة تفصيلية" : "List View"}
                                 >
                                     <LayoutList className="w-3.5 h-3.5" />
@@ -1052,7 +1082,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('compact')}
-                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'compact' ? 'bg-white dark:bg-zinc-700 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    style={viewMode === 'compact' ? { color: primaryColor } : undefined}
                                     title={isAr ? "عرض مضغوط سريع" : "Compact Fast View"}
                                 >
                                     <AlignJustify className="w-3.5 h-3.5" />
@@ -1060,7 +1091,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                 <button
                                     type="button"
                                     onClick={() => setViewMode('showcase')}
-                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'showcase' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-white shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    className={`p-1.5 rounded-lg text-xs transition-all ${viewMode === 'showcase' ? 'bg-white dark:bg-zinc-700 shadow-xs' : 'text-slate-500 hover:text-slate-800 dark:text-zinc-400'}`}
+                                    style={viewMode === 'showcase' ? { color: primaryColor } : undefined}
                                     title={isAr ? "عرض بصري كامل" : "Showcase View"}
                                 >
                                     <Maximize2 className="w-3.5 h-3.5" />
@@ -1200,7 +1232,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                 {searchQuery && (
                     <div className="mb-4 px-2 flex items-center justify-between text-xs text-slate-600 dark:text-zinc-400">
                         <span>{isAr ? `نتائج البحث عن "${searchQuery}":` : `Results for "${searchQuery}":`}</span>
-                        <span className="font-bold text-indigo-500">{isAr ? `${totalMatchingItems} صنف متطابق` : `${totalMatchingItems} items found`}</span>
+                        <span className="font-bold" style={{ color: primaryColor }}>{isAr ? `${totalMatchingItems} صنف متطابق` : `${totalMatchingItems} items found`}</span>
                     </div>
                 )}
 
@@ -1216,7 +1248,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                         <button
                             type="button"
                             onClick={() => { setSearchQuery(''); setActiveFilter('all'); }}
-                            className="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-md"
+                            className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all shadow-md active:scale-95 hover:opacity-90"
+                            style={{ backgroundColor: primaryColor }}
                         >
                             {isAr ? "إعادة ضبط البحث" : "Reset Filter"}
                         </button>
@@ -1322,7 +1355,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
 
                                                 {/* Item Details */}
                                                 <div className="space-y-1 flex-1">
-                                                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 line-clamp-1 group-hover:text-indigo-500 transition-colors">
+                                                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 line-clamp-1 theme31-title-hover transition-colors">
                                                         {itemName(item)}
                                                     </h3>
                                                     {itemDesc(item) && (
@@ -1348,9 +1381,10 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                     onClick={() => setCardSelectedSizes(prev => ({ ...prev, [String(item.id)]: pIdx }))}
                                                                     className={`px-2 py-0.5 rounded-md text-[9px] font-bold transition-all border ${
                                                                         isSizeActive 
-                                                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs' 
+                                                                            ? 'text-white shadow-2xs' 
                                                                             : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-transparent hover:border-slate-300'
                                                                     }`}
+                                                                    style={isSizeActive ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
                                                                 >
                                                                     {sizeName}
                                                                 </button>
@@ -1380,23 +1414,29 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                     {/* In-Card Stepper OR Add Button */}
                                                     {inCartQty > 0 ? (
                                                         <div 
-                                                            className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-300 dark:border-indigo-700/50 rounded-xl p-0.5"
+                                                            className="flex items-center gap-1.5 rounded-xl p-0.5 border"
+                                                            style={{ 
+                                                                backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
+                                                                borderColor: `${primaryColor}40`
+                                                            }}
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-300 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
+                                                                className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
+                                                                style={{ color: primaryColor }}
                                                             >
                                                                 <Minus className="w-3 h-3" />
                                                             </button>
-                                                            <span className="text-xs font-black px-1 text-indigo-600 dark:text-indigo-400">
+                                                            <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
                                                                 {inCartQty}
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-indigo-700 active:scale-90"
+                                                                className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs shadow-2xs active:scale-90 hover:opacity-90"
+                                                                style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <Plus className="w-3 h-3" />
                                                             </button>
@@ -1405,7 +1445,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                         <button
                                                             type="button"
                                                             onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                            className="w-8 h-8 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-90 text-white flex items-center justify-center transition-all shadow-md shadow-indigo-600/30"
+                                                            className="w-8 h-8 rounded-xl active:scale-90 text-white flex items-center justify-center transition-all shadow-md hover:opacity-90"
+                                                            style={{ 
+                                                                backgroundColor: primaryColor,
+                                                                boxShadow: `0 4px 14px 0 ${primaryColor}4d`
+                                                            }}
                                                             title={isAr ? "إضافة سريعة للسلة" : "Quick Add to Cart"}
                                                         >
                                                             <Plus className="w-4 h-4" />
@@ -1452,7 +1496,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                 {/* Middle Details */}
                                                 <div className="flex-1 min-w-0 space-y-1">
                                                     <div className="flex items-center gap-2">
-                                                        <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 truncate group-hover:text-indigo-500 transition-colors">
+                                                        <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 truncate theme31-title-hover transition-colors">
                                                             {itemName(item)}
                                                         </h3>
                                                         {item.is_popular && (
@@ -1481,21 +1525,29 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                 {/* Right Stepper or Add Button */}
                                                 <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                                                     {inCartQty > 0 ? (
-                                                        <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-300 dark:border-indigo-700/50 rounded-xl p-1">
+                                                        <div 
+                                                            className="flex items-center gap-1.5 rounded-xl p-1 border"
+                                                            style={{ 
+                                                                backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
+                                                                borderColor: `${primaryColor}40`
+                                                            }}
+                                                        >
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 text-indigo-600 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
+                                                                className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
+                                                                style={{ color: primaryColor }}
                                                             >
                                                                 <Minus className="w-3 h-3" />
                                                             </button>
-                                                            <span className="text-xs font-black px-1 text-indigo-600 dark:text-indigo-400">
+                                                            <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
                                                                 {inCartQty}
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-indigo-700 active:scale-90"
+                                                                className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs shadow-2xs active:scale-90 hover:opacity-90"
+                                                                style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <Plus className="w-3 h-3" />
                                                             </button>
@@ -1504,7 +1556,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                         <button
                                                             type="button"
                                                             onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                            className="w-9 h-9 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-90 text-white flex items-center justify-center transition-all shadow-md shadow-indigo-600/30"
+                                                            className="w-9 h-9 rounded-2xl active:scale-90 text-white flex items-center justify-center transition-all shadow-md hover:opacity-90"
+                                                            style={{ 
+                                                                backgroundColor: primaryColor,
+                                                                boxShadow: `0 4px 14px 0 ${primaryColor}4d`
+                                                            }}
                                                         >
                                                             <Plus className="w-4 h-4" />
                                                         </button>
@@ -1522,52 +1578,94 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                     {(category.items || []).map((item) => {
                                         const inCartQty = getItemCartQty(item.id);
                                         const currentPrice = item.prices?.[0] || 0;
+                                        const currentOldPrice = item.old_prices?.[0];
+                                        const hasDiscount = currentOldPrice && currentOldPrice > currentPrice;
 
                                         return (
                                             <div
                                                 key={item.id}
                                                 onClick={() => openItemDetails(item, catName(category), category.id)}
-                                                className="p-3 sm:p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
+                                                className="group p-2.5 sm:p-3 flex items-center justify-between gap-2.5 sm:gap-3.5 hover:bg-slate-50/80 dark:hover:bg-zinc-800/40 cursor-pointer transition-colors"
                                             >
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 truncate">
-                                                            {itemName(item)}
-                                                        </h3>
-                                                        {item.calories && (
-                                                            <span className="text-[9px] text-slate-400 font-bold">
-                                                                🔥 {item.calories}
-                                                            </span>
+                                                {/* Start: Thumbnail + Details */}
+                                                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                                                    {/* Mini Image Thumbnail */}
+                                                    <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0 border border-slate-200/60 dark:border-white/5 shadow-2xs">
+                                                        {(item.image_url || item.image) ? (
+                                                            <OptimizedMenuImage
+                                                                src={item.image_url || item.image}
+                                                                alt={itemName(item)}
+                                                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                                sizes="60px"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-zinc-600">
+                                                                <Utensils className="w-5 h-5" />
+                                                            </div>
                                                         )}
                                                     </div>
-                                                    {itemDesc(item) && (
-                                                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 truncate mt-0.5">
-                                                            {itemDesc(item)}
-                                                        </p>
-                                                    )}
+
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 truncate theme31-title-hover transition-colors">
+                                                                {itemName(item)}
+                                                            </h3>
+                                                            {item.is_popular && (
+                                                                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shrink-0">
+                                                                    🔥 {isAr ? "مميز" : "Hot"}
+                                                                </span>
+                                                            )}
+                                                            {item.calories && (
+                                                                <span className="text-[9px] text-slate-400 font-bold shrink-0">
+                                                                    🔥 {item.calories}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {itemDesc(item) && (
+                                                            <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 truncate mt-0.5 leading-tight">
+                                                                {itemDesc(item)}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                    <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
-                                                        {currentPrice} {cur}
-                                                    </span>
+                                                {/* End: Price + Stepper / Add Button */}
+                                                <div className="flex items-center gap-2.5 sm:gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                    <div className="text-end">
+                                                        <div className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                                                            {currentPrice} {cur}
+                                                        </div>
+                                                        {hasDiscount && (
+                                                            <div className="text-[9px] text-slate-400 line-through">
+                                                                {currentOldPrice} {cur}
+                                                            </div>
+                                                        )}
+                                                    </div>
 
                                                     {inCartQty > 0 ? (
-                                                        <div className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-300 dark:border-indigo-700/50 rounded-lg p-0.5">
+                                                        <div 
+                                                            className="flex items-center gap-1 rounded-lg p-0.5 border"
+                                                            style={{ 
+                                                                backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
+                                                                borderColor: `${primaryColor}40`
+                                                            }}
+                                                        >
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                className="w-5 h-5 rounded bg-white dark:bg-zinc-800 text-indigo-600 flex items-center justify-center font-bold text-xs"
+                                                                className="w-5 h-5 rounded bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs active:scale-90"
+                                                                style={{ color: primaryColor }}
                                                             >
                                                                 <Minus className="w-2.5 h-2.5" />
                                                             </button>
-                                                            <span className="text-xs font-black px-1 text-indigo-600 dark:text-indigo-400">
+                                                            <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
                                                                 {inCartQty}
                                                             </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="w-5 h-5 rounded bg-indigo-600 text-white flex items-center justify-center font-bold text-xs"
+                                                                className="w-5 h-5 rounded text-white flex items-center justify-center font-bold text-xs active:scale-90 hover:opacity-90"
+                                                                style={{ backgroundColor: primaryColor }}
                                                             >
                                                                 <Plus className="w-2.5 h-2.5" />
                                                             </button>
@@ -1576,7 +1674,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                         <button
                                                             type="button"
                                                             onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                            className="px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95"
+                                                            className="px-2.5 py-1 rounded-xl text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 active:scale-95 hover:opacity-90"
+                                                            style={{ 
+                                                                backgroundColor: primaryColor,
+                                                                boxShadow: `0 2px 8px 0 ${primaryColor}40`
+                                                            }}
                                                         >
                                                             <Plus className="w-3 h-3" />
                                                             <span>{isAr ? "أضف" : "Add"}</span>
@@ -1665,21 +1767,29 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
 
                                                     <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                                                         {inCartQty > 0 ? (
-                                                            <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-300 dark:border-indigo-700/50 rounded-2xl p-1.5">
+                                                            <div 
+                                                                className="flex items-center gap-2 rounded-2xl p-1.5 border"
+                                                                style={{ 
+                                                                    backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
+                                                                    borderColor: `${primaryColor}40`
+                                                                }}
+                                                            >
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                    className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 text-indigo-600 flex items-center justify-center font-bold text-sm shadow-xs active:scale-90"
+                                                                    className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-sm shadow-xs active:scale-90"
+                                                                    style={{ color: primaryColor }}
                                                                 >
                                                                     <Minus className="w-4 h-4" />
                                                                 </button>
-                                                                <span className="text-sm font-black px-2 text-indigo-600 dark:text-indigo-400">
+                                                                <span className="text-sm font-black px-2" style={{ color: primaryColor }}>
                                                                     {inCartQty}
                                                                 </span>
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                    className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs active:scale-90"
+                                                                    className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-bold text-sm shadow-xs active:scale-90 hover:opacity-90"
+                                                                    style={{ backgroundColor: primaryColor }}
                                                                 >
                                                                     <Plus className="w-4 h-4" />
                                                                 </button>
@@ -1688,7 +1798,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all"
+                                                                className="px-5 py-2.5 rounded-2xl active:scale-95 text-white text-xs font-black flex items-center gap-2 shadow-lg transition-all hover:opacity-90"
+                                                                style={{ 
+                                                                    backgroundColor: primaryColor,
+                                                                    boxShadow: `0 4px 14px 0 ${primaryColor}4d`
+                                                                }}
                                                             >
                                                                 <Plus className="w-4 h-4" />
                                                                 <span>{isAr ? "أضف إلى السلة" : "Add to Cart"}</span>
@@ -1739,7 +1853,13 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-indigo-600 text-white font-black text-xs shadow-md">
+                                <div 
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-white font-black text-xs shadow-md transition-transform active:scale-95"
+                                    style={{ 
+                                        backgroundColor: primaryColor,
+                                        boxShadow: `0 4px 14px 0 ${primaryColor}4d`
+                                    }}
+                                >
                                     <span>{isAr ? "عرض السلة" : "View Cart"}</span>
                                     <ChevronRight className="w-4 h-4 rtl:rotate-180" />
                                 </div>
@@ -1843,7 +1963,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 font-bold mt-0.5">
                                                                     <span>{cartItem.sizeLabel}</span>
                                                                     <span>•</span>
-                                                                    <span className="text-indigo-600 dark:text-indigo-400 font-black">{totalItemPrice} {cur}</span>
+                                                                    <span className="font-black" style={{ color: primaryColor }}>{totalItemPrice} {cur}</span>
                                                                 </div>
                                                             </div>
 
@@ -1910,7 +2030,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                             });
                                                                         });
                                                                     }}
-                                                                    className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs hover:bg-indigo-700"
+                                                                    className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs active:scale-90 hover:opacity-90"
+                                                                    style={{ backgroundColor: primaryColor }}
                                                                 >
                                                                     <Plus className="w-3 h-3" />
                                                                 </button>
@@ -1932,7 +2053,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                 </div>
                                                 <div className="flex justify-between font-black text-sm text-slate-900 dark:text-white pt-1 border-t border-slate-200 dark:border-zinc-800">
                                                     <span>{isAr ? "الإجمالي الكلي" : "Total Amount"}</span>
-                                                    <span className="text-indigo-600 dark:text-indigo-400">{cartTotal} {cur}</span>
+                                                    <span className="font-black" style={{ color: primaryColor }}>{cartTotal} {cur}</span>
                                                 </div>
                                             </div>
 
@@ -1944,7 +2065,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                         setIsCartOpen(false);
                                                         setShowCheckout(true);
                                                     }}
-                                                    className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition-all"
+                                                    className="w-full py-3.5 rounded-2xl active:scale-95 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg transition-all hover:opacity-90"
+                                                    style={{ 
+                                                        backgroundColor: primaryColor,
+                                                        boxShadow: `0 10px 25px -5px ${primaryColor}4d`
+                                                    }}
                                                 >
                                                     <ShoppingCart className="w-4 h-4" />
                                                     <span>{isAr ? "متابعة الطلب والدفع" : "Proceed to Checkout"}</span>
@@ -2071,9 +2196,10 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                             onClick={() => setModalSizeIdx(pIdx)}
                                                             className={`p-2.5 rounded-2xl border text-xs font-bold transition-all text-start flex flex-col justify-between ${
                                                                 isSelected
-                                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                                                                    ? 'text-white shadow-md'
                                                                     : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 hover:border-slate-300'
                                                             }`}
+                                                            style={isSelected ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
                                                         >
                                                             <span>{sName}</span>
                                                             <span className="text-xs font-black mt-1">
@@ -2104,23 +2230,27 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                             key={eIdx}
                                                             className={`p-2.5 rounded-2xl border transition-all flex items-center justify-between gap-2 ${
                                                                 isSelected
-                                                                    ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700/50'
+                                                                    ? 'border'
                                                                     : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800'
                                                             }`}
+                                                            style={isSelected ? { backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}10`, borderColor: `${primaryColor}60` } : undefined}
                                                         >
                                                             <button
                                                                 type="button"
                                                                 onClick={() => toggleModalExtra(eName, extra.price)}
                                                                 className="flex items-center gap-2.5 flex-1 text-start"
                                                             >
-                                                                <div className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-zinc-600'}`}>
+                                                                <div 
+                                                                    className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${isSelected ? 'text-white' : 'border-slate-300 dark:border-zinc-600'}`}
+                                                                    style={isSelected ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
+                                                                >
                                                                     {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                                                                 </div>
                                                                 <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">{eName}</span>
                                                             </button>
 
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                                                <span className="text-xs font-black" style={{ color: primaryColor }}>
                                                                     +{extra.price} {cur}
                                                                 </span>
 
@@ -2137,7 +2267,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => updateModalExtraQty(eName, 1)}
-                                                                            className="w-5 h-5 rounded bg-indigo-600 text-white text-xs flex items-center justify-center font-bold"
+                                                                            className="w-5 h-5 rounded text-white text-xs flex items-center justify-center font-bold"
+                                                                            style={{ backgroundColor: primaryColor }}
                                                                         >
                                                                             <Plus className="w-2.5 h-2.5" />
                                                                         </button>
@@ -2161,7 +2292,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                             value={modalNotes}
                                             onChange={(e) => setModalNotes(e.target.value)}
                                             placeholder={isAr ? "مثال: بدون بصل، زيادة صوص، تسوية جيدة..." : "e.g. No onions, extra sauce, well cooked..."}
-                                            className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 text-xs text-slate-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500 min-h-[60px] resize-none"
+                                            className="w-full theme31-search-input bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 text-xs text-slate-900 dark:text-zinc-100 focus:outline-none min-h-[60px] resize-none"
                                         />
                                     </div>
                                 </div>
@@ -2183,7 +2314,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                         <button
                                             type="button"
                                             onClick={() => setModalQty(prev => prev + 1)}
-                                            className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-xs active:scale-90 hover:bg-indigo-700"
+                                            className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-bold text-xs active:scale-90 hover:opacity-90"
+                                            style={{ backgroundColor: primaryColor }}
                                         >
                                             <Plus className="w-3.5 h-3.5" />
                                         </button>
@@ -2193,7 +2325,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                     <button
                                         type="button"
                                         onClick={addModalToCart}
-                                        className="flex-1 py-3 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-xs flex items-center justify-between shadow-lg shadow-indigo-600/30 transition-all"
+                                        className="flex-1 py-3 px-4 rounded-2xl active:scale-95 text-white font-black text-xs flex items-center justify-between shadow-lg transition-all hover:opacity-90"
+                                        style={{ 
+                                            backgroundColor: primaryColor,
+                                            boxShadow: `0 10px 25px -5px ${primaryColor}4d`
+                                        }}
                                     >
                                         <span className="flex items-center gap-1.5">
                                             <ShoppingCart className="w-4 h-4" />
@@ -2306,7 +2442,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                     quickAddToCart(it, storyHighlights[activeStoryIdx].title);
                                                     setActiveStoryIdx(null);
                                                 }}
-                                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95"
+                                                className="px-4 py-2 rounded-xl text-white font-black text-xs flex items-center gap-1.5 shadow-md active:scale-95 hover:opacity-90"
+                                                style={{ backgroundColor: primaryColor }}
                                             >
                                                 <Plus className="w-3.5 h-3.5" />
                                                 <span>{isAr ? "أضف للسلة" : "Add to Cart"}</span>
@@ -2445,7 +2582,10 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                             >
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-600 flex items-center justify-center">
+                                        <div 
+                                            className="w-8 h-8 rounded-xl flex items-center justify-center"
+                                            style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                                        >
                                             <CreditCard className="w-4 h-4" />
                                         </div>
                                         <h3 className="font-black text-sm text-slate-900 dark:text-white">
@@ -2478,7 +2618,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                     setCopiedNumber(pmNum);
                                                                     setTimeout(() => setCopiedNumber(null), 2000);
                                                                 }}
-                                                                className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 flex items-center gap-1 hover:bg-indigo-600/20"
+                                                                className="text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 hover:opacity-80 transition-opacity"
+                                                                style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
                                                             >
                                                                 <Copy className="w-2.5 h-2.5" />
                                                                 <span>{copiedNumber === pmNum ? (isAr ? "تم النسخ ✓" : "Copied ✓") : (isAr ? "نسخ الرقم" : "Copy")}</span>
