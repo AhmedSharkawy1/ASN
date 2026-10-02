@@ -427,23 +427,23 @@ export default function MenuBuilderPage() {
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري تحميل المنيو..." : "Loading Menu Builder..."}</div>;
 
     return (
-        <div className="flex flex-col gap-6 w-full mx-auto pb-20">
+        <div className="flex flex-col gap-6 w-full max-w-full overflow-x-hidden mx-auto pb-20">
             {/* Main Menu Builder */}
             <div className="col-span-12 flex flex-col gap-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-glass-border pb-6">
                 <div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mb-1 sm:mb-2">
                         {language === "ar" ? "صانع المنيو الذكي" : "Smart Menu Builder"}
                     </h1>
-                    <p className="text-silver mb-4 md:mb-0">
+                    <p className="text-xs sm:text-sm text-silver mb-2 md:mb-0">
                         {language === "ar" ? "أضف وعدّل الأقسام والأصناف والأسعار والصور بحرية كاملة." : "Add and edit categories, items, prices, and images with full control."}
                     </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full md:w-auto">
                     <button
                         onClick={downloadEmptyMenuTemplate}
-                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-dashed border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-sm">
-                        <FileDown className="w-5 h-5 text-blue" />
+                        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-glass-dark border border-dashed border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 text-xs sm:text-sm">
+                        <FileDown className="w-4 h-4 sm:w-5 sm:h-5 text-blue" />
                         {language === "ar" ? "تحميل نموذج" : "Download Template"}
                     </button>
                     <button
@@ -454,12 +454,12 @@ export default function MenuBuilderPage() {
                             setIsExporting(false);
                         }}
                         disabled={isExporting}
-                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95 text-sm">
-                        {isExporting ? <span className="animate-spin text-lg">⏳</span> : <Download className="w-5 h-5 text-blue" />}
+                        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-glass-dark border border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95 text-xs sm:text-sm">
+                        {isExporting ? <span className="animate-spin text-base sm:text-lg">⏳</span> : <Download className="w-4 h-4 sm:w-5 sm:h-5 text-blue" />}
                         {language === "ar" ? "تصدير" : "Export Excel"}
                     </button>
-                    <label className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer active:scale-95 text-sm">
-                        {isImporting ? <span className="animate-spin text-lg">⏳</span> : <FileSpreadsheet className="w-5 h-5 text-emerald-500" />}
+                    <label className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-glass-dark border border-glass-border text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all cursor-pointer active:scale-95 text-xs sm:text-sm">
+                        {isImporting ? <span className="animate-spin text-base sm:text-lg">⏳</span> : <FileSpreadsheet className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />}
                         {language === "ar" ? "استيراد" : "Import Excel"}
                         <input type="file" accept=".xlsx,.xls" className="hidden" disabled={isImporting} onChange={async (e) => {
                             const file = e.target.files?.[0];
@@ -487,13 +487,13 @@ export default function MenuBuilderPage() {
                             }
                         }}
                         disabled={isExportingImages}
-                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-purple-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-purple-500/60 transition-all disabled:opacity-50 active:scale-95 text-sm"
+                        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-glass-dark border border-purple-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-purple-500/60 transition-all disabled:opacity-50 active:scale-95 text-xs sm:text-sm"
                     >
-                        {isExportingImages ? <Loader2 className="w-5 h-5 text-purple-500 animate-spin" /> : <ImageDown className="w-5 h-5 text-purple-500" />}
+                        {isExportingImages ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 animate-spin" /> : <ImageDown className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />}
                         {language === "ar" ? "تصدير الصور" : "Export Images"}
                     </button>
-                    <label className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-orange-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-orange-500/60 transition-all cursor-pointer active:scale-95 text-sm">
-                        {isImportingImages ? <Loader2 className="w-5 h-5 text-orange-500 animate-spin" /> : <ImageUp className="w-5 h-5 text-orange-500" />}
+                    <label className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-glass-dark border border-orange-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-orange-500/60 transition-all cursor-pointer active:scale-95 text-xs sm:text-sm">
+                        {isImportingImages ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500 animate-spin" /> : <ImageUp className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />}
                         {language === "ar" ? "استيراد الصور" : "Import Images"}
                         <input ref={importImagesRef} type="file" accept=".zip" className="hidden" disabled={isImportingImages} onChange={async (e) => {
                             const file = e.target.files?.[0];
@@ -515,19 +515,19 @@ export default function MenuBuilderPage() {
                         type="button"
                         onClick={() => setShowSmartImportModal(true)}
                         disabled={isSmartImporting}
-                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-teal-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-teal-500/60 transition-all disabled:opacity-50 active:scale-95 text-sm"
+                        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-glass-dark border border-teal-500/30 text-foreground font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-teal-500/60 transition-all disabled:opacity-50 active:scale-95 text-xs sm:text-sm"
                     >
-                        {isSmartImporting ? <Loader2 className="w-5 h-5 text-teal-500 animate-spin" /> : <span className="text-lg">🪄</span>}
+                        {isSmartImporting ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500 animate-spin" /> : <span className="text-base sm:text-lg">🪄</span>}
                         {language === "ar" ? "استيراد صور ذكي" : "Smart Import"}
                     </button>
                     <button
                         type="button"
                         onClick={() => setShowDeleteAllImagesModal(true)}
                         disabled={isDeletingAllImages}
-                        className="flex items-center gap-2 px-4 py-3 bg-glass-dark border border-red-500/30 text-red-500 font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50 active:scale-95 text-sm"
+                        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-glass-dark border border-red-500/30 text-red-500 font-bold rounded-xl shadow-lg hover:shadow-xl hover:border-red-500 hover:bg-red-500/10 transition-all disabled:opacity-50 active:scale-95 text-xs sm:text-sm"
                         title={language === "ar" ? "حذف وتفريغ جميع صور الأصناف والأقسام للبدء من جديد" : "Delete all menu photos to start fresh"}
                     >
-                        {isDeletingAllImages ? <Loader2 className="w-5 h-5 text-red-500 animate-spin" /> : <Trash2 className="w-5 h-5 text-red-500" />}
+                        {isDeletingAllImages ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 animate-spin" /> : <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />}
                         {language === "ar" ? "حذف جميع الصور" : "Delete All Images"}
                     </button>
                     <input
@@ -563,7 +563,7 @@ export default function MenuBuilderPage() {
                         }}
                     />
                     <button onClick={() => { setShowAddCategory(true); setEditingCat(null); setEditingItem(null); setAddingItemToCat(null); }}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95 text-sm sm:text-base">
+                        className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 w-full sm:w-auto bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-[0_0_15px_rgba(46,163,255,0.4)] hover:shadow-[0_0_25px_rgba(46,163,255,0.6)] transition-all active:scale-95 text-sm sm:text-base">
                         <Plus className="w-5 h-5" />
                         {language === "ar" ? "إضافة قسم جديد" : "Add Category"}
                     </button>
@@ -605,7 +605,7 @@ export default function MenuBuilderPage() {
                         return (
                             <div key={cat.id} className={`rounded-2xl border transition-all overflow-hidden shadow-sm ${isCatHidden ? 'border-red-500/30 bg-red-50/10 dark:bg-red-950/10' : 'bg-white dark:bg-card border-glass-border'}`}>
                                 {/* CATEGORY HEADER */}
-                                <div className={`px-6 py-4 border-b transition-colors ${isCatHidden ? 'bg-red-50/20 dark:bg-red-950/20 border-red-500/20' : 'bg-slate-50 dark:bg-glass-dark border-glass-border'}`}>
+                                <div className={`px-3.5 sm:px-6 py-3 sm:py-4 border-b transition-colors ${isCatHidden ? 'bg-red-50/20 dark:bg-red-950/20 border-red-500/20' : 'bg-slate-50 dark:bg-glass-dark border-glass-border'}`}>
                                     {editingCat === cat.id ? (
                                         <CategoryEditor cat={cat} language={language}
                                             highQuality={highQualityImages}
@@ -614,76 +614,85 @@ export default function MenuBuilderPage() {
                                             onImageUpload={(f) => handleCatImageUpload(cat.id, f)}
                                             onClose={() => setEditingCat(null)} />
                                     ) : (
-                                        <div className="flex justify-between items-center">
-                                            <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => toggleCollapse(cat.id)}>
-                                                {cat.image_url ? (
-                                                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-glass-border flex-shrink-0">
-                                                        <img src={(highQualityImages ? getOriginalUrl(cat.image_url || cat.thumbnail_url) : getThumbnailUrl(cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-full h-full object-cover" onError={(e) => { if (cat.image_url && e.currentTarget.src !== cat.image_url) e.currentTarget.src = cat.image_url; }} />
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            {/* Category info - clickable to toggle collapse */}
+                                            <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-3 cursor-pointer select-none min-w-0 flex-1" onClick={() => toggleCollapse(cat.id)}>
+                                                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                                    {cat.image_url ? (
+                                                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl overflow-hidden border border-glass-border flex-shrink-0">
+                                                            <img src={(highQualityImages ? getOriginalUrl(cat.image_url || cat.thumbnail_url) : getThumbnailUrl(cat.thumbnail_url || cat.image_url)) || undefined} alt="" className="w-full h-full object-cover" onError={(e) => { if (cat.image_url && e.currentTarget.src !== cat.image_url) e.currentTarget.src = cat.image_url; }} />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-full bg-blue/10 flex items-center justify-center text-xl shadow-inner flex-shrink-0">
+                                                            {cat.emoji || "🍽️"}
+                                                        </div>
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <h2 className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                                            <span className="truncate">{cat.name_ar}</span>
+                                                            <span className="text-silver text-xs sm:text-sm font-normal">({cat.items.length})</span>
+                                                            {isCatHidden && (
+                                                                <span className="bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap">
+                                                                    <EyeOff className="w-3 h-3" /> {language === "ar" ? "مخفي" : "Hidden"}
+                                                                </span>
+                                                            )}
+                                                            {Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular))) && (
+                                                                <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap">
+                                                                    <Star className="w-3 h-3 fill-current" /> {language === "ar" ? "قسم مميز" : "Featured"}
+                                                                </span>
+                                                            )}
+                                                        </h2>
+                                                        {cat.name_en && cat.name_en !== cat.name_ar && <span className="text-xs sm:text-sm text-silver block truncate">{cat.name_en}</span>}
                                                     </div>
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-blue/10 flex items-center justify-center text-xl shadow-inner">
-                                                        {cat.emoji || "🍽️"}
-                                                    </div>
-                                                )}
-                                                <div>
-                                                    <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 flex-wrap">
-                                                        {cat.name_ar}
-                                                        <span className="text-silver text-sm font-normal">({cat.items.length})</span>
-                                                        {isCatHidden && (
-                                                            <span className="bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap">
-                                                                <EyeOff className="w-3 h-3" /> {language === "ar" ? "مخفي" : "Hidden"}
-                                                            </span>
-                                                        )}
-                                                        {Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular))) && (
-                                                            <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap">
-                                                                <Star className="w-3 h-3 fill-current" /> {language === "ar" ? "قسم مميز" : "Featured"}
-                                                            </span>
-                                                        )}
-                                                        {isCollapsed ? <ChevronDown className="w-5 h-5 text-silver" /> : <ChevronUp className="w-5 h-5 text-silver" />}
-                                                    </h2>
-                                                    {cat.name_en && cat.name_en !== cat.name_ar && <span className="text-sm text-silver">{cat.name_en}</span>}
+                                                </div>
+                                                <div className="text-silver p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition shrink-0">
+                                                    {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-1.5 md:gap-2">
-                                                <div className="flex bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border">
-                                                    <button onClick={() => handleMoveCategory(catIdx, 'up')} disabled={catIdx === 0} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-5 h-5" /></button>
-                                                    <button onClick={() => handleMoveCategory(catIdx, 'down')} disabled={catIdx === categories.length - 1} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-5 h-5" /></button>
+
+                                            {/* Category Actions Toolbar */}
+                                            <div className="flex items-center justify-between sm:justify-end gap-1.5 md:gap-2 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-glass-border/40 w-full sm:w-auto">
+                                                <div className="flex bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border shrink-0">
+                                                    <button onClick={() => handleMoveCategory(catIdx, 'up')} disabled={catIdx === 0} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" /></button>
+                                                    <button onClick={() => handleMoveCategory(catIdx, 'down')} disabled={catIdx === categories.length - 1} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" /></button>
                                                 </div>
-                                                {(() => {
-                                                    const isCatFeatured = Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular)));
-                                                    return (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                toggleCategoryFeatured(cat.id);
-                                                            }}
-                                                            className={`p-2 rounded-lg transition-colors ${
-                                                                isCatFeatured
-                                                                    ? 'text-yellow-500 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30'
-                                                                    : 'text-zinc-400 hover:text-yellow-500 hover:bg-yellow-500/10'
-                                                            }`}
-                                                            title={
-                                                                language === 'ar'
-                                                                    ? (isCatFeatured ? 'إلغاء تمييز القسم بالكامل' : 'تمييز كل أصناف القسم (قسم مميز)')
-                                                                    : (isCatFeatured ? 'Unfeature entire category' : 'Make entire category featured')
-                                                            }
-                                                        >
-                                                            <Star className={`w-4 h-4 md:w-5 md:h-5 ${isCatFeatured ? 'fill-current' : ''}`} />
-                                                        </button>
-                                                    );
-                                                })()}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        updateCategory(cat.id, { is_available: isCatHidden });
-                                                    }}
-                                                    className={`p-2 rounded-lg transition-colors ${isCatHidden ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
-                                                    title={language === 'ar' ? (isCatHidden ? 'إظهار القسم بالكامل في المنيو' : 'إخفاء القسم بالكامل من المنيو') : (isCatHidden ? 'Show category in menu' : 'Hide category from menu')}
-                                                >
-                                                    {isCatHidden ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
-                                                </button>
-                                                <button onClick={() => { setEditingCat(cat.id); setEditingItem(null); }} className="p-2 text-blue hover:bg-blue/10 rounded-lg transition-colors" title={language === 'ar' ? 'تعديل القسم' : 'Edit Category'}><Edit2 className="w-4 h-4 md:w-5 md:h-5" /></button>
-                                                <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title={language === 'ar' ? 'حذف القسم' : 'Delete Category'}><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                                <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
+                                                    {(() => {
+                                                        const isCatFeatured = Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular)));
+                                                        return (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    toggleCategoryFeatured(cat.id);
+                                                                }}
+                                                                className={`p-1.5 sm:p-2 rounded-lg transition-colors ${
+                                                                    isCatFeatured
+                                                                        ? 'text-yellow-500 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30'
+                                                                        : 'text-zinc-400 hover:text-yellow-500 hover:bg-yellow-500/10'
+                                                                }`}
+                                                                title={
+                                                                    language === 'ar'
+                                                                        ? (isCatFeatured ? 'إلغاء تمييز القسم بالكامل' : 'تمييز كل أصناف القسم (قسم مميز)')
+                                                                        : (isCatFeatured ? 'Unfeature entire category' : 'Make entire category featured')
+                                                                }
+                                                            >
+                                                                <Star className={`w-4 h-4 md:w-5 md:h-5 ${isCatFeatured ? 'fill-current' : ''}`} />
+                                                            </button>
+                                                        );
+                                                    })()}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            updateCategory(cat.id, { is_available: isCatHidden });
+                                                        }}
+                                                        className={`p-1.5 sm:p-2 rounded-lg transition-colors ${isCatHidden ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
+                                                        title={language === 'ar' ? (isCatHidden ? 'إظهار القسم بالكامل في المنيو' : 'إخفاء القسم بالكامل من المنيو') : (isCatHidden ? 'Show category in menu' : 'Hide category from menu')}
+                                                    >
+                                                        {isCatHidden ? <EyeOff className="w-4 h-4 md:w-5 md:h-5" /> : <Eye className="w-4 h-4 md:w-5 md:h-5" />}
+                                                    </button>
+                                                    <button onClick={() => { setEditingCat(cat.id); setEditingItem(null); }} className="p-1.5 sm:p-2 text-blue hover:bg-blue/10 rounded-lg transition-colors" title={language === 'ar' ? 'تعديل القسم' : 'Edit Category'}><Edit2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                                    <button onClick={() => handleDeleteCategory(cat.id)} className="p-1.5 sm:p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title={language === 'ar' ? 'حذف القسم' : 'Delete Category'}><Trash2 className="w-4 h-4 md:w-5 md:h-5" /></button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -694,7 +703,7 @@ export default function MenuBuilderPage() {
                                     {!isCollapsed && (
                                         <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }}
                                             className="overflow-hidden">
-                                            <div className="p-4 md:p-6 flex flex-col gap-4">
+                                            <div className="p-3 sm:p-4 md:p-6 flex flex-col gap-3 sm:gap-4">
                                                 {isCatHidden && (
                                                     <div className="bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-xs sm:text-sm px-4 py-2.5 rounded-xl flex items-center gap-2">
                                                         <EyeOff className="w-4 h-4 shrink-0" />
@@ -1164,14 +1173,14 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel, highQua
         <motion.div initial={{ opacity: 0, y: -20, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: -20, height: 0 }}
             onPaste={handlePaste}
             className="bg-white dark:bg-card border-2 border-blue/30 rounded-2xl overflow-hidden shadow-lg">
-            <div className="bg-blue/5 px-6 py-4 border-b border-blue/20 flex items-center justify-between">
-                <h3 className="font-bold text-blue text-lg flex items-center gap-2">
+            <div className="bg-blue/5 px-4 sm:px-6 py-3 sm:py-4 border-b border-blue/20 flex items-center justify-between">
+                <h3 className="font-bold text-blue text-base sm:text-lg flex items-center gap-2">
                     <Plus className="w-5 h-5" />
                     {language === "ar" ? "إضافة قسم جديد" : "Add New Category"}
                 </h3>
                 <button onClick={onCancel} className="p-2 text-silver hover:text-red-500 transition"><X className="w-5 h-5" /></button>
             </div>
-            <div className="p-6 space-y-5">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
                         <label className="text-sm font-bold text-silver">{language === "ar" ? "اسم القسم (عربي) *" : "Name (Arabic) *"}</label>
@@ -1189,21 +1198,21 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel, highQua
                             className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-base text-center font-bold text-2xl" />
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                     <button type="button" onClick={() => fileRef.current?.click()}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-blue/10 text-blue font-bold text-base rounded-xl hover:bg-blue/20 transition-colors">
-                        <Upload className="w-5 h-5" /> {language === "ar" ? "رفع صورة غلاف" : "Upload Cover"}
+                        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue/10 text-blue font-bold text-xs sm:text-base rounded-xl hover:bg-blue/20 transition-colors">
+                        <Upload className="w-4 h-4 sm:w-5 sm:h-5" /> {language === "ar" ? "رفع صورة غلاف" : "Upload Cover"}
                     </button>
                     <button type="button" onClick={handlePasteClick}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-base rounded-xl hover:bg-purple-500/20 transition-colors" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
-                        <ClipboardPaste className="w-5 h-5" /> {language === "ar" ? "لصق صورة" : "Paste Image"}
+                        className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold text-xs sm:text-base rounded-xl hover:bg-purple-500/20 transition-colors" title={language === "ar" ? "أو اضغط Ctrl+V" : "Or press Ctrl+V"}>
+                        <ClipboardPaste className="w-4 h-4 sm:w-5 sm:h-5" /> {language === "ar" ? "لصق صورة" : "Paste Image"}
                     </button>
-                    {imagePreview && <img src={imagePreview} alt="" className="w-14 h-14 rounded-xl object-cover border border-glass-border" />}
+                    {imagePreview && <img src={imagePreview} alt="" className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover border border-glass-border" />}
                 </div>
                 <div className="flex items-center gap-3 pt-2 border-t border-glass-border">
                     <button onClick={handleSave} disabled={saving || !nameAr.trim()}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
+                        className="flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto bg-gradient-to-r from-blue to-cyan-500 text-slate-900 dark:text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
                         <Save className="w-4 h-4" />
                         {saving ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ القسم" : "Save Category")}
                     </button>
@@ -1315,14 +1324,14 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
         <motion.div initial={{ opacity: 0, y: 20, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: 20, height: 0 }}
             onPaste={handlePaste}
             className="bg-white dark:bg-card border-2 border-slate-200 dark:border-glass-border rounded-2xl overflow-hidden shadow-lg">
-            <div className="bg-slate-50 dark:bg-glass-dark px-6 py-4 border-b border-slate-200 dark:border-glass-border flex items-center justify-between">
-                <h3 className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2">
+            <div className="bg-slate-50 dark:bg-glass-dark px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 dark:border-glass-border flex items-center justify-between">
+                <h3 className="font-bold text-slate-800 dark:text-white text-base sm:text-lg flex items-center gap-2">
                     <Plus className="w-5 h-5" />
                     {language === "ar" ? "إضافة صنف جديد" : "Add New Item"}
                 </h3>
                 <button onClick={onCancel} className="p-2 text-silver hover:text-red-500 transition"><X className="w-5 h-5" /></button>
             </div>
-            <div className="p-6 space-y-5">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
                 {/* Names */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
@@ -1412,7 +1421,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
                                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-black/20 border border-glass-border focus:border-blue outline-none text-sm font-bold" placeholder="كجم" />
                         </div>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
                         <button type="button" onClick={() => fileRef.current?.click()}
                             className="flex items-center gap-2 px-3 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 font-bold text-xs rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition">
@@ -1428,7 +1437,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
 
                 <div className="flex items-center gap-3 pt-3 border-t border-glass-border">
                     <button onClick={handleSave} disabled={saving || !titleAr.trim() || prices[0] <= 0}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
+                        className="flex items-center justify-center gap-2 px-6 py-3 w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 active:scale-95">
                         <Save className="w-4 h-4" />
                         {saving ? (language === "ar" ? "جاري الحفظ..." : "Saving...") : (language === "ar" ? "حفظ الصنف" : "Save Item")}
                     </button>
@@ -1511,46 +1520,46 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, onToggl
                     </div>
                 </div>
                 {/* Action buttons: horizontal bar on mobile, vertical column on sm+ */}
-                <div className="flex sm:flex-col items-center sm:items-end gap-1.5 sm:gap-1.5 shrink-0 mt-1 sm:mt-0">
-                    <div className="flex items-center bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border">
-                        <button onClick={onMoveUp} disabled={isFirst} className="p-1.5 sm:p-1 px-1.5 sm:px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-4 h-4" /></button>
-                        <button onClick={onMoveDown} disabled={isLast} className="p-1.5 sm:p-1 px-1.5 sm:px-1 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-4 h-4" /></button>
+                <div className="flex sm:flex-col items-center justify-between sm:justify-start sm:items-end gap-1.5 w-full sm:w-auto mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-glass-border/40">
+                    <div className="flex items-center bg-slate-100 dark:bg-black/30 rounded-lg p-0.5 border border-glass-border shrink-0">
+                        <button onClick={onMoveUp} disabled={isFirst} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأعلى' : 'Move Up'}><ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
+                        <button onClick={onMoveDown} disabled={isLast} className="p-1 px-1.5 text-zinc-500 hover:text-foreground hover:bg-white dark:hover:bg-zinc-800 rounded-md transition-colors disabled:opacity-30" title={language === 'ar' ? 'نقل لأسفل' : 'Move Down'}><ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" /></button>
                     </div>
-                    <div className="flex items-center gap-0.5 sm:gap-1">
-                        <button onClick={handlePasteImage} disabled={uploading} className="p-2 sm:p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-lg transition disabled:opacity-50" title={language === 'ar' ? 'لصق صورة' : 'Paste Image'}>
-                            {uploading ? <Loader2 className="w-5 h-5 sm:w-4 sm:h-4 animate-spin" /> : <ClipboardPaste className="w-5 h-5 sm:w-4 sm:h-4" />}
+                    <div className="flex items-center gap-1 sm:gap-1 flex-wrap sm:flex-nowrap justify-end">
+                        <button onClick={handlePasteImage} disabled={uploading} className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10 rounded-lg transition disabled:opacity-50" title={language === 'ar' ? 'لصق صورة' : 'Paste Image'}>
+                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardPaste className="w-4 h-4" />}
                         </button>
                         {onTogglePopular && (
                             <button
                                 onClick={onTogglePopular}
-                                className={`p-2 sm:p-1.5 rounded-lg transition-colors ${
+                                className={`p-1.5 rounded-lg transition-colors ${
                                     item.is_popular
                                         ? 'text-yellow-600 bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/30'
                                         : 'text-zinc-400 hover:text-yellow-600 hover:bg-yellow-500/10'
                                 }`}
                                 title={language === 'ar' ? (item.is_popular ? 'إلغاء تمييز الصنف' : 'تمييز الصنف (مميز)') : (item.is_popular ? 'Unfeature Item' : 'Mark Item as Featured')}
                             >
-                                <Star className={`w-5 h-5 sm:w-4 sm:h-4 ${item.is_popular ? 'fill-current' : ''}`} />
+                                <Star className={`w-4 h-4 ${item.is_popular ? 'fill-current' : ''}`} />
                             </button>
                         )}
                         {onToggleNew && (
                             <button
                                 onClick={onToggleNew}
-                                className={`p-2 sm:p-1.5 rounded-lg transition-colors ${
+                                className={`p-1.5 rounded-lg transition-colors ${
                                     item.is_new
                                         ? 'text-emerald-600 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30'
                                         : 'text-zinc-400 hover:text-emerald-600 hover:bg-emerald-500/10'
                                 }`}
                                 title={language === 'ar' ? (item.is_new ? 'إلغاء وسم جديد' : 'وسم الصنف كـ جديد (جديدنا)') : (item.is_new ? 'Unmark New' : 'Mark Item as New')}
                             >
-                                <Sparkles className={`w-5 h-5 sm:w-4 sm:h-4 ${item.is_new ? 'fill-current' : ''}`} />
+                                <Sparkles className={`w-4 h-4 ${item.is_new ? 'fill-current' : ''}`} />
                             </button>
                         )}
-                        <button onClick={onToggleVisibility} className={`p-2 sm:p-1.5 rounded-lg transition-colors ${item.is_available === false ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`} title={language === 'ar' ? (item.is_available === false ? 'إظهار في المنيو' : 'إخفاء من المنيو') : (item.is_available === false ? 'Show in menu' : 'Hide from menu')}>
-                            {item.is_available === false ? <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" /> : <Eye className="w-5 h-5 sm:w-4 sm:h-4" />}
+                        <button onClick={onToggleVisibility} className={`p-1.5 rounded-lg transition-colors ${item.is_available === false ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`} title={language === 'ar' ? (item.is_available === false ? 'إظهار في المنيو' : 'إخفاء من المنيو') : (item.is_available === false ? 'Show in menu' : 'Hide from menu')}>
+                            {item.is_available === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
-                        <button onClick={onEdit} className="p-2 sm:p-1.5 text-blue hover:bg-blue/10 rounded-lg transition"><Edit2 className="w-5 h-5 sm:w-4 sm:h-4" /></button>
-                        <button onClick={onDelete} className="p-2 sm:p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition"><Trash2 className="w-5 h-5 sm:w-4 sm:h-4" /></button>
+                        <button onClick={onEdit} className="p-1.5 text-blue hover:bg-blue/10 rounded-lg transition" title={language === 'ar' ? 'تعديل الصنف' : 'Edit Item'}><Edit2 className="w-4 h-4" /></button>
+                        <button onClick={onDelete} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition" title={language === 'ar' ? 'حذف الصنف' : 'Delete Item'}><Trash2 className="w-4 h-4" /></button>
                     </div>
                 </div>
             </div>
@@ -1620,8 +1629,8 @@ function CategoryEditor({ cat, language, onUpdate, onToggleFeatured, onImageUplo
     const isCatFeatured = Boolean(cat.is_popular || (cat.items?.length > 0 && cat.items.every(i => i.is_popular)));
 
     return (
-        <div onPaste={handlePaste} className="space-y-4 bg-blue/5 p-4 rounded-xl border border-blue/20">
-            <div className="flex items-center justify-between">
+        <div onPaste={handlePaste} className="space-y-4 bg-blue/5 p-3.5 sm:p-4 rounded-xl border border-blue/20">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-blue/10">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <h3 className="font-bold text-blue text-sm">{language === "ar" ? "تعديل القسم" : "Edit Category"}</h3>
                     {onToggleFeatured && (
@@ -1664,7 +1673,7 @@ function CategoryEditor({ cat, language, onUpdate, onToggleFeatured, onImageUplo
                         )}
                     </button>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center justify-end gap-2 shrink-0">
                     <button onClick={handleSave} className="flex items-center gap-1 px-3 py-1.5 bg-blue text-slate-900 dark:text-white text-sm font-bold rounded-lg"><Save className="w-3 h-3" /> {language === "ar" ? "حفظ" : "Save"}</button>
                     <button onClick={onClose} className="p-1.5 text-silver hover:text-red-500"><X className="w-4 h-4" /></button>
                 </div>
