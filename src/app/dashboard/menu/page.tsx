@@ -25,6 +25,7 @@ type Item = {
     size_labels: string[];
     is_popular: boolean;
     is_spicy: boolean;
+    is_new?: boolean;
     image_url?: string;
     // 400px variant served on the menu instead of the original — the whole
     // point is keeping Supabase egress down.
@@ -386,7 +387,13 @@ export default function MenuBuilderPage() {
     };
 
     const updateItem = async (catId: string, itemId: string, updates: Partial<Item>) => {
-        await supabase.from('items').update(updates).eq('id', itemId);
+        const { error } = await supabase.from('items').update(updates).eq('id', itemId);
+        if (error && /is_new/.test(error.message || '')) {
+            const { is_new, ...rest } = updates;
+            if (Object.keys(rest).length > 0) {
+                await supabase.from('items').update(rest).eq('id', itemId);
+            }
+        }
         setCategories(categories.map(c => c.id === catId
             ? { ...c, items: c.items.map(i => i.id === itemId ? { ...i, ...updates } : i) }
             : c
@@ -718,6 +725,7 @@ export default function MenuBuilderPage() {
                                                                 onDelete={() => handleDeleteItem(cat.id, item.id)}
                                                                 onToggleVisibility={() => updateItem(cat.id, item.id, { is_available: !item.is_available })}
                                                                 onTogglePopular={() => updateItem(cat.id, item.id, { is_popular: !item.is_popular })}
+                                                                onToggleNew={() => updateItem(cat.id, item.id, { is_new: !item.is_new })}
                                                                 isFirst={iIdx === 0}
                                                                 isLast={iIdx === cat.items.length - 1}
                                                                 onMoveUp={() => handleMoveItem(cat.id, iIdx, 'up')}
@@ -1225,6 +1233,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
     const [sizeLabels, setSizeLabels] = useState<string[]>(['عادي']);
     const [isPopular, setIsPopular] = useState(Boolean(defaultPopular));
     const [isSpicy, setIsSpicy] = useState(false);
+    const [isNew, setIsNew] = useState(false);
     const [sellByWeight, setSellByWeight] = useState(false);
     const [weightUnit, setWeightUnit] = useState('كجم');
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -1264,18 +1273,24 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
         if (!titleAr.trim() || prices[0] <= 0) return;
         setSaving(true);
         try {
-            const { data } = await supabase
+            const insertPayload: any = {
+                category_id: catId,
+                title_ar: titleAr, title_en: titleEn || undefined,
+                desc_ar: descAr || undefined, desc_en: descEn || undefined,
+                price: prices[0] || 0,
+                prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0).map((lbl, i) => oldPrices[i] > 0 ? `${lbl}::${oldPrices[i]}` : lbl),
+                is_popular: isPopular, is_spicy: isSpicy, is_new: isNew, is_available: true,
+                sell_by_weight: sellByWeight,
+                weight_unit: sellByWeight ? weightUnit : null
+            };
+            let { data, error } = await supabase
                 .from('items')
-                .insert({
-                    category_id: catId,
-                    title_ar: titleAr, title_en: titleEn || undefined,
-                    desc_ar: descAr || undefined, desc_en: descEn || undefined,
-                    price: prices[0] || 0,
-                    prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0).map((lbl, i) => oldPrices[i] > 0 ? `${lbl}::${oldPrices[i]}` : lbl),
-                    is_popular: isPopular, is_spicy: isSpicy, is_available: true,
-                    sell_by_weight: sellByWeight,
-                    weight_unit: sellByWeight ? weightUnit : null
-                }).select().single();
+                .insert(insertPayload).select().single();
+            if (error && /is_new/.test(error.message || '')) {
+                delete insertPayload.is_new;
+                const retry = await supabase.from('items').insert(insertPayload).select().single();
+                data = retry.data;
+            }
             if (data) {
                 let imgUrl = null;
                 let thumbUrl = null;
@@ -1376,6 +1391,10 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
                         className={`text-xs px-3 py-2 rounded-xl border font-bold transition ${isPopular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver hover:border-yellow-500/50'}`}>
                         ⭐ {language === "ar" ? "مميز" : "Popular"}
                     </button>
+                    <button type="button" onClick={() => setIsNew(!isNew)}
+                        className={`text-xs px-3 py-2 rounded-xl border font-bold transition ${isNew ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600' : 'border-glass-border text-silver hover:border-emerald-500/50'}`}>
+                        ✨ {language === "ar" ? "جديد" : "New"}
+                    </button>
                     <button type="button" onClick={() => setIsSpicy(!isSpicy)}
                         className={`text-xs px-3 py-2 rounded-xl border font-bold transition ${isSpicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver hover:border-red-500/50'}`}>
                         🌶️ {language === "ar" ? "حار" : "Spicy"}
@@ -1421,11 +1440,12 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
 }
 
 // ===================== ITEM ROW (read-only) =====================
-function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, onTogglePopular, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload, highQuality }: {
+function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, onTogglePopular, onToggleNew, isFirst, isLast, onMoveUp, onMoveDown, currency, onImageUpload, highQuality }: {
     item: Item; language: string;
     onEdit: () => void; onDelete: () => void;
     onToggleVisibility?: () => void;
     onTogglePopular?: () => void;
+    onToggleNew?: () => void;
     isFirst?: boolean; isLast?: boolean;
     onMoveUp?: () => void; onMoveDown?: () => void;
     currency?: string;
@@ -1482,6 +1502,7 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, onToggl
                             <h4 className="font-bold text-foreground text-base sm:text-xl truncate max-w-[60vw] sm:max-w-none">{item.title_ar}</h4>
                             {item.is_available === false && <span className="bg-red-500/20 text-red-600 dark:text-red-400 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap"><EyeOff className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> {language === "ar" ? "مخفي" : "Hidden"}</span>}
                             {item.is_popular && <span className="bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md flex items-center gap-1"><Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" /> {language === "ar" ? "مميز" : "Popular"}</span>}
+                            {item.is_new && <span className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md flex items-center gap-1"><Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" /> {language === "ar" ? "جديد" : "New"}</span>}
                             {item.is_spicy && <span className="text-red-500 text-sm sm:text-base">🌶️</span>}
                             {item.sell_by_weight && <span className="bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded-md flex items-center gap-1">⚖️ {language === "ar" ? "وزن" : "Weight"} ({item.weight_unit || 'كجم'})</span>}
                         </div>
@@ -1510,6 +1531,19 @@ function ItemRow({ item, language, onEdit, onDelete, onToggleVisibility, onToggl
                                 title={language === 'ar' ? (item.is_popular ? 'إلغاء تمييز الصنف' : 'تمييز الصنف (مميز)') : (item.is_popular ? 'Unfeature Item' : 'Mark Item as Featured')}
                             >
                                 <Star className={`w-5 h-5 sm:w-4 sm:h-4 ${item.is_popular ? 'fill-current' : ''}`} />
+                            </button>
+                        )}
+                        {onToggleNew && (
+                            <button
+                                onClick={onToggleNew}
+                                className={`p-2 sm:p-1.5 rounded-lg transition-colors ${
+                                    item.is_new
+                                        ? 'text-emerald-600 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30'
+                                        : 'text-zinc-400 hover:text-emerald-600 hover:bg-emerald-500/10'
+                                }`}
+                                title={language === 'ar' ? (item.is_new ? 'إلغاء وسم جديد' : 'وسم الصنف كـ جديد (جديدنا)') : (item.is_new ? 'Unmark New' : 'Mark Item as New')}
+                            >
+                                <Sparkles className={`w-5 h-5 sm:w-4 sm:h-4 ${item.is_new ? 'fill-current' : ''}`} />
                             </button>
                         )}
                         <button onClick={onToggleVisibility} className={`p-2 sm:p-1.5 rounded-lg transition-colors ${item.is_available === false ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 hover:bg-emerald-500/10'}`} title={language === 'ar' ? (item.is_available === false ? 'إظهار في المنيو' : 'إخفاء من المنيو') : (item.is_available === false ? 'Show in menu' : 'Hide from menu')}>
@@ -1779,6 +1813,7 @@ function ItemEditor({ item, language, onUpdate, onImageUpload, onClose, currency
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 <button type="button" onClick={() => onUpdate({ is_available: !item.is_available })} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold flex items-center gap-1 ${item.is_available === false ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500'}`}>{item.is_available === false ? <><EyeOff className="w-3 h-3" /> {language === "ar" ? "مخفي - اضغط للإظهار" : "Hidden - Show"}</> : <><Eye className="w-3 h-3" /> {language === "ar" ? "ظاهر" : "Visible"}</>}</button>
                 <button type="button" onClick={() => onUpdate({ is_popular: !item.is_popular })} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold ${item.is_popular ? 'border-yellow-500 bg-yellow-500/10 text-yellow-600' : 'border-glass-border text-silver'}`}>⭐ {language === "ar" ? (item.is_popular ? "إلغاء" : "مميز") : (item.is_popular ? "Remove" : "Popular")}</button>
+                <button type="button" onClick={() => onUpdate({ is_new: !item.is_new })} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold ${item.is_new ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-glass-border text-silver'}`}>✨ {language === "ar" ? (item.is_new ? "إلغاء جديد" : "جديد") : (item.is_new ? "Remove New" : "New")}</button>
                 <button type="button" onClick={() => onUpdate({ is_spicy: !item.is_spicy })} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold ${item.is_spicy ? 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-500' : 'border-glass-border text-silver'}`}>🌶️ {language === "ar" ? (item.is_spicy ? "إلغاء" : "حار") : (item.is_spicy ? "Remove" : "Spicy")}</button>
                 <button type="button" onClick={() => { setSellByWeight(!sellByWeight); onUpdate({ sell_by_weight: !sellByWeight, weight_unit: !sellByWeight ? weightUnit : undefined }); }} className={`text-[11px] sm:text-xs px-2.5 sm:px-3 py-1.5 rounded-md border font-bold ${sellByWeight ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500' : 'border-glass-border text-silver'}`}>⚖️ {language === "ar" ? (sellByWeight ? "إلغاء الوزن" : "وزن") : (sellByWeight ? "Remove Weight" : "Weight")}</button>
             </div>

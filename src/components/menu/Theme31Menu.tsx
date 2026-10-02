@@ -1529,6 +1529,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                 🔥 {isAr ? "مميز" : "Hot"}
                                                             </span>
                                                         )}
+                                                        {item.is_new && (
+                                                            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black shrink-0">
+                                                                ✨ {isAr ? "جديد" : "NEW"}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                     {itemDesc(item) && (
                                                         <p className="text-[11px] text-slate-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
@@ -1638,6 +1643,11 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                             {item.is_popular && (
                                                                 <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shrink-0">
                                                                     🔥 {isAr ? "مميز" : "Hot"}
+                                                                </span>
+                                                            )}
+                                                            {item.is_new && (
+                                                                <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+                                                                    ✨ {isAr ? "جديد" : "NEW"}
                                                                 </span>
                                                             )}
                                                             {item.calories && (
@@ -1753,6 +1763,12 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                             <span className="px-3 py-1 rounded-full bg-amber-500 text-white text-xs font-black shadow-md flex items-center gap-1">
                                                                 <Flame className="w-3 h-3" />
                                                                 <span>{isAr ? "الأكثر طلباً" : "Best Seller"}</span>
+                                                            </span>
+                                                        )}
+                                                        {item.is_new && (
+                                                            <span className="px-3 py-1 rounded-full bg-emerald-600 text-white text-xs font-black shadow-md flex items-center gap-1">
+                                                                <Sparkles className="w-3 h-3" />
+                                                                <span>{isAr ? "جديد" : "NEW"}</span>
                                                             </span>
                                                         )}
                                                         {hasDiscount && (

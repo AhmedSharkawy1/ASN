@@ -1564,6 +1564,11 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                 🔥 {isAr ? 'مفضل' : 'Popular'}
                                                             </span>
                                                         )}
+                                                        {item.is_new && (
+                                                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold shrink-0">
+                                                                ✨ {isAr ? 'جديد' : 'NEW'}
+                                                            </span>
+                                                        )}
                                                     </div>
 
                                                     {itemDesc(item) && (
@@ -1796,6 +1801,12 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                             <span className="px-2.5 py-1 rounded-full bg-amber-500 text-white text-xs font-black shadow-md flex items-center gap-1">
                                                                 <Flame className="w-3 h-3" />
                                                                 {isAr ? 'الأكثر طلباً' : 'Best Seller'}
+                                                            </span>
+                                                        )}
+                                                        {item.is_new && (
+                                                            <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white text-xs font-black shadow-md flex items-center gap-1">
+                                                                <Sparkles className="w-3 h-3" />
+                                                                {isAr ? 'جديد' : 'NEW'}
                                                             </span>
                                                         )}
                                                         {hasDiscount && (
