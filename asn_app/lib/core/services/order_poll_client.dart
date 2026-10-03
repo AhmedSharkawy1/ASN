@@ -72,6 +72,17 @@ class OrderPollClient {
   static const String accessTokenKey = 'jwt_auth_token';
   static const String refreshTokenKey = 'jwt_refresh_token';
 
+  /// Caches a refresh token that GoTrue rejected with HTTP 400 (invalid_grant / revoked).
+  /// Prevents repeatedly spamming the server with doomed requests and inflating log usage.
+  static String? _knownBadRefreshToken;
+  static DateTime? _lastBadTokenAttempt;
+
+  /// Resets the dead-token cache when a new session is established or user signs in.
+  static void resetBadToken() {
+    _knownBadRefreshToken = null;
+    _lastBadTokenAttempt = null;
+  }
+
   const OrderPollClient();
 
   /// New orders since [sinceUtc].
@@ -187,6 +198,17 @@ class OrderPollClient {
       return const RefreshResult(error: 'no refresh token stored (sign in again)');
     }
 
+    // If this token was already rejected with 400 (invalid_grant), throttle retries for 15 minutes
+    // to prevent burning quota with endless doomed requests.
+    if (_knownBadRefreshToken == refreshToken && _lastBadTokenAttempt != null) {
+      if (DateTime.now().difference(_lastBadTokenAttempt!) < const Duration(minutes: 15)) {
+        return const RefreshResult(
+          status: 400,
+          error: 'session expired — sign in again to resume background alerts',
+        );
+      }
+    }
+
     final client = HttpClient();
     try {
       final req = await client.postUrl(
@@ -198,8 +220,16 @@ class OrderPollClient {
       final resp = await req.close();
       final body = await resp.transform(utf8.decoder).join();
       if (resp.statusCode != 200) {
+        if (resp.statusCode == 400) {
+          _knownBadRefreshToken = refreshToken;
+          _lastBadTokenAttempt = DateTime.now();
+        }
         return RefreshResult(status: resp.statusCode, error: _reasonFrom(body));
       }
+
+      // Successful refresh clears any bad-token marker
+      _knownBadRefreshToken = null;
+      _lastBadTokenAttempt = null;
 
       final json = jsonDecode(body) as Map<String, dynamic>;
       final newAccess = json['access_token'] as String?;

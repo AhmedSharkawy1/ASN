@@ -25,6 +25,7 @@ class SessionSync {
   static bool _isSyncing = false;
 
   static Future<void> adoptStoredSessionIfStale() async {
+    OrderPollClient.resetBadToken();
     if (_isSyncing) return;
     _isSyncing = true;
     try {

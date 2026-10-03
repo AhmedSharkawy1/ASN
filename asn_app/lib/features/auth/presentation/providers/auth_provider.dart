@@ -20,6 +20,7 @@ import 'package:asn_app/features/auth/data/datasources/auth_local_datasource.dar
 import 'package:asn_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:asn_app/core/error/error_handler.dart';
 import 'package:asn_app/core/services/order_notification_service.dart';
+import 'package:asn_app/core/services/order_poll_client.dart';
 import 'package:asn_app/core/services/background_order_service.dart';
 
 part 'auth_provider.freezed.dart';
@@ -143,6 +144,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final user = await ref.read(checkSessionUseCaseProvider).call();
       if (user != null) {
+        OrderPollClient.resetBadToken();
         state = AuthState.authenticated(user);
         unawaited(_startAlerting(user, askForBatteryExemption: false));
       } else {
@@ -166,6 +168,7 @@ class AuthNotifier extends Notifier<AuthState> {
             password,
             rememberMe: rememberMe,
           );
+      OrderPollClient.resetBadToken();
       state = AuthState.authenticated(user);
       // Deliberately not awaited. Setting up alerts means two system permission
       // dialogs and starting a foreground service; awaiting them left the user

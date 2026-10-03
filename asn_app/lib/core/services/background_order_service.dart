@@ -52,6 +52,9 @@ class BackgroundOrderService {
   /// Called from the UI isolate on every lifecycle change.
   static Future<void> setAppForeground(bool inForeground) async {
     try {
+      if (inForeground) {
+        OrderPollClient.resetBadToken();
+      }
       await FlutterForegroundTask.saveData(key: appForegroundKey, value: inForeground);
     } catch (e) {
       AppLogger.warning('Could not publish foreground state: $e', name: 'BgOrders');
@@ -289,6 +292,13 @@ class _OrderListenerHandler extends TaskHandler {
       for (final row in result.rows) {
         await _handleOrderRow(row);
       }
+    }
+
+    // Short-circuit on authentication failure (e.g. expired session or 400 token refresh failure).
+    // Continuing to poll waiter calls and realtime with a dead token causes redundant 401/400 errors
+    // that heavily inflate Supabase Log Integration quotas.
+    if (!result.ok && (result.httpStatus == 400 || result.httpStatus == 401)) {
+      return;
     }
 
     await _pollWaiterCalls(client, mayRefresh: mayRefresh);
