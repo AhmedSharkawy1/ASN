@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, EyeOff, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle, Tag, Calculator } from "lucide-react";
+import { Building2, Search, ExternalLink, ShieldCheck, MoreVertical, LogIn, X, LayoutList, Eye, EyeOff, Megaphone, Key, Crown, CalendarDays, Trash2, Power, Sparkles, MessageCircle, Tag, Calculator, Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/context/LanguageContext";
@@ -23,6 +23,8 @@ interface Client {
     /** false = views/مشاهدات tracking disabled for this restaurant. */
     views_tracking_enabled?: boolean;
     high_quality_images?: boolean;
+    /** true = call the waiter button enabled on table QR menus. */
+    waiter_call_enabled?: boolean;
 }
 
 interface PageAccess {
@@ -182,8 +184,11 @@ export default function SuperAdminClientsPage() {
                 .order('created_at', { ascending: false });
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let result: { data: any; error: any } = await run(`${BASE}, menu_enabled, views_tracking_enabled`);
+            let result: { data: any; error: any } = await run(`${BASE}, menu_enabled, views_tracking_enabled, waiter_call_enabled`);
 
+            if (result.error && /waiter_call_enabled/.test(result.error.message || '')) {
+                result = await run(`${BASE}, menu_enabled, views_tracking_enabled`);
+            }
             if (result.error && /menu_enabled|views_tracking_enabled/.test(result.error.message || '')) {
                 result = await run(`${BASE}, menu_enabled`);
             }
@@ -564,6 +569,26 @@ export default function SuperAdminClientsPage() {
         } catch (err: unknown) {
             console.error(err);
             toast.error("Failed to toggle views tracking. Has add_views_tracking_enabled.sql been run?");
+        }
+    };
+
+    // Toggle waiter call per restaurant
+    const handleToggleWaiterCall = async (client: Client) => {
+        const newValue = !client.waiter_call_enabled;
+        try {
+            const { error } = await supabase
+                .from('restaurants')
+                .update({ waiter_call_enabled: newValue })
+                .eq('id', client.id);
+            if (error) throw error;
+            setClients(clients.map(c => c.id === client.id ? { ...c, waiter_call_enabled: newValue } : c));
+            toast.success(newValue
+                ? (language === 'ar' ? `تم تفعيل نداء الويتر لـ ${client.name}` : `Waiter call enabled for ${client.name}`)
+                : (language === 'ar' ? `تم إيقاف نداء الويتر لـ ${client.name}` : `Waiter call disabled for ${client.name}`)
+            );
+        } catch (err: unknown) {
+            console.error(err);
+            toast.error("Failed to toggle waiter call. Has add_waiter_calls.sql been run?");
         }
     };
 
@@ -978,6 +1003,18 @@ export default function SuperAdminClientsPage() {
                                                             : (language === 'ar' ? 'المشاهدات مفعلة — اضغط للإيقاف' : 'Views tracking ON — click to disable')}
                                                     >
                                                         {client.views_tracking_enabled === false ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                                    </button>
+                                                    {/* Waiter call toggle — blue when on, gray when off */}
+                                                    <button
+                                                        onClick={() => handleToggleWaiterCall(client)}
+                                                        className={`p-2 rounded-lg transition-colors ${!client.waiter_call_enabled
+                                                            ? 'text-stone-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10'
+                                                            : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'}`}
+                                                        title={!client.waiter_call_enabled
+                                                            ? (language === 'ar' ? 'نداء الويتر متوقف — اضغط للتفعيل' : 'Waiter call OFF — click to enable')
+                                                            : (language === 'ar' ? 'نداء الويتر مفعل — اضغط للإيقاف' : 'Waiter call ON — click to disable')}
+                                                    >
+                                                        {!client.waiter_call_enabled ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
                                                     </button>
                                                     {/* Held red while the menu is off, so a paused client is
                                                         obvious at a glance rather than only inside a modal. */}
