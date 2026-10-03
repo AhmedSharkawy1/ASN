@@ -6,8 +6,9 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { restaurantId } = body;
 
-        if (!restaurantId) {
-            return NextResponse.json({ error: 'Missing restaurantId' }, { status: 400 });
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null' || !UUID_REGEX.test(restaurantId)) {
+            return NextResponse.json({ error: 'Missing or invalid restaurantId' }, { status: 400 });
         }
 
         const { data: restaurant, error } = await supabaseAdmin

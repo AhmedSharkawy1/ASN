@@ -24,9 +24,10 @@ export async function GET(req: Request) {
     const dateTo = searchParams.get('to');
     const includeCancelled = searchParams.get('include_cancelled') === 'true';
 
-    if (!restaurantId) {
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null' || !UUID_REGEX.test(restaurantId)) {
       return NextResponse.json(
-        { error: 'Missing restaurant_id' },
+        { error: 'Missing or invalid restaurant_id' },
         { status: 400, headers: CORS_HEADERS }
       );
     }

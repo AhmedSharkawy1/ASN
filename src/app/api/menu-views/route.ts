@@ -18,13 +18,15 @@ export async function OPTIONS() {
   });
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const restaurantId = searchParams.get('restaurant_id');
 
-    if (!restaurantId) {
-      return NextResponse.json({ error: 'Missing restaurant_id' }, { status: 400, headers: CORS_HEADERS });
+    if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null' || !UUID_REGEX.test(restaurantId)) {
+      return NextResponse.json({ views: 0, today: 0 }, { headers: CORS_HEADERS });
     }
 
     const planKey = `menu_views_${restaurantId}`;
@@ -60,8 +62,8 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const { restaurant_id } = body;
 
-    if (!restaurant_id || typeof restaurant_id !== 'string') {
-      return NextResponse.json({ error: 'Missing or invalid restaurant_id' }, { status: 400, headers: CORS_HEADERS });
+    if (!restaurant_id || typeof restaurant_id !== 'string' || restaurant_id === 'undefined' || restaurant_id === 'null' || !UUID_REGEX.test(restaurant_id)) {
+      return NextResponse.json({ success: true, ignored: true }, { headers: CORS_HEADERS });
     }
 
     // Ignore demo or template previews

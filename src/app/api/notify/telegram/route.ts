@@ -6,8 +6,9 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { restaurantId, orderId, customerName, total, itemsCount } = body;
 
-        if (!restaurantId || !orderId) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null' || !UUID_REGEX.test(restaurantId) || !orderId) {
+            return NextResponse.json({ error: 'Missing or invalid required fields' }, { status: 400 });
         }
 
         // Fetch telegram credentials securely on the server

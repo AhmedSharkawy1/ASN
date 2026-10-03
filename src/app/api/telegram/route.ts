@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
         const { restaurantId, message } = body;
         let { botToken, chatId } = body;
 
-        if (restaurantId) {
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (restaurantId && restaurantId !== 'undefined' && restaurantId !== 'null' && UUID_REGEX.test(restaurantId)) {
             const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
             const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
             if (!supabaseUrl || !serviceKey) {

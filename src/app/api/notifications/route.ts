@@ -7,14 +7,16 @@ const supabaseAdmin = createClient(
     { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const restaurantId = searchParams.get('restaurant_id');
         const filter = searchParams.get('filter');
 
-        if (!restaurantId) {
-            return NextResponse.json({ error: "Missing restaurant_id" }, { status: 400 });
+        if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null' || !UUID_REGEX.test(restaurantId)) {
+            return NextResponse.json({ error: "Missing or invalid restaurant_id" }, { status: 400 });
         }
 
         let query = supabaseAdmin
@@ -43,8 +45,8 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { restaurant_id, title, body: notifBody, type, target } = body;
 
-        if (!restaurant_id || !title?.trim()) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        if (!restaurant_id || typeof restaurant_id !== 'string' || !UUID_REGEX.test(restaurant_id) || !title?.trim()) {
+            return NextResponse.json({ error: "Missing required fields or invalid restaurant_id" }, { status: 400 });
         }
 
         const { data, error } = await supabaseAdmin
@@ -75,6 +77,9 @@ export async function PATCH(request: Request) {
         const { id, is_read, mark_all_read, restaurant_id } = body;
 
         if (mark_all_read && restaurant_id) {
+            if (typeof restaurant_id !== 'string' || !UUID_REGEX.test(restaurant_id)) {
+                return NextResponse.json({ error: "Invalid restaurant_id" }, { status: 400 });
+            }
             const { error } = await supabaseAdmin
                 .from('notifications')
                 .update({ is_read: true })

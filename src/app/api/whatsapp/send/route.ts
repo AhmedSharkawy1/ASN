@@ -6,8 +6,9 @@ export async function POST(req: Request) {
         const body = await req.json();
         const { restaurantId, phone, message } = body;
 
-        if (!restaurantId || !phone || !message) {
-            return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+        const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!restaurantId || restaurantId === 'undefined' || restaurantId === 'null' || !UUID_REGEX.test(restaurantId) || !phone || !message) {
+            return NextResponse.json({ error: 'Missing or invalid required fields' }, { status: 400 });
         }
 
         // Fetch whatsapp credentials securely on the server
