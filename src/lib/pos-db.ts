@@ -33,6 +33,7 @@ export type PosMenuItem = {
     inventory_item_id?: string;
     recipe_id?: string;
     _dirty?: boolean;
+    sort_order?: number;
     deleted_at?: string;
 };
 

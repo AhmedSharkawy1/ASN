@@ -5,11 +5,11 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useRestaurant } from "@/lib/hooks/useRestaurant";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabase/client";
-import { formatCurrency, formatQuantity } from "@/lib/helpers/formatters";
+import { formatCurrency } from "@/lib/helpers/formatters";
 import { posDb, generateId, getPosNextOrderNumber, decrementPosStock } from "@/lib/pos-db";
 import type { PosCategory, PosMenuItem, PosOrder, PosCustomer, PosStaffUser } from "@/lib/pos-db";
 import { pullFromSupabase, pushDirtyToSupabase, subscribeSyncStatus } from "@/lib/sync-service";
-import { getReceiptStyles, getPrinterSettings } from "@/lib/helpers/printerSettings";
+import { getPrinterSettings } from "@/lib/helpers/printerSettings";
 import { executePrint, triggerCashDrawerIfEnabled } from "@/lib/helpers/printEngine";
 import { usePrintSettings } from "@/lib/hooks/usePrintSettings";
 import PrintModal from "@/components/PrintModal";
@@ -19,14 +19,9 @@ import { revertOrderInventory } from "@/lib/helpers/inventoryService";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
-    Plus, Minus, Trash2, ShoppingCart, Search, Percent,
-    DollarSign, Save, X, Printer, Clock, Banknote,
-    PauseCircle, Play, StickyNote, Users, MapPin,
-    LayoutGrid, Receipt, CheckCircle2, Volume2, VolumeX,
-    Package, Truck, Wifi, WifiOff, Monitor, RefreshCw,
-    RotateCcw, Globe, Check, Calculator, Delete, ArrowLeftRight,
-    CreditCard, Calendar, Filter, FileText, ChevronDown, CheckSquare,
-    Square
+    Plus, Minus, Search, X, Printer, Clock, Banknote,
+    Users, Volume2, VolumeX, ArrowLeftRight,
+    Calendar, CheckSquare, Edit, CheckCircle2
 } from "lucide-react";
 
 /* ═══════════════════════════ TYPES ═══════════════════════════ */
@@ -72,6 +67,7 @@ export default function POS2ClassicPage() {
     const [selectedCartIdx, setSelectedCartIdx] = useState<number | null>(null);
     const [orderType, setOrderType] = useState<"dine_in" | "takeaway" | "delivery">("takeaway");
     const [paymentMethod, setPaymentMethod] = useState("cash");
+    const [tableNumber, setTableNumber] = useState("");
 
     /* ── Quick Line Input Fields (Like classic software) ── */
     const [inputPrice, setInputPrice] = useState<string>("");
@@ -90,7 +86,7 @@ export default function POS2ClassicPage() {
     const [printOnSave, setPrintOnSave] = useState<boolean>(true);
     const [printKitchen, setPrintKitchen] = useState<boolean>(false);
     const [addTax, setAddTax] = useState<boolean>(false);
-    const [taxRate, setTaxRate] = useState<number>(14);
+    const taxRate = 14;
 
     /* ── Customer Info ── */
     const [customerName, setCustomerName] = useState("");
@@ -122,16 +118,13 @@ export default function POS2ClassicPage() {
     const [soundEnabled, setSoundEnabled] = useState(true);
 
     /* ── Modals & Printing ── */
-    const [showReceipt, setShowReceipt] = useState(false);
     const [lastOrderNumber, setLastOrderNumber] = useState<number | null>(null);
-    const [lastOrderData, setLastOrderData] = useState<any>(null);
     const [weightPrompt, setWeightPrompt] = useState<{ item: PosMenuItem, sizeIdx: number } | null>(null);
     const [weightInput, setWeightInput] = useState<string>("");
     const [printModalHtml, setPrintModalHtml] = useState<string | null>(null);
     const [showShiftReport, setShowShiftReport] = useState(false);
 
     const searchRef = useRef<HTMLInputElement>(null);
-    const receiptRef = useRef<HTMLDivElement>(null);
     const printFrameRef = useRef<HTMLIFrameElement>(null);
     const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -201,19 +194,42 @@ export default function POS2ClassicPage() {
     const loadData = useCallback(async () => {
         if (!restaurantId) return;
 
-        let cats = await posDb.categories.where("restaurant_id").equals(restaurantId).sortBy("sort_order");
-        let items = await posDb.menu_items.where("restaurant_id").equals(restaurantId).toArray();
+        // Fetch from Dexie
+        let cats = await posDb.categories.where("restaurant_id").equals(restaurantId).toArray();
+        cats = cats.filter(c => !c.deleted_at);
+        cats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
+        let items = await posDb.menu_items.where("restaurant_id").equals(restaurantId).toArray();
+        items = items.filter(i => !i.deleted_at);
+        items.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || (a.title_ar || "").localeCompare(b.title_ar || ""));
+
+        // Fallback to Supabase if Dexie has no categories or items yet and we are online
         if ((cats.length === 0 || items.length === 0) && navigator.onLine) {
-            const { data: remoteCats } = await supabase.from('categories').select('*').eq('restaurant_id', restaurantId).order('sort_order');
+            const { data: remoteCats } = await supabase
+                .from('categories')
+                .select('*')
+                .eq('restaurant_id', restaurantId)
+                .order('sort_order', { ascending: true })
+                .limit(1000);
+
             if (remoteCats && remoteCats.length > 0) {
-                cats = remoteCats;
+                cats = remoteCats.filter(c => !c.deleted_at);
+                cats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
                 await posDb.categories.bulkPut(remoteCats.map(c => ({ ...c, _dirty: false } as PosCategory)));
+
                 const catIds = remoteCats.map(c => c.id as string);
-                const { data: remoteItems } = await supabase.from('items').select('*').in('category_id', catIds);
-                if (remoteItems && remoteItems.length > 0) {
-                    items = remoteItems.map(i => ({ ...i, restaurant_id: restaurantId, _dirty: false } as PosMenuItem));
-                    await posDb.menu_items.bulkPut(items);
+                if (catIds.length > 0) {
+                    const { data: remoteItems } = await supabase
+                        .from('items')
+                        .select('*')
+                        .in('category_id', catIds)
+                        .order('sort_order', { ascending: true })
+                        .limit(10000);
+
+                    if (remoteItems && remoteItems.length > 0) {
+                        items = remoteItems.map(i => ({ ...i, restaurant_id: restaurantId, _dirty: false } as PosMenuItem));
+                        await posDb.menu_items.bulkPut(items);
+                    }
                 }
             }
         }
@@ -221,20 +237,28 @@ export default function POS2ClassicPage() {
         setCategories(cats);
         setMenuItems(items.filter(i => i.is_available !== false));
 
-        const todayStr = new Date().toISOString().split("T")[0];
+        // Orders filter for today (robust to timezone offsets)
+        const isSameDay = (dateStr: string) => {
+            const d = new Date(dateStr);
+            const now = new Date();
+            return d.getFullYear() === now.getFullYear() &&
+                   d.getMonth() === now.getMonth() &&
+                   d.getDate() === now.getDate();
+        };
+
         const allOrders = await posDb.orders.where("restaurant_id").equals(restaurantId).toArray();
         const validToday = allOrders
-            .filter(o => o.created_at.startsWith(todayStr) && o.status !== "cancelled" && !o.is_draft)
+            .filter(o => isSameDay(o.created_at) && o.status !== "cancelled" && !o.is_draft)
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setTodayOrders(validToday);
 
         const held = allOrders.filter(o => o.is_draft === true);
         setHeldOrders(held);
 
-        const pendingOnline = allOrders.filter(o => o.created_at.startsWith(todayStr) && o.source === "website" && o.status === "pending");
+        const pendingOnline = allOrders.filter(o => isSameDay(o.created_at) && o.source === "website" && o.status === "pending");
         setOnlineOrders(pendingOnline);
 
-        let driverList = await posDb.pos_users.where("restaurant_id").equals(restaurantId).and(u => u.role === "delivery" && u.is_active !== false).toArray();
+        const driverList = await posDb.pos_users.where("restaurant_id").equals(restaurantId).and(u => u.role === "delivery" && u.is_active !== false).toArray();
         setDrivers(driverList);
 
         const custs = await posDb.customers.where("restaurant_id").equals(restaurantId).toArray();
@@ -254,6 +278,132 @@ export default function POS2ClassicPage() {
             setPendingSyncCount(s.pendingCount);
         });
     }, []);
+
+    /* ── Realtime listener for website orders ── */
+    useEffect(() => {
+        if (!restaurantId) return;
+        const channel = supabase.channel(`pos2-orders-${restaurantId}`)
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'orders',
+                filter: `restaurant_id=eq.${restaurantId}`
+            }, async (payload) => {
+                if (payload.eventType === 'INSERT') {
+                    const newOrd = payload.new as PosOrder;
+                    await posDb.orders.put({ ...newOrd, _dirty: false });
+                    if (newOrd.source === 'website' && newOrd.status === 'pending') {
+                        setOnlineOrders(prev => {
+                            if (prev.some(o => o.id === newOrd.id)) return prev;
+                            return [newOrd, ...prev];
+                        });
+                        playBeep();
+                        toast.info(isAr ? `طلب أونلاين جديد #${newOrd.order_number || ''}` : `New Online Order #${newOrd.order_number || ''}`);
+                    }
+                    loadData();
+                } else if (payload.eventType === 'UPDATE') {
+                    const updated = payload.new as PosOrder;
+                    await posDb.orders.put({ ...updated, _dirty: false });
+                    if (updated.source === 'website') {
+                        if (updated.status !== 'pending') {
+                            setOnlineOrders(prev => prev.filter(o => o.id !== updated.id));
+                        } else {
+                            setOnlineOrders(prev => prev.map(o => o.id === updated.id ? updated : o));
+                        }
+                    }
+                    loadData();
+                } else if (payload.eventType === 'DELETE') {
+                    const oldOrd = payload.old as { id: string };
+                    await posDb.orders.delete(oldOrd.id);
+                    setOnlineOrders(prev => prev.filter(o => o.id !== oldOrd.id));
+                    loadData();
+                }
+            }).subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [restaurantId, isAr, playBeep, loadData]);
+
+    /* ── Load existing order for editing if ?edit=... ── */
+    useEffect(() => {
+        const loadOrderToEdit = async () => {
+            if (!editId || !restaurantId || menuItems.length === 0) return;
+
+            if (canEditOrders === false) {
+                toast.error(isAr ? "عذراً، تعديل الطلبات محصور فقط بالمدير وصاحب المطعم" : "Editing created orders is restricted to manager and owner");
+                router.replace('/dashboard/pos2');
+                return;
+            }
+
+            if (editingOrderId === editId) return;
+
+            try {
+                let order = await posDb.orders.get(editId);
+                if (!order) {
+                    const { data } = await supabase.from('orders').select('*').eq('id', editId).single();
+                    if (data) order = data as PosOrder;
+                }
+
+                if (order) {
+                    setEditingOrderId(order.id);
+                    setOriginalOrderNumber(order.order_number);
+                    setOriginalCreatedAt(order.created_at);
+
+                    const restoredItems: CartItem[] = (order.items || []).map(item => {
+                        const m = menuItems.find(mm => mm.id === item.id || mm.title_ar === item.title) || {
+                            id: item.id || generateId(),
+                            restaurant_id: restaurantId,
+                            category_id: '',
+                            title_ar: item.title,
+                            prices: [item.price],
+                            is_available: true,
+                        } as PosMenuItem;
+
+                        const sIdx = m.size_labels?.indexOf(item.size || '') ?? 0;
+                        return {
+                            menuItem: m,
+                            qty: item.qty || 1,
+                            selectedSizeIdx: sIdx >= 0 ? sIdx : 0,
+                            unitPrice: item.price,
+                            categoryName: item.category,
+                            note: item.note,
+                            weightUnit: item.weight_unit
+                        };
+                    });
+
+                    setCart(restoredItems);
+                    if (restoredItems.length > 0) setSelectedCartIdx(0);
+                    if (order.discount) {
+                        if (order.discount_type === 'percent') {
+                            setDiscountPercent(order.discount);
+                            setDiscountValue(0);
+                        } else {
+                            setDiscountValue(order.discount);
+                            setDiscountPercent(0);
+                        }
+                    }
+                    if (order.delivery_fee) setDeliveryFee(order.delivery_fee);
+                    if (order.order_type === 'dine_in' || order.order_type === 'takeaway' || order.order_type === 'delivery') {
+                        setOrderType(order.order_type);
+                    }
+                    if (order.table_id) setTableNumber(order.table_id);
+                    if (order.payment_method) setPaymentMethod(order.payment_method);
+                    if (order.customer_name) setCustomerName(order.customer_name);
+                    if (order.customer_phone) setCustomerPhone(order.customer_phone);
+                    if (order.customer_address) setCustomerAddress(order.customer_address);
+                    if (order.delivery_driver_id) setSelectedDriver(order.delivery_driver_id);
+                    if (order.notes) setOrderNotes(order.notes);
+
+                    toast.info(isAr ? `تم تحميل الفاتورة #${order.order_number} للتعديل` : `Loaded invoice #${order.order_number} for editing`);
+                }
+            } catch (err) {
+                console.error("Failed to load order for editing:", err);
+            }
+        };
+
+        loadOrderToEdit();
+    }, [editId, restaurantId, menuItems, editingOrderId, isAr, canEditOrders, router]);
 
     /* ── Calculations ── */
     const subtotal = useMemo(() => cart.reduce((sum, c) => sum + c.unitPrice * c.qty, 0), [cart]);
@@ -292,20 +442,27 @@ export default function POS2ClassicPage() {
         const filtered = menuItems.filter(item => {
             if (activeCategory !== "all" && item.category_id !== activeCategory) return false;
             if (searchQ) {
-                const q = searchQ.toLowerCase();
-                return item.title_ar.toLowerCase().includes(q) || (item.title_en || "").toLowerCase().includes(q);
+                const q = searchQ.toLowerCase().trim();
+                const matchTitle = (item.title_ar || "").toLowerCase().includes(q) || (item.title_en || "").toLowerCase().includes(q);
+                const matchPrice = (item.prices || []).some(p => p.toString().includes(q));
+                return matchTitle || matchPrice;
             }
             return true;
         });
 
+        // Ensure sorted by sort_order
+        filtered.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
         const cards: { item: PosMenuItem, sizeIdx: number, title: string, price: number }[] = [];
         filtered.forEach(item => {
-            if (item.prices.length > 1 && item.size_labels && item.size_labels.length === item.prices.length) {
-                item.prices.forEach((p, idx) => {
+            const prices = Array.isArray(item.prices) && item.prices.length > 0 ? item.prices : [0];
+            if (prices.length > 1) {
+                prices.forEach((p, idx) => {
+                    const label = item.size_labels?.[idx] || (idx === 0 ? "صغير" : idx === 1 ? "وسط" : idx === 2 ? "كبير" : `حجم ${idx + 1}`);
                     cards.push({
                         item,
                         sizeIdx: idx,
-                        title: `${item.title_ar} (${item.size_labels![idx]})`,
+                        title: `${item.title_ar || item.title_en || ''} (${label})`,
                         price: p
                     });
                 });
@@ -313,8 +470,8 @@ export default function POS2ClassicPage() {
                 cards.push({
                     item,
                     sizeIdx: 0,
-                    title: item.title_ar,
-                    price: item.prices[0] || 0
+                    title: item.title_ar || item.title_en || '',
+                    price: prices[0] || 0
                 });
             }
         });
@@ -323,21 +480,23 @@ export default function POS2ClassicPage() {
 
     /* ── Cart Operations ── */
     const addItemToCart = useCallback((item: PosMenuItem, sizeIdx: number = 0, specificQty?: number, specificPrice?: number) => {
-        const price = specificPrice !== undefined ? specificPrice : (item.prices[sizeIdx] || item.prices[0]);
+        const prices = Array.isArray(item.prices) && item.prices.length > 0 ? item.prices : [0];
+        const price = specificPrice !== undefined ? specificPrice : (prices[sizeIdx] !== undefined ? prices[sizeIdx] : prices[0]);
         const qty = specificQty !== undefined ? specificQty : (parseFloat(inputQty) || 1);
         const catName = categories.find(c => c.id === item.category_id)?.name_ar || "";
         const weightUnit = item.sell_by_weight ? (item.weight_unit || (isAr ? 'كجم' : 'kg')) : undefined;
 
         setCart(prev => {
             const idx = prev.findIndex(c => c.menuItem.id === item.id && c.selectedSizeIdx === sizeIdx);
+            let nextCart: CartItem[];
             if (idx >= 0) {
-                const updated = prev.map((c, i) => i === idx ? { ...c, qty: c.qty + qty, unitPrice: price } : c);
-                setSelectedCartIdx(idx);
-                return updated;
+                nextCart = prev.map((c, i) => i === idx ? { ...c, qty: c.qty + qty, unitPrice: price } : c);
+                setTimeout(() => setSelectedCartIdx(idx), 0);
+            } else {
+                nextCart = [...prev, { menuItem: item, qty, selectedSizeIdx: sizeIdx, unitPrice: price, categoryName: catName, weightUnit }];
+                setTimeout(() => setSelectedCartIdx(nextCart.length - 1), 0);
             }
-            const next = [...prev, { menuItem: item, qty, selectedSizeIdx: sizeIdx, unitPrice: price, categoryName: catName, weightUnit }];
-            setSelectedCartIdx(next.length - 1);
-            return next;
+            return nextCart;
         });
 
         setInputQty("1");
@@ -350,7 +509,8 @@ export default function POS2ClassicPage() {
     const handleSelectMenuItem = (item: PosMenuItem, sizeIdx: number = 0) => {
         setSelectedMenuItem(item);
         setSelectedSizeIdx(sizeIdx);
-        const p = item.prices[sizeIdx] || item.prices[0];
+        const prices = Array.isArray(item.prices) && item.prices.length > 0 ? item.prices : [0];
+        const p = prices[sizeIdx] !== undefined ? prices[sizeIdx] : prices[0];
         setInputPrice(p.toString());
 
         if (item.sell_by_weight) {
@@ -379,6 +539,11 @@ export default function POS2ClassicPage() {
         const next = cart.filter((_, i) => i !== selectedCartIdx);
         setCart(next);
         setSelectedCartIdx(next.length > 0 ? Math.max(0, selectedCartIdx - 1) : null);
+        if (next.length === 0) {
+            setSelectedMenuItem(null);
+            setInputPrice("");
+            setInputQty("1");
+        }
         playBeep();
     };
 
@@ -396,9 +561,28 @@ export default function POS2ClassicPage() {
         setCustomerName("");
         setCustomerPhone("");
         setCustomerAddress("");
+        setTableNumber("");
         setOrderNotes("");
         setPaymentMethod("cash");
         setNumpadBuffer("");
+        setEditingOrderId(null);
+        setOriginalOrderNumber(null);
+        setOriginalCreatedAt(null);
+        if (editId) {
+            router.replace('/dashboard/pos2');
+        }
+    };
+
+    /* ── Customer Phone Auto-fill ── */
+    const handlePhoneChange = (phone: string) => {
+        setCustomerPhone(phone);
+        if (phone.length >= 4) {
+            const match = allCustomers.find(c => c.phone.includes(phone) || phone.includes(c.phone));
+            if (match) {
+                if (!customerName) setCustomerName(match.name);
+                if (!customerAddress && match.address) setCustomerAddress(match.address);
+            }
+        }
     };
 
     /* ── Numpad Input Handler ── */
@@ -461,71 +645,6 @@ export default function POS2ClassicPage() {
         }
     };
 
-    /* ── Physical Keyboard Bindings ── */
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            const activeTag = document.activeElement?.tagName;
-            const isTyping = activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT";
-
-            if (e.key === "F2") {
-                e.preventDefault();
-                clearCart();
-                return;
-            }
-            if (e.key === "F12") {
-                e.preventDefault();
-                handleSubmitOrder();
-                return;
-            }
-            if (e.key === "Escape") {
-                setShowReceipt(false);
-                setShowCustomerModal(false);
-                setWeightPrompt(null);
-                setShowShiftReport(false);
-                return;
-            }
-
-            if (!isTyping) {
-                if (e.key >= "0" && e.key <= "9") {
-                    e.preventDefault();
-                    handleNumpadKey(e.key);
-                } else if (e.key === ".") {
-                    e.preventDefault();
-                    handleNumpadKey(".");
-                } else if (e.key === "Backspace") {
-                    e.preventDefault();
-                    handleNumpadKey("BACKSPACE");
-                } else if (e.key === "c" || e.key === "C") {
-                    e.preventDefault();
-                    handleNumpadKey("C");
-                } else if (e.key === "+") {
-                    e.preventDefault();
-                    if (selectedCartIdx !== null && cart[selectedCartIdx]) {
-                        setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty + 1 } : c));
-                        playBeep();
-                    }
-                } else if (e.key === "-") {
-                    e.preventDefault();
-                    if (selectedCartIdx !== null && cart[selectedCartIdx] && cart[selectedCartIdx].qty > 1) {
-                        setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty - 1 } : c));
-                        playBeep();
-                    }
-                } else if (e.key === "Delete") {
-                    e.preventDefault();
-                    removeSelectedItem();
-                } else if (e.key === "Enter") {
-                    e.preventDefault();
-                    if (cart.length > 0) {
-                        handleSubmitOrder();
-                    }
-                }
-            }
-        };
-
-        window.addEventListener("keydown", handler);
-        return () => window.removeEventListener("keydown", handler);
-    });
-
     /* ── Submit / Save Order ── */
     const handleSubmitOrder = async (isHold = false) => {
         if (!restaurantId || cart.length === 0 || submitting) return;
@@ -582,6 +701,7 @@ export default function POS2ClassicPage() {
                 customer_name: customerName || undefined,
                 customer_phone: customerPhone || undefined,
                 customer_address: customerAddress || undefined,
+                table_id: tableNumber || undefined,
                 delivery_driver_id: selectedDriver || undefined,
                 delivery_driver_name: driverObj?.name,
                 delivery_fee: deliveryTotalFee || undefined,
@@ -591,6 +711,7 @@ export default function POS2ClassicPage() {
                 deposit_amount: paymentMethod === "deposit" ? tenderedCash : 0,
                 status: initialStatus,
                 is_draft: isHold,
+                order_type: orderType,
                 source: 'pos',
                 created_at: editingOrderId && originalCreatedAt ? originalCreatedAt : new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -640,6 +761,7 @@ export default function POS2ClassicPage() {
                     customer_name: customerName,
                     customer_phone: customerPhone,
                     customer_address: customerAddress,
+                    table_id: tableNumber,
                     notes: orderNotes,
                     delivery_fee: deliveryTotalFee,
                     delivery_driver_name: driverObj?.name,
@@ -651,7 +773,6 @@ export default function POS2ClassicPage() {
                     cashier_name: cashierName,
                     created_at: new Date().toISOString()
                 };
-                setLastOrderData(orderData);
 
                 if (printOnSave) {
                     const html = renderReceiptHtml(orderData, restaurant, isAr);
@@ -659,14 +780,16 @@ export default function POS2ClassicPage() {
                     executePrint(html, currentSettings, modalHtml => setPrintModalHtml(modalHtml));
                     triggerCashDrawerIfEnabled(currentSettings);
                 }
+                if (printKitchen) {
+                    const kitchenData = { ...orderData, isKitchen: true };
+                    const kitchenHtml = renderReceiptHtml(kitchenData, restaurant, isAr);
+                    executePrint(kitchenHtml, getPrinterSettings());
+                }
 
                 toast.success(isAr ? `تم حفظ الفاتورة #${orderNumber} بنجاح` : `Invoice #${orderNumber} saved`);
             }
 
             clearCart();
-            setEditingOrderId(null);
-            setOriginalOrderNumber(null);
-            setOriginalCreatedAt(null);
             loadData();
         } catch (err) {
             console.error("Order save error:", err);
@@ -676,13 +799,114 @@ export default function POS2ClassicPage() {
         }
     };
 
+    /* ── Accept / Confirm Online Order ── */
+    const handleAcceptOnlineOrder = async (order: PosOrder) => {
+        try {
+            const updatedOrder: PosOrder = {
+                ...order,
+                status: 'in_progress',
+                cashier_id: cashierId || undefined,
+                cashier_name: cashierName || undefined,
+                updated_at: new Date().toISOString(),
+                _dirty: true,
+            };
+            await posDb.orders.put(updatedOrder);
+            setOnlineOrders(prev => prev.filter(o => o.id !== order.id));
+
+            if (navigator.onLine) {
+                await supabase.from('orders').update({
+                    status: 'in_progress',
+                    cashier_id: cashierId || null,
+                    cashier_name: cashierName || null,
+                    updated_at: new Date().toISOString()
+                }).eq('id', order.id);
+            }
+
+            if (printOnSave) {
+                const html = renderReceiptHtml(updatedOrder, restaurant, isAr);
+                executePrint(html, getPrinterSettings(), modalHtml => setPrintModalHtml(modalHtml));
+            }
+
+            toast.success(isAr ? `تم قبول الطلب الأونلاين #${order.order_number}` : `Accepted online order #${order.order_number}`);
+            loadData();
+        } catch (err) {
+            console.error("Accept online order error:", err);
+            toast.error(isAr ? "حدث خطأ أثناء قبول الطلب" : "Error accepting order");
+        }
+    };
+
+    /* ── Physical Keyboard Bindings ── */
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            const activeTag = document.activeElement?.tagName;
+            const isTyping = activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT";
+
+            if (e.key === "F2") {
+                e.preventDefault();
+                clearCart();
+                return;
+            }
+            if (e.key === "F12") {
+                e.preventDefault();
+                handleSubmitOrder();
+                return;
+            }
+            if (e.key === "Escape") {
+                setShowCustomerModal(false);
+                setWeightPrompt(null);
+                setShowShiftReport(false);
+                return;
+            }
+
+            if (!isTyping) {
+                if (e.key >= "0" && e.key <= "9") {
+                    e.preventDefault();
+                    handleNumpadKey(e.key);
+                } else if (e.key === ".") {
+                    e.preventDefault();
+                    handleNumpadKey(".");
+                } else if (e.key === "Backspace") {
+                    e.preventDefault();
+                    handleNumpadKey("BACKSPACE");
+                } else if (e.key === "c" || e.key === "C") {
+                    e.preventDefault();
+                    handleNumpadKey("C");
+                } else if (e.key === "+") {
+                    e.preventDefault();
+                    if (selectedCartIdx !== null && cart[selectedCartIdx]) {
+                        setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty + 1 } : c));
+                        playBeep();
+                    }
+                } else if (e.key === "-") {
+                    e.preventDefault();
+                    if (selectedCartIdx !== null && cart[selectedCartIdx] && cart[selectedCartIdx].qty > 1) {
+                        setCart(prev => prev.map((c, i) => i === selectedCartIdx ? { ...c, qty: c.qty - 1 } : c));
+                        playBeep();
+                    }
+                } else if (e.key === "Delete") {
+                    e.preventDefault();
+                    removeSelectedItem();
+                } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (cart.length > 0) {
+                        handleSubmitOrder();
+                    }
+                }
+            }
+        };
+
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+    });
+
     /* ── Filtered Today Invoices ── */
     const filteredTodayInvoices = useMemo(() => {
-        return todayOrders.filter(o => {
-            if (invoicesFilterType !== "all" && o.order_type !== invoicesFilterType) return false;
+        const sourceList = activeTab === "online" ? onlineOrders : todayOrders;
+        return sourceList.filter(o => {
+            if (activeTab !== "online" && invoicesFilterType !== "all" && o.order_type !== invoicesFilterType) return false;
             if (invoicesFilterPayment !== "all" && o.payment_method !== invoicesFilterPayment) return false;
             if (invoicesSearchQ) {
-                const q = invoicesSearchQ.toLowerCase();
+                const q = invoicesSearchQ.toLowerCase().trim();
                 const matchNum = o.order_number.toString().includes(q);
                 const matchCust = (o.customer_name || "").toLowerCase().includes(q);
                 const matchPhone = (o.customer_phone || "").includes(q);
@@ -690,10 +914,35 @@ export default function POS2ClassicPage() {
             }
             return true;
         });
-    }, [todayOrders, invoicesFilterType, invoicesFilterPayment, invoicesSearchQ]);
+    }, [todayOrders, onlineOrders, activeTab, invoicesFilterType, invoicesFilterPayment, invoicesSearchQ]);
 
     const totalInvoicesSum = useMemo(() => filteredTodayInvoices.reduce((s, o) => s + (o.total || 0), 0), [filteredTodayInvoices]);
     const totalDeliveryFeesSum = useMemo(() => filteredTodayInvoices.reduce((s, o) => s + (o.delivery_fee || 0), 0), [filteredTodayInvoices]);
+
+    /* ── Shift Handover Calculations ── */
+    const shiftStats = useMemo(() => {
+        const cash = todayOrders.filter(o => o.payment_method === 'cash').reduce((s, o) => s + (o.total || 0), 0);
+        const visa = todayOrders.filter(o => o.payment_method === 'visa').reduce((s, o) => s + (o.total || 0), 0);
+        const deposit = todayOrders.reduce((s, o) => s + (o.deposit_amount || 0), 0);
+        const delivery = todayOrders.reduce((s, o) => s + (o.delivery_fee || 0), 0);
+        const totalRev = todayOrders.reduce((s, o) => s + (o.total || 0), 0);
+        const websiteCount = todayOrders.filter(o => o.source === 'website').length;
+        const websiteRev = todayOrders.filter(o => o.source === 'website').reduce((s, o) => s + (o.total || 0), 0);
+
+        return {
+            count: todayOrders.length,
+            revenue: totalRev,
+            cash,
+            visa,
+            deposit,
+            delivery,
+            orderNumbers: todayOrders.map(o => o.order_number),
+            posOrders: todayOrders.length - websiteCount,
+            posRevenue: totalRev - websiteRev,
+            websiteOrders: websiteCount,
+            websiteRevenue: websiteRev
+        };
+    }, [todayOrders]);
 
     /* ═══════════════════════════ RENDER ═══════════════════════════ */
     return (
@@ -702,22 +951,43 @@ export default function POS2ClassicPage() {
             {/* ═══ 1. CLASSIC DESKTOP WINDOW TITLE BAR ═══ */}
             <div className="flex items-center justify-between px-2.5 py-1.5 bg-gradient-to-r from-[#1b4363] via-[#245780] to-[#1b4363] dark:from-[#0f1e2c] dark:via-[#162d42] dark:to-[#0f1e2c] text-white border-b-2 border-[#0e273c] dark:border-slate-900 shadow-sm shrink-0">
                 <div className="flex items-center gap-2">
-                    <Calculator className="w-4 h-4 text-cyan-300 drop-shadow" />
                     <span className="font-bold text-sm tracking-wide text-white drop-shadow">
                         مبيعات - كاشير ASN الكلاسيكي ({restaurant?.name || "مطعم"})
                     </span>
                     <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40 font-mono">
                         v2.0 Classic
                     </span>
+                    {heldOrders.length > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 border border-amber-500/40 font-mono">
+                            {heldOrders.length} معلقة
+                        </span>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3 text-xs">
-                    {/* Status Lights */}
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 rounded border border-white/10 font-mono text-[11px]">
+                    {/* Status Light with Manual Sync Click */}
+                    <button
+                        onClick={async () => {
+                            if (!restaurantId || isSyncing) return;
+                            setIsSyncing(true);
+                            try {
+                                await pushDirtyToSupabase(restaurantId);
+                                await pullFromSupabase(restaurantId);
+                                await loadData();
+                                toast.success(isAr ? "تمت المزامنة بنجاح" : "Synced successfully");
+                            } catch {
+                                toast.error(isAr ? "تعذرت المزامنة" : "Sync failed");
+                            } finally {
+                                setIsSyncing(false);
+                            }
+                        }}
+                        title={isAr ? "اضغط للمزامنة اليدوية" : "Click to sync now"}
+                        className="flex items-center gap-1.5 px-2 py-0.5 bg-black/40 hover:bg-black/60 rounded border border-white/10 font-mono text-[11px] cursor-pointer transition"
+                    >
                         <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-500"}`} />
-                        <span>{isOnline ? "متصل" : "أوفلاين"}</span>
+                        <span>{isSyncing ? "مزامنة..." : isOnline ? "متصل" : "أوفلاين"}</span>
                         {pendingSyncCount > 0 && <span className="text-amber-300">({pendingSyncCount})</span>}
-                    </div>
+                    </button>
 
                     <div className="flex items-center gap-1 text-slate-200">
                         <Users className="w-3.5 h-3.5 text-amber-400" />
@@ -740,13 +1010,13 @@ export default function POS2ClassicPage() {
                 </div>
             </div>
 
-            {/* ═══ 2. CLASSIC MENU STRIP (ملف | القائمة | الحركات | تقارير | الورديات) ═══ */}
+            {/* ═══ 2. CLASSIC MENU STRIP ═══ */}
             <div className="flex items-center justify-between px-2 py-1 bg-[#e4ebf3] dark:bg-[#131b26] border-b border-[#a9bad0] dark:border-slate-800 text-[11px] font-bold text-slate-800 dark:text-slate-200 shrink-0">
                 <div className="flex items-center gap-4">
-                    <button onClick={clearCart} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">ملف</button>
-                    <button onClick={() => setActiveTab("menu")} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">القائمة</button>
-                    <button onClick={() => setActiveTab("today_invoices")} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">الحركات</button>
-                    <button onClick={() => setShowShiftReport(true)} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">الورديات</button>
+                    <button onClick={clearCart} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">فاتورة جديدة (F2)</button>
+                    <button onClick={() => setActiveTab("menu")} className={`px-1.5 py-0.5 rounded transition ${activeTab === 'menu' ? 'text-blue-800 font-black' : 'hover:text-blue-700'}`}>القائمة والطلب</button>
+                    <button onClick={() => setActiveTab("today_invoices")} className={`px-1.5 py-0.5 rounded transition ${activeTab === 'today_invoices' ? 'text-blue-800 font-black' : 'hover:text-blue-700'}`}>فواتير اليوم</button>
+                    <button onClick={() => setShowShiftReport(true)} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">تقرير الوردية</button>
                     <button onClick={() => { triggerCashDrawerIfEnabled(getPrinterSettings()); toast.info("تم فتح الدرج"); }} className="hover:text-blue-700 dark:hover:text-cyan-300 px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 transition">فتح الدرج</button>
                 </div>
 
@@ -786,7 +1056,7 @@ export default function POS2ClassicPage() {
                             }`}
                         >
                             <span>{tab.label}</span>
-                            <span className="mr-1 text-[10px] px-1 rounded-full bg-black/10 dark:bg-white/10 font-mono">
+                            <span className={`mr-1 text-[10px] px-1 rounded-full font-mono ${tab.id === 'online' && onlineOrders.length > 0 ? 'bg-violet-600 text-white animate-pulse' : 'bg-black/10 dark:bg-white/10'}`}>
                                 {tab.count}
                             </span>
                         </button>
@@ -794,7 +1064,7 @@ export default function POS2ClassicPage() {
                 })}
             </div>
 
-            {/* ═══ 4. SPLIT SCREEN (LEFT: INVOICE TAPE & ENTRY | RIGHT: MENU / TABLES / INVOICES) ═══ */}
+            {/* ═══ 4. SPLIT SCREEN ═══ */}
             <div className="flex-1 grid grid-cols-12 gap-1.5 p-1.5 min-h-0 bg-[#d8e2ed] dark:bg-[#0c1219] overflow-hidden">
                 
                 {/* ══════════════════════════════════════════════════════════
@@ -822,9 +1092,15 @@ export default function POS2ClassicPage() {
                         </div>
 
                         <div className="flex items-center gap-1 font-mono">
-                            <span className="px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-400 dark:border-cyan-700 text-cyan-950 dark:text-cyan-200 font-black">
-                                #{lastOrderNumber || 1}
-                            </span>
+                            {editingOrderId ? (
+                                <span className="px-1.5 py-0.5 bg-amber-500 text-white font-black rounded animate-pulse">
+                                    تعديل #{originalOrderNumber}
+                                </span>
+                            ) : (
+                                <span className="px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-950/70 border border-cyan-400 dark:border-cyan-700 text-cyan-950 dark:text-cyan-200 font-black">
+                                    #{lastOrderNumber ? lastOrderNumber + 1 : 1}
+                                </span>
+                            )}
                             <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-950/70 border border-amber-400 dark:border-amber-700 text-amber-950 dark:text-amber-200 font-black">
                                 {cart.length} صنف
                             </span>
@@ -877,7 +1153,7 @@ export default function POS2ClassicPage() {
                                 if (selectedMenuItem) {
                                     setWeightPrompt({ item: selectedMenuItem, sizeIdx: selectedSizeIdx });
                                 } else {
-                                    toast.info("اختر صنفاً أولاً");
+                                    toast.info(isAr ? "اختر صنفاً أولاً" : "Select item first");
                                 }
                             }}
                             className="px-2 py-1 bg-[#476882] hover:bg-[#5881a2] dark:bg-[#2d4253] dark:hover:bg-[#3d5970] text-white border border-[#2d4457] dark:border-slate-700 font-bold rounded text-[11px] active:scale-95 transition"
@@ -904,7 +1180,7 @@ export default function POS2ClassicPage() {
                             ].map(t => (
                                 <button
                                     key={t.key}
-                                    onClick={() => setOrderType(t.key as any)}
+                                    onClick={() => setOrderType(t.key as "dine_in" | "takeaway" | "delivery")}
                                     className={`flex-1 flex items-center justify-center font-black text-xs rounded transition-all border shadow-sm ${
                                         orderType === t.key
                                             ? "bg-[#18486e] dark:bg-cyan-600 text-white border-[#0c283f] dark:border-cyan-400 ring-2 ring-cyan-400"
@@ -959,7 +1235,7 @@ export default function POS2ClassicPage() {
                                                     }`}
                                                 >
                                                     <td className="p-1.5 border-l border-slate-300 dark:border-slate-800 font-bold truncate max-w-[130px]">
-                                                        {c.menuItem.title_ar}
+                                                        {c.menuItem.title_ar || c.menuItem.title_en}
                                                         {c.menuItem.size_labels && c.menuItem.size_labels.length > 1 && (
                                                             <span className="text-[10px] text-blue-600 dark:text-cyan-400 mr-1 font-mono">
                                                                 ({c.menuItem.size_labels[c.selectedSizeIdx]})
@@ -1058,16 +1334,41 @@ export default function POS2ClassicPage() {
                                     <span>طباعة المطبخ</span>
                                 </label>
 
-                                <div className="flex items-center gap-1">
-                                    <span>خدمة توصيل:</span>
+                                <label className="flex items-center gap-1 cursor-pointer">
                                     <input
-                                        type="number"
-                                        value={deliveryFee || ""}
-                                        onChange={e => setDeliveryFee(Number(e.target.value))}
-                                        placeholder="0"
-                                        className="w-12 px-1 py-0.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 text-center font-bold text-slate-900 dark:text-white"
+                                        type="checkbox"
+                                        checked={addTax}
+                                        onChange={e => setAddTax(e.target.checked)}
+                                        className="w-3.5 h-3.5 rounded text-blue-600 dark:bg-[#0c121a] dark:border-slate-700"
                                     />
-                                </div>
+                                    <span>ضريبة ({taxRate}%)</span>
+                                </label>
+
+                                {orderType === "dine_in" && (
+                                    <div className="flex items-center gap-1">
+                                        <span>رقم الطاولة:</span>
+                                        <input
+                                            type="text"
+                                            value={tableNumber}
+                                            onChange={e => setTableNumber(e.target.value)}
+                                            placeholder="طاولة..."
+                                            className="w-12 px-1 py-0.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 text-center font-bold text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                )}
+
+                                {orderType === "delivery" && (
+                                    <div className="flex items-center gap-1">
+                                        <span>خدمة توصيل:</span>
+                                        <input
+                                            type="number"
+                                            value={deliveryFee || ""}
+                                            onChange={e => setDeliveryFee(Number(e.target.value))}
+                                            placeholder="0"
+                                            className="w-12 px-1 py-0.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 text-center font-bold text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="flex items-center gap-1">
                                     <span>طريقة الدفع:</span>
@@ -1159,54 +1460,65 @@ export default function POS2ClassicPage() {
 
                             {/* Categories Horizontal Buttons Strip */}
                             <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar shrink-0 py-0.5">
-                                {categories.map(cat => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => setActiveCategory(cat.id)}
-                                        className={`px-3 py-1.5 rounded font-bold text-xs shrink-0 border transition-all ${
-                                            activeCategory === cat.id
-                                                ? "bg-[#18486e] dark:bg-cyan-600 text-white border-[#0c283f] dark:border-cyan-400 shadow font-black"
-                                                : "bg-[#e5ecf5] dark:bg-[#172230] text-slate-700 dark:text-slate-200 border-[#9bb1c7] dark:border-slate-700 hover:bg-[#d0deee] dark:hover:bg-[#202e40]"
-                                        }`}
-                                    >
-                                        {cat.name_ar}
-                                    </button>
-                                ))}
+                                {categories.map(cat => {
+                                    const count = menuItems.filter(i => i.category_id === cat.id).length;
+                                    return (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => setActiveCategory(cat.id)}
+                                            className={`px-3 py-1.5 rounded font-bold text-xs shrink-0 border transition-all flex items-center gap-1 ${
+                                                activeCategory === cat.id
+                                                    ? "bg-[#18486e] dark:bg-cyan-600 text-white border-[#0c283f] dark:border-cyan-400 shadow font-black"
+                                                    : "bg-[#e5ecf5] dark:bg-[#172230] text-slate-700 dark:text-slate-200 border-[#9bb1c7] dark:border-slate-700 hover:bg-[#d0deee] dark:hover:bg-[#202e40]"
+                                            }`}
+                                        >
+                                            {cat.emoji && <span>{cat.emoji}</span>}
+                                            <span>{cat.name_ar || cat.name_en}</span>
+                                            <span className="text-[10px] opacity-75 font-mono">({count})</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
 
                             {/* Middle Split: Product Buttons Grid (Left) + Tactile POS Numpad (Right) */}
                             <div className="flex-1 grid grid-cols-12 gap-1.5 min-h-0">
                                 
-                                {/* Product Tiles Grid (8 Cols) - ONLY ITEM NAME & PRICE WITH CLEAR BOLD FONT */}
+                                {/* Product Tiles Grid (8 Cols) */}
                                 <div className="col-span-12 md:col-span-8 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1.5 content-start min-h-0 p-1 bg-[#eaf1f8] dark:bg-[#0d141e] border border-slate-300 dark:border-slate-800 rounded">
-                                    {flattenedCards.map(({ item, sizeIdx, title, price }, cardIdx) => {
-                                        const isItemSelected = selectedMenuItem?.id === item.id && selectedSizeIdx === sizeIdx;
-                                        return (
-                                            <button
-                                                key={`${item.id}-${sizeIdx}-${cardIdx}`}
-                                                onClick={() => handleSelectMenuItem(item, sizeIdx)}
-                                                className={`rounded-lg border-2 transition-all flex flex-col justify-between overflow-hidden active:scale-95 cursor-pointer shadow-sm min-h-[90px] xl:min-h-[105px] ${
-                                                    isItemSelected
-                                                        ? "bg-[#c1e0fc] dark:bg-[#1a385c] border-[#18486e] dark:border-cyan-400 ring-2 ring-cyan-400/40"
-                                                        : "bg-white dark:bg-[#15202e] border-[#9bb1c7] dark:border-slate-700 hover:border-blue-500 hover:dark:border-cyan-500 hover:bg-[#f3f8fd] dark:hover:bg-[#1c2a3d]"
-                                                }`}
-                                            >
-                                                {/* ONLY Item Title (Big, bold, crisp font) */}
-                                                <div className="flex-1 flex items-center justify-center p-2.5 text-center">
-                                                    <span className="font-black text-sm xl:text-base leading-snug text-slate-900 dark:text-slate-100 line-clamp-2">
-                                                        {title}
-                                                    </span>
-                                                </div>
+                                    {flattenedCards.length === 0 ? (
+                                        <div className="col-span-full py-16 text-center text-slate-400 dark:text-slate-600 font-bold">
+                                            {searchQ ? "لا توجد أصناف مطابقة للبحث" : "لا توجد أصناف متاحة في هذا القسم حالياً"}
+                                        </div>
+                                    ) : (
+                                        flattenedCards.map(({ item, sizeIdx, title, price }, cardIdx) => {
+                                            const isItemSelected = selectedMenuItem?.id === item.id && selectedSizeIdx === sizeIdx;
+                                            return (
+                                                <button
+                                                    key={`${item.id}-${sizeIdx}-${cardIdx}`}
+                                                    onClick={() => handleSelectMenuItem(item, sizeIdx)}
+                                                    className={`rounded-lg border-2 transition-all flex flex-col justify-between overflow-hidden active:scale-95 cursor-pointer shadow-sm min-h-[90px] xl:min-h-[105px] ${
+                                                        isItemSelected
+                                                            ? "bg-[#c1e0fc] dark:bg-[#1a385c] border-[#18486e] dark:border-cyan-400 ring-2 ring-cyan-400/40"
+                                                            : "bg-white dark:bg-[#15202e] border-[#9bb1c7] dark:border-slate-700 hover:border-blue-500 hover:dark:border-cyan-500 hover:bg-[#f3f8fd] dark:hover:bg-[#1c2a3d]"
+                                                    }`}
+                                                >
+                                                    {/* ONLY Item Title (Big, bold, crisp font) */}
+                                                    <div className="flex-1 flex items-center justify-center p-2.5 text-center">
+                                                        <span className="font-black text-sm xl:text-base leading-snug text-slate-900 dark:text-slate-100 line-clamp-2">
+                                                            {title}
+                                                        </span>
+                                                    </div>
 
-                                                {/* ONLY Price (Big, bold, high-contrast font) */}
-                                                <div className="w-full py-1.5 bg-[#eaf1f8] dark:bg-[#0c131c] border-t border-slate-200 dark:border-slate-800 flex justify-center items-center">
-                                                    <span className="font-black text-sm xl:text-base font-mono text-emerald-700 dark:text-emerald-400 tracking-tight">
-                                                        {formatCurrency(price)}
-                                                    </span>
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
+                                                    {/* ONLY Price (Big, bold, high-contrast font) */}
+                                                    <div className="w-full py-1.5 bg-[#eaf1f8] dark:bg-[#0c131c] border-t border-slate-200 dark:border-slate-800 flex justify-center items-center">
+                                                        <span className="font-black text-sm xl:text-base font-mono text-emerald-700 dark:text-emerald-400 tracking-tight">
+                                                            {formatCurrency(price)}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })
+                                    )}
                                 </div>
 
                                 {/* Tactile Classic Numpad (4 Cols) */}
@@ -1268,7 +1580,7 @@ export default function POS2ClassicPage() {
                                             <button onClick={() => handleNumpadKey("2")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">2</button>
                                             <button onClick={() => handleNumpadKey("3")} className="py-2.5 bg-white dark:bg-[#1b2737] hover:bg-slate-100 dark:hover:bg-[#233347] text-slate-900 dark:text-white rounded border border-slate-400 dark:border-slate-700 active:scale-95 shadow-sm">3</button>
                                             <button onClick={() => handleNumpadKey("BACKSPACE")} className="py-2.5 bg-[#e08b8b] hover:bg-[#ec9e9e] dark:bg-[#522226] dark:hover:bg-[#692a30] rounded border border-[#b46565] dark:border-red-900 text-red-950 dark:text-red-200 active:scale-95 shadow-sm flex items-center justify-center">
-                                                <Delete className="w-4 h-4" />
+                                                <span className="font-sans font-bold text-xs">← مسح</span>
                                             </button>
 
                                             <button onClick={() => handleNumpadKey("C")} className="py-2.5 bg-[#6c859e] hover:bg-[#7e99b4] dark:bg-[#2c3d52] dark:hover:bg-[#384d66] text-white rounded border border-[#4d6379] dark:border-slate-700 active:scale-95 shadow-sm">C</button>
@@ -1292,37 +1604,43 @@ export default function POS2ClassicPage() {
                         </div>
                     )}
 
-                    {/* ═══ VIEW B: TODAY'S INVOICES TABLE (EXACT REPLICA OF USER'S SCREENSHOT) ═══ */}
+                    {/* ═══ VIEW B: TODAY'S INVOICES TABLE ═══ */}
                     {activeTab !== "menu" && (
                         <div className="flex-1 flex flex-col min-h-0 p-1.5 space-y-1.5">
                             
-                            {/* Filter and Search Bar matching screenshot */}
+                            {/* Filter and Search Bar */}
                             <div className="p-1.5 bg-[#dbe5f2] dark:bg-[#151f2c] border-2 border-[#8da5bf] dark:border-slate-800 rounded flex items-center justify-between gap-1.5 text-xs font-bold shrink-0 flex-wrap">
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-slate-800 dark:text-slate-200">عرض الفواتير:</span>
                                     <button
-                                        onClick={() => setInvoicesFilterType("all")}
-                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "all" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                                        onClick={() => { setActiveTab("today_invoices"); setInvoicesFilterType("all"); }}
+                                        className={`px-3 py-1 rounded border transition-colors ${activeTab === "today_invoices" && invoicesFilterType === "all" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         كل الفواتير
                                     </button>
                                     <button
-                                        onClick={() => setInvoicesFilterType("takeaway")}
-                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "takeaway" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                                        onClick={() => { setActiveTab("takeaway"); setInvoicesFilterType("takeaway"); }}
+                                        className={`px-3 py-1 rounded border transition-colors ${activeTab === "takeaway" || invoicesFilterType === "takeaway" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         فواتير التك اواي
                                     </button>
                                     <button
-                                        onClick={() => setInvoicesFilterType("delivery")}
-                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "delivery" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                                        onClick={() => { setActiveTab("delivery"); setInvoicesFilterType("delivery"); }}
+                                        className={`px-3 py-1 rounded border transition-colors ${activeTab === "delivery" || invoicesFilterType === "delivery" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         فواتير الدليفرى
                                     </button>
                                     <button
-                                        onClick={() => setInvoicesFilterType("dine_in")}
-                                        className={`px-3 py-1 rounded border transition-colors ${invoicesFilterType === "dine_in" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
+                                        onClick={() => { setActiveTab("tables"); setInvoicesFilterType("dine_in"); }}
+                                        className={`px-3 py-1 rounded border transition-colors ${activeTab === "tables" || invoicesFilterType === "dine_in" ? "bg-[#18486e] dark:bg-cyan-600 text-white font-black border-[#0c283f] dark:border-cyan-400" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-slate-700 dark:text-slate-300"}`}
                                     >
                                         فواتير الصالة
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab("online")}
+                                        className={`px-3 py-1 rounded border transition-colors ${activeTab === "online" ? "bg-violet-700 text-white font-black border-violet-900" : "bg-white dark:bg-[#182332] border-slate-400 dark:border-slate-700 text-violet-700 dark:text-violet-300"}`}
+                                    >
+                                        طلبات الأونلاين ({onlineOrders.length})
                                     </button>
                                 </div>
 
@@ -1349,40 +1667,43 @@ export default function POS2ClassicPage() {
                                 </div>
                             </div>
 
-                            {/* Invoices Spreadsheet Table (Replica of Screenshot) */}
+                            {/* Invoices Spreadsheet Table */}
                             <div className="flex-1 overflow-y-auto border-2 border-[#8da5bf] dark:border-slate-800 rounded bg-white dark:bg-[#0d141e] min-h-0">
                                 <table className="w-full border-collapse text-right text-xs">
                                     <thead className="bg-[#cbdcf0] dark:bg-[#182638] text-slate-900 dark:text-slate-100 border-b-2 border-[#7693b1] dark:border-slate-700 sticky top-0 font-black shadow-sm">
                                         <tr>
-                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-24">رقم_الفاتورة</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-28">الإجمالي</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-28">المستخدم</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-24">الدفع</th>
-                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-32">الوقت</th>
-                                            <th className="p-2 text-center w-32">التاريخ</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-20">رقم_الفاتورة</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-24">النوع</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-24">الإجمالي</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-24">المستخدم</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-20">الدفع</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-28">الوقت</th>
+                                            <th className="p-2 border-l border-[#9cb3cc] dark:border-slate-700 text-center w-28">التاريخ</th>
+                                            <th className="p-2 text-center w-36">إجراءات</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-300 dark:divide-slate-800 font-bold">
                                         {filteredTodayInvoices.length === 0 ? (
                                             <tr>
-                                                <td colSpan={6} className="py-16 text-center text-slate-400 dark:text-slate-600 font-bold">
-                                                    لا توجد فواتير مسجلة اليوم ضمن هذا التصنيف
+                                                <td colSpan={8} className="py-16 text-center text-slate-400 dark:text-slate-600 font-bold">
+                                                    {activeTab === "online" ? "لا توجد طلبات أونلاين جديدة حالياً" : "لا توجد فواتير مسجلة اليوم ضمن هذا التصنيف"}
                                                 </td>
                                             </tr>
                                         ) : (
                                             filteredTodayInvoices.map((o, idx) => (
                                                 <tr
                                                     key={o.id}
-                                                    onClick={() => {
-                                                        const html = renderReceiptHtml(o, restaurant, isAr);
-                                                        executePrint(html, getPrinterSettings(), modalHtml => setPrintModalHtml(modalHtml));
-                                                    }}
-                                                    className={`hover:bg-[#d8e8f8] dark:hover:bg-[#1a293d] cursor-pointer transition-colors ${
+                                                    className={`hover:bg-[#d8e8f8] dark:hover:bg-[#1a293d] transition-colors ${
                                                         idx % 2 === 0 ? "bg-white dark:bg-[#0f1722]" : "bg-[#f2f7fc] dark:bg-[#141c27]"
                                                     }`}
                                                 >
                                                     <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono font-black text-blue-900 dark:text-cyan-300 text-sm">
-                                                        {o.order_number}
+                                                        #{o.order_number}
+                                                    </td>
+                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center">
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+                                                            {o.source === 'website' ? 'أونلاين' : o.order_type === 'dine_in' ? 'صالة' : o.order_type === 'delivery' ? 'دليفري' : 'تيك أواي'}
+                                                        </span>
                                                     </td>
                                                     <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono font-black text-sm text-slate-900 dark:text-emerald-400">
                                                         {o.total}
@@ -1398,8 +1719,41 @@ export default function POS2ClassicPage() {
                                                     <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono text-[11px] text-slate-700 dark:text-slate-300" dir="ltr">
                                                         {new Date(o.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                                                     </td>
-                                                    <td className="p-2 text-center font-mono text-[11px] text-slate-700 dark:text-slate-300" dir="ltr">
+                                                    <td className="p-2 border-l border-slate-300 dark:border-slate-800 text-center font-mono text-[11px] text-slate-700 dark:text-slate-300" dir="ltr">
                                                         {new Date(o.created_at).toLocaleDateString("en-GB")}
+                                                    </td>
+                                                    <td className="p-1.5 text-center">
+                                                        <div className="flex items-center justify-center gap-1">
+                                                            {o.source === 'website' && o.status === 'pending' && (
+                                                                <button
+                                                                    onClick={() => handleAcceptOnlineOrder(o)}
+                                                                    className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-black flex items-center gap-1 shadow-sm transition"
+                                                                >
+                                                                    <CheckCircle2 className="w-3 h-3" />
+                                                                    <span>قبول</span>
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                                onClick={() => {
+                                                                    const html = renderReceiptHtml(o, restaurant, isAr);
+                                                                    executePrint(html, getPrinterSettings(), modalHtml => setPrintModalHtml(modalHtml));
+                                                                }}
+                                                                className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow-sm transition"
+                                                            >
+                                                                <Printer className="w-3 h-3" />
+                                                                <span>طباعة</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setActiveTab("menu");
+                                                                    router.push(`/dashboard/pos2?edit=${o.id}`);
+                                                                }}
+                                                                className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-bold flex items-center gap-1 shadow-sm transition"
+                                                            >
+                                                                <Edit className="w-3 h-3" />
+                                                                <span>تعديل</span>
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))
@@ -1458,7 +1812,7 @@ export default function POS2ClassicPage() {
                                     type="text"
                                     dir="ltr"
                                     value={customerPhone}
-                                    onChange={e => setCustomerPhone(e.target.value)}
+                                    onChange={e => handlePhoneChange(e.target.value)}
                                     placeholder="01xxxxxxxxx"
                                     className="w-full p-1.5 bg-white dark:bg-[#0c121a] border border-slate-400 dark:border-slate-700 rounded font-mono font-bold text-slate-900 dark:text-white"
                                 />
@@ -1615,18 +1969,29 @@ export default function POS2ClassicPage() {
                             <div className="bg-white dark:bg-[#0c121a] p-3 border border-slate-400 dark:border-slate-700 text-center rounded">
                                 <span className="text-[10px] text-slate-500 uppercase tracking-wider block">إجمالي مبيعات اليوم</span>
                                 <span className="text-2xl font-black font-mono text-emerald-600 dark:text-emerald-400">
-                                    {todayOrders.reduce((s, o) => s + (o.total || 0), 0)} ج.م
+                                    {shiftStats.revenue} ج.م
                                 </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-2 text-center font-mono">
                                 <div className="p-2 bg-white dark:bg-[#0c121a] border border-slate-300 dark:border-slate-700 rounded">
                                     <span className="text-[10px] text-slate-500 block font-sans">عدد الفواتير</span>
-                                    <span className="text-base font-black text-slate-900 dark:text-white">{todayOrders.length}</span>
+                                    <span className="text-base font-black text-slate-900 dark:text-white">{shiftStats.count}</span>
                                 </div>
                                 <div className="p-2 bg-white dark:bg-[#0c121a] border border-slate-300 dark:border-slate-700 rounded">
                                     <span className="text-[10px] text-slate-500 block font-sans">خدمات التوصيل</span>
-                                    <span className="text-base font-black text-slate-900 dark:text-white">{todayOrders.reduce((s, o) => s + (o.delivery_fee || 0), 0)}</span>
+                                    <span className="text-base font-black text-slate-900 dark:text-white">{shiftStats.delivery}</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-center font-mono">
+                                <div className="p-2 bg-white dark:bg-[#0c121a] border border-slate-300 dark:border-slate-700 rounded">
+                                    <span className="text-[10px] text-slate-500 block font-sans">النقدي (كاش)</span>
+                                    <span className="text-base font-black text-emerald-600 dark:text-emerald-400">{shiftStats.cash}</span>
+                                </div>
+                                <div className="p-2 bg-white dark:bg-[#0c121a] border border-slate-300 dark:border-slate-700 rounded">
+                                    <span className="text-[10px] text-slate-500 block font-sans">فيزا وعربون</span>
+                                    <span className="text-base font-black text-blue-600 dark:text-cyan-400">{shiftStats.visa + shiftStats.deposit}</span>
                                 </div>
                             </div>
                         </div>
@@ -1636,18 +2001,7 @@ export default function POS2ClassicPage() {
                                 onClick={() => {
                                     const html = renderShiftReceiptHtml({
                                         cashierName,
-                                        shiftStats: {
-                                            count: todayOrders.length,
-                                            revenue: todayOrders.reduce((s, o) => s + (o.total || 0), 0),
-                                            cash: todayOrders.filter(o => o.payment_method === 'cash').reduce((s, o) => s + (o.total || 0), 0),
-                                            deposit: 0,
-                                            delivery: todayOrders.reduce((s, o) => s + (o.delivery_fee || 0), 0),
-                                            orderNumbers: todayOrders.map(o => o.order_number),
-                                            posOrders: todayOrders.length,
-                                            posRevenue: todayOrders.reduce((s, o) => s + (o.total || 0), 0),
-                                            websiteOrders: 0,
-                                            websiteRevenue: 0
-                                        },
+                                        shiftStats,
                                         restaurantName: restaurant?.name || "",
                                         isAr
                                     });
