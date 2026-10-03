@@ -8,15 +8,23 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 DECLARE
+  v_restaurant_uuid UUID;
   v_enabled BOOLEAN;
   v_plan_key TEXT;
   v_today TEXT;
   v_new_views NUMERIC;
   v_new_today INT;
 BEGIN
+  -- Cast safely to UUID to avoid operator does not exist: uuid = text (error 42883)
+  BEGIN
+    v_restaurant_uuid := p_restaurant_id::UUID;
+  EXCEPTION WHEN OTHERS THEN
+    RETURN json_build_object('success', false, 'error', 'invalid_uuid');
+  END;
+
   -- 1. Check if tracking is enabled (replaces separate SELECT)
   SELECT views_tracking_enabled INTO v_enabled
-  FROM restaurants WHERE id = p_restaurant_id;
+  FROM restaurants WHERE id = v_restaurant_uuid;
 
   IF v_enabled = FALSE THEN
     RETURN json_build_object('success', true, 'skipped', true);
