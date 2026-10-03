@@ -413,7 +413,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     try {
                         sessionStorage.setItem('asn_last_auth_check', String(Date.now()));
                         sessionStorage.setItem('asn_last_auth_tenant', rId || '');
-                    } catch (_e) {}
+                    } catch {}
                 }
             } else if (!roleData || roleData.role !== 'super_admin') {
                 router.push('/login');

@@ -13,7 +13,7 @@ export interface DashboardData {
     restaurantId: string | null;
     userEmail: string | null;
     userId: string | null;
-    permissions: Record<string, any> | null;
+    permissions: Record<string, unknown> | null;
 }
 
 const DashboardContext = createContext<DashboardData>({
