@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:asn_app/core/services/app_update_service.dart';
 import 'package:asn_app/core/theme/app_colors.dart';
@@ -69,6 +70,12 @@ class _UpdateBannerState extends State<UpdateBanner> {
   }
 
   Future<void> _download() async {
+    if (AppUpdateService.directApkDownloadUrl != null) {
+      final uri = Uri.parse(AppUpdateService.directApkDownloadUrl!);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+
     setState(() => _downloading = true);
     final started = await AppUpdateService.startDownload();
     if (!mounted) return;
@@ -86,6 +93,10 @@ class _UpdateBannerState extends State<UpdateBanner> {
     if (!_visible) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
+    final versionStr = AppUpdateService.latestVersionName != null
+        ? ' (${AppUpdateService.latestVersionName})'
+        : '';
+
     return Material(
       color: AppColors.oceanBlue.withValues(alpha: 0.10),
       child: Padding(
@@ -99,7 +110,7 @@ class _UpdateBannerState extends State<UpdateBanner> {
               child: Text(
                 _readyToInstall
                     ? 'التحديث جاهز — أعد التشغيل لتثبيته'
-                    : 'يوجد تحديث جديد للتطبيق',
+                    : 'يتوفر إصدار جديد$versionStr للتطبيق',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: AppColors.oceanBlue,
@@ -117,7 +128,7 @@ class _UpdateBannerState extends State<UpdateBanner> {
                 onPressed: _readyToInstall
                     ? AppUpdateService.installDownloaded
                     : _download,
-                child: Text(_readyToInstall ? 'إعادة التشغيل' : 'تحديث'),
+                child: Text(_readyToInstall ? 'إعادة التشغيل' : 'تحديث الآن'),
               ),
             IconButton(
               icon: const Icon(Icons.close, size: 18),
