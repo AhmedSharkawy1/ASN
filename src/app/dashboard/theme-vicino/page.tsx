@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { posDb } from "@/lib/pos-db";
+import { useDashboardContext } from "@/lib/context/DashboardContext";
 
 interface VicinoConfig {
     vicino_landing_enabled: boolean;
@@ -44,10 +45,16 @@ export default function ThemeVicinoSettings() {
         default_language: "ar",
     });
 
+    const { restaurantId: ctxRestaurantId } = useDashboardContext();
+
     useEffect(() => {
         const loadConfig = async () => {
             try {
                 let rId = null;
+
+                if (ctxRestaurantId) rId = ctxRestaurantId;
+
+                if (!rId) {
                 try {
                     const cached = await posDb.settings.get('current_config');
                     if (cached?.restaurant_id) rId = cached.restaurant_id;
@@ -72,6 +79,7 @@ export default function ThemeVicinoSettings() {
                         }
                     }
                 }
+                } // end if (!rId) — context fast-path
 
                 if (!rId) {
                     toast.error(isAr ? "تعذر تحميل بيانات المطعم. تأكد من اتصالك بالإنترنت." : "Could not load restaurant data.");
@@ -111,7 +119,7 @@ export default function ThemeVicinoSettings() {
         };
 
         loadConfig();
-    }, [isAr]);
+    }, [isAr, ctxRestaurantId]);
 
     const handleSave = async () => {
         if (!restaurantId) return;

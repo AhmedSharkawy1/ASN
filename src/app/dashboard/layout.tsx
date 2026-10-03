@@ -23,6 +23,7 @@ import { Toaster, toast } from "sonner";
 import { posDb } from "@/lib/pos-db";
 import { SyncStatus } from "@/components/SyncStatus";
 import { useMobileDrawer } from "@/lib/hooks/useMobileDrawer";
+import { DashboardProvider } from "@/lib/context/DashboardContext";
 
 interface Branch {
     id: string;
@@ -81,6 +82,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const [restaurantLogo, setRestaurantLogo] = useState<string | null>(null);
     const [isOnline, setIsOnline] = useState(true);
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
+    const [userEmail, setUserEmail] = useState<string | null>(null);
     const [permissions, setPermissions] = useState<Record<string, any> | null>(null);
     const [isDesktopApp, setIsDesktopApp] = useState(false);
     const [syncStatus, setSyncStatus] = useState({ pending: 0, lastSync: null, deviceId: null });
@@ -402,6 +405,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 setRestaurantLogo(rLogo);
                 restaurantIdRef.current = rId;
                 setRestaurantId(rId);
+                setUserId(userId);
+                setUserEmail(email || null);
                 setPermissions(tempPermissions);
             } else if (!roleData || roleData.role !== 'super_admin') {
                 router.push('/login');
@@ -756,6 +761,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
 
     return (
+        <DashboardProvider value={{ restaurantId, userId, userEmail, permissions }}>
         <div className="min-h-screen bg-stone-50 dark:bg-background text-slate-900 dark:text-zinc-100 flex transition-colors duration-300" dir={language === 'ar' ? 'rtl' : 'ltr'}>
             {/* Always mounted so it can fade rather than pop in/out. */}
             <div
@@ -980,5 +986,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Toaster position="top-right" theme={isDark ? "dark" : "light"} richColors closeButton />
             </main>
         </div>
+        </DashboardProvider>
     );
 }

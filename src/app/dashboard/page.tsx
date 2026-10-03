@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { posDb } from "@/lib/pos-db";
+import { useDashboardContext } from "@/lib/context/DashboardContext";
 
 export default function UserDashboardPage() {
     const { language } = useLanguage();
@@ -18,8 +19,30 @@ export default function UserDashboardPage() {
     const qrRef = useRef<SVGSVGElement>(null);
     const [copied, setCopied] = useState(false);
 
+    const { restaurantId: ctxRestaurantId } = useDashboardContext();
+
     useEffect(() => {
         const fetchDashboardData = async () => {
+            let rId: string | null = ctxRestaurantId;
+            let rName = "";
+            let rPlan: string | null = null;
+            let rExpires: string | null = null;
+
+            if (rId) {
+                // Context fast-path: layout already resolved the restaurant.
+                // Still need name + subscription for this page's UI.
+                const { data: rest } = await supabase
+                    .from('restaurants')
+                    .select('name, slug, subscription_plan, subscription_expires_at')
+                    .eq('id', rId)
+                    .single();
+                if (rest) {
+                    rName = rest.name;
+                    (window as any).rSlug = rest.slug;
+                    rPlan = rest.subscription_plan;
+                    rExpires = rest.subscription_expires_at;
+                }
+            } else {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
@@ -97,6 +120,8 @@ export default function UserDashboardPage() {
                  }
             }
 
+            } // end else - getUser fallback
+
             if (rId) {
                 setRestaurantId(rId);
                 setRestaurantName(rName);
@@ -130,7 +155,7 @@ export default function UserDashboardPage() {
             }
         };
         fetchDashboardData();
-    }, []);
+    }, [ctxRestaurantId]);
 
     const [refreshingViews, setRefreshingViews] = useState(false);
 

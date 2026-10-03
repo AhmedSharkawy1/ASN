@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { posDb } from "@/lib/pos-db";
+import { useDashboardContext } from "@/lib/context/DashboardContext";
 import Link from "next/link";
 
 interface CategoryItem {
@@ -53,10 +54,16 @@ export default function PopupSettingsPage() {
         target_category_id: ""
     });
 
+    const { restaurantId: ctxRestaurantId } = useDashboardContext();
+
     useEffect(() => {
         const loadData = async () => {
             try {
                 let rId: string | null = null;
+
+                if (ctxRestaurantId) rId = ctxRestaurantId;
+
+                if (!rId) {
                 // Impersonation check first (crucial for Super Admin managing clients)
                 if (typeof window !== "undefined") {
                     const imp = sessionStorage.getItem('impersonating_tenant');
@@ -84,6 +91,8 @@ export default function PopupSettingsPage() {
                         }
                     }
                 }
+
+                } // end if (!rId) — context fast-path
 
                 if (!rId) {
                     setLoading(false);
@@ -181,7 +190,7 @@ export default function PopupSettingsPage() {
         };
 
         loadData();
-    }, [isAr]);
+    }, [isAr, ctxRestaurantId]);
 
     const handleSave = async () => {
         if (!restaurantId) return;

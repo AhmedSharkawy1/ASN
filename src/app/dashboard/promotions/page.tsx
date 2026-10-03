@@ -44,6 +44,7 @@ import {
   RequiredItem,
   PromotionDiscountType,
 } from "@/lib/helpers/promotionEngine";
+import { useDashboardContext } from "@/lib/context/DashboardContext";
 
 type MenuItem = {
   id: string;
@@ -113,9 +114,14 @@ export default function PromotionsPage() {
   const [showItemPicker, setShowItemPicker] = useState(false);
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
 
+  const { restaurantId: ctxRestaurantId } = useDashboardContext();
+
   useEffect(() => {
     (async () => {
       try {
+        let restId = ctxRestaurantId;
+
+        if (!restId) {
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -127,16 +133,19 @@ export default function PromotionsPage() {
           setLoading(false);
           return;
         }
-        setRestaurantId(rest.id);
+        restId = rest.id;
         if (rest.currency) setCurrency(rest.currency);
+        } // end if (!restId) — context fast-path
+
+        setRestaurantId(restId);
 
         const [{ data: p }, { data: cats }] = await Promise.all([
           supabase
             .from("promotions")
             .select("*")
-            .eq("restaurant_id", rest.id)
+            .eq("restaurant_id", restId)
             .order("created_at", { ascending: false }),
-          supabase.from("categories").select("id, name_ar").eq("restaurant_id", rest.id),
+          supabase.from("categories").select("id, name_ar").eq("restaurant_id", restId),
         ]);
 
         setPromos((p as Promotion[]) || []);
@@ -163,7 +172,7 @@ export default function PromotionsPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [ctxRestaurantId]);
 
   const resetForm = () => {
     setNameAr("");

@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { posDb } from "@/lib/pos-db";
 import Link from "next/link";
+import { useDashboardContext } from "@/lib/context/DashboardContext";
 
 interface LametZamanConfig {
     lamet_zaman_bg_light: string;
@@ -46,10 +47,16 @@ export default function ThemeLametZamanSettings() {
         current_theme: "lamet-zaman-bg",
     });
 
+    const { restaurantId: ctxRestaurantId } = useDashboardContext();
+
     useEffect(() => {
         const loadConfig = async () => {
             try {
                 let rId = null;
+
+                if (ctxRestaurantId) rId = ctxRestaurantId;
+
+                if (!rId) {
                 try {
                     const cached = await posDb.settings.get('current_config');
                     if (cached?.restaurant_id) rId = cached.restaurant_id;
@@ -74,6 +81,7 @@ export default function ThemeLametZamanSettings() {
                         }
                     }
                 }
+                } // end if (!rId) — context fast-path
 
                 if (!rId) {
                     toast.error(isAr ? "تعذر تحميل بيانات المطعم." : "Could not load restaurant data.");
@@ -112,7 +120,7 @@ export default function ThemeLametZamanSettings() {
         };
 
         loadConfig();
-    }, [isAr]);
+    }, [isAr, ctxRestaurantId]);
 
     const handleSave = async () => {
         if (!restaurantId) return;

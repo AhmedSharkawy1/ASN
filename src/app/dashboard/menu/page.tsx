@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useLanguage } from "@/lib/context/LanguageContext";
+import { useDashboardContext } from "@/lib/context/DashboardContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage, uploadImageWithThumb } from "@/lib/uploadImage";
@@ -79,20 +80,36 @@ export default function MenuBuilderPage() {
     const smartImportRef = useRef<HTMLInputElement>(null);
     const folderImportRef = useRef<HTMLInputElement>(null);
 
+    const { restaurantId: ctxRestaurantId } = useDashboardContext();
+
     useEffect(() => {
         const fetchMenuData = async () => {
             try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
-
+                let restaurant = null;
                 const impersonatingTenant = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
-                const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
-                let restaurant = await getResolvedRestaurant(supabase, user, impersonatingTenant);
 
-                if (!restaurant && !impersonatingTenant) {
-                    const { data: newRest } = await supabase
-                        .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency, name, parent_id, high_quality_images').single();
-                    restaurant = newRest;
+                const effectiveId = impersonatingTenant || ctxRestaurantId;
+                if (effectiveId) {
+                    const { data: rest } = await supabase
+                        .from('restaurants')
+                        .select('id, currency, name, parent_id, high_quality_images')
+                        .eq('id', effectiveId)
+                        .maybeSingle();
+                    if (rest) restaurant = rest;
+                }
+
+                if (!restaurant) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+
+                    const { getResolvedRestaurant } = await import('@/lib/helpers/authHelper');
+                    restaurant = await getResolvedRestaurant(supabase, user, impersonatingTenant);
+
+                    if (!restaurant && !impersonatingTenant) {
+                        const { data: newRest } = await supabase
+                            .from('restaurants').insert({ email: user.email, name: "My Restaurant" }).select('id, currency, name, parent_id, high_quality_images').single();
+                        restaurant = newRest;
+                    }
                 }
 
                 if (restaurant) {
@@ -155,7 +172,7 @@ export default function MenuBuilderPage() {
             finally { setLoading(false); }
         };
         fetchMenuData();
-    }, []);
+    }, [ctxRestaurantId]);
 
     const toggleCollapse = (catId: string) => {
         setCollapsedCats(prev => {

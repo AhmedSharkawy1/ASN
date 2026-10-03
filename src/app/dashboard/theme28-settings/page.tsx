@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { posDb } from "@/lib/pos-db";
 import Link from "next/link";
+import { useDashboardContext } from "@/lib/context/DashboardContext";
 
 interface CategoryItem {
     id: string;
@@ -80,10 +81,16 @@ export default function Theme28SettingsPage() {
         current_theme: "theme28",
     });
 
+    const { restaurantId: ctxRestaurantId } = useDashboardContext();
+
     useEffect(() => {
         const loadData = async () => {
             try {
                 let rId: string | null = null;
+
+                if (ctxRestaurantId) rId = ctxRestaurantId;
+
+                if (!rId) {
                 try {
                     const cached = await posDb.settings.get('current_config');
                     if (cached?.restaurant_id) rId = cached.restaurant_id;
@@ -105,6 +112,7 @@ export default function Theme28SettingsPage() {
                         }
                     }
                 }
+                } // end if (!rId) — context fast-path
 
                 if (!rId) {
                     setLoading(false);
@@ -170,7 +178,7 @@ export default function Theme28SettingsPage() {
         };
 
         loadData();
-    }, [isAr]);
+    }, [isAr, ctxRestaurantId]);
 
     const handleSave = async (activateTheme = false) => {
         if (!restaurantId) return;
