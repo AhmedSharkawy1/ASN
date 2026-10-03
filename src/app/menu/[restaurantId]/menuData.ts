@@ -213,14 +213,16 @@ export async function loadMenu(restaurantId: string, previewTheme?: string): Pro
     .from("categories")
     .select("id, name_ar, name_en, emoji, image_url, thumbnail_url, sort_order, is_available")
     .eq("restaurant_id", config.id)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
 
   if (catsQuery.error && /is_available/.test(catsQuery.error.message || "")) {
     catsQuery = await supabase
       .from("categories")
       .select("id, name_ar, name_en, emoji, image_url, thumbnail_url, sort_order")
       .eq("restaurant_id", config.id)
-      .order("sort_order", { ascending: true });
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
   }
 
   const rawCats = catsQuery.data;
@@ -241,7 +243,9 @@ export async function loadMenu(restaurantId: string, previewTheme?: string): Pro
       catsData.map((c: any) => c.id)
     )
     .eq("is_available", true)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
 
   const categories: Category[] = catsData.map((cat: any) => {
     const catItems = (itemsData ?? []).filter((i) => i.category_id === cat.id).map(splitOldPrices);

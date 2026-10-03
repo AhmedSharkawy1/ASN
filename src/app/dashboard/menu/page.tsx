@@ -126,12 +126,12 @@ export default function MenuBuilderPage() {
                         setHighQualityImages(Boolean(rData?.high_quality_images));
                     }
                     const { data: catsData } = await supabase
-                        .from('categories').select('*').eq('restaurant_id', restaurant.id).order('sort_order', { ascending: true });
+                        .from('categories').select('*').eq('restaurant_id', restaurant.id).order('sort_order', { ascending: true }).order('created_at', { ascending: true });
 
                     if (catsData) {
                         const catIds = catsData.map(c => c.id);
                         const { data: itemsData } = catIds.length > 0
-                            ? await supabase.from('items').select('*').in('category_id', catIds).order('sort_order', { ascending: true })
+                            ? await supabase.from('items').select('*').in('category_id', catIds).order('sort_order', { ascending: true }).order('created_at', { ascending: true }).order('id', { ascending: true })
                             : { data: [] };
 
                         setCategories(catsData.map(cat => {
@@ -321,10 +321,9 @@ export default function MenuBuilderPage() {
         const swapIndex = direction === 'up' ? index - 1 : index + 1;
         [newCats[index], newCats[swapIndex]] = [newCats[swapIndex], newCats[index]];
         setCategories(newCats);
-        Promise.all([
-            supabase.from('categories').update({ sort_order: index }).eq('id', newCats[index].id),
-            supabase.from('categories').update({ sort_order: swapIndex }).eq('id', newCats[swapIndex].id)
-        ]).then(triggerRevalidate).catch(console.error);
+        Promise.all(
+            newCats.map((cat, idx) => supabase.from('categories').update({ sort_order: idx }).eq('id', cat.id))
+        ).then(triggerRevalidate).catch(console.error);
     };
 
     const handleMoveItem = async (catId: string, itemIndex: number, direction: 'up' | 'down') => {
@@ -336,10 +335,9 @@ export default function MenuBuilderPage() {
         const swapIndex = direction === 'up' ? itemIndex - 1 : itemIndex + 1;
         [newItems[itemIndex], newItems[swapIndex]] = [newItems[swapIndex], newItems[itemIndex]];
         setCategories(categories.map(c => c.id === catId ? { ...c, items: newItems } : c));
-        Promise.all([
-            supabase.from('items').update({ sort_order: itemIndex }).eq('id', newItems[itemIndex].id),
-            supabase.from('items').update({ sort_order: swapIndex }).eq('id', newItems[swapIndex].id)
-        ]).then(triggerRevalidate).catch(console.error);
+        Promise.all(
+            newItems.map((item, idx) => supabase.from('items').update({ sort_order: idx }).eq('id', item.id))
+        ).then(triggerRevalidate).catch(console.error);
     };
 
     const updateCategory = async (catId: string, updates: Partial<Category>) => {
@@ -768,6 +766,7 @@ export default function MenuBuilderPage() {
                                                             highQuality={highQualityImages}
                                                             restaurantId={restaurantId}
                                                             defaultPopular={Boolean(cat.is_popular || (cat.items.length > 0 && cat.items.every(i => i.is_popular)))}
+                                                            existingItemsCount={cat.items.length}
                                                             onCreated={(newItem) => {
                                                                 setCategories(categories.map(c => c.id === cat.id ? { ...c, items: [...c.items, newItem] } : c));
                                                                 setAddingItemToCat(null);
@@ -1241,7 +1240,7 @@ function AddCategoryPanel({ restaurantId, language, onCreated, onCancel, highQua
 }
 
 // ===================== ADD ITEM PANEL =====================
-function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQuality, restaurantId, defaultPopular }: {
+function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQuality, restaurantId, defaultPopular, existingItemsCount }: {
     catId: string; language: string;
     onCreated: (item: Item) => void;
     onCancel: () => void;
@@ -1249,6 +1248,7 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
     highQuality?: boolean;
     restaurantId?: string | null;
     defaultPopular?: boolean;
+    existingItemsCount?: number;
 }) {
     const [titleAr, setTitleAr] = useState('');
     const [titleEn, setTitleEn] = useState('');
@@ -1307,7 +1307,8 @@ function AddItemPanel({ catId, language, onCreated, onCancel, currency, highQual
                 prices: prices.filter(p => p > 0), size_labels: sizeLabels.filter((_, i) => prices[i] > 0).map((lbl, i) => oldPrices[i] > 0 ? `${lbl}::${oldPrices[i]}` : lbl),
                 is_popular: isPopular, is_spicy: isSpicy, is_new: isNew, is_available: true,
                 sell_by_weight: sellByWeight,
-                weight_unit: sellByWeight ? weightUnit : null
+                weight_unit: sellByWeight ? weightUnit : null,
+                sort_order: typeof existingItemsCount === 'number' ? existingItemsCount : 0
             };
             let { data, error } = await supabase
                 .from('items')
