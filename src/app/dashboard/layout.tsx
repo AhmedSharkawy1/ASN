@@ -408,6 +408,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 setUserId(userId);
                 setUserEmail(email || null);
                 setPermissions(tempPermissions);
+
+                if (typeof window !== 'undefined') {
+                    try {
+                        sessionStorage.setItem('asn_last_auth_check', String(Date.now()));
+                        sessionStorage.setItem('asn_last_auth_tenant', rId || '');
+                    } catch (_e) {}
+                }
             } else if (!roleData || roleData.role !== 'super_admin') {
                 router.push('/login');
                 return;
@@ -425,7 +432,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             }, 2000);
 
             try {
-                // Priority 2: Update if online
+                // Priority 2: Update if online (skip if verified within 3 minutes)
+                const lastCheck = typeof window !== 'undefined' ? sessionStorage.getItem('asn_last_auth_check') : null;
+                const lastTenant = typeof window !== 'undefined' ? sessionStorage.getItem('asn_last_auth_tenant') : null;
+                const currentImp = typeof window !== 'undefined' ? sessionStorage.getItem('impersonating_tenant') : null;
+                const tenantMismatch = currentImp ? (lastTenant !== currentImp) : false;
+                const isFresh = hasCache && !tenantMismatch && lastCheck && (Date.now() - Number(lastCheck) < 3 * 60 * 1000);
+
+                if (isFresh) {
+                    setLoading(false);
+                    return;
+                }
+
                 if (navigator.onLine) {
                     await Promise.race([
                         checkAuth(),
@@ -486,8 +504,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             setIsDesktopApp(true);
         }
 
+        const handleVisibilityChange = () => {
+            if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+                const last = sessionStorage.getItem('asn_last_auth_check');
+                if (!last || Date.now() - Number(last) > 3 * 60 * 1000) {
+                    checkAuth().catch(() => {});
+                }
+            }
+        };
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+        }
+
         return () => {
             unsub();
+            if (typeof document !== 'undefined') {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
         };
     }, [router]);
 
@@ -876,6 +909,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <button
                         onClick={async () => { 
                             sessionStorage.removeItem('impersonating_tenant');
+                            sessionStorage.removeItem('asn_last_auth_check');
+                            sessionStorage.removeItem('asn_last_auth_tenant');
                             localStorage.removeItem('offline_session');
                             localStorage.removeItem('offline_pw');
                             await supabase.auth.signOut(); 
