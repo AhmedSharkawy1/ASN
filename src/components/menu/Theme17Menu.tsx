@@ -32,6 +32,8 @@ import { Autoplay, EffectFade, EffectCoverflow } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
 import 'swiper/css/effect-coverflow';
+import 'swiper/css/autoplay';
+import { useStoreHours, type StoreSchedule } from '@/lib/helpers/storeHours';
 
 // Local Types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -76,6 +78,9 @@ type RestaurantConfig = {
     cover_url?: string;
     cover_images?: string[];
     working_hours?: string;
+    working_schedule?: StoreSchedule | Record<string, unknown> | null;
+    time_open?: string;
+    time_close?: string;
     payment_methods?: PaymentMethodEntry[];
     marquee_enabled?: boolean;
     marquee_text_ar?: string;
@@ -146,24 +151,20 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
         return () => clearTimeout(timer);
     }, []);
 
-    const isOpen = (() => {
-        if (!config.working_hours) return true;
-        try {
-            const parts = config.working_hours.split('-');
-            if (parts.length === 2) {
-                const parseToMins = (t: string) => {
-                   let [h, m] = t.replace(/[^\d:]/g, '').split(':').map(Number);
-                   if (t.toLowerCase().includes('pm') && h < 12) h += 12;
-                   if (t.toLowerCase().includes('am') && h === 12) h = 0;
-                   return (h || 0) * 60 + (m || 0);
-                };
-                const s = parseToMins(parts[0]), e = parseToMins(parts[1]);
-                const c = new Date().getHours() * 60 + new Date().getMinutes();
-                return e <= s ? (c >= s || c <= e) : (c >= s && c <= e);
-            }
-        } catch (_e) { return true; }
-        return true;
-    })();
+    const storeStatus = useStoreHours(config);
+    const isOpen = storeStatus.isOpen;
+
+    // Swiper Coverflow with slidesPerView 2.5 and loop=true needs at least 6 slides to loop and autoplay smoothly
+    const swiperCategories = React.useMemo(() => {
+        if (!categories || categories.length === 0) return [];
+        if (categories.length >= 6) return categories;
+        const multiplier = Math.ceil(6 / categories.length);
+        const list: typeof categories = [];
+        for (let i = 0; i < multiplier; i++) {
+            list.push(...categories);
+        }
+        return list;
+    }, [categories]);
 
     // Intersection Observer for scroll tracking (only when in menu view)
     useEffect(() => {
@@ -478,8 +479,15 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                             grabCursor={true}
                             centeredSlides={true}
                             slidesPerView={2.5}
-                            loop={true}
-                            autoplay={{ delay: 2500, disableOnInteraction: false }}
+                            loop={swiperCategories.length >= 4}
+                            speed={700}
+                            observer={true}
+                            observeParents={true}
+                            autoplay={{
+                                delay: 2200,
+                                disableOnInteraction: false,
+                                pauseOnMouseEnter: false,
+                            }}
                             coverflowEffect={{
                                 rotate: 45,
                                 stretch: -15,
@@ -490,8 +498,8 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                             modules={[EffectCoverflow, Autoplay]}
                             className="w-full px-4 pt-4 pb-8"
                         >
-                            {categories.map((cat, idx) => (
-                                <SwiperSlide key={idx} className="bg-white rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col cursor-pointer border border-gray-50 hover:shadow-lg transition-all" onClick={() => navigateToMenu(cat.id.toString())}>
+                            {swiperCategories.map((cat, idx) => (
+                                <SwiperSlide key={`${cat.id}-${idx}`} className="bg-white rounded-[20px] shadow-[0_4px_12px_rgba(0,0,0,0.06)] overflow-hidden flex flex-col cursor-pointer border border-gray-50 hover:shadow-lg transition-all" onClick={() => navigateToMenu(cat.id.toString())}>
                                     <div className="w-full aspect-square relative bg-white flex items-center justify-center p-2">
                                         {cat.image_url ? (
                                             <OptimizedMenuImage thumbnailSrc={cat.thumbnail_url} originalSrc={cat.image_url} alt={catName(cat)} className="absolute inset-2 object-cover rounded-[18px]" />
@@ -684,7 +692,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                     
                     <div className="flex flex-col items-end justify-center mb-3">
                         <span className={`px-4 py-1.5 rounded-full text-[11px] font-bold shadow-sm ${isOpen ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-red-100 text-red-700 border border-red-200'}`}>
-                            {isOpen ? (isRTL ? 'مفتوح' : 'Open') : (isRTL ? 'مغلق' : 'Closed')}
+                            {isRTL ? storeStatus.labelAr : storeStatus.labelEn}
                         </span>
                     </div>
                 </div>
@@ -1061,7 +1069,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                             <span className="font-bold text-gray-800">{isRTL ? 'ارسال المنيو لصديق' : 'Share Menu'}</span>
                                         </button>
                                     </li>
-                                    {config.working_hours && (
+                                    {(config.working_hours || storeStatus.hoursText) && (
                                         <li>
                                             <div className="flex items-center gap-4 px-6 py-4 border-b border-gray-100">
                                                 <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center">
@@ -1069,7 +1077,7 @@ export default function Theme17Menu({ config, categories, restaurantId }: { conf
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className="font-bold text-gray-800">{isRTL ? 'مواعيد العمل' : 'Working Hours'}</span>
-                                                    <span className="text-xs text-gray-500 mt-0.5">{config.working_hours}</span>
+                                                    <span className="text-xs text-gray-500 mt-0.5">{storeStatus.hoursText || config.working_hours}</span>
                                                 </div>
                                             </div>
                                         </li>
