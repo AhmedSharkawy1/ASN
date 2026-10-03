@@ -101,7 +101,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * the save failed. Raising it cuts Supabase reads (and egress) roughly in
  * proportion to traffic; lowering it toward 0 restores fetch-on-every-request.
  */
-export const MENU_REVALIDATE_SECONDS = 60;
+export const MENU_REVALIDATE_SECONDS = 180;
 
 /**
  * Server-side Supabase client for the public menu.
