@@ -18,10 +18,10 @@ export async function GET() {
     }
 
     return NextResponse.json({
-        version: "2.1.0",
-        build_number: 17,
+        version: "2.1.1",
+        build_number: 18,
         download_url: apkUrl,
-        release_notes: "الإصدار 2.1: تحديث شامل يتضمن معمارية اتصالات محسنة لتوفير استهلاك البيانات والبطارية، واستقرار فوري للتنبيهات، ومزامنة فائقة السرعة للطلبات.",
+        release_notes: "الإصدار 2.1.1: تحديث إلزامي يتضمن استقرار تام لمعمارية التنبيهات، توفير فائق لاستهلاك البيانات والبطارية، وإصلاح كامل للمزامنة بالخلفية.",
         mandatory: true
     }, {
         headers: {
