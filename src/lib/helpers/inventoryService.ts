@@ -23,6 +23,41 @@ type OrderItemForInventory = {
     weight_unit?: string;
 };
 
+export interface InventoryLookupCache {
+    [itemId: string]: {
+        inventory_item_id: string | null;
+        recipe_id: string | null;
+        inventory_items: { item_type: string | null; name: string | null } | { item_type: string | null; name: string | null }[] | null;
+    }
+}
+
+export async function buildInventoryLookupCache(restaurantId: string, sb: SupabaseClient): Promise<InventoryLookupCache> {
+    const { data: cats } = await sb.from('categories').select('id').eq('restaurant_id', restaurantId);
+    const catIds = (cats || []).map((c: { id: string }) => c.id);
+    
+    if (!catIds.length) return {};
+
+    const { data: items } = await sb
+        .from('items')
+        .select(`
+            id, inventory_item_id, recipe_id,
+            inventory_items(item_type, name)
+        `)
+        .in('category_id', catIds);
+
+    const cache: InventoryLookupCache = {};
+    if (items) {
+        items.forEach(item => {
+            cache[item.id] = {
+                inventory_item_id: item.inventory_item_id,
+                recipe_id: item.recipe_id,
+                inventory_items: item.inventory_items
+            };
+        });
+    }
+    return cache;
+}
+
 /**
  * Main entry point: process inventory after an order is placed.
  * Called non-blocking from submitOrder.
@@ -32,16 +67,16 @@ export async function processOrderInventory(
     restaurantId: string,
     orderItems: OrderItemForInventory[],
     orderId: string,
-    supabaseClient?: SupabaseClient
+    supabaseClient?: SupabaseClient,
+    cache?: InventoryLookupCache
 ): Promise<{ allDeducted: boolean; messages: string[] }> {
     const sb = supabaseClient || supabase;
     let allDeducted = true;
     const messages: string[] = [];
 
-
     for (const item of orderItems) {
         try {
-            const result = await processOneOrderItem(restaurantId, item, orderId, sb);
+            const result = await processOneOrderItem(restaurantId, item, orderId, sb, cache);
             if (!result) {
                 allDeducted = false;
                 messages.push(`${item.title} requires production factory.`);
@@ -63,20 +98,28 @@ async function processOneOrderItem(
     restaurantId: string,
     item: OrderItemForInventory,
     orderId: string,
-    sb: SupabaseClient
+    sb: SupabaseClient,
+    cache?: InventoryLookupCache
 ): Promise<boolean> {
-    // 1. Look up the menu item to get inventory_item_id, recipe_id and item_type
-    const { data: menuItem, error: menuErr } = await sb
-        .from('items')
-        .select(`
-            id, inventory_item_id, recipe_id,
-            inventory_items(item_type, name)
-        `)
-        .eq('id', item.id)
-        .single();
+    let menuItem;
 
-    if (menuErr || !menuItem) {
-        return true; 
+    if (cache && cache[item.id]) {
+        menuItem = cache[item.id];
+    } else {
+        // 1. Look up the menu item to get inventory_item_id, recipe_id and item_type
+        const { data, error: menuErr } = await sb
+            .from('items')
+            .select(`
+                id, inventory_item_id, recipe_id,
+                inventory_items(item_type, name)
+            `)
+            .eq('id', item.id)
+            .single();
+
+        if (menuErr || !data) {
+            return true; 
+        }
+        menuItem = data;
     }
 
     const needed = item.qty;
@@ -532,16 +575,18 @@ export async function finalizeDeferredInventory(
     // We assume the stored item.title matches transaction's item_name OR the recipe successfully deducted
     // Wait, tryDeductInventory logs the `itemName`.
     
-    for (const item of orderItems) {
-        if (!successfulTitles.has(item.title)) {
-            // This item was omitted or failed. Try deducting it now.
-            // (Often because it's a finished product that the factory just sent us)
-            const { data: menuItem } = await sb
-                .from('items')
-                .select('id, inventory_item_id, recipe_id')
-                .eq('id', item.id)
-                .single();
+    const neededItems = orderItems.filter(item => !successfulTitles.has(item.title));
+    if (neededItems.length > 0) {
+        const itemIds = Array.from(new Set(neededItems.map(i => i.id).filter(Boolean)));
+        const { data: menuItems } = itemIds.length > 0 ? await sb
+            .from('items')
+            .select('id, inventory_item_id, recipe_id')
+            .in('id', itemIds) : { data: [] };
 
+        const menuItemsMap = new Map((menuItems || []).map((m: any) => [m.id, m]));
+
+        for (const item of neededItems) {
+            const menuItem = menuItemsMap.get(item.id);
             if (!menuItem) continue;
 
             // Direct deduction attempt (since factory completion puts finished goods into stock)
@@ -582,13 +627,17 @@ export async function revertOrderInventory(
     if (txError) {
         console.error("[Inventory] Error fetching transactions to revert:", txError);
     } else if (txs && txs.length > 0) {
+        const invIds = Array.from(new Set(txs.map((t: any) => t.inventory_item_id).filter(Boolean)));
+        const { data: invItems } = invIds.length > 0 ? await sb
+            .from('inventory_items')
+            .select('id, quantity, name')
+            .in('id', invIds) : { data: [] };
+
+        const invMap = new Map((invItems || []).map((inv: any) => [inv.id, inv]));
+
         for (const tx of txs) {
             // Restore stock
-            const { data: inv } = await sb
-                .from('inventory_items')
-                .select('id, quantity, name')
-                .eq('id', tx.inventory_item_id)
-                .single();
+            const inv = invMap.get(tx.inventory_item_id);
 
             if (inv) {
                 await sb.from('inventory_items')
@@ -597,6 +646,9 @@ export async function revertOrderInventory(
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', inv.id);
+
+                // Update in-memory for subsequent transactions on the same item in this batch
+                inv.quantity += tx.quantity;
 
                 // Log the restoration
                 await sb.from('inventory_transactions').insert({

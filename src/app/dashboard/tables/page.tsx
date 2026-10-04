@@ -40,7 +40,7 @@ export default function TablesPage() {
     // Realtime
     useEffect(() => {
         if (!restaurantId) return;
-        const ch = supabase.channel('tables-rt').on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `restaurant_id=eq.${restaurantId}` }, () => fetchTables()).subscribe();
+        const ch = supabase.channel(`tables-rt-${restaurantId}`).on('postgres_changes', { event: '*', schema: 'public', table: 'tables', filter: `restaurant_id=eq.${restaurantId}` }, () => fetchTables()).subscribe();
         return () => { supabase.removeChannel(ch); };
     }, [restaurantId, fetchTables]);
 

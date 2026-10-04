@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
-import { processOrderInventory } from "@/lib/helpers/inventoryService";
-import { calculateOrderCostServer } from "@/lib/helpers/costService";
+import { processOrderInventory, buildInventoryLookupCache, InventoryLookupCache } from "@/lib/helpers/inventoryService";
+import { calculateOrderCostServer, buildCostLookupCache, CostLookupCache } from "@/lib/helpers/costService";
 
 export async function POST(request: Request) {
     try {
@@ -129,11 +129,26 @@ export async function POST(request: Request) {
         // 3. Process inventory / cost asynchronously in the background for recent orders
         if (results.orders > 0) {
             (async () => {
+                const costCacheByRest = new Map<string, CostLookupCache>();
+                const invCacheByRest = new Map<string, InventoryLookupCache>();
+                
                 for (const order of cleanOrders.slice(0, 10)) {
                     if (order.items && order.items.length > 0) {
                         try {
-                            await processOrderInventory(order.restaurant_id, order.items, order.id, supabaseAdmin);
-                            await calculateOrderCostServer(order.id, supabaseAdmin);
+                            let costCache = costCacheByRest.get(order.restaurant_id);
+                            if (!costCache) {
+                                costCache = await buildCostLookupCache(order.restaurant_id, supabaseAdmin);
+                                costCacheByRest.set(order.restaurant_id, costCache);
+                            }
+
+                            let invCache = invCacheByRest.get(order.restaurant_id);
+                            if (!invCache) {
+                                invCache = await buildInventoryLookupCache(order.restaurant_id, supabaseAdmin);
+                                invCacheByRest.set(order.restaurant_id, invCache);
+                            }
+                            
+                            await processOrderInventory(order.restaurant_id, order.items, order.id, supabaseAdmin, invCache);
+                            await calculateOrderCostServer(order.id, supabaseAdmin, costCache);
                         } catch (e) {
                             console.error('[Sync] Background inventory/cost calc error:', e);
                         }

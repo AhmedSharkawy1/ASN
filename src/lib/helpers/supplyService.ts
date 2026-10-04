@@ -64,12 +64,16 @@ export async function createSupply(
         }
 
         // 3. Update inventory quantities (increase stock)
+        const invIds = Array.from(new Set(items.map(i => i.inventory_item_id).filter(Boolean)));
+        const { data: invList } = invIds.length > 0 ? await supabase
+            .from('inventory_items')
+            .select('id, quantity, name')
+            .in('id', invIds) : { data: [] };
+
+        const invMap = new Map((invList || []).map((inv: any) => [inv.id, inv]));
+
         for (const item of items) {
-            const { data: inv } = await supabase
-                .from('inventory_items')
-                .select('id, quantity, name')
-                .eq('id', item.inventory_item_id)
-                .single();
+            const inv = invMap.get(item.inventory_item_id);
 
             if (inv) {
                 await supabase.from('inventory_items')
@@ -78,6 +82,8 @@ export async function createSupply(
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', inv.id);
+
+                inv.quantity += item.quantity;
 
                 // Log inventory transaction
                 await supabase.from('inventory_transactions').insert({
@@ -183,16 +189,21 @@ export async function deleteSupply(
             .eq('supply_id', supplyId);
 
         // 2. Reverse inventory quantities
-        for (const item of items || []) {
-            if (!item.inventory_item_id) continue;
-            const { data: inv } = await supabase
-                .from('inventory_items')
-                .select('id, quantity, name')
-                .eq('id', item.inventory_item_id)
-                .single();
+        const validItems = (items || []).filter(i => i.inventory_item_id);
+        const invIds = Array.from(new Set(validItems.map(i => i.inventory_item_id)));
+        const { data: invList } = invIds.length > 0 ? await supabase
+            .from('inventory_items')
+            .select('id, quantity, name')
+            .in('id', invIds) : { data: [] };
+
+        const invMap = new Map((invList || []).map((inv: any) => [inv.id, inv]));
+
+        for (const item of validItems) {
+            const inv = invMap.get(item.inventory_item_id);
 
             if (inv) {
                 const newQty = Math.max(0, inv.quantity - item.quantity);
+                inv.quantity = newQty;
                 await supabase.from('inventory_items')
                     .update({ quantity: newQty, updated_at: new Date().toISOString() })
                     .eq('id', inv.id);

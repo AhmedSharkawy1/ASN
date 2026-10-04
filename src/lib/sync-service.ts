@@ -189,51 +189,46 @@ export async function pullFromSupabase(restaurantId: string): Promise<void> {
     }
 }
 
-/* ── Push: Dexie dirty records → Server API → Supabase ── */
+let _webPushTimeout: NodeJS.Timeout | null = null;
+let _webPushPromise: Promise<{ success: boolean; pushed: number; errors?: string[] }> | null = null;
+let _webPushResolver: ((val: { success: boolean; pushed: number; errors?: string[] }) => void) | null = null;
+
 export async function pushDirtyToSupabase(restaurantId: string, forceAll = false): Promise<{ success: boolean; pushed: number; errors?: string[] }> {
     if (isElectron()) {
-        // In Electron, we follow the "Enqeue First" rule.
-        // We'll gather dirty items and send them to the Electron Action Queue.
+        // ... (electron code)
         try {
-            const dirtyOrders = await posDb.orders
-                .where('restaurant_id').equals(restaurantId)
-                .and(o => (forceAll ? !o.is_draft : !!o._dirty))
-                .toArray();
-            const dirtyCusts = await posDb.customers
-                .where('restaurant_id').equals(restaurantId)
-                .and(c => (forceAll ? true : !!c._dirty))
-                .toArray();
-
-            for (const order of dirtyOrders) {
-                await (window as any).electronAPI.enqueueAction({
-                    action_type: 'upsert',
-                    table_name: 'orders',
-                    record_id: order.id,
-                    payload: order
-                });
-                await posDb.orders.update(order.id, { _dirty: false });
-            }
-
-            for (const cust of dirtyCusts) {
-                await (window as any).electronAPI.enqueueAction({
-                    action_type: 'upsert',
-                    table_name: 'customers',
-                    record_id: cust.id,
-                    payload: cust
-                });
-                await posDb.customers.update(cust.id, { _dirty: false });
-            }
-            
+            const dirtyOrders = await posDb.orders.where('restaurant_id').equals(restaurantId).and(o => (forceAll ? !o.is_draft : !!o._dirty)).toArray();
+            const dirtyCusts = await posDb.customers.where('restaurant_id').equals(restaurantId).and(c => (forceAll ? true : !!c._dirty)).toArray();
+            for (const order of dirtyOrders) { await (window as any).electronAPI.enqueueAction({ action_type: 'upsert', table_name: 'orders', record_id: order.id, payload: order }); await posDb.orders.update(order.id, { _dirty: false }); }
+            for (const cust of dirtyCusts) { await (window as any).electronAPI.enqueueAction({ action_type: 'upsert', table_name: 'customers', record_id: cust.id, payload: cust }); await posDb.customers.update(cust.id, { _dirty: false }); }
             return { success: true, pushed: dirtyOrders.length };
-        } catch (err) {
-            console.error('[Sync] Electron Enqueue failed', err);
-            return { success: false, pushed: 0, errors: [String(err)] };
-        }
+        } catch (err) { return { success: false, pushed: 0, errors: [String(err)] }; }
     }
 
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
         return { success: false, pushed: 0, errors: ['Offline'] };
     }
+
+    // Debounce web sync by 3 seconds to batch rapid orders
+    if (_webPushTimeout) clearTimeout(_webPushTimeout);
+    
+    if (!_webPushPromise) {
+        _webPushPromise = new Promise((resolve) => {
+            _webPushResolver = resolve;
+        });
+    }
+
+    _webPushTimeout = setTimeout(async () => {
+        const resolver = _webPushResolver;
+        _webPushPromise = null;
+        _webPushResolver = null;
+        if (resolver) resolver(await _doPushDirtyToSupabase(restaurantId, forceAll));
+    }, 3000);
+    
+    return _webPushPromise;
+}
+
+async function _doPushDirtyToSupabase(restaurantId: string, forceAll = false): Promise<{ success: boolean; pushed: number; errors?: string[] }> {
     notify({ isSyncing: true });
 
     try {

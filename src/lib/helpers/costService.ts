@@ -100,35 +100,13 @@ export async function calculateOrderCost(orderId: string): Promise<void> {
     }
 }
 
-/**
- * Server-side variant that accepts a supabaseAdmin client (for use in API routes).
- */
-export async function calculateOrderCostServer(orderId: string, supabaseAdmin: SupabaseClient): Promise<void> {
-    try {
-        const { data: order } = await supabaseAdmin
-            .from('orders')
-            .select('id, restaurant_id, items, total')
-            .eq('id', orderId)
-            .single();
-
-        if (!order) return;
-
-        await _calculateAndStoreOrderCost(order, supabaseAdmin);
-    } catch (err) {
-        console.error('[CostEngine] calculateOrderCostServer error:', err);
-    }
+export interface CostLookupCache {
+    itemIdCostMap: Map<string, number>;
+    titleCostMap: Map<string, number>;
 }
 
-/**
- * Internal: calculate cost for an order and store it.
- * Supports matching by item.id (website) OR item.title (POS).
- */
-async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: string, total: number, items: unknown[] }, sb: SupabaseClient): Promise<void> {
-    const orderItems = (order.items || []) as { id?: string, title?: string, qty?: number }[];
-    let orderCost = 0;
-
-    // Fetch menu items with their linked recipes (via recipe_id) for this restaurant
-    const { data: cats } = await sb.from('categories').select('id').eq('restaurant_id', order.restaurant_id);
+export async function buildCostLookupCache(restaurantId: string, sb: SupabaseClient): Promise<CostLookupCache> {
+    const { data: cats } = await sb.from('categories').select('id').eq('restaurant_id', restaurantId);
     const catIds = (cats || []).map((c: { id: string }) => c.id);
     
     interface MenuItemWithRecipe {
@@ -145,18 +123,13 @@ async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: s
         allMenuItems = data || [];
     }
 
-    // Also fetch recipes directly for title-based matching
-    const { data: allRecipes } = await sb.from('recipes').select('id, product_name, product_cost').eq('restaurant_id', order.restaurant_id);
+    const { data: allRecipes } = await sb.from('recipes').select('id, product_name, product_cost').eq('restaurant_id', restaurantId);
 
-    // Build lookup maps
-    // 1. item_id → cost (from items.recipe_id join)
     const itemIdCostMap = new Map<string, number>();
-    // 2. title (lowercase) → cost (from item title → recipe)
     const titleCostMap = new Map<string, number>();
     
     if (allMenuItems) {
         allMenuItems.forEach((mi: MenuItemWithRecipe) => {
-            // mi.recipes could be an object or an array depending on Supabase version/config
             const recipeData = Array.isArray(mi.recipes) ? mi.recipes[0] : mi.recipes;
             const cost = recipeData?.product_cost || 0;
             if (mi.recipe_id && cost > 0) {
@@ -167,7 +140,6 @@ async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: s
         });
     }
 
-    // 3. recipe product_name → cost (fallback)
     if (allRecipes) {
         (allRecipes as { product_name: string | null, product_cost: number }[]).forEach((r) => {
             if (r.product_name && r.product_cost > 0) {
@@ -177,6 +149,48 @@ async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: s
                 }
             }
         });
+    }
+    
+    return { itemIdCostMap, titleCostMap };
+}
+
+/**
+ * Server-side variant that accepts a supabaseAdmin client (for use in API routes).
+ */
+export async function calculateOrderCostServer(orderId: string, supabaseAdmin: SupabaseClient, cache?: CostLookupCache): Promise<void> {
+    try {
+        const { data: order } = await supabaseAdmin
+            .from('orders')
+            .select('id, restaurant_id, items, total')
+            .eq('id', orderId)
+            .single();
+
+        if (!order) return;
+
+        await _calculateAndStoreOrderCost(order, supabaseAdmin, cache);
+    } catch (err) {
+        console.error('[CostEngine] calculateOrderCostServer error:', err);
+    }
+}
+
+/**
+ * Internal: calculate cost for an order and store it.
+ * Supports matching by item.id (website) OR item.title (POS).
+ */
+async function _calculateAndStoreOrderCost(order: { id: string, restaurant_id: string, total: number, items: unknown[] }, sb: SupabaseClient, providedCache?: CostLookupCache): Promise<void> {
+    const orderItems = (order.items || []) as { id?: string, title?: string, qty?: number }[];
+    let orderCost = 0;
+
+    let itemIdCostMap: Map<string, number>;
+    let titleCostMap: Map<string, number>;
+
+    if (providedCache) {
+        itemIdCostMap = providedCache.itemIdCostMap;
+        titleCostMap = providedCache.titleCostMap;
+    } else {
+        const cache = await buildCostLookupCache(order.restaurant_id, sb);
+        itemIdCostMap = cache.itemIdCostMap;
+        titleCostMap = cache.titleCostMap;
     }
 
     for (const item of orderItems) {

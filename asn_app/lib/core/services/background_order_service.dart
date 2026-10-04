@@ -181,6 +181,7 @@ class _OrderListenerHandler extends TaskHandler {
   final Set<String> _notified = {};
   final Set<String> _notifiedWaiterCalls = {};
   OrderRealtimeListener? _realtime;
+  int _cycleCount = 0;
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
@@ -279,6 +280,25 @@ class _OrderListenerHandler extends TaskHandler {
     // While the app is on screen its Supabase SDK owns the session; refreshing
     // from here as well would race it and revoke one side's token.
     final mayRefresh = !await _appIsInForeground();
+
+    // 1. Maintain Realtime socket first — this is the instant, low-overhead push path
+    final token = await client.currentAccessToken(mayRefresh: mayRefresh);
+    if (token != null && token.isNotEmpty) {
+      await _syncRealtime(token);
+    }
+
+    // 2. Determine if REST poll is needed:
+    // If Realtime is active, push delivers orders immediately without REST polling.
+    // We only need a safety-net poll once every 6 cycles (~4.5 minutes).
+    // If Realtime is disconnected, poll REST immediately every cycle as fallback.
+    final isRtHealthy = (_realtime?.isConnected ?? false) || (_realtime?.isStarting ?? false);
+    _cycleCount++;
+    final shouldPollRest = !isRtHealthy || (_cycleCount % 6 == 0);
+
+    if (!shouldPollRest) {
+      return;
+    }
+
     final result = await client.fetchNewOrders(
       restaurantId: _restaurantId!,
       sinceUtc: _lastSeenUtc,
@@ -295,21 +315,13 @@ class _OrderListenerHandler extends TaskHandler {
     }
 
     // Short-circuit on authentication failure (e.g. expired session or 400 token refresh failure).
-    // Continuing to poll waiter calls and realtime with a dead token causes redundant 401/400 errors
+    // Continuing to poll waiter calls with a dead token causes redundant 401/400 errors
     // that heavily inflate Supabase Log Integration quotas.
     if (!result.ok && (result.httpStatus == 400 || result.httpStatus == 401)) {
       return;
     }
 
     await _pollWaiterCalls(client, mayRefresh: mayRefresh);
-
-    // Deliberately outside the poll's success check. Realtime used to be
-    // opened only after a poll succeeded, so a spell of failed polls left it
-    // "not started" for good — and Realtime is the path that survives the
-    // phone dozing, which is exactly when the poll timer is being deferred.
-    // Any usable token is enough to try.
-    final token = await client.currentAccessToken(mayRefresh: mayRefresh);
-    if (token != null && token.isNotEmpty) await _syncRealtime(token);
   }
 
   /// Publishes the last poll outcome so the in-app diagnostics screen can
@@ -338,12 +350,13 @@ class _OrderListenerHandler extends TaskHandler {
     final alert = OrderAlert.fromOrder(order);
     if (alert == null) return; // draft / invalid
 
-    // The in-app listener already alerted this one; a second show() would
-    // replay the chime on a card the user is looking at.
+    // Handled always by background service now
+    /*
     if (await _appIsInForeground()) {
       _notified.add(orderId);
       return;
     }
+    */
 
     _notified.add(orderId);
     // Bounded: a long shift must not grow this set without limit.
@@ -396,11 +409,13 @@ class _OrderListenerHandler extends TaskHandler {
     final alert = WaiterCallAlert.fromRow(row);
     if (alert == null) return; // already answered, or no table
 
-    // The in-app listener owns the alert while the app is on screen.
+    // Handled always by background service now
+    /*
     if (await _appIsInForeground()) {
       _notifiedWaiterCalls.add(id);
       return;
     }
+    */
 
     _notifiedWaiterCalls.add(id);
     if (_notifiedWaiterCalls.length > 300) {

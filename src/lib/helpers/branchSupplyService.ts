@@ -75,16 +75,19 @@ export async function createBranchSupply(payload: BranchSupplyPayload) {
         if (orderError) throw new Error(`Failed to create order: ${orderError.message}`);
 
         // 3. Deduct from Inventory directly (since these are inventory items, not menu items)
-        for (const item of orderItems) {
-            // Get current stock
-            const { data: currentInv } = await supabaseAdmin
-                .from('inventory_items')
-                .select('stock_quantity')
-                .eq('id', item.id)
-                .single();
+        const invIds = Array.from(new Set(orderItems.map((i: any) => i.id).filter(Boolean)));
+        const { data: currentInvs } = invIds.length > 0 ? await supabaseAdmin
+            .from('inventory_items')
+            .select('id, stock_quantity')
+            .in('id', invIds) : { data: [] };
 
+        const invMap = new Map((currentInvs || []).map((inv: any) => [inv.id, inv]));
+
+        for (const item of orderItems) {
+            const currentInv = invMap.get(item.id);
             const currentStock = currentInv?.stock_quantity || 0;
             const newStock = Math.max(0, currentStock - item.qty);
+            if (currentInv) currentInv.stock_quantity = newStock;
 
             // Update stock
             await supabaseAdmin

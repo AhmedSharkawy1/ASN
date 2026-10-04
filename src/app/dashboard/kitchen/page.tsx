@@ -36,7 +36,7 @@ export default function KitchenPage() {
     // Realtime subscription
     useEffect(() => {
         if (!restaurantId) return;
-        const channel = supabase.channel('kitchen-orders')
+        const channel = supabase.channel(`kitchen-orders-${restaurantId}`)
             .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurantId}` },
                 (payload) => {
                     if (payload.eventType === 'INSERT') {

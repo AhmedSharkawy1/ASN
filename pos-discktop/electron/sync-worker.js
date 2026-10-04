@@ -159,17 +159,19 @@ class SyncWorker {
         this.isSyncing = true;
         console.log(`[SyncWorker] Processing ${pendingItems.length} queued actions...`);
 
+        // 1. Separate items by action type and table
+        const upsertsByTable = {};
+        const deletes = [];
+
         for (const item of pendingItems) {
             try {
                 const payload = typeof item.payload === 'string' ? JSON.parse(item.payload) : item.payload;
 
                 if (item.action_type === 'upsert') {
-                    // Clean payload for Supabase
                     const cleanPayload = { ...payload };
                     delete cleanPayload._dirty;
                     delete cleanPayload.deleted_at;
 
-                    // Remove delivery fields that may cause issues
                     if (item.table_name === 'orders') {
                         delete cleanPayload.delivery_driver_id;
                         delete cleanPayload.delivery_driver_name;
@@ -180,32 +182,64 @@ class SyncWorker {
                         cleanPayload.source = cleanPayload.source || 'pos';
                     }
 
-                    const { error } = await this.supabase
-                        .from(item.table_name)
-                        .upsert(cleanPayload);
-
-                    if (error) throw error;
+                    if (!upsertsByTable[item.table_name]) upsertsByTable[item.table_name] = [];
+                    upsertsByTable[item.table_name].push({ item, payload: cleanPayload });
                 } else if (item.action_type === 'delete') {
-                    const { error } = await this.supabase
-                        .from(item.table_name)
-                        .delete()
-                        .eq('id', item.record_id);
-
-                    if (error) throw error;
+                    deletes.push(item);
                 }
-
-                // Mark as completed
-                item.status = 'completed';
-                console.log(`[SyncWorker] ✓ ${item.action_type} ${item.table_name}/${item.record_id}`);
             } catch (err) {
-                console.error(`[SyncWorker] ✗ ${item.action_type} ${item.table_name}/${item.record_id}:`, err.message);
-                item.retries = (item.retries || 0) + 1;
+                item.status = 'failed';
                 item.error_message = err.message;
-                if (item.retries >= 5) {
-                    item.status = 'failed';
+            }
+        }
+
+        // 2. Perform Batch Upserts
+        for (const [tableName, records] of Object.entries(upsertsByTable)) {
+            // Bulk upsert chunks of 50
+            const CHUNK_SIZE = 50;
+            for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+                const chunk = records.slice(i, i + CHUNK_SIZE);
+                const payloads = chunk.map(r => r.payload);
+
+                try {
+                    const { error } = await this.supabase.from(tableName).upsert(payloads);
+                    if (error) throw error;
+                    
+                    for (const r of chunk) {
+                        r.item.status = 'completed';
+                        console.log(`[SyncWorker] ✓ upsert ${tableName}/${r.item.record_id}`);
+                    }
+                } catch (err) {
+                    console.error(`[SyncWorker] ✗ bulk upsert ${tableName} failed:`, err.message);
+                    for (const r of chunk) {
+                        r.item.retries = (r.item.retries || 0) + 1;
+                        r.item.error_message = err.message;
+                        if (r.item.retries >= 5) r.item.status = 'failed';
+                    }
                 }
             }
         }
+
+        // 3. Perform Deletes (sequentially)
+        for (const item of deletes) {
+            try {
+                const { error } = await this.supabase
+                    .from(item.table_name)
+                    .delete()
+                    .eq('id', item.record_id);
+
+                if (error) throw error;
+                item.status = 'completed';
+                console.log(`[SyncWorker] ✓ delete ${item.table_name}/${item.record_id}`);
+            } catch (err) {
+                console.error(`[SyncWorker] ✗ delete ${item.table_name}/${item.record_id}:`, err.message);
+                item.retries = (item.retries || 0) + 1;
+                item.error_message = err.message;
+                if (item.retries >= 5) item.status = 'failed';
+            }
+        }
+
+
 
         // Update last sync time
         this.lastSync = new Date().toISOString();
