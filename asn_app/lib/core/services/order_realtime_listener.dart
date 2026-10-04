@@ -82,32 +82,34 @@ class OrderRealtimeListener {
       _channel = channel;
       _joining = true;
       _joined = false;
-      channel
-          .onPostgresChanges(
-            event: PostgresChangeEvent.insert,
-            schema: 'public',
-            table: 'orders',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'restaurant_id',
-              value: restaurantId,
-            ),
-            callback: _onPayload,
-          )
-          // Same channel, second binding: one socket carries both, so the
-          // waiter call is as instant as a new order.
-          .onPostgresChanges(
-            event: PostgresChangeEvent.insert,
-            schema: 'public',
-            table: 'waiter_calls',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'restaurant_id',
-              value: restaurantId,
-            ),
-            callback: _onWaiterCallPayload,
-          )
-          .subscribe((state, error) {
+      channel.onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'orders',
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'restaurant_id',
+          value: restaurantId,
+        ),
+        callback: _onPayload,
+      );
+
+      // Only listen to waiter calls if this restaurant has the feature enabled
+      if (onWaiterCall != null) {
+        channel.onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'waiter_calls',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'restaurant_id',
+            value: restaurantId,
+          ),
+          callback: _onWaiterCallPayload,
+        );
+      }
+
+      channel.subscribe((state, error) {
             // A channel we have already replaced still reports `closed` when it
             // unsubscribes. Letting that through overwrote the live channel's
             // "subscribed" with "closed", which is what the diagnostics screen

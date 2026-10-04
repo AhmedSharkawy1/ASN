@@ -111,11 +111,15 @@ class BackgroundOrderService {
 
   static const _secure = FlutterSecureStorage(aOptions: AndroidOptions());
 
-  static Future<void> start(String restaurantId) async {
+  static const _waiterCallEnabledKey = 'waiter_call_enabled';
+
+  static Future<void> start(String restaurantId, {bool waiterCallEnabled = false}) async {
     await FlutterForegroundTask.saveData(key: _restaurantIdKey, value: restaurantId);
+    await FlutterForegroundTask.saveData(key: _waiterCallEnabledKey, value: waiterCallEnabled ? '1' : '0');
     // Second, independent copy: the plugin's store can come up empty in the
     // service isolate when Android auto-restarts it (boot / package replace).
     await _secure.write(key: _restaurantIdKey, value: restaurantId);
+    await _secure.write(key: _waiterCallEnabledKey, value: waiterCallEnabled ? '1' : '0');
 
     if (await FlutterForegroundTask.isRunningService) {
       await FlutterForegroundTask.restartService();
@@ -128,6 +132,11 @@ class BackgroundOrderService {
       notificationText: 'في انتظار الطلبات الجديدة',
       callback: startOrderListenerCallback,
     );
+  }
+
+  static Future<void> updateWaiterCallEnabled(bool enabled) async {
+    await FlutterForegroundTask.saveData(key: _waiterCallEnabledKey, value: enabled ? '1' : '0');
+    await _secure.write(key: _waiterCallEnabledKey, value: enabled ? '1' : '0');
   }
 
   static Future<void> stop() async {
@@ -182,12 +191,28 @@ class _OrderListenerHandler extends TaskHandler {
   final Set<String> _notifiedWaiterCalls = {};
   OrderRealtimeListener? _realtime;
   int _cycleCount = 0;
+  bool? _waiterCallEnabled;
+
+  Future<bool> _resolveWaiterCallEnabled() async {
+    try {
+      final fromTask = await FlutterForegroundTask.getData<String>(
+          key: BackgroundOrderService._waiterCallEnabledKey);
+      if (fromTask != null && fromTask.isNotEmpty) return fromTask == '1';
+    } catch (_) {}
+    try {
+      final fromSecure = await BackgroundOrderService._secure.read(
+          key: BackgroundOrderService._waiterCallEnabledKey);
+      if (fromSecure != null && fromSecure.isNotEmpty) return fromSecure == '1';
+    } catch (_) {}
+    return false; // Default to false: if not enabled, NEVER poll or listen
+  }
 
   @override
   Future<void> onStart(DateTime timestamp, TaskStarter starter) async {
     await _initNotifications();
     _restaurantId = await _resolveRestaurantId();
-    AppLogger.info('BgOrders started (restaurant=${_restaurantId ?? "?"})', name: 'BgOrders');
+    _waiterCallEnabled = await _resolveWaiterCallEnabled();
+    AppLogger.info('BgOrders started (restaurant=${_restaurantId ?? "?"}, waiterCall=$_waiterCallEnabled)', name: 'BgOrders');
     // Do a first check right away instead of waiting a full interval. This
     // also opens the Realtime socket once the restaurant id is known.
     await onRepeatEvent(timestamp);
@@ -197,10 +222,11 @@ class _OrderListenerHandler extends TaskHandler {
   /// poll cycle so the socket is re-established without its own timer, and so
   /// it always uses the token the poll just validated.
   Future<void> _syncRealtime(String accessToken) async {
+    _waiterCallEnabled = await _resolveWaiterCallEnabled();
     final listener = _realtime ??= OrderRealtimeListener(
       restaurantId: _restaurantId!,
       onInsert: _handleOrderRow,
-      onWaiterCall: _handleWaiterCallRow,
+      onWaiterCall: _waiterCallEnabled == true ? _handleWaiterCallRow : null,
     );
     // Only rebuild when the subscription is actually down. Restarting a healthy
     // one every cycle tore down a working channel and left the status reading
@@ -321,7 +347,11 @@ class _OrderListenerHandler extends TaskHandler {
       return;
     }
 
-    await _pollWaiterCalls(client, mayRefresh: mayRefresh);
+    // Only poll waiter calls if the feature is actually enabled for this restaurant
+    _waiterCallEnabled ??= await _resolveWaiterCallEnabled();
+    if (_waiterCallEnabled == true) {
+      await _pollWaiterCalls(client, mayRefresh: mayRefresh);
+    }
   }
 
   /// Publishes the last poll outcome so the in-app diagnostics screen can

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:asn_app/core/logging/logger.dart';
+import 'package:asn_app/core/services/background_order_service.dart';
 import 'package:asn_app/shared/data/supabase_client.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 
@@ -74,13 +75,15 @@ class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
           .eq('id', restaurantId)
           .single();
 
+      final waiterCall = row[_waiterCallColumn] as bool? ?? false;
       state = AsyncValue.data(
         OrderSettings(
           autoApproveWebsiteOrders: row[_autoApproveColumn] as bool? ?? false,
           autoApproveCashierOrders: row[_autoApproveCashierColumn] as bool? ?? false,
-          waiterCallEnabled: row[_waiterCallColumn] as bool? ?? false,
+          waiterCallEnabled: waiterCall,
         ),
       );
+      BackgroundOrderService.updateWaiterCallEnabled(waiterCall);
     } catch (e, st) {
       AppLogger.error('Failed to load order settings',
           error: e, stackTrace: st, name: 'OrderSettings');
@@ -127,6 +130,7 @@ class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
       optimistic: (s) => s.copyWith(waiterCallEnabled: value),
       restaurantId: restaurantId,
     );
+    await BackgroundOrderService.updateWaiterCallEnabled(value);
   }
 
   /// Writes one flag, showing it immediately and rolling back if the write
