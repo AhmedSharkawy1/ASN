@@ -22,7 +22,7 @@ export async function GET() {
         build_number: 17,
         download_url: apkUrl,
         release_notes: "الإصدار 2.1: تحديث شامل يتضمن معمارية اتصالات محسنة لتوفير استهلاك البيانات والبطارية، واستقرار فوري للتنبيهات، ومزامنة فائقة السرعة للطلبات.",
-        mandatory: false
+        mandatory: true
     }, {
         headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate',

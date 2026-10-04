@@ -26,6 +26,8 @@ class _UpdateBannerState extends State<UpdateBanner> {
   bool _downloading = false;
   bool _readyToInstall = false;
 
+  bool _mandatory = false;
+
   @override
   void initState() {
     super.initState();
@@ -33,13 +35,15 @@ class _UpdateBannerState extends State<UpdateBanner> {
   }
 
   Future<void> _check() async {
-    if (await _isSnoozed()) return;
-
     final result = await AppUpdateService.check();
     if (!mounted || result != UpdateCheck.available) return;
 
+    // If mandatory, ignore snooze — always show
+    if (!AppUpdateService.isMandatory && await _isSnoozed()) return;
+
     setState(() {
       _visible = true;
+      _mandatory = AppUpdateService.isMandatory;
       _readyToInstall = AppUpdateService.downloadReady;
     });
   }
@@ -97,23 +101,31 @@ class _UpdateBannerState extends State<UpdateBanner> {
         ? ' (${AppUpdateService.latestVersionName})'
         : '';
 
+    final bannerColor = _mandatory ? Colors.red : AppColors.oceanBlue;
+
     return Material(
-      color: AppColors.oceanBlue.withValues(alpha: 0.10),
+      color: bannerColor.withValues(alpha: 0.10),
       child: Padding(
         padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md, vertical: AppSpacing.xs),
         child: Row(
           children: [
-            const Icon(Icons.system_update, size: 20, color: AppColors.oceanBlue),
+            Icon(
+              _mandatory ? Icons.warning_amber_rounded : Icons.system_update,
+              size: 20,
+              color: bannerColor,
+            ),
             AppSpacing.widthSm,
             Expanded(
               child: Text(
                 _readyToInstall
                     ? 'التحديث جاهز — أعد التشغيل لتثبيته'
-                    : 'يتوفر إصدار جديد$versionStr للتطبيق',
+                    : _mandatory
+                        ? 'تحديث إجباري$versionStr — يرجى التحديث للاستمرار'
+                        : 'يتوفر إصدار جديد$versionStr للتطبيق',
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.oceanBlue,
+                  color: bannerColor,
                 ),
               ),
             ),
@@ -130,11 +142,13 @@ class _UpdateBannerState extends State<UpdateBanner> {
                     : _download,
                 child: Text(_readyToInstall ? 'إعادة التشغيل' : 'تحديث الآن'),
               ),
-            IconButton(
-              icon: const Icon(Icons.close, size: 18),
-              tooltip: 'لاحقاً',
-              onPressed: _dismiss,
-            ),
+            // Only show dismiss button for optional updates
+            if (!_mandatory)
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                tooltip: 'لاحقاً',
+                onPressed: _dismiss,
+              ),
           ],
         ),
       ),

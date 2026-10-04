@@ -37,6 +37,9 @@ class AppUpdateService {
   /// Optional release notes for the update.
   static String? latestReleaseNotes;
 
+  /// Whether the server flagged this update as mandatory (user cannot dismiss).
+  static bool isMandatory = false;
+
   static bool _notifiedThisSession = false;
 
   static Future<UpdateCheck> check() async {
@@ -97,11 +100,13 @@ class AppUpdateService {
       final serverVersion = json['version'] as String? ?? '';
       final downloadUrl = json['download_url'] as String? ?? '${AppConfig.apiBaseUrl}/api/app/download';
       final notes = json['release_notes'] as String?;
+      final mandatory = json['mandatory'] as bool? ?? false;
 
       if (serverBuild > currentBuild) {
         directApkDownloadUrl = downloadUrl;
         latestVersionName = serverVersion.isNotEmpty ? serverVersion : null;
         latestReleaseNotes = notes;
+        isMandatory = mandatory;
         return UpdateCheck.available;
       }
 
