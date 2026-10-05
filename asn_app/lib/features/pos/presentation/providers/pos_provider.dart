@@ -6,6 +6,8 @@ import 'package:asn_app/features/products/data/models/product_model.dart';
 import 'package:asn_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:asn_app/features/promotions/domain/promotion_engine.dart';
 import 'package:asn_app/features/promotions/presentation/providers/promotions_provider.dart';
+import 'package:asn_app/features/settings/presentation/providers/order_settings_provider.dart';
+import 'package:asn_app/features/orders/presentation/providers/orders_provider.dart';
 
 enum PosOrderType { dineIn, takeaway, delivery }
 
@@ -174,6 +176,7 @@ Map<String, dynamic> buildOrderRow(
   required String cashierName,
   String? cashierId,
   String? createdBy,
+  String status = 'completed',
 }) {
   final effectiveCashierId = cashierId ?? createdBy;
 
@@ -202,8 +205,8 @@ Map<String, dynamic> buildOrderRow(
     return {
       'id': orderId,
       'restaurant_id': restaurantId,
-      // order_number is a serial column — the DB assigns the next number.
-      'status': 'pending',
+      // Matches web cashier behavior: 'completed' when auto-approve is on, 'pending' otherwise.
+      'status': status,
       // Without this the web dashboard treats a till order as a website one: it
       // lands under the wrong source filter, offers the website status flow
       // instead of the register's, and pops a "new order" alert for an order the
@@ -393,18 +396,46 @@ class CartNotifier extends Notifier<CartState> {
 
       final orderId = const Uuid().v4();
 
+      // Match web POS behavior: check auto_approve_cashier_orders
+      // When auto_approve is on (default in cashier), order status is 'completed'.
+      // When off, order status is 'pending'.
+      bool isAutoApprove = true;
+      final settings = ref.read(orderSettingsProvider).value;
+      if (settings != null) {
+        isAutoApprove = settings.autoApproveCashierOrders;
+      } else if (user.restaurantId != null) {
+        try {
+          final res = await SupabaseClientManager.client
+              .from('restaurants')
+              .select('auto_approve_cashier_orders')
+              .eq('id', user.restaurantId!)
+              .maybeSingle();
+          if (res != null && res['auto_approve_cashier_orders'] != null) {
+            isAutoApprove = res['auto_approve_cashier_orders'] == true;
+          }
+        } catch (_) {}
+      }
+
+      final initialStatus = isAutoApprove ? 'completed' : 'pending';
+
       final orderData = buildOrderRow(
         state,
         orderId: orderId,
         restaurantId: user.restaurantId,
         cashierName: user.name,
         cashierId: user.id,
+        status: initialStatus,
       );
 
       await SupabaseClientManager.client.from('orders').insert(orderData);
 
-      AppLogger.info('Successfully checked out order $orderId', name: 'CartNotifier');
+      AppLogger.info('Successfully checked out order $orderId with status $initialStatus', name: 'CartNotifier');
       clearCart();
+
+      // Proactively refresh orders provider so the orders screen updates immediately
+      try {
+        await ref.read(ordersNotifierProvider.notifier).refresh();
+      } catch (_) {}
     } catch (e, stackTrace) {
       AppLogger.error('Checkout failed', error: e, stackTrace: stackTrace, name: 'CartNotifier');
       state = state.copyWith(isCheckingOut: false);

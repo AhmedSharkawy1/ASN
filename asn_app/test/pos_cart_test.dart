@@ -114,12 +114,13 @@ void _orderRowTests() {
         quantity: qty,
       );
 
-  Map<String, dynamic> row(CartState state) => buildOrderRow(
+  Map<String, dynamic> row(CartState state, {String status = 'completed'}) => buildOrderRow(
         state,
         orderId: 'o1',
         restaurantId: 'r1',
         cashierName: 'كاشير',
         createdBy: 'u1',
+        status: status,
       );
 
   group('order row', () {
@@ -129,10 +130,15 @@ void _orderRowTests() {
       final r = row(CartState(items: [line()]));
       expect(r['source'], 'pos');
       expect(r['is_draft'], false);
-      expect(r['status'], 'pending');
+      expect(r['status'], 'completed');
       expect(r['cashier_name'], 'كاشير');
       expect(r['cashier_id'], 'u1');
       expect(r.containsKey('created_by'), false);
+    });
+
+    test('respects pending status when auto-approve is off', () {
+      final r = row(CartState(items: [line()]), status: 'pending');
+      expect(r['status'], 'pending');
     });
 
     test('writes the discount to both column names', () {
