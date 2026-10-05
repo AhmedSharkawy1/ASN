@@ -93,9 +93,10 @@ void main() {
   });
 
   group('order type mapping', () {
-    test('maps to the values the database and web app store', () {
-      expect(PosOrderType.dineIn.dbValue, 'dine_in');
-      expect(PosOrderType.takeaway.dbValue, 'takeaway');
+    test('maps to the values the database check constraint allows', () {
+      // The orders table check constraint requires: CHECK (order_type IN ('delivery', 'pickup'))
+      expect(PosOrderType.dineIn.dbValue, 'pickup');
+      expect(PosOrderType.takeaway.dbValue, 'pickup');
       expect(PosOrderType.delivery.dbValue, 'delivery');
     });
   });
@@ -199,6 +200,16 @@ void _orderRowTests() {
         ))['customer_address'],
         'شارع ١',
       );
+    });
+
+    test('dine-in order tags notes with [صالة]', () {
+      final r = row(CartState(
+        items: [line()],
+        orderType: PosOrderType.dineIn,
+        notes: 'بدون شطة',
+      ));
+      expect(r['order_type'], 'pickup');
+      expect(r['notes'], '[صالة] بدون شطة');
     });
   });
 }

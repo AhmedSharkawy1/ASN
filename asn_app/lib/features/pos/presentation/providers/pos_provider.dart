@@ -10,9 +10,12 @@ import 'package:asn_app/features/promotions/presentation/providers/promotions_pr
 enum PosOrderType { dineIn, takeaway, delivery }
 
 extension PosOrderTypeDb on PosOrderType {
+  /// The database schema enforces `CHECK (order_type IN ('delivery', 'pickup'))`.
+  /// Both dine_in and takeaway are non-delivery orders fulfilled on-site,
+  /// so they map to 'pickup' in the database.
   String get dbValue => switch (this) {
-        PosOrderType.dineIn => 'dine_in',
-        PosOrderType.takeaway => 'takeaway',
+        PosOrderType.dineIn => 'pickup',
+        PosOrderType.takeaway => 'pickup',
         PosOrderType.delivery => 'delivery',
       };
 }
@@ -186,42 +189,52 @@ Map<String, dynamic> buildOrderRow(
           })
       .toList();
 
-  return {
-    'id': orderId,
-    'restaurant_id': restaurantId,
-    // order_number is a serial column — the DB assigns the next number.
-    'status': 'pending',
-    // Without this the web dashboard treats a till order as a website one: it
-    // lands under the wrong source filter, offers the website status flow
-    // instead of the register's, and pops a "new order" alert for an order the
-    // cashier just rang up in front of the customer.
-    'source': 'pos',
-    'is_draft': false,
-    'order_type': state.orderType.dbValue,
-    'items': items,
-    'subtotal': state.subtotal,
-    'discount': state.discount,
-    // Mirrors the website column so both sources agree.
-    'discount_amount': state.discount,
-    'discount_type': state.discountIsPercent ? 'percent' : 'fixed',
-    // Which offer produced the discount, so reports can attribute it the same
-    // way they do for website orders.
-    'promotion_id': state.promotion?.promotion.id,
-    'promotion_name': state.promotion?.promotion.nameAr,
-    // Already zero when an offer covers shipping, so the stored total adds up.
-    'delivery_fee': state.effectiveDeliveryFee,
-    'total': state.total,
-    'payment_method': state.paymentMethod,
-    'deposit_amount': state.paymentMethod == 'deposit' ? state.depositAmount : 0,
-    'customer_name': state.customerName,
-    'customer_phone': state.customerPhone,
-    'customer_address':
-        state.orderType == PosOrderType.delivery ? state.customerAddress : null,
-    'notes': state.notes,
-    'cashier_name': cashierName,
-    if (effectiveCashierId != null && effectiveCashierId.isNotEmpty)
-      'cashier_id': effectiveCashierId,
-  };
+    final resolvedNotes = () {
+      if (state.orderType == PosOrderType.dineIn) {
+        if (state.notes != null && state.notes!.trim().isNotEmpty) {
+          return state.notes!.contains('صالة') ? state.notes! : '[صالة] ${state.notes!}';
+        }
+        return '[صالة]';
+      }
+      return state.notes;
+    }();
+
+    return {
+      'id': orderId,
+      'restaurant_id': restaurantId,
+      // order_number is a serial column — the DB assigns the next number.
+      'status': 'pending',
+      // Without this the web dashboard treats a till order as a website one: it
+      // lands under the wrong source filter, offers the website status flow
+      // instead of the register's, and pops a "new order" alert for an order the
+      // cashier just rang up in front of the customer.
+      'source': 'pos',
+      'is_draft': false,
+      'order_type': state.orderType.dbValue,
+      'items': items,
+      'subtotal': state.subtotal,
+      'discount': state.discount,
+      // Mirrors the website column so both sources agree.
+      'discount_amount': state.discount,
+      'discount_type': state.discountIsPercent ? 'percent' : 'fixed',
+      // Which offer produced the discount, so reports can attribute it the same
+      // way they do for website orders.
+      'promotion_id': state.promotion?.promotion.id,
+      'promotion_name': state.promotion?.promotion.nameAr,
+      // Already zero when an offer covers shipping, so the stored total adds up.
+      'delivery_fee': state.effectiveDeliveryFee,
+      'total': state.total,
+      'payment_method': state.paymentMethod,
+      'deposit_amount': state.paymentMethod == 'deposit' ? state.depositAmount : 0,
+      'customer_name': state.customerName,
+      'customer_phone': state.customerPhone,
+      'customer_address':
+          state.orderType == PosOrderType.delivery ? state.customerAddress : null,
+      'notes': resolvedNotes,
+      'cashier_name': cashierName,
+      if (effectiveCashierId != null && effectiveCashierId.isNotEmpty)
+        'cashier_id': effectiveCashierId,
+    };
 }
 
 class CartNotifier extends Notifier<CartState> {
