@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:asn_app/core/theme/app_spacing.dart';
 import 'package:asn_app/shared/presentation/widgets/update_banner.dart';
+import 'package:asn_app/shared/presentation/widgets/battery_exemption_banner.dart';
 import 'package:asn_app/core/theme/app_theme_ext.dart';
 import 'package:asn_app/core/localization/l10n/app_localizations.dart';
 import 'package:asn_app/features/permissions/presentation/providers/permissions_provider.dart';
@@ -131,7 +132,11 @@ class AppShell extends ConsumerWidget {
             // user is, without covering anything.
             Expanded(
               child: Column(
-                children: [const UpdateBanner(), Expanded(child: child)],
+                children: [
+                  const UpdateBanner(),
+                  const BatteryExemptionBanner(),
+                  Expanded(child: child),
+                ],
               ),
             ),
           ],
@@ -145,7 +150,11 @@ class AppShell extends ConsumerWidget {
       // Deliberately not extendBody: letting content slide under the floating
       // bar looks nice but permanently hides the last row of long lists.
       body: Column(
-        children: [const UpdateBanner(), Expanded(child: child)],
+        children: [
+          const UpdateBanner(),
+          const BatteryExemptionBanner(),
+          Expanded(child: child),
+        ],
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(

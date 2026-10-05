@@ -18,10 +18,10 @@ export async function GET() {
     }
 
     return NextResponse.json({
-        version: "2.1.3",
-        build_number: 20,
+        version: "2.1.4",
+        build_number: 21,
         download_url: apkUrl,
-        release_notes: "الإصدار 2.1.3: تسريع فوري للإشعارات داخل وخارج التطبيق، وربط متقدم لموديل الهاتف.",
+        release_notes: "الإصدار 2.1.4: معالجة شاملة لتوفير البطارية ورفع استجابة التنبيهات بالخلفية لـ 15 ثانية مع شريط التفعيل التلقائي.",
         mandatory: true
     }, {
         headers: {

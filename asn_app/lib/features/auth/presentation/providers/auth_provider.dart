@@ -160,7 +160,7 @@ class AuthNotifier extends Notifier<AuthState> {
       if (user != null) {
         OrderPollClient.resetBadToken();
         state = AuthState.authenticated(user);
-        unawaited(_startAlerting(user, askForBatteryExemption: false));
+        unawaited(_startAlerting(user, askForBatteryExemption: true));
       } else {
         state = const AuthState.unauthenticated();
       }

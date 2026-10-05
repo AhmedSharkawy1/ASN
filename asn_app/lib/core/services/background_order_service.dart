@@ -82,9 +82,8 @@ class BackgroundOrderService {
   }
 
   /// Realtime is the instant path; this poll is the guarantee behind it.
-  /// 45s keeps alerts prompt while roughly halving the wake-ups a 20s cycle
-  /// cost the battery over a long shift.
-  static const int pollIntervalMs = 45000;
+  /// 15s ensures near-instant order detection in background even if WebSocket is paused by OS.
+  static const int pollIntervalMs = 15000;
 
   static void init() {
     FlutterForegroundTask.init(
@@ -92,8 +91,8 @@ class BackgroundOrderService {
         channelId: 'asn_background_service',
         channelName: 'Order Listener',
         channelDescription: 'Keeps listening for new orders while the app is closed.',
-        channelImportance: NotificationChannelImportance.LOW,
-        priority: NotificationPriority.LOW,
+        channelImportance: NotificationChannelImportance.HIGH,
+        priority: NotificationPriority.HIGH,
       ),
       iosNotificationOptions: const IOSNotificationOptions(
         showNotification: false,
