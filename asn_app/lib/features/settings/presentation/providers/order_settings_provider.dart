@@ -83,7 +83,7 @@ class OrderSettingsNotifier extends Notifier<AsyncValue<OrderSettings>> {
           waiterCallEnabled: waiterCall,
         ),
       );
-      BackgroundOrderService.updateWaiterCallEnabled(waiterCall);
+      await BackgroundOrderService.updateWaiterCallEnabled(waiterCall);
     } catch (e, st) {
       AppLogger.error('Failed to load order settings',
           error: e, stackTrace: st, name: 'OrderSettings');

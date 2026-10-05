@@ -209,8 +209,6 @@ class SettingsScreen extends ConsumerWidget {
           const _SettingsGroup(
             children: [
               _AutoApproveTile(),
-              _GroupDivider(),
-              _AutoApproveCashierTile(),
             ],
           ),
           AppSpacing.heightLg,
@@ -354,64 +352,6 @@ class _AutoApproveTile extends ConsumerWidget {
             : on
                 ? 'طلبات الويب تُسجَّل مكتملة وتُحسب في التقارير فوراً'
                 : 'طلبات الويب تبدأ قيد الانتظار لحين تأكيدها يدوياً',
-        style: TextStyle(
-          fontSize: 11.5,
-          color: asyncSettings.hasError
-              ? AppColors.error
-              : Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-}
-
-/// Auto-approve incoming cashier (POS) orders.
-class _AutoApproveCashierTile extends ConsumerWidget {
-  const _AutoApproveCashierTile();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncSettings = ref.watch(orderSettingsProvider);
-    final settings = asyncSettings.value;
-    final on = settings?.autoApproveCashierOrders ?? false;
-
-    return SwitchListTile(
-      value: on,
-      onChanged: settings == null
-          ? null
-          : (value) async {
-              try {
-                await ref.read(orderSettingsProvider.notifier).setAutoApproveCashier(value);
-                if (context.mounted) {
-                  showAppSnackBar(
-                    context,
-                    value
-                        ? 'طلبات الكاشير ستُسجَّل مكتملة تلقائياً فور الحفظ'
-                        : 'طلبات الكاشير ستكون قيد الانتظار (الوضع الافتراضي)',
-                    type: AppSnackBarType.success,
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-                }
-              }
-            },
-      secondary: CircleAvatar(
-        radius: 16,
-        backgroundColor: AppColors.success.withValues(alpha: 0.12),
-        child: const Icon(Icons.point_of_sale, size: 18, color: AppColors.success),
-      ),
-      title: const Text(
-        'تأكيد طلبات الكاشير تلقائياً',
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        asyncSettings.hasError
-            ? 'تعذّر قراءة الإعداد — اسحب لأسفل للمحاولة مرة أخرى'
-            : on
-                ? 'طلبات الكاشير تُسجَّل مكتملة وتُحسب فور الحفظ'
-                : 'طلبات الكاشير تبدأ قيد الانتظار (كما هي الآن)',
         style: TextStyle(
           fontSize: 11.5,
           color: asyncSettings.hasError
