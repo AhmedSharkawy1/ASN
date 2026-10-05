@@ -62,6 +62,9 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
   bool _isAvailable = true;
   bool _isPopular = false;
   bool _isSpicy = false;
+  bool _isNew = false;
+  bool _sellByWeight = false;
+  late final TextEditingController _weightUnitController;
   bool _saving = false;
   bool _uploading = false;
 
@@ -82,6 +85,9 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
     _isAvailable = p?.isAvailable ?? true;
     _isPopular = p?.isPopular ?? false;
     _isSpicy = p?.isSpicy ?? false;
+    _isNew = p?.isNew ?? false;
+    _sellByWeight = p?.sellByWeight ?? false;
+    _weightUnitController = TextEditingController(text: p?.weightUnit ?? 'كجم');
     _sizeRows = (p?.sizes ?? [const ProductSize(label: '', price: 0)])
         .map((s) => _SizeRow(
               labelText: s.label,
@@ -96,6 +102,7 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
     _titleArController.dispose();
     _titleEnController.dispose();
     _descController.dispose();
+    _weightUnitController.dispose();
     for (final row in _sizeRows) {
       row.dispose();
     }
@@ -176,6 +183,9 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
           isAvailable: _isAvailable,
           isPopular: _isPopular,
           isSpicy: _isSpicy,
+          isNew: _isNew,
+          sellByWeight: _sellByWeight,
+          weightUnit: _sellByWeight ? _weightUnitController.text.trim() : null,
         );
       } else {
         await notifier.updateProduct(
@@ -190,6 +200,9 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
           isAvailable: _isAvailable,
           isPopular: _isPopular,
           isSpicy: _isSpicy,
+          isNew: _isNew,
+          sellByWeight: _sellByWeight,
+          weightUnit: _sellByWeight ? _weightUnitController.text.trim() : null,
         );
       }
       if (mounted) Navigator.pop(context);
@@ -430,6 +443,48 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
                 contentPadding: EdgeInsets.zero,
                 onChanged: (v) => setState(() => _isSpicy = v),
               ),
+              SwitchListTile(
+                value: _isNew,
+                title: const Text('جديد (شارة ✨ جديد)'),
+                secondary: const Icon(Icons.auto_awesome, color: Colors.teal),
+                contentPadding: EdgeInsets.zero,
+                onChanged: (v) => setState(() => _isNew = v),
+              ),
+              SwitchListTile(
+                value: _sellByWeight,
+                title: const Text('البيع بالوزن (⚖️)'),
+                secondary: const Icon(Icons.scale_outlined, color: Colors.indigo),
+                contentPadding: EdgeInsets.zero,
+                onChanged: (v) => setState(() => _sellByWeight = v),
+              ),
+              if (_sellByWeight) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: _weightUnitController,
+                        decoration: const InputDecoration(
+                          labelText: 'وحدة الوزن (مثال: كجم، جرام، طبق)',
+                          isDense: true,
+                          prefixIcon: Icon(Icons.fitness_center_outlined, size: 20),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        children: ['كجم', 'جرام', 'طبق', 'قطعة'].map((unit) {
+                          return ActionChip(
+                            label: Text(unit, style: const TextStyle(fontSize: 12)),
+                            onPressed: () => setState(() => _weightUnitController.text = unit),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               AppSpacing.heightMd,
 
               Row(

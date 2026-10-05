@@ -11,6 +11,7 @@ import 'package:asn_app/shared/presentation/widgets/state_widgets.dart';
 import 'package:asn_app/features/products/presentation/providers/products_provider.dart';
 import 'package:asn_app/features/products/presentation/providers/categories_provider.dart';
 import 'package:asn_app/features/products/data/models/product_model.dart';
+import 'package:asn_app/features/products/data/models/category_model.dart';
 import 'package:asn_app/features/products/presentation/widgets/product_edit_sheet.dart';
 import 'package:asn_app/features/products/presentation/widgets/category_manager_sheet.dart';
 import 'package:asn_app/features/products/presentation/widgets/reorder_items_sheet.dart';
@@ -25,6 +26,17 @@ class ProductsScreen extends ConsumerStatefulWidget {
 class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   String _searchQuery = '';
   String? _selectedCategoryId;
+  final Set<String> _collapsedCategoryIds = {};
+
+  void _toggleCollapse(String categoryId) {
+    setState(() {
+      if (_collapsedCategoryIds.contains(categoryId)) {
+        _collapsedCategoryIds.remove(categoryId);
+      } else {
+        _collapsedCategoryIds.add(categoryId);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +69,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             onPressed: () => showCategoryManagerSheet(context),
           ),
           IconButton(
+            tooltip: isArabic ? 'تحديث' : 'Refresh',
             icon: const Icon(Icons.refresh),
             onPressed: () {
               ref.read(productsNotifierProvider.notifier).refresh();
@@ -103,46 +116,99 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           ),
           Expanded(
             child: productsAsync.when(
-              data: (products) {
-                var filtered = products;
-                if (_selectedCategoryId != null) {
-                  filtered = filtered.where((p) => p.categoryId == _selectedCategoryId).toList();
-                }
-                if (_searchQuery.isNotEmpty) {
-                  final q = _searchQuery.toLowerCase();
-                  filtered = filtered
-                      .where((p) =>
-                          p.titleAr.toLowerCase().contains(q) ||
-                          (p.titleEn?.toLowerCase().contains(q) ?? false))
-                      .toList();
-                }
-
-                if (filtered.isEmpty) {
+              data: (allProducts) {
+                // If categories are loading or empty
+                if (categories.isEmpty && allProducts.isEmpty) {
                   return AppEmptyState(icon: Icons.restaurant_menu, message: l10n.noProducts);
                 }
+
+                // Filter categories to display
+                var displayCats = categories;
+                if (_selectedCategoryId != null) {
+                  displayCats = displayCats.where((c) => c.id == _selectedCategoryId).toList();
+                }
+
+                final q = _searchQuery.trim().toLowerCase();
 
                 return RefreshIndicator(
                   onRefresh: () async {
                     await ref.read(productsNotifierProvider.notifier).refresh();
                     await ref.read(categoriesNotifierProvider.notifier).refresh();
                   },
-                  child: GridView.builder(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 220,
-                      childAspectRatio: 0.72,
-                      crossAxisSpacing: AppSpacing.md,
-                      mainAxisSpacing: AppSpacing.md,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(
+                      left: AppSpacing.md,
+                      right: AppSpacing.md,
+                      top: AppSpacing.sm,
+                      bottom: 80,
                     ),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) => _ProductCard(product: filtered[index]),
+                    itemCount: displayCats.length + 1, // +1 for uncategorized if any
+                    itemBuilder: (context, catIdx) {
+                      if (catIdx == displayCats.length) {
+                        // Check for uncategorized items
+                        final knownCatIds = categories.map((c) => c.id).toSet();
+                        var uncatItems = allProducts
+                            .where((p) => p.categoryId == null || !knownCatIds.contains(p.categoryId))
+                            .toList();
+                        if (q.isNotEmpty) {
+                          uncatItems = uncatItems
+                              .where((p) =>
+                                  p.titleAr.toLowerCase().contains(q) ||
+                                  (p.titleEn?.toLowerCase().contains(q) ?? false) ||
+                                  (p.descAr?.toLowerCase().contains(q) ?? false))
+                              .toList();
+                        }
+                        if (uncatItems.isEmpty) return const SizedBox.shrink();
+                        return _UncategorizedSection(items: uncatItems, isArabic: isArabic);
+                      }
+
+                      final cat = displayCats[catIdx];
+                      var catItems = allProducts.where((p) => p.categoryId == cat.id).toList();
+
+                      // If search query is entered, filter items within this category
+                      if (q.isNotEmpty) {
+                        final catNameMatches = cat.nameAr.toLowerCase().contains(q) ||
+                            (cat.nameEn?.toLowerCase().contains(q) ?? false);
+                        if (!catNameMatches) {
+                          catItems = catItems
+                              .where((p) =>
+                                  p.titleAr.toLowerCase().contains(q) ||
+                                  (p.titleEn?.toLowerCase().contains(q) ?? false) ||
+                                  (p.descAr?.toLowerCase().contains(q) ?? false))
+                              .toList();
+                          if (catItems.isEmpty) return const SizedBox.shrink();
+                        }
+                      }
+
+                      final isCollapsed = _collapsedCategoryIds.contains(cat.id);
+                      final isFirst = catIdx == 0;
+                      final isLast = catIdx == displayCats.length - 1;
+
+                      return _CategoryCard(
+                        key: ValueKey(cat.id),
+                        category: cat,
+                        items: catItems,
+                        catIndex: catIdx,
+                        isFirst: isFirst,
+                        isLast: isLast,
+                        isCollapsed: isCollapsed,
+                        isArabic: isArabic,
+                        onToggleCollapse: () => _toggleCollapse(cat.id),
+                        onAddProductToCat: () {
+                          showProductEditSheet(context, initialCategoryId: cat.id);
+                        },
+                      );
+                    },
                   ),
                 );
               },
               loading: () => const AppListSkeleton(itemHeight: 180),
               error: (err, stack) => AppErrorState(
                 error: err,
-                onRetry: () => ref.read(productsNotifierProvider.notifier).refresh(),
+                onRetry: () {
+                  ref.read(productsNotifierProvider.notifier).refresh();
+                  ref.read(categoriesNotifierProvider.notifier).refresh();
+                },
               ),
             ),
           ),
@@ -152,192 +218,910 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
         onPressed: () {
           if (categories.isEmpty) {
             showAppSnackBar(context, l10n.addCategory, type: AppSnackBarType.info);
-            showCategoryManagerSheet(context);
+            showCategoryEditDialog(context, ref);
             return;
           }
           showProductEditSheet(context, initialCategoryId: _selectedCategoryId);
         },
         backgroundColor: AppColors.tealPrimary,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(l10n.addProduct, style: const TextStyle(color: Colors.white)),
+        label: Text(l10n.addProduct, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
 }
 
-class _ProductCard extends ConsumerWidget {
-  final ProductModel product;
+// ============================================================================
+// CATEGORY CARD WITH ACCORDION & ACTIONS
+// ============================================================================
+class _CategoryCard extends ConsumerWidget {
+  final CategoryModel category;
+  final List<ProductModel> items;
+  final int catIndex;
+  final bool isFirst;
+  final bool isLast;
+  final bool isCollapsed;
+  final bool isArabic;
+  final VoidCallback onToggleCollapse;
+  final VoidCallback onAddProductToCat;
 
-  const _ProductCard({required this.product});
+  const _CategoryCard({
+    super.key,
+    required this.category,
+    required this.items,
+    required this.catIndex,
+    required this.isFirst,
+    required this.isLast,
+    required this.isCollapsed,
+    required this.isArabic,
+    required this.onToggleCollapse,
+    required this.onAddProductToCat,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final firstSize = product.sizes.first;
+    final isCatHidden = !category.isAvailable;
+    final isCatFeatured = category.isPopular || (items.isNotEmpty && items.every((i) => i.isPopular));
 
-    return GestureDetector(
-      onTap: () => showProductEditSheet(context, product: product),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          boxShadow: AppColors.shadowOf(context),
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        side: BorderSide(
+          color: isCatHidden
+              ? AppColors.error.withValues(alpha: 0.3)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.15),
+          width: 1.2,
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Stack(
-                fit: StackFit.expand,
+      ),
+      elevation: 0,
+      color: Theme.of(context).cardColor,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // CATEGORY HEADER
+          InkWell(
+            onTap: onToggleCollapse,
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: isCatHidden
+                    ? AppColors.error.withValues(alpha: 0.05)
+                    : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
-                    CachedNetworkImage(
-                      imageUrl: product.imageUrl!,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey.withValues(alpha: 0.15),
+                  Row(
+                    children: [
+                      // Category Image / Emoji Avatar
+                      GestureDetector(
+                        onTap: () => pickAndUploadCategoryImage(context, ref, category),
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: AppColors.tealPrimary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: category.imageUrl?.isNotEmpty == true
+                              ? CachedNetworkImage(
+                                  imageUrl: category.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(
+                                    child: SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) => Center(
+                                    child: Text(category.emoji ?? '🍽️', style: const TextStyle(fontSize: 22)),
+                                  ),
+                                )
+                              : Center(
+                                  child: Text(
+                                    category.emoji?.isNotEmpty == true ? category.emoji! : '🍽️',
+                                    style: const TextStyle(fontSize: 22),
+                                  ),
+                                ),
+                        ),
                       ),
-                      errorWidget: (context, url, error) => Container(
-                        color: Colors.grey.withValues(alpha: 0.15),
-                        child: const Icon(Icons.fastfood, size: 40, color: Colors.grey),
+                      const SizedBox(width: AppSpacing.sm),
+                      // Title & Badges
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    category.nameAr,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '(${items.length})',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (category.nameEn?.isNotEmpty == true && category.nameEn != category.nameAr)
+                              Text(
+                                category.nameEn!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            const SizedBox(height: 4),
+                            // Category Status Badges
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                if (isCatHidden)
+                                  _StatusChip(
+                                    icon: Icons.visibility_off,
+                                    label: isArabic ? 'مخفي بالكامل' : 'Hidden',
+                                    color: AppColors.error,
+                                  ),
+                                if (isCatFeatured)
+                                  _StatusChip(
+                                    icon: Icons.star,
+                                    label: isArabic ? 'قسم مميز' : 'Featured',
+                                    color: AppColors.warning,
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    )
-                  else
-                    Container(
-                      color: Colors.grey.withValues(alpha: 0.15),
-                      child: const Icon(Icons.fastfood, size: 40, color: Colors.grey),
-                    ),
-                  // Price badge (with discount strikethrough when present)
-                  PositionedDirectional(
-                    top: 8,
-                    end: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                      // Chevron expand/collapse
+                      Icon(
+                        isCollapsed ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      child: Row(
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  // Category Action Toolbar (Move Up/Down, Star, Visibility, Edit, Delete)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Move Up/Down Controls
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.keyboard_arrow_up, size: 20),
+                              padding: const EdgeInsets.all(4),
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              tooltip: isArabic ? 'نقل لأعلى' : 'Move Up',
+                              onPressed: isFirst
+                                  ? null
+                                  : () => ref
+                                      .read(categoriesNotifierProvider.notifier)
+                                      .moveCategory(catIndex, 'up'),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                              padding: const EdgeInsets.all(4),
+                              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                              tooltip: isArabic ? 'نقل لأسفل' : 'Move Down',
+                              onPressed: isLast
+                                  ? null
+                                  : () => ref
+                                      .read(categoriesNotifierProvider.notifier)
+                                      .moveCategory(catIndex, 'down'),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Quick Action Buttons
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (firstSize.hasDiscount) ...[
-                            Text(
-                              _fmt(firstSize.oldPrice!),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey,
-                                decoration: TextDecoration.lineThrough,
-                              ),
+                          // Toggle Category Featured
+                          IconButton(
+                            icon: Icon(
+                              isCatFeatured ? Icons.star : Icons.star_border,
+                              color: isCatFeatured ? AppColors.warning : Colors.grey,
+                              size: 22,
                             ),
-                            const SizedBox(width: 4),
-                          ],
-                          Text(
-                            product.hasMultipleSizes
-                                ? '${l10n.priceFrom} ${_fmt(product.minPrice)}'
-                                : _fmt(firstSize.price),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.tealPrimary,
-                              fontSize: 13,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            tooltip: isArabic
+                                ? (isCatFeatured ? 'إلغاء تمييز القسم' : 'تمييز كل أصناف القسم')
+                                : (isCatFeatured ? 'Unfeature category' : 'Feature category'),
+                            onPressed: () => ref
+                                .read(categoriesNotifierProvider.notifier)
+                                .toggleCategoryFeatured(category.id, category.isPopular),
+                          ),
+                          // Toggle Category Visibility
+                          IconButton(
+                            icon: Icon(
+                              isCatHidden ? Icons.visibility_off : Icons.visibility,
+                              color: isCatHidden ? AppColors.error : AppColors.success,
+                              size: 22,
                             ),
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            tooltip: isArabic
+                                ? (isCatHidden ? 'إظهار القسم' : 'إخفاء القسم')
+                                : (isCatHidden ? 'Show category' : 'Hide category'),
+                            onPressed: () => ref
+                                .read(categoriesNotifierProvider.notifier)
+                                .toggleCategoryAvailability(category.id, category.isAvailable),
+                          ),
+                          // Edit Category
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.tealPrimary),
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            tooltip: l10n.edit,
+                            onPressed: () => showCategoryEditDialog(context, ref, category: category),
+                          ),
+                          // Delete Category
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                            tooltip: l10n.delete,
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: Text(isArabic ? 'حذف القسم' : 'Delete Category'),
+                                  content: Text(
+                                    isArabic
+                                        ? 'هل أنت متأكد من حذف قسم "${category.nameAr}" وجميع الأصناف التابعة له؟'
+                                        : 'Are you sure you want to delete category "${category.nameAr}" and all its items?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx, false),
+                                      child: Text(l10n.cancel),
+                                    ),
+                                    TextButton(
+                                      style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                                      onPressed: () => Navigator.pop(ctx, true),
+                                      child: Text(l10n.delete),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed != true) return;
+                              try {
+                                await ref
+                                    .read(categoriesNotifierProvider.notifier)
+                                    .deleteCategory(category.id);
+                                await ref.read(productsNotifierProvider.notifier).refresh();
+                              } catch (e) {
+                                if (context.mounted) {
+                                  showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                                }
+                              }
+                            },
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  // Badges: popular / spicy
-                  PositionedDirectional(
-                    top: 8,
-                    start: 8,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (product.isPopular)
-                          _Badge(icon: Icons.star, color: AppColors.warning, label: l10n.popular),
-                        if (product.isSpicy)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: _Badge(
-                              icon: Icons.local_fire_department,
-                              color: AppColors.error,
-                              label: l10n.spicy,
-                            ),
-                          ),
-                      ],
-                    ),
+                    ],
                   ),
                 ],
               ),
             ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+
+          // EXPANDED BODY (ITEMS LIST)
+          if (!isCollapsed) ...[
+            // Hidden notice banner if category is hidden
+            if (isCatHidden)
+              Container(
+                margin: const EdgeInsets.all(AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.25)),
+                ),
+                child: Row(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.titleAr,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        if (product.titleEn?.isNotEmpty == true && product.titleEn != product.titleAr)
-                          Text(
-                            product.titleEn!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            product.isAvailable ? l10n.available : l10n.outOfStock,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: product.isAvailable ? AppColors.success : AppColors.error,
-                            ),
-                          ),
-                        ),
-                        Switch(
-                          value: product.isAvailable,
-                          activeThumbColor: AppColors.tealPrimary,
-                          onChanged: (value) async {
-                            try {
-                              await ref
-                                  .read(productsNotifierProvider.notifier)
-                                  .toggleAvailability(product.id, product.isAvailable);
-                            } catch (e) {
-                              if (context.mounted) {
-                                showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-                              }
-                            }
-                          },
-                        ),
-                      ],
+                    const Icon(Icons.visibility_off, color: AppColors.error, size: 18),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        isArabic
+                            ? 'تنبيه: هذا القسم وجميع أصنافه مخفية حالياً ولا تظهر للعملاء في المنيو.'
+                            : 'Notice: This category and all its items are hidden from the menu.',
+                        style: const TextStyle(fontSize: 12, color: AppColors.error, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ],
                 ),
               ),
+
+            // Items list
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Center(
+                  child: Text(
+                    isArabic ? 'لا توجد أصناف بعد في هذا القسم.' : 'No items yet in this category.',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                itemCount: items.length,
+                separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (context, itemIdx) {
+                  final item = items[itemIdx];
+                  final isFirstItem = itemIdx == 0;
+                  final isLastItem = itemIdx == items.length - 1;
+
+                  return _ItemRow(
+                    key: ValueKey(item.id),
+                    product: item,
+                    categoryId: category.id,
+                    itemIndex: itemIdx,
+                    isFirst: isFirstItem,
+                    isLast: isLastItem,
+                    isArabic: isArabic,
+                  );
+                },
+              ),
+
+            // Add Item button at bottom of category
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+              child: OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: BorderSide(
+                    color: AppColors.tealPrimary.withValues(alpha: 0.4),
+                    style: BorderStyle.solid,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                  ),
+                ),
+                onPressed: onAddProductToCat,
+                icon: const Icon(Icons.add, size: 18, color: AppColors.tealPrimary),
+                label: Text(
+                  isArabic ? 'إضافة صنف جديد لهذا القسم' : 'Add New Item to this Category',
+                  style: const TextStyle(
+                    color: AppColors.tealPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// UNCATEGORIZED ITEMS SECTION (FALLBACK FOR ORPHAN ITEMS)
+// ============================================================================
+class _UncategorizedSection extends ConsumerWidget {
+  final List<ProductModel> items;
+  final bool isArabic;
+
+  const _UncategorizedSection({required this.items, required this.isArabic});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+        side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.2)),
+      ),
+      elevation: 0,
+      color: Theme.of(context).cardColor,
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+            child: Row(
+              children: [
+                const Icon(Icons.folder_open, color: Colors.grey),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  isArabic ? 'أصناف غير مصنفة' : 'Uncategorized Items',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 6),
+                Text('(${items.length})', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              ],
+            ),
+          ),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            itemCount: items.length,
+            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.sm),
+            itemBuilder: (context, itemIdx) {
+              final item = items[itemIdx];
+              return _ItemRow(
+                key: ValueKey(item.id),
+                product: item,
+                categoryId: item.categoryId ?? '',
+                itemIndex: itemIdx,
+                isFirst: itemIdx == 0,
+                isLast: itemIdx == items.length - 1,
+                isArabic: isArabic,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// INDIVIDUAL ITEM ROW WITH COMPLETE WEB PARITY CONTROLS
+// ============================================================================
+class _ItemRow extends ConsumerWidget {
+  final ProductModel product;
+  final String categoryId;
+  final int itemIndex;
+  final bool isFirst;
+  final bool isLast;
+  final bool isArabic;
+
+  const _ItemRow({
+    super.key,
+    required this.product,
+    required this.categoryId,
+    required this.itemIndex,
+    required this.isFirst,
+    required this.isLast,
+    required this.isArabic,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final isHidden = !product.isAvailable;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isHidden
+            ? AppColors.error.withValues(alpha: 0.04)
+            : Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(
+          color: isHidden
+              ? AppColors.error.withValues(alpha: 0.3)
+              : Theme.of(context).dividerColor.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Part: Thumbnail + Info (tap to edit)
+          InkWell(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+            onTap: () => showProductEditSheet(context, product: product),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product Thumbnail
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  child: SizedBox(
+                    width: 58,
+                    height: 58,
+                    child: (product.imageUrl?.isNotEmpty == true || product.thumbnailUrl?.isNotEmpty == true)
+                        ? CachedNetworkImage(
+                            imageUrl: product.thumbnailUrl ?? product.imageUrl!,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => Container(
+                              color: Colors.grey.withValues(alpha: 0.15),
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                              ),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              color: Colors.grey.withValues(alpha: 0.15),
+                              child: const Icon(Icons.fastfood, color: Colors.grey, size: 28),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey.withValues(alpha: 0.15),
+                            child: const Icon(Icons.fastfood, color: Colors.grey, size: 28),
+                          ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                // Title, Subtitle, Badges, Desc
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title & Badges
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          Text(
+                            product.titleAr,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (isHidden)
+                            _StatusChip(
+                              icon: Icons.visibility_off,
+                              label: l10n.outOfStock,
+                              color: AppColors.error,
+                            ),
+                          if (product.isPopular)
+                            _StatusChip(
+                              icon: Icons.star,
+                              label: l10n.popular,
+                              color: AppColors.warning,
+                            ),
+                          if (product.isNew)
+                            _StatusChip(
+                              icon: Icons.auto_awesome,
+                              label: isArabic ? 'جديد' : 'New',
+                              color: AppColors.success,
+                            ),
+                          if (product.isSpicy)
+                            _StatusChip(
+                              icon: Icons.local_fire_department,
+                              label: isArabic ? 'حار' : 'Spicy',
+                              color: AppColors.error,
+                            ),
+                          if (product.sellByWeight)
+                            _StatusChip(
+                              icon: Icons.scale,
+                              label: '${isArabic ? "وزن" : "Weight"} (${product.weightUnit ?? "كجم"})',
+                              color: Colors.indigo,
+                            ),
+                        ],
+                      ),
+                      if (product.titleEn?.isNotEmpty == true && product.titleEn != product.titleAr)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            product.titleEn!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      if (product.description?.isNotEmpty == true)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            product.description!,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Sizes & Prices Chips
+          if (product.sizes.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: product.sizes.map((size) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor.withValues(alpha: 0.15),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (size.label.isNotEmpty) ...[
+                        Text(
+                          '${size.label}: ',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                      if (size.hasDiscount) ...[
+                        Text(
+                          _fmt(size.oldPrice!),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Text(
+                        _fmt(size.price),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.tealPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
           ],
-        ),
+
+          const Divider(height: 12),
+
+          // Action Toolbar: Move Up/Down, Star, Sparkles, Spicy, Visibility, Duplicate, Edit, Delete
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Reorder Buttons (Move Up / Down within category)
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.keyboard_arrow_up, size: 18),
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      tooltip: isArabic ? 'نقل لأعلى' : 'Move Up',
+                      onPressed: isFirst
+                          ? null
+                          : () => ref
+                              .read(productsNotifierProvider.notifier)
+                              .moveItem(categoryId, itemIndex, 'up'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                      padding: const EdgeInsets.all(4),
+                      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      tooltip: isArabic ? 'نقل لأسفل' : 'Move Down',
+                      onPressed: isLast
+                          ? null
+                          : () => ref
+                              .read(productsNotifierProvider.notifier)
+                              .moveItem(categoryId, itemIndex, 'down'),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Item Options Bar
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ⭐ Toggle Popular
+                  IconButton(
+                    icon: Icon(
+                      product.isPopular ? Icons.star : Icons.star_border,
+                      size: 19,
+                      color: product.isPopular ? AppColors.warning : Colors.grey,
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    tooltip: isArabic
+                        ? (product.isPopular ? 'إلغاء تمييز الصنف' : 'تمييز الصنف (مميز)')
+                        : (product.isPopular ? 'Unmark popular' : 'Mark popular'),
+                    onPressed: () => ref
+                        .read(productsNotifierProvider.notifier)
+                        .togglePopular(product.id, product.isPopular),
+                  ),
+
+                  // ✨ Toggle New
+                  IconButton(
+                    icon: Icon(
+                      product.isNew ? Icons.auto_awesome : Icons.auto_awesome_outlined,
+                      size: 18,
+                      color: product.isNew ? AppColors.success : Colors.grey,
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    tooltip: isArabic
+                        ? (product.isNew ? 'إلغاء وسم جديد' : 'وسم كـ جديد')
+                        : (product.isNew ? 'Unmark new' : 'Mark as new'),
+                    onPressed: () => ref
+                        .read(productsNotifierProvider.notifier)
+                        .toggleNew(product.id, product.isNew),
+                  ),
+
+                  // 🌶️ Toggle Spicy
+                  IconButton(
+                    icon: Icon(
+                      Icons.local_fire_department,
+                      size: 19,
+                      color: product.isSpicy ? AppColors.error : Colors.grey.withValues(alpha: 0.6),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    tooltip: isArabic
+                        ? (product.isSpicy ? 'إلغاء وسم حار' : 'وسم كـ حار 🌶️')
+                        : (product.isSpicy ? 'Unmark spicy' : 'Mark spicy'),
+                    onPressed: () => ref
+                        .read(productsNotifierProvider.notifier)
+                        .toggleSpicy(product.id, product.isSpicy),
+                  ),
+
+                  // 👁️ Toggle Visibility
+                  IconButton(
+                    icon: Icon(
+                      product.isAvailable ? Icons.visibility : Icons.visibility_off,
+                      size: 19,
+                      color: product.isAvailable ? AppColors.success : AppColors.error,
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    tooltip: isArabic
+                        ? (product.isAvailable ? 'إخفاء الصنف من المنيو' : 'إظهار الصنف في المنيو')
+                        : (product.isAvailable ? 'Hide from menu' : 'Show in menu'),
+                    onPressed: () => ref
+                        .read(productsNotifierProvider.notifier)
+                        .toggleAvailability(product.id, product.isAvailable),
+                  ),
+
+                  // 📋 Duplicate Product
+                  IconButton(
+                    icon: const Icon(Icons.copy_outlined, size: 18, color: Colors.blueGrey),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    tooltip: isArabic ? 'نسخ الصنف' : 'Duplicate Item',
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(productsNotifierProvider.notifier)
+                            .duplicateProduct(product);
+                        if (context.mounted) {
+                          showAppSnackBar(
+                            context,
+                            isArabic ? 'تم نسخ الصنف بنجاح' : 'Item duplicated successfully',
+                            type: AppSnackBarType.success,
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                        }
+                      }
+                    },
+                  ),
+
+                  // ✏️ Edit Product
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.tealPrimary),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    tooltip: l10n.edit,
+                    onPressed: () => showProductEditSheet(context, product: product),
+                  ),
+
+                  // 🗑️ Delete Product
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
+                    tooltip: l10n.delete,
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: Text(isArabic ? 'حذف الصنف' : 'Delete Item'),
+                          content: Text(
+                            isArabic
+                                ? 'هل أنت متأكد من حذف صنف "${product.titleAr}"؟'
+                                : 'Are you sure you want to delete "${product.titleAr}"?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: Text(l10n.cancel),
+                            ),
+                            TextButton(
+                              style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: Text(l10n.delete),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed != true) return;
+                      try {
+                        await ref
+                            .read(productsNotifierProvider.notifier)
+                            .deleteProduct(product.id);
+                        if (context.mounted) {
+                          showAppSnackBar(
+                            context,
+                            isArabic ? 'تم حذف الصنف' : 'Item deleted',
+                            type: AppSnackBarType.info,
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -346,29 +1130,41 @@ class _ProductCard extends ConsumerWidget {
       v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
 }
 
-class _Badge extends StatelessWidget {
+// ============================================================================
+// STATUS CHIP BADGE
+// ============================================================================
+class _StatusChip extends StatelessWidget {
   final IconData icon;
-  final Color color;
   final String label;
+  final Color color;
 
-  const _Badge({required this.icon, required this.color, required this.label});
+  const _StatusChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.9),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: Colors.white),
+          Icon(icon, size: 11, color: color),
           const SizedBox(width: 3),
           Text(
             label,
-            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800),
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),

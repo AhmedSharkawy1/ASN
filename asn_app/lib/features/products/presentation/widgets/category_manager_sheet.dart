@@ -24,116 +24,116 @@ void showCategoryManagerSheet(BuildContext context) {
   );
 }
 
-class CategoryManagerSheet extends ConsumerWidget {
-  const CategoryManagerSheet({super.key});
+Future<void> showCategoryEditDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  CategoryModel? category,
+}) async {
+  final l10n = AppLocalizations.of(context)!;
+  final nameArController = TextEditingController(text: category?.nameAr ?? '');
+  final nameEnController = TextEditingController(
+    text: (category?.nameEn != null && category?.nameEn != category?.nameAr) ? category!.nameEn! : '',
+  );
+  final emojiController = TextEditingController(text: category?.emoji ?? '');
 
-  Future<void> _showCategoryDialog(
-    BuildContext context,
-    WidgetRef ref, {
-    CategoryModel? category,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final nameArController = TextEditingController(text: category?.nameAr ?? '');
-    final nameEnController = TextEditingController(
-      text: (category?.nameEn != null && category?.nameEn != category?.nameAr) ? category!.nameEn! : '',
-    );
-    final emojiController = TextEditingController(text: category?.emoji ?? '');
-
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(category == null ? l10n.addCategory : l10n.edit),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameArController,
-              autofocus: true,
-              decoration: InputDecoration(labelText: l10n.nameArabic),
+  await showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(category == null ? l10n.addCategory : l10n.edit),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: nameArController,
+            autofocus: true,
+            decoration: InputDecoration(labelText: l10n.nameArabic),
+          ),
+          AppSpacing.heightSm,
+          TextField(
+            controller: nameEnController,
+            decoration: InputDecoration(labelText: l10n.nameEnglish),
+          ),
+          AppSpacing.heightSm,
+          TextField(
+            controller: emojiController,
+            maxLength: 4,
+            decoration: InputDecoration(
+              labelText: l10n.emoji,
+              counterText: '',
+              hintText: '🍕',
             ),
-            AppSpacing.heightSm,
-            TextField(
-              controller: nameEnController,
-              decoration: InputDecoration(labelText: l10n.nameEnglish),
-            ),
-            AppSpacing.heightSm,
-            TextField(
-              controller: emojiController,
-              maxLength: 4,
-              decoration: InputDecoration(
-                labelText: l10n.emoji,
-                counterText: '',
-                hintText: '🍕',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
-          ElevatedButton(
-            onPressed: () async {
-              final nameAr = nameArController.text.trim();
-              if (nameAr.isEmpty) return;
-              final nameEn = nameEnController.text.trim();
-              final emoji = emojiController.text.trim();
-              Navigator.pop(ctx);
-              try {
-                final notifier = ref.read(categoriesNotifierProvider.notifier);
-                if (category == null) {
-                  await notifier.addCategory(
-                    nameAr,
-                    nameEn: nameEn.isEmpty ? null : nameEn,
-                    emoji: emoji.isEmpty ? null : emoji,
-                  );
-                } else {
-                  await notifier.renameCategory(
-                    category.id,
-                    nameAr,
-                    nameEn: nameEn.isEmpty ? null : nameEn,
-                    emoji: emoji.isEmpty ? null : emoji,
-                  );
-                }
-                await ref.read(productsNotifierProvider.notifier).refresh();
-              } catch (e) {
-                if (context.mounted) showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-              }
-            },
-            child: Text(l10n.save),
           ),
         ],
       ),
-    );
-  }
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
+        ElevatedButton(
+          onPressed: () async {
+            final nameAr = nameArController.text.trim();
+            if (nameAr.isEmpty) return;
+            final nameEn = nameEnController.text.trim();
+            final emoji = emojiController.text.trim();
+            Navigator.pop(ctx);
+            try {
+              final notifier = ref.read(categoriesNotifierProvider.notifier);
+              if (category == null) {
+                await notifier.addCategory(
+                  nameAr,
+                  nameEn: nameEn.isEmpty ? null : nameEn,
+                  emoji: emoji.isEmpty ? null : emoji,
+                );
+              } else {
+                await notifier.renameCategory(
+                  category.id,
+                  nameAr,
+                  nameEn: nameEn.isEmpty ? null : nameEn,
+                  emoji: emoji.isEmpty ? null : emoji,
+                );
+              }
+              await ref.read(productsNotifierProvider.notifier).refresh();
+            } catch (e) {
+              if (context.mounted) showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+            }
+          },
+          child: Text(l10n.save),
+        ),
+      ],
+    ),
+  );
+}
 
-  Future<void> _pickCategoryImage(BuildContext context, WidgetRef ref, CategoryModel category) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1200,
-      imageQuality: 85,
-    );
-    if (picked == null || !context.mounted) return;
+Future<void> pickAndUploadCategoryImage(BuildContext context, WidgetRef ref, CategoryModel category) async {
+  final picker = ImagePicker();
+  final picked = await picker.pickImage(
+    source: ImageSource.gallery,
+    maxWidth: 1200,
+    imageQuality: 85,
+  );
+  if (picked == null || !context.mounted) return;
 
-    try {
-      final authState = ref.read(authNotifierProvider);
-      final restaurantId = authState.maybeWhen(
-        authenticated: (user) => user.restaurantId,
-        orElse: () => null,
-      );
-      final res = await ref.read(imageUploadServiceProvider).uploadImageWithThumb(
-        File(picked.path),
-        restaurantId: restaurantId,
-        categoryId: category.id,
-      );
-      await ref.read(categoriesNotifierProvider.notifier).updateCategoryImage(
-        category.id,
-        res.originalUrl,
-        thumbnailUrl: res.thumbUrl,
-      );
-    } catch (e) {
-      if (context.mounted) showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-    }
+  try {
+    final authState = ref.read(authNotifierProvider);
+    final restaurantId = authState.maybeWhen(
+      authenticated: (user) => user.restaurantId,
+      orElse: () => null,
+    );
+    final res = await ref.read(imageUploadServiceProvider).uploadImageWithThumb(
+      File(picked.path),
+      restaurantId: restaurantId,
+      categoryId: category.id,
+    );
+    await ref.read(categoriesNotifierProvider.notifier).updateCategoryImage(
+      category.id,
+      res.originalUrl,
+      thumbnailUrl: res.thumbUrl,
+    );
+  } catch (e) {
+    if (context.mounted) showAppSnackBar(context, '$e', type: AppSnackBarType.error);
   }
+}
+
+class CategoryManagerSheet extends ConsumerWidget {
+  const CategoryManagerSheet({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -155,7 +155,7 @@ class CategoryManagerSheet extends ConsumerWidget {
               children: [
                 Text(l10n.manageCategories, style: Theme.of(context).textTheme.titleLarge),
                 TextButton.icon(
-                  onPressed: () => _showCategoryDialog(context, ref),
+                  onPressed: () => showCategoryEditDialog(context, ref),
                   icon: const Icon(Icons.add, size: 18),
                   label: Text(l10n.addCategory),
                 ),
@@ -177,7 +177,7 @@ class CategoryManagerSheet extends ConsumerWidget {
                     final cat = categories[index];
                     return ListTile(
                       leading: GestureDetector(
-                        onTap: () => _pickCategoryImage(context, ref, cat),
+                        onTap: () => pickAndUploadCategoryImage(context, ref, cat),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                           child: SizedBox(
@@ -206,7 +206,7 @@ class CategoryManagerSheet extends ConsumerWidget {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.edit_outlined, size: 20),
-                            onPressed: () => _showCategoryDialog(context, ref, category: cat),
+                            onPressed: () => showCategoryEditDialog(context, ref, category: cat),
                           ),
                           IconButton(
                             icon: const Icon(Icons.delete_outline, size: 20, color: AppColors.error),

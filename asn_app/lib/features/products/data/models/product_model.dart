@@ -11,7 +11,7 @@ class ProductSize {
 }
 
 /// Maps the real `items` table: title_ar/title_en, desc_ar/desc_en,
-/// price + prices[] (per-size), size_labels[], badges and image_url.
+/// price + prices[] (per-size), size_labels[], badges, sell_by_weight and image_url.
 class ProductModel {
   final String id;
   final String titleAr;
@@ -26,6 +26,9 @@ class ProductModel {
   final bool isAvailable;
   final bool isPopular;
   final bool isSpicy;
+  final bool isNew;
+  final bool sellByWeight;
+  final String? weightUnit;
   final String? categoryId;
   final int sortOrder;
 
@@ -43,6 +46,9 @@ class ProductModel {
     this.isAvailable = true,
     this.isPopular = false,
     this.isSpicy = false,
+    this.isNew = false,
+    this.sellByWeight = false,
+    this.weightUnit,
     this.categoryId,
     this.sortOrder = 0,
   });
@@ -76,6 +82,48 @@ class ProductModel {
 
   bool get hasDiscount => sizes.any((s) => s.hasDiscount);
 
+  ProductModel copyWith({
+    String? id,
+    String? titleAr,
+    String? titleEn,
+    String? descAr,
+    String? descEn,
+    double? price,
+    List<double>? prices,
+    List<String>? rawSizeLabels,
+    String? imageUrl,
+    String? thumbnailUrl,
+    bool? isAvailable,
+    bool? isPopular,
+    bool? isSpicy,
+    bool? isNew,
+    bool? sellByWeight,
+    String? weightUnit,
+    String? categoryId,
+    int? sortOrder,
+  }) {
+    return ProductModel(
+      id: id ?? this.id,
+      titleAr: titleAr ?? this.titleAr,
+      titleEn: titleEn ?? this.titleEn,
+      descAr: descAr ?? this.descAr,
+      descEn: descEn ?? this.descEn,
+      price: price ?? this.price,
+      prices: prices ?? this.prices,
+      rawSizeLabels: rawSizeLabels ?? this.rawSizeLabels,
+      imageUrl: imageUrl ?? this.imageUrl,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      isAvailable: isAvailable ?? this.isAvailable,
+      isPopular: isPopular ?? this.isPopular,
+      isSpicy: isSpicy ?? this.isSpicy,
+      isNew: isNew ?? this.isNew,
+      sellByWeight: sellByWeight ?? this.sellByWeight,
+      weightUnit: weightUnit ?? this.weightUnit,
+      categoryId: categoryId ?? this.categoryId,
+      sortOrder: sortOrder ?? this.sortOrder,
+    );
+  }
+
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     final prices = (json['prices'] as List?)
             ?.whereType<num>()
@@ -100,6 +148,9 @@ class ProductModel {
       isAvailable: json['is_available'] as bool? ?? true,
       isPopular: json['is_popular'] as bool? ?? false,
       isSpicy: json['is_spicy'] as bool? ?? false,
+      isNew: json['is_new'] as bool? ?? false,
+      sellByWeight: json['sell_by_weight'] as bool? ?? false,
+      weightUnit: json['weight_unit'] as String?,
       categoryId: json['category_id'] as String?,
       sortOrder: (json['sort_order'] as num? ?? 0).toInt(),
     );

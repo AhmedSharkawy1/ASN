@@ -26,7 +26,6 @@ String _trimNum(double v) => v == v.roundToDouble() ? v.toInt().toString() : v.t
 class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
   @override
   AsyncValue<List<ProductModel>> build() {
-    // Rebuild (and refetch) whenever the active restaurant changes.
     ref.watch(activeRestaurantIdProvider);
     _fetchProducts();
     return const AsyncValue.loading();
@@ -61,7 +60,6 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     }
 
     try {
-      // First, fetch all category IDs for this restaurant
       final catsResponse = await SupabaseClientManager.client
           .from('categories')
           .select('id')
@@ -74,15 +72,15 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
         return;
       }
 
-      // Then, fetch all items belonging to those categories
-      // Ascending + created_at tiebreaker: matches the web and keeps
-      // positions stable when items share the same sort_order.
+      // Exact order matching the web dashboard:
+      // sort_order ASC, created_at ASC, id ASC
       final response = await SupabaseClientManager.client
           .from('items')
           .select()
           .inFilter('category_id', catIds)
           .order('sort_order', ascending: true)
-          .order('created_at', ascending: true);
+          .order('created_at', ascending: true)
+          .order('id', ascending: true);
 
       final products = (response as List)
           .map((json) => ProductModel.fromJson(json as Map<String, dynamic>))
@@ -99,61 +97,118 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     await _fetchProducts();
   }
 
+  /// Helper to update a product in-place in local state, guaranteeing the list
+  /// order NEVER shifts or scrambles when editing.
+  void updateInPlace(String productId, ProductModel Function(ProductModel) transform) {
+    if (!state.hasValue) return;
+    final currentList = state.value!;
+    final idx = currentList.indexWhere((p) => p.id == productId);
+    if (idx != -1) {
+      final nextList = List<ProductModel>.from(currentList);
+      nextList[idx] = transform(currentList[idx]);
+      state = AsyncValue.data(nextList);
+    }
+  }
+
+  /// Bulk updates all items in a category to popular/unpopular
+  void updateCategoryItemsPopular(String categoryId, bool isPopular) {
+    if (!state.hasValue) return;
+    final currentList = state.value!;
+    final nextList = currentList.map((p) {
+      if (p.categoryId == categoryId) {
+        return p.copyWith(isPopular: isPopular);
+      }
+      return p;
+    }).toList();
+    state = AsyncValue.data(nextList);
+  }
+
   Future<void> toggleAvailability(String productId, bool currentStatus) async {
+    updateInPlace(productId, (p) => p.copyWith(isAvailable: !currentStatus));
     try {
-      final updated = await SupabaseClientManager.client
+      await SupabaseClientManager.client
           .from('items')
           .update({'is_available': !currentStatus})
-          .eq('id', productId)
-          .select('id');
-      if ((updated as List).isEmpty) {
-        final session = SupabaseClientManager.client.auth.currentSession;
-        if (session == null || session.isExpired) {
-          throw Exception('انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول لتحديث البيانات.');
-        }
-      }
+          .eq('id', productId);
       _triggerMenuRevalidation();
-      await refresh();
     } catch (e, stackTrace) {
-      AppLogger.error('Failed to toggle product availability', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      AppLogger.error('Failed to toggle availability', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      updateInPlace(productId, (p) => p.copyWith(isAvailable: currentStatus));
       throw Exception('Failed to update: $e');
     }
   }
 
-  Map<String, dynamic> _payload({
-    required String titleAr,
-    String? titleEn,
-    String? descAr,
-    required List<ProductSize> sizes,
-    String? imageUrl,
-    String? thumbnailUrl,
-    required bool isAvailable,
-    required bool isPopular,
-    required bool isSpicy,
-    String? categoryId,
-  }) {
-    final encoded = encodeSizes(sizes);
-    final basePrice = encoded.prices.isNotEmpty ? encoded.prices.first : 0.0;
-    return {
-      'title_ar': titleAr,
-      'title_en': (titleEn?.isNotEmpty == true) ? titleEn : titleAr,
-      'desc_ar': descAr,
-      'price': basePrice,
-      'prices': encoded.prices,
-      'size_labels': encoded.labels,
-      'image_url': imageUrl,
-      'thumbnail_url': thumbnailUrl,
-      'is_available': isAvailable,
-      'is_popular': isPopular,
-      'is_spicy': isSpicy,
-      'category_id': ?categoryId,
-    };
+  Future<void> togglePopular(String productId, bool currentStatus) async {
+    updateInPlace(productId, (p) => p.copyWith(isPopular: !currentStatus));
+    try {
+      await SupabaseClientManager.client
+          .from('items')
+          .update({'is_popular': !currentStatus})
+          .eq('id', productId);
+      _triggerMenuRevalidation();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to toggle popular', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      updateInPlace(productId, (p) => p.copyWith(isPopular: currentStatus));
+      throw Exception('Failed to update: $e');
+    }
+  }
+
+  Future<void> toggleNew(String productId, bool currentStatus) async {
+    updateInPlace(productId, (p) => p.copyWith(isNew: !currentStatus));
+    try {
+      await SupabaseClientManager.client
+          .from('items')
+          .update({'is_new': !currentStatus})
+          .eq('id', productId);
+      _triggerMenuRevalidation();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to toggle is_new', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      updateInPlace(productId, (p) => p.copyWith(isNew: currentStatus));
+      throw Exception('Failed to update: $e');
+    }
+  }
+
+  Future<void> toggleSpicy(String productId, bool currentStatus) async {
+    updateInPlace(productId, (p) => p.copyWith(isSpicy: !currentStatus));
+    try {
+      await SupabaseClientManager.client
+          .from('items')
+          .update({'is_spicy': !currentStatus})
+          .eq('id', productId);
+      _triggerMenuRevalidation();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to toggle spicy', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      updateInPlace(productId, (p) => p.copyWith(isSpicy: currentStatus));
+      throw Exception('Failed to update: $e');
+    }
+  }
+
+  Future<void> toggleWeight(String productId, bool currentStatus, String? weightUnit) async {
+    updateInPlace(productId, (p) => p.copyWith(
+      sellByWeight: !currentStatus,
+      weightUnit: !currentStatus ? (weightUnit ?? 'كجم') : null,
+    ));
+    try {
+      await SupabaseClientManager.client
+          .from('items')
+          .update({
+            'sell_by_weight': !currentStatus,
+            'weight_unit': !currentStatus ? (weightUnit ?? 'كجم') : null,
+          })
+          .eq('id', productId);
+      _triggerMenuRevalidation();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to toggle weight', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      updateInPlace(productId, (p) => p.copyWith(sellByWeight: currentStatus));
+      throw Exception('Failed to update: $e');
+    }
   }
 
   Future<void> addProduct({
     required String titleAr,
     String? titleEn,
     String? descAr,
+    String? descEn,
     required List<ProductSize> sizes,
     String? imageUrl,
     String? thumbnailUrl,
@@ -161,37 +216,53 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     bool isAvailable = true,
     bool isPopular = false,
     bool isSpicy = false,
+    bool isNew = false,
+    bool sellByWeight = false,
+    String? weightUnit,
   }) async {
     try {
       final count = state.value?.where((p) => p.categoryId == categoryId).length ?? 0;
-      await SupabaseClientManager.client.from('items').insert({
-        ..._payload(
-          titleAr: titleAr,
-          titleEn: titleEn,
-          descAr: descAr,
-          sizes: sizes,
-          imageUrl: imageUrl,
-          thumbnailUrl: thumbnailUrl,
-          isAvailable: isAvailable,
-          isPopular: isPopular,
-          isSpicy: isSpicy,
-          categoryId: categoryId,
-        ),
+      final encoded = encodeSizes(sizes);
+      final basePrice = encoded.prices.isNotEmpty ? encoded.prices.first : 0.0;
+
+      final res = await SupabaseClientManager.client.from('items').insert({
+        'title_ar': titleAr,
+        'title_en': (titleEn?.isNotEmpty == true) ? titleEn : titleAr,
+        'desc_ar': descAr,
+        'desc_en': descEn,
+        'price': basePrice,
+        'prices': encoded.prices,
+        'size_labels': encoded.labels,
+        'image_url': imageUrl,
+        'thumbnail_url': thumbnailUrl,
+        'is_available': isAvailable,
+        'is_popular': isPopular,
+        'is_spicy': isSpicy,
+        'is_new': isNew,
+        'sell_by_weight': sellByWeight,
+        'weight_unit': sellByWeight ? weightUnit : null,
+        'category_id': categoryId,
         'sort_order': count,
-      });
+      }).select().single();
+
+      final newProduct = ProductModel.fromJson(res);
+      if (state.hasValue) {
+        state = AsyncValue.data([...state.value!, newProduct]);
+      }
       _triggerMenuRevalidation();
-      await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to add product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
       throw Exception('Failed to add product: $e');
     }
   }
 
+  /// Updates an item in place so the order is 100% PRESERVED and never shifts!
   Future<void> updateProduct({
     required String productId,
     required String titleAr,
     String? titleEn,
     String? descAr,
+    String? descEn,
     required List<ProductSize> sizes,
     String? imageUrl,
     String? thumbnailUrl,
@@ -199,48 +270,153 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
     required bool isAvailable,
     required bool isPopular,
     required bool isSpicy,
+    bool isNew = false,
+    bool sellByWeight = false,
+    String? weightUnit,
   }) async {
+    final encoded = encodeSizes(sizes);
+    final basePrice = encoded.prices.isNotEmpty ? encoded.prices.first : 0.0;
+
+    // 1. Optimistic in-place state update: ensures position is preserved exactly!
+    updateInPlace(productId, (old) => old.copyWith(
+      titleAr: titleAr,
+      titleEn: (titleEn?.isNotEmpty == true) ? titleEn : titleAr,
+      descAr: descAr,
+      descEn: descEn,
+      price: basePrice,
+      prices: encoded.prices,
+      rawSizeLabels: encoded.labels,
+      imageUrl: imageUrl ?? old.imageUrl,
+      thumbnailUrl: thumbnailUrl ?? old.thumbnailUrl,
+      categoryId: categoryId ?? old.categoryId,
+      isAvailable: isAvailable,
+      isPopular: isPopular,
+      isSpicy: isSpicy,
+      isNew: isNew,
+      sellByWeight: sellByWeight,
+      weightUnit: sellByWeight ? weightUnit : null,
+    ));
+
     try {
-      final updated = await SupabaseClientManager.client
+      final payload = {
+        'title_ar': titleAr,
+        'title_en': (titleEn?.isNotEmpty == true) ? titleEn : titleAr,
+        'desc_ar': descAr,
+        'desc_en': descEn,
+        'price': basePrice,
+        'prices': encoded.prices,
+        'size_labels': encoded.labels,
+        'image_url': ?imageUrl,
+        'thumbnail_url': ?thumbnailUrl,
+        'is_available': isAvailable,
+        'is_popular': isPopular,
+        'is_spicy': isSpicy,
+        'is_new': isNew,
+        'sell_by_weight': sellByWeight,
+        'weight_unit': sellByWeight ? weightUnit : null,
+        'category_id': ?categoryId,
+      };
+
+      await SupabaseClientManager.client
           .from('items')
-          .update(_payload(
-            titleAr: titleAr,
-            titleEn: titleEn,
-            descAr: descAr,
-            sizes: sizes,
-            imageUrl: imageUrl,
-            thumbnailUrl: thumbnailUrl,
-            isAvailable: isAvailable,
-            isPopular: isPopular,
-            isSpicy: isSpicy,
-            categoryId: categoryId,
-          ))
-          .eq('id', productId)
-          .select('id');
-      if ((updated as List).isEmpty) {
-        final session = SupabaseClientManager.client.auth.currentSession;
-        if (session == null || session.isExpired) {
-          throw Exception('انتهت صلاحية الجلسة، يرجى إعادة تسجيل الدخول لتحديث البيانات.');
-        }
-      }
+          .update(payload)
+          .eq('id', productId);
+
       _triggerMenuRevalidation();
-      await refresh();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to update product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      await refresh(); // Re-sync on failure
       throw Exception('Failed to update product: $e');
     }
   }
 
-  /// Persists a new manual order for a category's items (index = sort_order),
-  /// mirroring the web dashboard's move up/down behavior.
+  /// Duplicates an item and inserts it right next to it, matching the web's duplicate feature.
+  Future<void> duplicateProduct(ProductModel product) async {
+    try {
+      final newTitle = '${product.titleAr} (نسخة)';
+      final response = await SupabaseClientManager.client.from('items').insert({
+        'title_ar': newTitle,
+        'title_en': product.titleEn != null ? '${product.titleEn} (Copy)' : null,
+        'desc_ar': product.descAr,
+        'desc_en': product.descEn,
+        'price': product.price,
+        'prices': product.prices,
+        'size_labels': product.rawSizeLabels,
+        'image_url': product.imageUrl,
+        'thumbnail_url': product.thumbnailUrl,
+        'is_available': product.isAvailable,
+        'is_popular': product.isPopular,
+        'is_spicy': product.isSpicy,
+        'is_new': product.isNew,
+        'sell_by_weight': product.sellByWeight,
+        'weight_unit': product.weightUnit,
+        'category_id': product.categoryId,
+        'sort_order': product.sortOrder + 1,
+      }).select().single();
+
+      final newProduct = ProductModel.fromJson(response);
+      if (state.hasValue) {
+        final list = List<ProductModel>.from(state.value!);
+        final idx = list.indexWhere((p) => p.id == product.id);
+        if (idx != -1) {
+          list.insert(idx + 1, newProduct);
+        } else {
+          list.add(newProduct);
+        }
+        state = AsyncValue.data(list);
+      }
+      _triggerMenuRevalidation();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to duplicate product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      throw Exception('Failed to duplicate: $e');
+    }
+  }
+
+  /// Moves an item up or down within its category, updating sort_order in database.
+  Future<void> moveItem(String categoryId, int itemIndex, String direction) async {
+    if (!state.hasValue) return;
+    final allProducts = List<ProductModel>.from(state.value!);
+    final catItems = allProducts.where((p) => p.categoryId == categoryId).toList();
+    if (catItems.isEmpty) return;
+
+    if (direction == 'up' && itemIndex == 0) return;
+    if (direction == 'down' && itemIndex == catItems.length - 1) return;
+
+    final swapIndex = direction == 'up' ? itemIndex - 1 : itemIndex + 1;
+    final temp = catItems[itemIndex];
+    catItems[itemIndex] = catItems[swapIndex];
+    catItems[swapIndex] = temp;
+
+    // Apply new sort orders locally
+    final idToIndex = {for (var i = 0; i < catItems.length; i++) catItems[i].id: i};
+    final nextAll = allProducts.map((p) {
+      if (p.categoryId == categoryId && idToIndex.containsKey(p.id)) {
+        return p.copyWith(sortOrder: idToIndex[p.id]!);
+      }
+      return p;
+    }).toList();
+
+    // Keep state ordered by category and sort_order
+    state = AsyncValue.data(nextAll);
+
+    // Persist to Supabase
+    try {
+      await Future.wait([
+        for (var i = 0; i < catItems.length; i++)
+          SupabaseClientManager.client
+              .from('items')
+              .update({'sort_order': i})
+              .eq('id', catItems[i].id),
+      ]);
+      _triggerMenuRevalidation();
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to move item', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+    }
+  }
+
   Future<void> reorderProducts(List<String> orderedIds) async {
     try {
       if (orderedIds.isEmpty) return;
-
-      // Issue the updates concurrently rather than one-after-another: 50
-      // products cost ~1 round trip instead of 50. Deliberately UPDATEs
-      // rather than a single upsert — upsert would INSERT if an id were ever
-      // missing, and these rows have NOT NULL columns we don't send here.
       await Future.wait([
         for (var i = 0; i < orderedIds.length; i++)
           SupabaseClientManager.client
@@ -256,14 +432,18 @@ class ProductsNotifier extends Notifier<AsyncValue<List<ProductModel>>> {
   }
 
   Future<void> deleteProduct(String productId) async {
+    if (state.hasValue) {
+      state = AsyncValue.data(state.value!.where((p) => p.id != productId).toList());
+    }
     try {
       await SupabaseClientManager.client
           .from('items')
           .delete()
           .eq('id', productId);
-      await refresh();
+      _triggerMenuRevalidation();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to delete product', error: e, stackTrace: stackTrace, name: 'ProductsProvider');
+      await refresh();
       throw Exception('Failed to delete product: $e');
     }
   }
