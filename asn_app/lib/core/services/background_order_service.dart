@@ -190,7 +190,6 @@ class _OrderListenerHandler extends TaskHandler {
   final Set<String> _notified = {};
   final Set<String> _notifiedWaiterCalls = {};
   OrderRealtimeListener? _realtime;
-  int _cycleCount = 0;
   bool? _waiterCallEnabled;
 
   Future<bool> _resolveWaiterCallEnabled() async {
@@ -313,18 +312,7 @@ class _OrderListenerHandler extends TaskHandler {
       await _syncRealtime(token);
     }
 
-    // 2. Determine if REST poll is needed:
-    // If Realtime is active, push delivers orders immediately without REST polling.
-    // We only need a safety-net poll once every 6 cycles (~4.5 minutes).
-    // If Realtime is disconnected, poll REST immediately every cycle as fallback.
-    final isRtHealthy = (_realtime?.isConnected ?? false) || (_realtime?.isStarting ?? false);
-    _cycleCount++;
-    final shouldPollRest = !isRtHealthy || (_cycleCount % 6 == 0);
-
-    if (!shouldPollRest) {
-      return;
-    }
-
+    // 2. Fetch new orders on each cycle as the guaranteed fallback path
     final result = await client.fetchNewOrders(
       restaurantId: _restaurantId!,
       sinceUtc: _lastSeenUtc,
@@ -380,13 +368,12 @@ class _OrderListenerHandler extends TaskHandler {
     final alert = OrderAlert.fromOrder(order);
     if (alert == null) return; // draft / invalid
 
-    // Handled always by background service now
-    /*
+    // While the app is in the foreground, OrderNotificationService in the UI isolate
+    // delivers the instant alert. This background isolate only alerts when backgrounded or locked.
     if (await _appIsInForeground()) {
       _notified.add(orderId);
       return;
     }
-    */
 
     _notified.add(orderId);
     // Bounded: a long shift must not grow this set without limit.

@@ -20,6 +20,8 @@ import 'package:asn_app/features/auth/data/datasources/auth_local_datasource.dar
 import 'package:asn_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:asn_app/core/error/error_handler.dart';
 import 'package:asn_app/core/services/order_notification_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:asn_app/shared/data/supabase_client.dart';
 import 'package:asn_app/core/services/order_poll_client.dart';
 import 'package:asn_app/core/services/background_order_service.dart';
 
@@ -125,6 +127,18 @@ class AuthNotifier extends Notifier<AuthState> {
     final restaurantId = user.restaurantId;
     if (restaurantId == null) return;
     try {
+      final session = SupabaseClientManager.client.auth.currentSession;
+      if (session != null) {
+        const secure = FlutterSecureStorage(aOptions: AndroidOptions());
+        if (session.accessToken.isNotEmpty) {
+          await secure.write(key: 'jwt_auth_token', value: session.accessToken);
+        }
+        final rt = session.refreshToken;
+        if (rt != null && rt.isNotEmpty) {
+          await secure.write(key: 'jwt_refresh_token', value: rt);
+        }
+      }
+
       final notifService = ref.read(orderNotificationServiceProvider);
       notifService.startListening(restaurantId);
       await notifService.requestPermissions();

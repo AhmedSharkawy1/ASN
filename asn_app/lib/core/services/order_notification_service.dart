@@ -139,12 +139,22 @@ class OrderNotificationService {
       return; // Already listening
     }
 
-    stopListening();
-    _currentRestaurantId = restaurantId;
+    _ordersChannel = _supabase
+        .channel('public:orders:restaurant_$restaurantId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'orders',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'restaurant_id',
+            value: restaurantId,
+          ),
+          callback: _onOrderInserted,
+        )
+        .subscribe();
 
-    _ordersChannel = null;
-
-    AppLogger.info('Delegated listening to orders to background service: $restaurantId', name: 'OrderNotification');
+    AppLogger.info('Started listening to orders for restaurant: $restaurantId', name: 'OrderNotification');
   }
 
   void stopListening() {

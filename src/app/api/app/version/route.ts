@@ -18,10 +18,10 @@ export async function GET() {
     }
 
     return NextResponse.json({
-        version: "2.1.2",
-        build_number: 19,
+        version: "2.1.3",
+        build_number: 20,
         download_url: apkUrl,
-        release_notes: "الإصدار 2.1.2: تحديث أمني واستقرار شامل، منع كامل لأخطاء المصادقة بالخلفية، وإدارة حصرية لنداء الويتر من السوبر أدمن.",
+        release_notes: "الإصدار 2.1.3: تسريع فوري للإشعارات داخل وخارج التطبيق، وربط متقدم لموديل الهاتف.",
         mandatory: true
     }, {
         headers: {
