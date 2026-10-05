@@ -580,7 +580,7 @@ class _CategoryCard extends ConsumerWidget {
                   maxCrossAxisExtent: 220,
                   mainAxisSpacing: 10,
                   crossAxisSpacing: 10,
-                  childAspectRatio: 0.69,
+                  childAspectRatio: 0.60,
                 ),
                 itemCount: items.length,
                 itemBuilder: (context, itemIdx) {
@@ -677,7 +677,7 @@ class _UncategorizedSection extends ConsumerWidget {
               maxCrossAxisExtent: 220,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: 0.69,
+              childAspectRatio: 0.60,
             ),
             itemCount: items.length,
             itemBuilder: (context, itemIdx) {
@@ -935,208 +935,241 @@ class _ProductBoxCard extends ConsumerWidget {
           const Spacer(),
           const Divider(height: 1, thickness: 0.8),
 
-          // BOTTOM: Action Toolbars in 2 Compact Rows (Preserving all modifications)
+          // BOTTOM: Action Toolbars in 2 Compact Rows (100% visible, no clipping)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.22),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Row 1: Reorder (Up/Down) + Star (Popular) + Sparkles (New) + Spicy
+                // Row 1 (Status toggles in exact sequence):
+                // 1. 👁️ Visibility -> 2. ⭐ Popular -> 3. ✨ New -> 4. 🌶️ Spicy
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Up / Down reorder mini-group
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.keyboard_arrow_up, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 22, minHeight: 24),
-                            tooltip: isArabic ? 'نقل لأعلى' : 'Move Up',
-                            onPressed: isFirst
-                                ? null
-                                : () => ref
-                                    .read(productsNotifierProvider.notifier)
-                                    .moveItem(categoryId, itemIndex, 'up'),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.keyboard_arrow_down, size: 16),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minWidth: 22, minHeight: 24),
-                            tooltip: isArabic ? 'نقل لأسفل' : 'Move Down',
-                            onPressed: isLast
-                                ? null
-                                : () => ref
-                                    .read(productsNotifierProvider.notifier)
-                                    .moveItem(categoryId, itemIndex, 'down'),
-                          ),
-                        ],
+                    // 1. 👁️ Visibility (إظهار / إخفاء)
+                    Expanded(
+                      child: _ActionIconBtn(
+                        icon: Icon(
+                          product.isAvailable ? Icons.visibility : Icons.visibility_off,
+                          size: 17,
+                          color: product.isAvailable ? AppColors.success : AppColors.error,
+                        ),
+                        tooltip: isArabic
+                            ? (product.isAvailable ? 'إخفاء الصنف' : 'إظهار الصنف')
+                            : (product.isAvailable ? 'Hide from menu' : 'Show in menu'),
+                        onTap: () => ref
+                            .read(productsNotifierProvider.notifier)
+                            .toggleAvailability(product.id, product.isAvailable),
                       ),
                     ),
 
-                    // ⭐ Star
-                    IconButton(
-                      icon: Icon(
-                        product.isPopular ? Icons.star : Icons.star_border,
-                        size: 17,
-                        color: product.isPopular ? AppColors.warning : Colors.grey,
+                    // 2. ⭐ Popular (مميز)
+                    Expanded(
+                      child: _ActionIconBtn(
+                        icon: Icon(
+                          product.isPopular ? Icons.star : Icons.star_border,
+                          size: 17,
+                          color: product.isPopular ? AppColors.warning : Colors.grey,
+                        ),
+                        tooltip: isArabic
+                            ? (product.isPopular ? 'إلغاء تمييز الصنف' : 'تمييز الصنف')
+                            : (product.isPopular ? 'Unmark popular' : 'Mark popular'),
+                        onTap: () => ref
+                            .read(productsNotifierProvider.notifier)
+                            .togglePopular(product.id, product.isPopular),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                      tooltip: isArabic
-                          ? (product.isPopular ? 'إلغاء تمييز الصنف' : 'تمييز الصنف')
-                          : (product.isPopular ? 'Unmark popular' : 'Mark popular'),
-                      onPressed: () => ref
-                          .read(productsNotifierProvider.notifier)
-                          .togglePopular(product.id, product.isPopular),
                     ),
 
-                    // ✨ New
-                    IconButton(
-                      icon: Icon(
-                        product.isNew ? Icons.auto_awesome : Icons.auto_awesome_outlined,
-                        size: 16,
-                        color: product.isNew ? AppColors.success : Colors.grey,
+                    // 3. ✨ New (جديد)
+                    Expanded(
+                      child: _ActionIconBtn(
+                        icon: Icon(
+                          product.isNew ? Icons.auto_awesome : Icons.auto_awesome_outlined,
+                          size: 16,
+                          color: product.isNew ? AppColors.tealPrimary : Colors.grey,
+                        ),
+                        tooltip: isArabic
+                            ? (product.isNew ? 'إلغاء وسم جديد' : 'وسم كـ جديد')
+                            : (product.isNew ? 'Unmark new' : 'Mark as new'),
+                        onTap: () => ref
+                            .read(productsNotifierProvider.notifier)
+                            .toggleNew(product.id, product.isNew),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                      tooltip: isArabic
-                          ? (product.isNew ? 'إلغاء وسم جديد' : 'وسم كـ جديد')
-                          : (product.isNew ? 'Unmark new' : 'Mark as new'),
-                      onPressed: () => ref
-                          .read(productsNotifierProvider.notifier)
-                          .toggleNew(product.id, product.isNew),
                     ),
 
-                    // 🌶️ Spicy
-                    IconButton(
-                      icon: Icon(
-                        Icons.local_fire_department,
-                        size: 17,
-                        color: product.isSpicy ? AppColors.error : Colors.grey.withValues(alpha: 0.5),
+                    // 4. 🌶️ Spicy (حار)
+                    Expanded(
+                      child: _ActionIconBtn(
+                        icon: Icon(
+                          Icons.local_fire_department,
+                          size: 17,
+                          color: product.isSpicy ? AppColors.error : Colors.grey.withValues(alpha: 0.45),
+                        ),
+                        tooltip: isArabic
+                            ? (product.isSpicy ? 'إلغاء وسم حار' : 'وسم كـ حار 🌶️')
+                            : (product.isSpicy ? 'Unmark spicy' : 'Mark spicy'),
+                        onTap: () => ref
+                            .read(productsNotifierProvider.notifier)
+                            .toggleSpicy(product.id, product.isSpicy),
                       ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                      tooltip: isArabic
-                          ? (product.isSpicy ? 'إلغاء وسم حار' : 'وسم كـ حار 🌶️')
-                          : (product.isSpicy ? 'Unmark spicy' : 'Mark spicy'),
-                      onPressed: () => ref
-                          .read(productsNotifierProvider.notifier)
-                          .toggleSpicy(product.id, product.isSpicy),
                     ),
                   ],
                 ),
 
-                // Row 2: Visibility + Duplicate + Edit + Delete
+                const SizedBox(height: 3),
+
+                // Row 2 (Management tools):
+                // 1. ⬆️⬇️ Reorder -> 2. 📋 Duplicate -> 3. ✏️ Edit -> 4. 🗑️ Delete
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // 👁️ Visibility
-                    IconButton(
-                      icon: Icon(
-                        product.isAvailable ? Icons.visibility : Icons.visibility_off,
-                        size: 17,
-                        color: product.isAvailable ? AppColors.success : AppColors.error,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                      tooltip: isArabic
-                          ? (product.isAvailable ? 'إخفاء الصنف' : 'إظهار الصنف')
-                          : (product.isAvailable ? 'Hide from menu' : 'Show in menu'),
-                      onPressed: () => ref
-                          .read(productsNotifierProvider.notifier)
-                          .toggleAvailability(product.id, product.isAvailable),
-                    ),
-
-                    // 📋 Duplicate
-                    IconButton(
-                      icon: const Icon(Icons.copy_outlined, size: 16, color: Colors.blueGrey),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                      tooltip: isArabic ? 'نسخ الصنف' : 'Duplicate Item',
-                      onPressed: () async {
-                        try {
-                          await ref
-                              .read(productsNotifierProvider.notifier)
-                              .duplicateProduct(product);
-                          if (context.mounted) {
-                            showAppSnackBar(
-                              context,
-                              isArabic ? 'تم نسخ الصنف بنجاح' : 'Item duplicated successfully',
-                              type: AppSnackBarType.success,
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-                          }
-                        }
-                      },
-                    ),
-
-                    // ✏️ Edit
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.tealPrimary),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                      tooltip: l10n.edit,
-                      onPressed: () => showProductEditSheet(context, product: product),
-                    ),
-
-                    // 🗑️ Delete
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.error),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 26, minHeight: 26),
-                      tooltip: l10n.delete,
-                      onPressed: () async {
-                        final confirmed = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: Text(isArabic ? 'حذف الصنف' : 'Delete Item'),
-                            content: Text(
-                              isArabic
-                                  ? 'هل أنت متأكد من حذف صنف "${product.titleAr}"؟'
-                                  : 'Are you sure you want to delete "${product.titleAr}"?',
+                    // 1. Reorder Up / Down
+                    Expanded(
+                      child: Container(
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Tooltip(
+                                message: isArabic ? 'نقل لأعلى' : 'Move Up',
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                                  onTap: isFirst
+                                      ? null
+                                      : () => ref
+                                          .read(productsNotifierProvider.notifier)
+                                          .moveItem(categoryId, itemIndex, 'up'),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.keyboard_arrow_up,
+                                      size: 16,
+                                      color: isFirst
+                                          ? Colors.grey.withValues(alpha: 0.3)
+                                          : Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx, false),
-                                child: Text(l10n.cancel),
+                            VerticalDivider(
+                              width: 1,
+                              thickness: 0.8,
+                              indent: 4,
+                              endIndent: 4,
+                              color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+                            ),
+                            Expanded(
+                              child: Tooltip(
+                                message: isArabic ? 'نقل لأسفل' : 'Move Down',
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                                  onTap: isLast
+                                      ? null
+                                      : () => ref
+                                          .read(productsNotifierProvider.notifier)
+                                          .moveItem(categoryId, itemIndex, 'down'),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.keyboard_arrow_down,
+                                      size: 16,
+                                      color: isLast
+                                          ? Colors.grey.withValues(alpha: 0.3)
+                                          : Theme.of(context).colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              TextButton(
-                                style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                                onPressed: () => Navigator.pop(ctx, true),
-                                child: Text(l10n.delete),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // 2. Duplicate (نسخ)
+                    Expanded(
+                      child: _ActionIconBtn(
+                        icon: const Icon(Icons.copy_outlined, size: 16, color: Colors.blueGrey),
+                        tooltip: isArabic ? 'نسخ الصنف' : 'Duplicate Item',
+                        onTap: () async {
+                          try {
+                            await ref
+                                .read(productsNotifierProvider.notifier)
+                                .duplicateProduct(product);
+                            if (context.mounted) {
+                              showAppSnackBar(
+                                context,
+                                isArabic ? 'تم نسخ الصنف بنجاح' : 'Item duplicated successfully',
+                                type: AppSnackBarType.success,
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                            }
+                          }
+                        },
+                      ),
+                    ),
+
+                    // 3. Edit (تعديل)
+                    Expanded(
+                      child: _ActionIconBtn(
+                        icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.tealPrimary),
+                        tooltip: l10n.edit,
+                        onTap: () => showProductEditSheet(context, product: product),
+                      ),
+                    ),
+
+                    // 4. Delete (حذف)
+                    Expanded(
+                      child: _ActionIconBtn(
+                        icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.error),
+                        tooltip: l10n.delete,
+                        onTap: () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text(isArabic ? 'حذف الصنف' : 'Delete Item'),
+                              content: Text(
+                                isArabic
+                                    ? 'هل أنت متأكد من حذف صنف "${product.titleAr}"؟'
+                                    : 'Are you sure you want to delete "${product.titleAr}"?',
                               ),
-                            ],
-                          ),
-                        );
-                        if (confirmed != true) return;
-                        try {
-                          await ref
-                              .read(productsNotifierProvider.notifier)
-                              .deleteProduct(product.id);
-                          if (context.mounted) {
-                            showAppSnackBar(
-                              context,
-                              isArabic ? 'تم حذف الصنف' : 'Item deleted',
-                              type: AppSnackBarType.info,
-                            );
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: Text(l10n.cancel),
+                                ),
+                                TextButton(
+                                  style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: Text(l10n.delete),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed != true) return;
+                          try {
+                            await ref
+                                .read(productsNotifierProvider.notifier)
+                                .deleteProduct(product.id);
+                            if (context.mounted) {
+                              showAppSnackBar(
+                                context,
+                                isArabic ? 'تم حذف الصنف' : 'Item deleted',
+                                type: AppSnackBarType.info,
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              showAppSnackBar(context, '$e', type: AppSnackBarType.error);
+                            }
                           }
-                        } catch (e) {
-                          if (context.mounted) {
-                            showAppSnackBar(context, '$e', type: AppSnackBarType.error);
-                          }
-                        }
-                      },
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -1150,6 +1183,40 @@ class _ProductBoxCard extends ConsumerWidget {
 
   static String _fmt(double v) =>
       v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(2);
+}
+
+// ============================================================================
+// COMPACT ACTION ICON BUTTON (ضمان توزيع المساحة بالتساوي وتجنب القص)
+// ============================================================================
+class _ActionIconBtn extends StatelessWidget {
+  final Widget icon;
+  final String tooltip;
+  final VoidCallback? onTap;
+
+  const _ActionIconBtn({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          child: SizedBox(
+            height: 28,
+            child: Center(child: icon),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ============================================================================

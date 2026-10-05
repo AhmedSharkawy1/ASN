@@ -391,7 +391,10 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
                         flex: 2,
                         child: TextFormField(
                           controller: row.price,
-                          decoration: InputDecoration(labelText: l10n.price, isDense: true),
+                          decoration: InputDecoration(
+                            labelText: isArabic ? 'السعر' : l10n.price,
+                            isDense: true,
+                          ),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         ),
                       ),
@@ -400,7 +403,11 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
                         flex: 2,
                         child: TextFormField(
                           controller: row.oldPrice,
-                          decoration: InputDecoration(labelText: l10n.oldPrice, isDense: true),
+                          decoration: InputDecoration(
+                            labelText: isArabic ? 'بدل' : 'Was',
+                            hintText: isArabic ? 'قبل الخصم' : 'Old price',
+                            isDense: true,
+                          ),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         ),
                       ),
@@ -416,34 +423,34 @@ class _ProductEditSheetState extends ConsumerState<ProductEditSheet> {
               }),
               AppSpacing.heightSm,
 
-              // Toggles
+              // Toggles in requested order: 1. Visibility -> 2. Popular -> 3. New -> 4. Spicy
               SwitchListTile(
                 value: _isAvailable,
-                title: Text(l10n.available),
+                title: Text(isArabic ? 'متاح للطلب (ظاهر في القائمة)' : l10n.available),
                 secondary: const Icon(Icons.check_circle_outline, color: AppColors.success),
                 contentPadding: EdgeInsets.zero,
                 onChanged: (v) => setState(() => _isAvailable = v),
               ),
               SwitchListTile(
                 value: _isPopular,
-                title: Text(l10n.popular),
+                title: Text(isArabic ? 'مميز (شارة ⭐ مميز)' : l10n.popular),
                 secondary: const Icon(Icons.star_outline, color: AppColors.warning),
                 contentPadding: EdgeInsets.zero,
                 onChanged: (v) => setState(() => _isPopular = v),
               ),
               SwitchListTile(
-                value: _isSpicy,
-                title: Text(l10n.spicy),
-                secondary: const Icon(Icons.local_fire_department_outlined, color: AppColors.error),
-                contentPadding: EdgeInsets.zero,
-                onChanged: (v) => setState(() => _isSpicy = v),
-              ),
-              SwitchListTile(
                 value: _isNew,
-                title: const Text('جديد (شارة ✨ جديد)'),
+                title: Text(isArabic ? 'جديد (شارة ✨ جديد)' : 'New (✨ New badge)'),
                 secondary: const Icon(Icons.auto_awesome, color: Colors.teal),
                 contentPadding: EdgeInsets.zero,
                 onChanged: (v) => setState(() => _isNew = v),
+              ),
+              SwitchListTile(
+                value: _isSpicy,
+                title: Text(isArabic ? 'حار (شارة 🌶️ حار)' : l10n.spicy),
+                secondary: const Icon(Icons.local_fire_department_outlined, color: AppColors.error),
+                contentPadding: EdgeInsets.zero,
+                onChanged: (v) => setState(() => _isSpicy = v),
               ),
               AppSpacing.heightMd,
 
