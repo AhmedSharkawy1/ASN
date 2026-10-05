@@ -169,8 +169,11 @@ Map<String, dynamic> buildOrderRow(
   required String orderId,
   required String? restaurantId,
   required String cashierName,
-  required String createdBy,
+  String? cashierId,
+  String? createdBy,
 }) {
+  final effectiveCashierId = cashierId ?? createdBy;
+
   // Items in the web platform's jsonb shape.
   final items = state.items
       .map((item) => {
@@ -216,7 +219,8 @@ Map<String, dynamic> buildOrderRow(
         state.orderType == PosOrderType.delivery ? state.customerAddress : null,
     'notes': state.notes,
     'cashier_name': cashierName,
-    'created_by': createdBy,
+    if (effectiveCashierId != null && effectiveCashierId.isNotEmpty)
+      'cashier_id': effectiveCashierId,
   };
 }
 
@@ -381,7 +385,7 @@ class CartNotifier extends Notifier<CartState> {
         orderId: orderId,
         restaurantId: user.restaurantId,
         cashierName: user.name,
-        createdBy: user.id,
+        cashierId: user.id,
       );
 
       await SupabaseClientManager.client.from('orders').insert(orderData);

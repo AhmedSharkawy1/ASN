@@ -129,6 +129,9 @@ void _orderRowTests() {
       expect(r['source'], 'pos');
       expect(r['is_draft'], false);
       expect(r['status'], 'pending');
+      expect(r['cashier_name'], 'كاشير');
+      expect(r['cashier_id'], 'u1');
+      expect(r.containsKey('created_by'), false);
     });
 
     test('writes the discount to both column names', () {
