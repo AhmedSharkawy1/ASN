@@ -177,6 +177,7 @@ Map<String, dynamic> buildOrderRow(
   String? cashierId,
   String? createdBy,
   String status = 'completed',
+  DateTime? createdAt,
 }) {
   final effectiveCashierId = cashierId ?? createdBy;
 
@@ -237,6 +238,7 @@ Map<String, dynamic> buildOrderRow(
       'cashier_name': cashierName,
       if (effectiveCashierId != null && effectiveCashierId.isNotEmpty)
         'cashier_id': effectiveCashierId,
+      'created_at': (createdAt ?? DateTime.now()).toUtc().toIso8601String(),
     };
 }
 
@@ -417,6 +419,7 @@ class CartNotifier extends Notifier<CartState> {
       }
 
       final initialStatus = isAutoApprove ? 'completed' : 'pending';
+      final now = DateTime.now();
 
       final orderData = buildOrderRow(
         state,
@@ -425,6 +428,7 @@ class CartNotifier extends Notifier<CartState> {
         cashierName: user.name,
         cashierId: user.id,
         status: initialStatus,
+        createdAt: now,
       );
 
       await SupabaseClientManager.client.from('orders').insert(orderData);

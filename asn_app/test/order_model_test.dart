@@ -134,5 +134,13 @@ void main() {
       expect(updated.id, order.id);
       expect(updated.totalPrice, order.totalPrice);
     });
+
+    test('converts UTC created_at string to local timezone', () {
+      final order = OrderModel.fromJson(baseOrder({
+        'created_at': '2026-03-10T12:00:00Z',
+      })).toEntity();
+      expect(order.createdAt.isUtc, false);
+      expect(order.createdAt, DateTime.parse('2026-03-10T12:00:00Z').toLocal());
+    });
   });
 }

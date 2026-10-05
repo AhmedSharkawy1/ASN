@@ -140,7 +140,7 @@ class OrderModel {
       orderNumber: orderNumber,
       status: status,
       totalPrice: totalPrice,
-      createdAt: DateTime.parse(createdAt),
+      createdAt: (DateTime.tryParse(createdAt) ?? DateTime.now()).toLocal(),
       paymentMethod: paymentMethod,
       customerName: customerName,
       customerPhone: customerPhone,

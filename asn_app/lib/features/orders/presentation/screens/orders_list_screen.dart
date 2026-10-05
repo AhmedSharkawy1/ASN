@@ -269,7 +269,7 @@ class _OrderCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final color = statusColorOf(order.status);
-    final time = DateFormat('hh:mm a').format(order.createdAt);
+    final time = DateFormat('hh:mm a').format(order.createdAt.toLocal());
     final hasPhone = order.customerPhone?.trim().isNotEmpty == true;
     final isDineIn = order.notes?.contains('صالة') == true || order.orderType == 'dine_in';
     final typeLabel = isDineIn ? 'صالة' : OrderAlert.orderTypeLabel(order.orderType);
@@ -558,7 +558,7 @@ class OrderDetailsSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final color = statusColorOf(order.status);
     final hasPhone = order.customerPhone?.trim().isNotEmpty == true;
-    final dateStr = DateFormat('yyyy-MM-dd • hh:mm a').format(order.createdAt);
+    final dateStr = DateFormat('yyyy-MM-dd • hh:mm a').format(order.createdAt.toLocal());
     final isDineIn = order.notes?.contains('صالة') == true || order.orderType == 'dine_in';
     final typeLabel = isDineIn ? 'صالة' : OrderAlert.orderTypeLabel(order.orderType);
     final typeIcon = isDineIn ? Icons.restaurant : _orderTypeIcon(order.orderType, notes: order.notes);

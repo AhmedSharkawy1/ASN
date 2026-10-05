@@ -22,7 +22,7 @@ class CustomerModel {
       phone: json['phone'] as String?,
       address: json['address'] as String?,
       notes: json['notes'] as String?,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'] as String) : null,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at'] as String)?.toLocal() : null,
     );
   }
 }

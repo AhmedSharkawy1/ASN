@@ -111,8 +111,9 @@ class _KitchenTicket extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (headerColor, stageLabel, nextStatus) = _stage();
-    final elapsed = DateTime.now().difference(order.createdAt);
-    final timeStr = DateFormat('hh:mm a').format(order.createdAt);
+    final localCreatedAt = order.createdAt.toLocal();
+    final elapsed = DateTime.now().difference(localCreatedAt);
+    final timeStr = DateFormat('hh:mm a').format(localCreatedAt);
 
     // Highlight new orders waiting more than 15 minutes
     final isUrgent = elapsed.inMinutes > 15 && (order.status == 'pending' || order.status == 'accepted');

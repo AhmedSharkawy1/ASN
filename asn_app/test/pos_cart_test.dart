@@ -141,6 +141,19 @@ void _orderRowTests() {
       expect(r['status'], 'pending');
     });
 
+    test('tags with a valid ISO-8601 UTC created_at timestamp', () {
+      final fixedDate = DateTime.utc(2026, 10, 5, 12, 0, 0);
+      final r = buildOrderRow(
+        CartState(items: [line()]),
+        orderId: 'o1',
+        restaurantId: 'r1',
+        cashierName: 'كاشير',
+        createdBy: 'u1',
+        createdAt: fixedDate,
+      );
+      expect(r['created_at'], '2026-10-05T12:00:00.000Z');
+    });
+
     test('writes the discount to both column names', () {
       // Reports read `discount`; the website used to write only
       // `discount_amount`, which is why website offers showed as no discount.
