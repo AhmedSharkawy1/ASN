@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:asn_app/core/config/app_config.dart';
 
 /// Result of one authenticated poll attempt — carries enough detail to
@@ -97,6 +98,34 @@ class OrderPollClient {
     } catch (_) {
       return false;
     }
+  }
+
+  static String? _cachedUserAgent;
+
+  /// Returns a descriptive User-Agent containing the exact phone brand and model
+  /// so it appears clearly in Supabase Edge Logs (e.g. "ASN-App/2.1.2 (samsung SM-A525F; Android 14)").
+  static Future<String> getUserAgent() async {
+    if (_cachedUserAgent != null) return _cachedUserAgent!;
+    try {
+      final info = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        final android = await info.androidInfo;
+        final brand = android.brand.trim();
+        final model = android.model.trim();
+        final version = android.version.release.trim();
+        _cachedUserAgent = 'ASN-App/2.1.2 ($brand $model; Android $version)';
+      } else if (Platform.isIOS) {
+        final ios = await info.iosInfo;
+        final model = ios.utsname.machine.trim();
+        final version = ios.systemVersion.trim();
+        _cachedUserAgent = 'ASN-App/2.1.2 (Apple $model; iOS $version)';
+      } else {
+        _cachedUserAgent = 'ASN-App/2.1.2 (${Platform.operatingSystem})';
+      }
+    } catch (_) {
+      _cachedUserAgent = 'ASN-App/2.1.2 (Dart/${Platform.version.split(' ').first})';
+    }
+    return _cachedUserAgent!;
   }
 
   const OrderPollClient();
@@ -233,6 +262,7 @@ class OrderPollClient {
       );
       req.headers.set('apikey', AppConfig.supabaseAnonKey);
       req.headers.set('Content-Type', 'application/json');
+      req.headers.set('User-Agent', await getUserAgent());
       req.add(utf8.encode(jsonEncode({'refresh_token': refreshToken})));
       final resp = await req.close();
       final body = await resp.transform(utf8.decoder).join();
@@ -289,6 +319,7 @@ class OrderPollClient {
       req.headers.set('apikey', AppConfig.supabaseAnonKey);
       req.headers.set('Authorization', 'Bearer $accessToken');
       req.headers.set('Accept', 'application/json');
+      req.headers.set('User-Agent', await getUserAgent());
       final resp = await req.close();
       final body = await resp.transform(utf8.decoder).join();
       return (status: resp.statusCode, body: body);
