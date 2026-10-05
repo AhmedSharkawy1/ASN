@@ -340,15 +340,15 @@ class _OrderListenerHandler extends TaskHandler {
       }
     }
 
-    // Short-circuit on authentication failure (e.g. expired session or 400 token refresh failure).
-    // Continuing to poll waiter calls with a dead token causes redundant 401/400 errors
-    // that heavily inflate Supabase Log Integration quotas.
-    if (!result.ok && (result.httpStatus == 400 || result.httpStatus == 401)) {
+    // Short-circuit on any poll failure (auth errors, network drops, expired sessions).
+    // Continuing to poll waiter calls when orders failed causes redundant requests
+    // that inflate Supabase logs.
+    if (!result.ok) {
       return;
     }
 
-    // Only poll waiter calls if the feature is actually enabled for this restaurant
-    _waiterCallEnabled ??= await _resolveWaiterCallEnabled();
+    // Only poll waiter calls if the feature is explicitly enabled for this restaurant
+    _waiterCallEnabled = await _resolveWaiterCallEnabled();
     if (_waiterCallEnabled == true) {
       await _pollWaiterCalls(client, mayRefresh: mayRefresh);
     }

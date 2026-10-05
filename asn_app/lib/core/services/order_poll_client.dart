@@ -83,6 +83,22 @@ class OrderPollClient {
     _lastBadTokenAttempt = null;
   }
 
+  /// Decodes JWT payload and checks if it is expired or will expire within 30 seconds.
+  static bool isJwtExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      final normalized = base64Url.normalize(parts[1]);
+      final payload = utf8.decode(base64Url.decode(normalized));
+      final map = jsonDecode(payload) as Map<String, dynamic>;
+      final exp = map['exp'] as int?;
+      if (exp == null) return false;
+      return DateTime.now().toUtc().millisecondsSinceEpoch >= (exp * 1000 - 30000);
+    } catch (_) {
+      return false;
+    }
+  }
+
   const OrderPollClient();
 
   /// New orders since [sinceUtc].
@@ -116,19 +132,25 @@ class OrderPollClient {
     return _fetchRows(url, mayRefresh: mayRefresh);
   }
 
-  /// One authenticated GET with the refresh-on-401 dance, shared by every
-  /// query so the token handling exists once.
-  ///
-  /// [mayRefresh] false means "the app is on screen": its Supabase SDK owns
-  /// the session and is refreshing on its own schedule. Refreshing here too
-  /// would race it — Supabase rotates the refresh token and revokes the one it
-  /// replaces, so whichever side used the older copy is left permanently
-  /// unauthenticated, which is what "token refresh failed" was. When the app
-  /// is on screen this client only reads what the SDK has already stored.
+  /// One authenticated GET with proactive token refresh.
+  /// If the token is already expired or session is dead, we NEVER send an invalid
+  /// request to Supabase to avoid bloating Edge logs with 401 warnings.
   Future<PollResult> _fetchRows(String url, {bool mayRefresh = true}) async {
     try {
+      // 1. If session is known to be dead, abort immediately without touching the network
+      if (_knownBadRefreshToken != null) {
+        return PollResult(
+          ok: false,
+          httpStatus: 401,
+          error: 'session expired (sign in required to resume alerts)',
+        );
+      }
+
       var token = await _storage.read(key: accessTokenKey);
-      if (token == null || token.isEmpty) {
+
+      // 2. Pre-flight check: if token is missing or expired, refresh BEFORE making any GET request!
+      final needsRefresh = token == null || token.isEmpty || isJwtExpired(token);
+      if (needsRefresh) {
         if (!mayRefresh) {
           return PollResult(ok: false, error: 'waiting for the app to sign in');
         }
@@ -143,10 +165,10 @@ class OrderPollClient {
         token = refreshed.token;
       }
 
+      // 3. Make the authenticated request
       var res = await _get(url, token!);
       if (res.status == 401) {
         if (!mayRefresh) {
-          // The SDK refreshes within the minute; alerting resumes then.
           return PollResult(
             ok: false,
             httpStatus: 401,
@@ -158,8 +180,6 @@ class OrderPollClient {
           return PollResult(
             ok: false,
             httpStatus: refreshed.status,
-            // Carries the server's own reason, so a rotated-away token reads
-            // differently from a network failure on the diagnostics screen.
             error: 'token refresh failed — ${refreshed.error ?? "unknown"}',
           );
         }
@@ -177,21 +197,19 @@ class OrderPollClient {
     }
   }
 
-  /// A token the caller can authenticate a socket with. Refreshes only when
-  /// allowed to — see [fetchNewOrders] for why that matters.
+  /// A token the caller can authenticate a socket with.
   Future<String?> currentAccessToken({bool mayRefresh = true}) async {
+    if (_knownBadRefreshToken != null) return null;
     final token = await _storage.read(key: accessTokenKey);
-    if (token != null && token.isNotEmpty) return token;
+    if (token != null && token.isNotEmpty && !isJwtExpired(token)) {
+      return token;
+    }
     if (!mayRefresh) return null;
     return (await refreshAccessToken()).token;
   }
 
   /// Exchanges the stored refresh token for a new session, persisting both
   /// tokens so the app and the background isolate stay in sync.
-  ///
-  /// Reports why it failed rather than returning a bare null: "refresh token
-  /// already used" (the two sides raced) and "no network" both used to surface
-  /// as the same unhelpful message.
   Future<RefreshResult> refreshAccessToken() async {
     final refreshToken = await _storage.read(key: refreshTokenKey);
     if (refreshToken == null || refreshToken.isEmpty) {
@@ -199,7 +217,6 @@ class OrderPollClient {
     }
 
     // If this token was already rejected with 400 (invalid_grant), throttle retries for 15 minutes
-    // to prevent burning quota with endless doomed requests.
     if (_knownBadRefreshToken == refreshToken && _lastBadTokenAttempt != null) {
       if (DateTime.now().difference(_lastBadTokenAttempt!) < const Duration(minutes: 15)) {
         return const RefreshResult(
@@ -220,9 +237,12 @@ class OrderPollClient {
       final resp = await req.close();
       final body = await resp.transform(utf8.decoder).join();
       if (resp.statusCode != 200) {
-        if (resp.statusCode == 400) {
+        if (resp.statusCode == 400 || resp.statusCode == 401) {
           _knownBadRefreshToken = refreshToken;
           _lastBadTokenAttempt = DateTime.now();
+          // Purge dead tokens from storage so we NEVER send expired/revoked JWTs over the wire again!
+          await _storage.delete(key: accessTokenKey);
+          await _storage.delete(key: refreshTokenKey);
         }
         return RefreshResult(status: resp.statusCode, error: _reasonFrom(body));
       }

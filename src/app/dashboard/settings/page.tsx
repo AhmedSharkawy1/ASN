@@ -502,23 +502,6 @@ export default function SettingsPage() {
                             </label>
                         </div>
 
-                        {/* Call-the-waiter toggle */}
-                        <div className="flex items-center gap-2 flex-wrap bg-slate-50 dark:bg-black/20 p-2 rounded-xl border border-glass-border">
-                            <span
-                                className="text-sm font-bold text-slate-500 dark:text-zinc-400 mr-1 ml-1"
-                                title={language === "ar"
-                                    ? "يظهر زر نداء الجرسون في المنيو عند فتحه من كود الترابيزة، ويصل تنبيه للتطبيق باسم الترابيزة"
-                                    : "Shows a call-the-waiter button on the menu when opened from a table QR, and alerts the app with the table number"}
-                            >
-                                {language === "ar" ? "نداء الجرسون من المنيو:" : "Call waiter from menu:"}
-                            </span>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer"
-                                    checked={profile.waiter_call_enabled || false}
-                                    onChange={e => setProfile({ ...profile, waiter_call_enabled: e.target.checked })} />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
-                            </label>
-                        </div>
 
                         {/* Order Type Visibility */}
                         <div className="flex items-center gap-3 flex-wrap bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
