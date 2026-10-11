@@ -65,7 +65,15 @@ function LoginContent() {
         setError(null);
 
         if (typeof window !== 'undefined') {
+            // مسح كل بيانات الجلسة القديمة عشان ما يحصلش تداخل مع حساب مطعم تاني
             sessionStorage.removeItem('impersonating_tenant');
+            sessionStorage.removeItem('asn_last_auth_check');
+            sessionStorage.removeItem('asn_last_auth_tenant');
+            localStorage.removeItem('offline_session');
+            // مسح الكاش المحلي (IndexedDB) عشان الداشبورد يجيب البيانات الجديدة
+            try {
+                getPosDb().then(({ posDb }) => posDb.settings.delete('current_config')).catch(() => {});
+            } catch {}
         }
 
         try {
