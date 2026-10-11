@@ -64,7 +64,9 @@ const nextConfig = {
                 headers: [
                     {
                         key: 'Cache-Control',
-                        value: 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+                        // Allow Cloudflare edge + browser to serve cached HTML
+                        // for up to 180s, and serve stale while revalidating.
+                        value: 'public, s-maxage=180, stale-while-revalidate=600',
                     },
                     {
                         key: 'Content-Language',

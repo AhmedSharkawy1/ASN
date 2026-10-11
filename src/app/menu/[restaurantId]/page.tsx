@@ -5,8 +5,10 @@ import MenuOffline from "./MenuOffline";
 import { loadMenu } from "./menuData";
 import { MenuConfigProvider } from "@/lib/context/MenuConfigContext";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Let Next's data-cache honour the per-fetch revalidate (180s) set inside
+// menuData.ts. Removing force-dynamic means repeat visitors within that
+// window are served from cache instantly without touching Supabase.
+export const revalidate = 180;
 
 export default async function SmartMenuPage({
   params,

@@ -261,7 +261,7 @@ export default function MenuClient({
 
   useEffect(() => {
     if (showGlobalSplash) {
-      const timer = setTimeout(() => setShowGlobalSplash(false), 2500);
+      const timer = setTimeout(() => setShowGlobalSplash(false), 1000);
       return () => clearTimeout(timer);
     }
   }, [showGlobalSplash]);

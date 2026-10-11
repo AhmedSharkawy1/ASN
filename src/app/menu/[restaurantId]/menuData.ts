@@ -118,7 +118,11 @@ function serverSupabase(restaurantId: string) {
     {
       global: {
         fetch: (url, options) =>
-          fetch(url, { ...options, next: { revalidate: MENU_REVALIDATE_SECONDS, tags: [`menu-${restaurantId}`] } }),
+          fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(6000),
+            next: { revalidate: MENU_REVALIDATE_SECONDS, tags: [`menu-${restaurantId}`] },
+          }),
       },
     }
   );
