@@ -35,19 +35,16 @@ export function extractFileName(urlOrPath: string): string {
 }
 
 
-import { getProxiedImageUrl } from './imageProxy';
-
 /**
  * Convert any menu image URL to its original version.
  * Works seamlessly with Supabase, Cloudflare R2, and proxied URLs.
  */
 export function getOriginalUrl(imageUrl: string | undefined | null): string {
   if (!imageUrl) return '';
-  let url = imageUrl;
-  if (url.includes('/thumbs/')) {
-    url = url.replace('/thumbs/', '/original/');
+  if (imageUrl.includes('/thumbs/')) {
+    return imageUrl.replace('/thumbs/', '/original/');
   }
-  return getProxiedImageUrl(url);
+  return imageUrl;
 }
 
 /**
@@ -56,11 +53,10 @@ export function getOriginalUrl(imageUrl: string | undefined | null): string {
  */
 export function getThumbnailUrl(imageUrl: string | undefined | null): string {
   if (!imageUrl) return '';
-  let url = imageUrl;
-  if (url.includes('/original/')) {
-    url = url.replace('/original/', '/thumbs/');
+  if (imageUrl.includes('/original/')) {
+    return imageUrl.replace('/original/', '/thumbs/');
   }
-  return getProxiedImageUrl(url);
+  return imageUrl;
 }
 
 /**

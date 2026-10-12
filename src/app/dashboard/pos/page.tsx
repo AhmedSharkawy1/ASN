@@ -13,7 +13,6 @@ import { getReceiptStyles, getPrinterSettings } from "@/lib/helpers/printerSetti
 import { executePrint, triggerCashDrawerIfEnabled } from "@/lib/helpers/printEngine";
 import { usePrintSettings } from "@/lib/hooks/usePrintSettings";
 import PrintModal from "@/components/PrintModal";
-import { getProxiedImageUrl } from "@/lib/imageProxy";
 import { renderReceiptHtml, renderShiftReceiptHtml } from "@/lib/helpers/receiptRenderer";
 import { useSearchParams, useRouter } from "next/navigation";
 import { revertOrderInventory } from "@/lib/helpers/inventoryService";
@@ -1438,7 +1437,7 @@ export default function POSPage() {
                         <div ref={receiptRef} className="p-4 text-sm text-black bg-white" dir="rtl" style={{ fontFamily: "'Courier New', monospace" }}>
                             <div style={{ textAlign: "center", marginBottom: "15px" }}>
                                 {(restaurant?.receipt_logo_url || restaurant?.logo_url) && (
-                                    <img src={getProxiedImageUrl(restaurant.receipt_logo_url || restaurant.logo_url)} alt="Logo" style={{ width: "80px", height: "80px", objectFit: "contain", marginBottom: "10px", marginLeft: "auto", marginRight: "auto", display: "block" }} />
+                                    <img src={restaurant.receipt_logo_url || restaurant.logo_url} alt="Logo" style={{ width: "80px", height: "80px", objectFit: "contain", marginBottom: "10px", marginLeft: "auto", marginRight: "auto", display: "block" }} />
                                 )}
                                 <p style={{ fontWeight: "bold", fontSize: "22px", margin: "0 0 5px 0" }}>{restaurant?.name || "Restaurant"}</p>
                                 {restaurant?.phone && <p style={{ fontSize: "14px", margin: "0 0 5px 0" }} dir="ltr">{restaurant.phone}</p>}

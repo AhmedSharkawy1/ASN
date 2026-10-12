@@ -5,7 +5,6 @@ import { useLanguage } from "@/lib/context/LanguageContext";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
-import { getProxiedImageUrl } from "@/lib/imageProxy";
 import { posDb } from "@/lib/pos-db";
 import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle, Send, Moon, Sun, Monitor } from "lucide-react";
 import { FaTiktok, FaTelegramPlane, FaSnapchatGhost, FaYoutube, FaWhatsapp } from "react-icons/fa";
@@ -378,7 +377,7 @@ export default function SettingsPage() {
                             <div className="flex items-center gap-4">
                                 <div className="w-20 h-20 rounded-full border-2 border-glass-border flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-black/20 flex-shrink-0">
                                     {profile.logo_url ? (
-                                        <img src={getProxiedImageUrl(profile.logo_url)} alt="Logo" className="w-full h-full object-cover" />
+                                        <img src={profile.logo_url} alt="Logo" className="w-full h-full object-cover" />
                                     ) : (
                                         <ImageIcon className="w-8 h-8 text-silver/40" />
                                     )}
@@ -399,7 +398,7 @@ export default function SettingsPage() {
                             <div className="flex items-center gap-4">
                                 <div className="w-20 h-20 rounded-xl border-2 border-glass-border flex items-center justify-center overflow-hidden bg-white dark:bg-black/20 flex-shrink-0">
                                     {profile.receipt_logo_url ? (
-                                        <img src={getProxiedImageUrl(profile.receipt_logo_url)} alt="Receipt Logo" className="w-full h-full object-contain" />
+                                        <img src={profile.receipt_logo_url} alt="Receipt Logo" className="w-full h-full object-contain" />
                                     ) : (
                                         <ImageIcon className="w-8 h-8 text-silver/40" />
                                     )}
@@ -421,7 +420,7 @@ export default function SettingsPage() {
                                 <div className="flex flex-wrap gap-2">
                                     {coverImages.length > 0 ? coverImages.map((src, idx) => (
                                         <div key={idx} className="relative w-24 h-16 rounded-xl border-2 border-glass-border overflow-hidden bg-slate-50 dark:bg-black/20 group">
-                                            <img src={getProxiedImageUrl(src)} alt="Cover" className="w-full h-full object-cover" />
+                                            <img src={src} alt="Cover" className="w-full h-full object-cover" />
                                             <button type="button" onClick={() => removeCoverImage(idx)} className="absolute inset-0 bg-slate-200 dark:bg-black/50 text-slate-900 dark:text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                                 <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
                                             </button>
