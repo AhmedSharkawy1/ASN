@@ -4,6 +4,7 @@ import { revalidateTag, revalidatePath } from 'next/cache';
 import { isR2Configured, uploadBufferToR2, deleteFromR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 // Encoding a large photo can outlast the default limit on a cold start.
 export const maxDuration = 30;
 

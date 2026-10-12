@@ -23,6 +23,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Use Node.js runtime so Vercel can cache the full response at the edge.
 // (Edge runtime also works, but Node gives us more familiar APIs.)
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 import { isR2Configured, getObjectFromR2, uploadBufferToR2 } from '@/lib/r2';
 

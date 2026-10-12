@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 // We store backup schedule settings in system_backups as a special meta-row
 const SETTINGS_KEY = 'BACKUP_SCHEDULE_SETTINGS';
 

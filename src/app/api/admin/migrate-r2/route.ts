@@ -4,6 +4,7 @@ import { S3Client, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s
 import { isR2Configured, R2_BUCKET_NAME } from '@/lib/r2';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // Allow long execution on Vercel Pro/server
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
