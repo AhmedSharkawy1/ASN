@@ -2,7 +2,7 @@
 
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2, Sun, Moon, Users } from "lucide-react";
-import { uploadImageWithThumb } from "@/lib/uploadImage";
+import { uploadImageWithThumb, uploadVideo } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -227,21 +227,11 @@ export default function ThemeUsaDualSettings() {
         if (!file) return;
         setUploadingVideo(true);
         try {
-            const fileExt = file.name.split('.').pop() || 'mp4';
-            const fileName = `theme-usa-dual/videos/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-            
-            const { data, error } = await supabase.storage
-                .from('menu-images')
-                .upload(fileName, file, { cacheControl: '3600', upsert: true });
-
-            if (error) throw error;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('menu-images')
-                .getPublicUrl(fileName);
-
-            setConfig(prev => ({ ...prev, usa_dual_video_url: publicUrl }));
-            toast.success(isAr ? "تم رفع الفيديو بنجاح!" : "Video uploaded successfully!");
+            const url = await uploadVideo(file, `theme-usa-dual/videos`);
+            if (url) {
+                setConfig(prev => ({ ...prev, usa_dual_video_url: url }));
+                toast.success(isAr ? "تم رفع الفيديو بنجاح!" : "Video uploaded successfully!");
+            }
         } catch (err: any) {
             console.error("Video upload error:", err);
             toast.error(isAr ? "فشل رفع الفيديو: " + err.message : "Video upload failed: " + err.message);

@@ -150,37 +150,31 @@ export async function uploadBase64(base64: string, folder: string): Promise<stri
 }
 
 /**
- * Delete an image from Supabase Storage by its public URL.
- * Deletes both the original and the thumbnail version.
+ * Delete an image by its public URL.
+ * Deletes both the original and thumbnail from Cloudflare R2 and Supabase Storage.
  */
 export async function deleteImage(publicUrl: string): Promise<boolean> {
     try {
-        const urlParts = publicUrl.split(`/storage/v1/object/public/${BUCKET_NAME}/`);
-        if (urlParts.length < 2) return false;
-
-        const filePath = urlParts[1]; // e.g. "original/uuid.webp" or "items/uuid.webp"
-        const fileName = filePath.split('/').pop() || '';
-        const rawName = fileName.replace(/\.[^/.]+$/, ''); // just the uuid/filename without extension
-
-        const filesToRemove: string[] = [filePath];
-
-        // Also add the corresponding thumb or original path
-        if (filePath.startsWith('original/')) {
-            filesToRemove.push(`thumbs/${rawName}.webp`);
-        } else if (filePath.startsWith('thumbs/')) {
-            filesToRemove.push(`original/${rawName}.webp`);
-        } else {
-            // Legacy path
-            filesToRemove.push(`thumbs/${rawName}.webp`);
+        const response = await fetch(`/api/upload-image?url=${encodeURIComponent(publicUrl)}`, {
+            method: 'DELETE',
+        });
+        if (response.ok) {
+            return true;
         }
 
-        const { error } = await supabase.storage
-            .from(BUCKET_NAME)
-            .remove(filesToRemove);
-
-        if (error) {
-            console.error('Delete error:', error);
-            return false;
+        // Fallback to client-side Supabase Storage delete if API fails
+        const urlParts = publicUrl.split(`/storage/v1/object/public/${BUCKET_NAME}/`);
+        if (urlParts.length >= 2) {
+            const filePath = urlParts[1];
+            const fileName = filePath.split('/').pop() || '';
+            const rawName = fileName.replace(/\.[^/.]+$/, '');
+            const filesToRemove = [filePath];
+            if (filePath.startsWith('original/')) {
+                filesToRemove.push(`thumbs/${rawName}.webp`);
+            } else if (filePath.startsWith('thumbs/')) {
+                filesToRemove.push(`original/${rawName}.webp`);
+            }
+            await supabase.storage.from(BUCKET_NAME).remove(filesToRemove);
         }
         return true;
     } catch (err) {
@@ -265,6 +259,50 @@ export async function uploadImageWithThumb(
     } catch (error: any) {
         console.error('[UPLOAD CLIENT EXCEPTION]', error);
         alert(`Upload exception: ${error?.message}`);
+        return null;
+    }
+}
+
+/**
+ * Upload a video file to the server-side API (which routes to R2 when configured).
+ * Videos are NOT processed by sharp – they are stored as-is.
+ * Returns the public URL of the uploaded video, or null on failure.
+ */
+export async function uploadVideo(file: File | Blob, folder: string): Promise<string | null> {
+    try {
+        const fileName = (file instanceof File && file.name) ? file.name : 'video.mp4';
+        const formData = new FormData();
+        formData.append('file', file, fileName);
+        formData.append('folder', folder);
+
+        const response = await fetch('/api/upload-image', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Video upload API call failed:', errorText);
+
+            let errorMessage = errorText;
+            try {
+                const parsed = JSON.parse(errorText);
+                if (parsed.error) errorMessage = parsed.error;
+            } catch (e) {
+                // Ignore parse error
+            }
+            alert(`فشل رفع الفيديو: ${errorMessage}`);
+            return null;
+        }
+
+        const data = await response.json();
+        if (data.success && data.originalUrl) {
+            return data.originalUrl;
+        }
+
+        return null;
+    } catch (err) {
+        console.error('Video upload exception:', err);
         return null;
     }
 }

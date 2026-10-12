@@ -2,7 +2,7 @@
 
 import { useLanguage } from "@/lib/context/LanguageContext";
 import { Save, Loader2, ImagePlus, X, Video, UploadCloud, FileVideo, Trash2 } from "lucide-react";
-import { uploadImageWithThumb } from "@/lib/uploadImage";
+import { uploadImageWithThumb, uploadVideo } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -208,18 +208,11 @@ export default function ThemeVicinoSettings() {
         if (!file) return;
         setUploadingVideo(true);
         try {
-            // Upload directly to Supabase storage for video
-            const fileExt = file.name.split('.').pop();
-            const fileName = `vicino/video/${Date.now()}.${fileExt}`;
-            const { error: uploadError } = await supabase.storage
-                .from('menu-images')
-                .upload(fileName, file, { cacheControl: '3600', upsert: true });
-
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage.from('menu-images').getPublicUrl(fileName);
-            setConfig({ ...config, vicino_video_url: data.publicUrl });
-            toast.success(isAr ? "تم رفع الفيديو بنجاح" : "Video uploaded successfully");
+            const url = await uploadVideo(file, `vicino/video`);
+            if (url) {
+                setConfig({ ...config, vicino_video_url: url });
+                toast.success(isAr ? "تم رفع الفيديو بنجاح" : "Video uploaded successfully");
+            }
         } catch (err: any) {
             console.error(err);
             toast.error(isAr ? "فشل رفع الفيديو" : "Failed to upload video");

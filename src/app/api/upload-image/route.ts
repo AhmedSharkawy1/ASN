@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { revalidateTag, revalidatePath } from 'next/cache';
-import { isR2Configured, uploadBufferToR2 } from '@/lib/r2';
+import { isR2Configured, uploadBufferToR2, deleteFromR2 } from '@/lib/r2';
 
 export const runtime = 'nodejs';
 // Encoding a large photo can outlast the default limit on a cold start.
@@ -24,6 +24,27 @@ const THUMB_MAX_WIDTH = 400;
 const THUMB_MAX_HEIGHT = 1200;
 /** Refuse absurd inputs before handing them to the encoder, not after. */
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+/** Videos are larger – allow up to 50 MB. */
+const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+
+/** MIME prefixes / types considered a video upload. */
+const VIDEO_MIME_PREFIXES = ['video/'];
+function isVideoFile(mimeType: string): boolean {
+  return VIDEO_MIME_PREFIXES.some(p => mimeType.startsWith(p));
+}
+
+/** Map common video MIME types to file extensions. */
+function videoExtFromMime(mime: string): string {
+  const map: Record<string, string> = {
+    'video/mp4': 'mp4',
+    'video/webm': 'webm',
+    'video/quicktime': 'mov',
+    'video/x-msvideo': 'avi',
+    'video/x-matroska': 'mkv',
+    'video/ogg': 'ogv',
+  };
+  return map[mime] || 'mp4';
+}
 
 type Rendered = {
   original: Buffer;
@@ -179,65 +200,117 @@ export async function POST(req: NextRequest) {
 
     stage = 'buffer-conversion';
     const arrayBuffer = await file.arrayBuffer();
+    const fileMimeType = file.type || 'application/octet-stream';
+    const isVideo = isVideoFile(fileMimeType);
 
-    if (arrayBuffer.byteLength > MAX_UPLOAD_BYTES) {
+    // Apply different size limits for video vs image
+    const maxBytes = isVideo ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES;
+    if (arrayBuffer.byteLength > maxBytes) {
       return NextResponse.json(
-        { error: `Image too large (max ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)`, stage },
+        { error: `File too large (max ${maxBytes / 1024 / 1024}MB)`, stage },
         { status: 413 }
       );
     }
 
-    stage = 'resize';
-    const rendered = await renderVariants(Buffer.from(arrayBuffer), file.type || 'image/webp', isHighQuality);
-    const originalBuffer = rendered.original;
-    const thumbBuffer = rendered.thumb;
-
-    stage = 'storage-preparation';
     const fileId = Date.now().toString(36) + Math.random().toString(36).substring(2, 10);
-    const contentType = rendered.contentType;
-    const originalFileName = `original/${fileId}.webp`;
-    const thumbFileName = `thumbs/${fileId}.webp`;
-
     let originalUrl = '';
     let thumbUrl = '';
+    let diagnosticMode = '';
+    let originalSize = 0;
+    let thumbSize = 0;
 
-    if (isR2Configured()) {
-      stage = 'storage-r2-upload';
-      const [r2Original, r2Thumb] = await Promise.all([
-        uploadBufferToR2(originalFileName, originalBuffer, contentType),
-        uploadBufferToR2(thumbFileName, thumbBuffer, contentType),
-      ]);
-      originalUrl = r2Original.publicUrl;
-      thumbUrl = r2Thumb.publicUrl;
+    if (isVideo) {
+      // ─── Video path: upload directly without sharp processing ───
+      stage = 'video-upload';
+      const videoBuffer = Buffer.from(arrayBuffer);
+      const videoExt = videoExtFromMime(fileMimeType);
+      const videoFileName = `videos/${fileId}.${videoExt}`;
+      originalSize = videoBuffer.byteLength;
+      thumbSize = 0;
+      diagnosticMode = 'video-passthrough';
+
+      if (isR2Configured()) {
+        stage = 'storage-r2-video';
+        const r2Result = await uploadBufferToR2(videoFileName, videoBuffer, fileMimeType, 'public, max-age=31536000');
+        originalUrl = r2Result.publicUrl;
+        thumbUrl = originalUrl; // Videos don't have thumbnails
+      } else {
+        stage = 'storage-supabase-video';
+        const { error: videoUploadError } = await supabaseAdmin.storage
+          .from(BUCKET_NAME)
+          .upload(videoFileName, videoBuffer, {
+            contentType: fileMimeType,
+            cacheControl: '31536000',
+            upsert: true,
+          });
+
+        if (videoUploadError) {
+          return NextResponse.json({ error: `Video upload failed: ${videoUploadError.message}`, stage }, { status: 500 });
+        }
+
+        const { data: videoUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(videoFileName);
+        originalUrl = videoUrlData.publicUrl;
+        thumbUrl = originalUrl;
+      }
     } else {
-      // Fallback to Supabase Storage if R2 is not yet configured
-      stage = 'storage-original';
-      const { error: originalUploadError } = await supabaseAdmin.storage
-        .from(BUCKET_NAME)
-        .upload(originalFileName, originalBuffer, {
-          contentType,
-          cacheControl: '31536000',
-          upsert: true,
-        });
+      // ─── Image path: process with sharp, create original + thumbnail ───
+      stage = 'resize';
+      const rendered = await renderVariants(Buffer.from(arrayBuffer), fileMimeType || 'image/webp', isHighQuality);
+      const originalBuffer = rendered.original;
+      const thumbBuffer = rendered.thumb;
+      diagnosticMode = rendered.mode;
 
-      if (originalUploadError) {
-        return NextResponse.json({ error: `Upload failed: ${originalUploadError.message}`, stage }, { status: 500 });
+      stage = 'storage-preparation';
+      const contentType = rendered.contentType;
+      const originalFileName = `original/${fileId}.webp`;
+      const thumbFileName = `thumbs/${fileId}.webp`;
+
+      originalSize = originalBuffer.byteLength;
+      thumbSize = thumbBuffer.byteLength;
+
+      if (isR2Configured()) {
+        stage = 'storage-r2-upload';
+        const [r2Original, r2Thumb] = await Promise.all([
+          uploadBufferToR2(originalFileName, originalBuffer, contentType),
+          uploadBufferToR2(thumbFileName, thumbBuffer, contentType),
+        ]);
+        originalUrl = r2Original.publicUrl;
+        thumbUrl = r2Thumb.publicUrl;
+      } else {
+        // Fallback to Supabase Storage if R2 is not yet configured
+        stage = 'storage-original';
+        const { error: originalUploadError } = await supabaseAdmin.storage
+          .from(BUCKET_NAME)
+          .upload(originalFileName, originalBuffer, {
+            contentType,
+            cacheControl: '31536000',
+            upsert: true,
+          });
+
+        if (originalUploadError) {
+          return NextResponse.json({ error: `Upload failed: ${originalUploadError.message}`, stage }, { status: 500 });
+        }
+
+        stage = 'storage-thumbnail';
+        const { error: thumbUploadError } = await supabaseAdmin.storage
+          .from(BUCKET_NAME)
+          .upload(thumbFileName, thumbBuffer, {
+            contentType,
+            cacheControl: '31536000',
+            upsert: true,
+          });
+
+        stage = 'public-url';
+        const { data: originalUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(originalFileName);
+        const { data: thumbUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(thumbUploadError ? originalFileName : thumbFileName);
+        originalUrl = originalUrlData.publicUrl;
+        thumbUrl = thumbUrlData.publicUrl;
       }
 
-      stage = 'storage-thumbnail';
-      const { error: thumbUploadError } = await supabaseAdmin.storage
-        .from(BUCKET_NAME)
-        .upload(thumbFileName, thumbBuffer, {
-          contentType,
-          cacheControl: '31536000',
-          upsert: true,
-        });
-
-      stage = 'public-url';
-      const { data: originalUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(originalFileName);
-      const { data: thumbUrlData } = supabaseAdmin.storage.from(BUCKET_NAME).getPublicUrl(thumbUploadError ? originalFileName : thumbFileName);
-      originalUrl = originalUrlData.publicUrl;
-      thumbUrl = thumbUrlData.publicUrl;
+      // Include sharp error info if present
+      if (rendered.reason) {
+        (diagnosticMode as any) = { mode: rendered.mode, sharpError: rendered.reason };
+      }
     }
 
     // Direct database update for item images (bypasses client-side RLS hurdles)
@@ -324,11 +397,11 @@ export async function POST(req: NextRequest) {
       success: true,
       originalUrl,
       thumbUrl,
-      originalSize: originalBuffer.byteLength,
-      thumbSize: thumbBuffer.byteLength,
+      originalSize,
+      thumbSize,
       storageEngine: isR2Configured() ? 'cloudflare-r2' : 'supabase',
-      diagnostic: rendered.mode,
-      ...(rendered.reason ? { sharpError: rendered.reason } : {})
+      diagnostic: diagnosticMode,
+      ...(isVideo ? { fileType: 'video' } : {}),
     });
 
   } catch (error: any) {
@@ -342,4 +415,63 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const url = searchParams.get('url');
+    if (!url) {
+      return NextResponse.json({ error: 'Missing url parameter' }, { status: 400 });
+    }
+
+    let filePath = '';
+    if (url.includes('/api/img/')) {
+      filePath = url.split('/api/img/')[1]?.split('?')[0] || '';
+    } else if (url.includes(`/storage/v1/object/public/${BUCKET_NAME}/`)) {
+      filePath = url.split(`/storage/v1/object/public/${BUCKET_NAME}/`)[1]?.split('?')[0] || '';
+    } else {
+      try {
+        const parsed = new URL(url, 'http://localhost');
+        const segments = parsed.pathname.split('/').filter(Boolean);
+        if (segments.length >= 2) {
+          filePath = segments.slice(-2).join('/');
+        }
+      } catch {
+        filePath = url.replace(/^\/+/, '');
+      }
+    }
+
+    if (!filePath) {
+      return NextResponse.json({ error: 'Invalid file path from URL' }, { status: 400 });
+    }
+
+    const fileName = filePath.split('/').pop() || '';
+    const rawName = fileName.replace(/\.[^/.]+$/, '');
+    const pathsToDelete = [filePath];
+
+    if (filePath.startsWith('original/')) {
+      pathsToDelete.push(`thumbs/${rawName}.webp`);
+    } else if (filePath.startsWith('thumbs/')) {
+      pathsToDelete.push(`original/${rawName}.webp`);
+    }
+
+    if (isR2Configured()) {
+      await Promise.all(pathsToDelete.map(k => deleteFromR2(k)));
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && supabaseServiceKey) {
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { persistSession: false },
+      });
+      await supabaseAdmin.storage.from(BUCKET_NAME).remove(pathsToDelete);
+    }
+
+    return NextResponse.json({ success: true, deleted: pathsToDelete });
+  } catch (error: any) {
+    return NextResponse.json({ error: error?.message || 'Delete failed' }, { status: 500 });
+  }
+}
+
 

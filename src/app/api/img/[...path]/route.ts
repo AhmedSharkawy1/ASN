@@ -96,10 +96,11 @@ export async function GET(
 
     if (
       !contentType.startsWith('image/') &&
+      !contentType.startsWith('video/') &&
       !contentType.startsWith('application/octet-stream')
     ) {
       return NextResponse.json(
-        { error: 'Not an image' },
+        { error: 'Not an image or video' },
         { status: 400 }
       );
     }
