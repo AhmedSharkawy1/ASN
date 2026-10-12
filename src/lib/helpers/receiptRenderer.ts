@@ -1,5 +1,6 @@
 import { formatCurrency, formatQuantity } from "./formatters";
 import { getReceiptStyles } from "./printerSettings";
+import { getProxiedImageUrl } from "@/lib/imageProxy";
 
 export function renderReceiptHtml(order: any, restaurant: any, isAr: boolean = true) {
     const orderTypeLabel = order.order_type === 'dine_in' ? 'صالة' : order.order_type === 'delivery' ? 'دليفري' : 'تيك أواي';
@@ -42,7 +43,7 @@ export function renderReceiptHtml(order: any, restaurant: any, isAr: boolean = t
     return `<html><head><title>Receipt</title><style>${getReceiptStyles()}</style></head><body>
         <div class="receipt-wrapper">
             <div style="text-align:center;margin-bottom:15px;color:#000;font-weight:900">
-                ${(restaurant?.receipt_logo_url || restaurant?.logo_url) ? `<img src="${restaurant.receipt_logo_url || restaurant.logo_url}" alt="Logo" style="width:150px;height:150px;object-fit:contain;margin-bottom:10px;margin-left:auto;margin-right:auto;display:block" />` : ''}
+                ${(restaurant?.receipt_logo_url || restaurant?.logo_url) ? `<img src="${getProxiedImageUrl(restaurant.receipt_logo_url || restaurant.logo_url)}" alt="Logo" style="width:150px;height:150px;object-fit:contain;margin-bottom:10px;margin-left:auto;margin-right:auto;display:block" />` : ''}
                 <p style="font-weight:900;font-size:22px;margin:0 0 5px 0;color:#000">${restaurant?.name || 'Restaurant'}</p>
                 ${restaurant?.phone ? `<p style="font-size:14px;margin:0 0 5px 0;font-weight:900;color:#000" dir="ltr">${restaurant.phone}</p>` : ''}
                 ${restaurant?.phone_numbers?.map((p: any) => `<p style="font-size:14px;margin:0 0 5px 0;font-weight:900;color:#000" dir="ltr">${p.number}</p>`).join('') || ''}
