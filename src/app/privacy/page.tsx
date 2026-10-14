@@ -1,10 +1,11 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { Shield, Lock, Eye, FileText, Server, Mail } from 'lucide-react';
+import { Shield, Lock, Eye, FileText, Server, Mail, UserX } from 'lucide-react';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'سياسة الخصوصية | Privacy Policy',
-  description: 'سياسة الخصوصية لتطبيق الهاتف المحمول الخاص بنا.',
+  description: 'سياسة الخصوصية وحذف الحساب لتطبيق ASN Menu.',
 };
 
 export default function PrivacyPolicy() {
@@ -62,8 +63,34 @@ export default function PrivacyPolicy() {
           />
 
           <PolicySection
+            icon={<UserX size={24} />}
+            title="6. حذف الحساب وبياناتك الشخصية"
+            content="يحق لك طلب حذف حسابك وجميع بياناتك الشخصية المرتبطة به في أي وقت. عند تقديم طلب الحذف، سنقوم بإزالة بيانات تسجيل الدخول الخاصة بك، معلومات ملفك الشخصي، صلاحيات الوصول، وجميع البيانات الشخصية المرتبطة بحسابك من أنظمتنا بشكل نهائي. يمكنك تقديم طلب حذف الحساب من خلال صفحة حذف الحساب المخصصة أو عبر مراسلتنا على البريد الإلكتروني asntechnology1@gmail.com. سيتم معالجة طلبك خلال فترة لا تتجاوز 30 يوماً."
+          />
+
+          {/* Account Deletion CTA */}
+          <div className="bg-red-50/80 dark:bg-red-950/20 backdrop-blur-xl border border-red-200 dark:border-red-800/30 rounded-3xl p-6 md:p-8 shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+            <div className="flex items-center gap-4 mb-4 text-red-800 dark:text-red-300">
+              <div className="p-3 bg-red-100 dark:bg-red-500/20 rounded-xl text-red-600 dark:text-red-400">
+                <UserX size={24} />
+              </div>
+              <h2 className="text-2xl font-bold font-cairo">طلب حذف الحساب</h2>
+            </div>
+            <p className="text-red-700 dark:text-red-300/80 leading-relaxed mb-6 font-cairo text-lg">
+              إذا كنت ترغب في حذف حسابك وجميع بياناتك الشخصية من أنظمتنا، يمكنك تقديم طلب حذف من خلال الصفحة المخصصة.
+            </p>
+            <Link 
+              href="/account-deletion"
+              className="inline-flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold transition-colors duration-200"
+            >
+              <UserX size={20} />
+              <span>طلب حذف الحساب</span>
+            </Link>
+          </div>
+
+          <PolicySection
             icon={<Shield size={24} />}
-            title="5. التغييرات على سياسة الخصوصية"
+            title="7. التغييرات على سياسة الخصوصية"
             content="قد نقوم بتحديث سياسة الخصوصية الخاصة بنا من وقت لآخر. وبالتالي، ننصحك بمراجعة هذه الصفحة بشكل دوري لمعرفة أي تغييرات. سنقوم بإعلامك بأي تغييرات عن طريق نشر سياسة الخصوصية الجديدة على هذه الصفحة. هذه التغييرات فعالة فور نشرها."
           />
 

@@ -1353,7 +1353,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                 {hasMultipleSizes ? (
                                                     <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-zinc-700/80 space-y-1.5">
                                                         {/* Sizes Grid: 2 cols side-by-side like Theme 26; 3rd or odd-last size spans 2 cols underneath */}
-                                                        <div className={`grid grid-cols-2 gap-1.5 w-full ${item.prices.length > 4 ? 'max-h-[160px] overflow-y-auto no-scrollbar' : ''}`}>
+                                                        <div className={`grid grid-cols-2 gap-1 sm:gap-1.5 w-full ${item.prices.length > 4 ? 'max-h-[160px] overflow-y-auto no-scrollbar' : ''}`}>
                                                             {item.prices.map((price, pIdx) => {
                                                                 const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
                                                                 const oldPrice = item.old_prices?.[pIdx];
@@ -1361,6 +1361,14 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                 const sizeDiscountPercent = hasDisc && oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
                                                                 const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
                                                                 const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
+
+                                                                const labelLen = label.trim().length;
+                                                                const sizeTextClass = 
+                                                                    labelLen > 11 ? 'text-[9px] sm:text-[9.5px]' :
+                                                                    labelLen > 7 ? 'text-[10px] sm:text-[10.5px]' :
+                                                                    labelLen > 4 ? 'text-[10.5px] sm:text-xs' :
+                                                                    'text-xs';
+                                                                const sizeFontWeight = labelLen > 4 ? 'font-bold' : 'font-extrabold';
 
                                                                 return (
                                                                     <button
@@ -1370,7 +1378,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                             e.stopPropagation();
                                                                             handleItemClick(item, catName(cat), cat.id, pIdx);
                                                                         }}
-                                                                        className={`relative group/size theme30-size-btn flex flex-col items-center justify-between py-1.5 px-1.5 rounded-xl border-2 transition-all text-center min-h-[52px] ${
+                                                                        className={`relative group/size theme30-size-btn flex flex-col items-center justify-between py-1.5 px-1 sm:px-1.5 rounded-xl border-2 transition-all text-center min-h-[50px] sm:min-h-[52px] ${
                                                                             isOddLast ? 'col-span-2' : ''
                                                                         } ${
                                                                             sizeCartQty > 0
@@ -1385,6 +1393,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                             color: primaryColor,
                                                                             boxShadow: `0 0 0 1px ${primaryColor}40`
                                                                         } : undefined}
+                                                                        title={label}
                                                                     >
                                                                         {/* Offer Badge on Top of Pill */}
                                                                         {hasDisc && sizeDiscountPercent && (
@@ -1405,7 +1414,12 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                                         )}
 
                                                                         {/* Size Label */}
-                                                                        <span className={`text-xs font-extrabold truncate max-w-full leading-tight ${hasDisc ? 'text-rose-700 dark:text-rose-300' : 'text-slate-800 dark:text-zinc-100'}`}>
+                                                                        <span 
+                                                                            dir="auto"
+                                                                            className={`w-full max-w-full text-center break-words line-clamp-2 leading-tight px-0.5 ${sizeTextClass} ${sizeFontWeight} ${
+                                                                                hasDisc ? 'text-rose-700 dark:text-rose-300' : 'text-slate-800 dark:text-zinc-100'
+                                                                            }`}
+                                                                        >
                                                                             {label}
                                                                         </span>
 

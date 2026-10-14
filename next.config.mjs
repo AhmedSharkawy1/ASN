@@ -57,6 +57,15 @@ const nextConfig = {
             ],
         },
     },
+    async redirects() {
+        return [
+            {
+                source: '/s',
+                destination: '/privacy',
+                permanent: false,
+            },
+        ];
+    },
     async headers() {
         return [
             {

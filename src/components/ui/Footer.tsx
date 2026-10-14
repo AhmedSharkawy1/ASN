@@ -64,6 +64,9 @@ export default function Footer() {
                     <Link href="/#contact" className="hover:text-foreground transition-colors">
                         {language === "ar" ? "اتصل بنا" : "Contact"}
                     </Link>
+                    <Link href="/privacy" className="hover:text-foreground transition-colors">
+                        {language === "ar" ? "الخصوصية" : "Privacy"}
+                    </Link>
                 </div>
 
                 {/* Social Links */}
