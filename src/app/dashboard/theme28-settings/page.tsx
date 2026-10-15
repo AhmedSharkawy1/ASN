@@ -5,7 +5,7 @@ import {
     Save, Loader2, ImagePlus, Trash2, Sun, Moon, Palette, Eye, 
     Sparkles, Megaphone, Link2, Plus, X, Layers,
     AlignJustify, LayoutGrid, LayoutList, Maximize2, Check,
-    Flame, Coffee, Globe
+    Flame, Coffee, Globe, Utensils, Truck
 } from "lucide-react";
 import { uploadImageWithThumb } from "@/lib/uploadImage";
 import { useState, useEffect } from "react";
@@ -36,6 +36,7 @@ interface Theme28Config {
     primary_color: string;
     theme28_default_view_mode: 'grid' | 'list' | 'compact' | 'showcase';
     theme28_show_stories: boolean;
+    service_type: 'dine_in_and_delivery' | 'delivery_only';
     theme28_popup: Theme28PopupConfig;
     theme_colors: any;
     current_theme: string;
@@ -69,6 +70,7 @@ export default function Theme28SettingsPage() {
         primary_color: "#059669",
         theme28_default_view_mode: "grid",
         theme28_show_stories: true,
+        service_type: "dine_in_and_delivery",
         theme28_popup: {
             enabled: false,
             title: "",
@@ -135,7 +137,7 @@ export default function Theme28SettingsPage() {
                 // Fetch Restaurant Theme Data
                 const { data: restData } = await supabase
                     .from("restaurants")
-                    .select("slug, theme, theme_colors")
+                    .select("slug, theme, theme_colors, pickup_enabled, delivery_enabled")
                     .eq("id", rId)
                     .single();
 
@@ -159,12 +161,18 @@ export default function Theme28SettingsPage() {
                         ? tc.theme28_default_view_mode
                         : 'grid';
 
+                    const resolvedServiceType: 'dine_in_and_delivery' | 'delivery_only' = 
+                        (tc.theme28_service_type === 'delivery_only' || tc.service_type === 'delivery_only' || (restData.pickup_enabled === false && restData.delivery_enabled !== false))
+                            ? 'delivery_only'
+                            : 'dine_in_and_delivery';
+
                     setConfig({
                         theme28_bg_light: tc.theme28_bg_light || tc.bg_image_light || "",
                         theme28_bg_dark: tc.theme28_bg_dark || tc.bg_image_dark || "",
                         primary_color: tc.primary || "#059669",
                         theme28_default_view_mode: defaultViewMode,
                         theme28_show_stories: tc.theme28_show_stories !== false,
+                        service_type: resolvedServiceType,
                         theme28_popup: popup,
                         theme_colors: tc,
                         current_theme: restData.theme || "theme28",
@@ -196,6 +204,8 @@ export default function Theme28SettingsPage() {
                 theme28_bg_dark: config.theme28_bg_dark,
                 theme28_default_view_mode: config.theme28_default_view_mode,
                 theme28_show_stories: config.theme28_show_stories,
+                theme28_service_type: config.service_type,
+                service_type: config.service_type,
                 theme28_popup: config.theme28_popup,
             };
 
@@ -204,11 +214,15 @@ export default function Theme28SettingsPage() {
                 targetTheme = "theme28";
             }
 
+            const isDeliveryOnly = config.service_type === 'delivery_only';
+
             const { data, error } = await supabase
                 .from("restaurants")
                 .update({
                     theme: targetTheme,
-                    theme_colors: updatedThemeColors
+                    theme_colors: updatedThemeColors,
+                    pickup_enabled: !isDeliveryOnly,
+                    delivery_enabled: true
                 })
                 .eq("id", restaurantId)
                 .select();
@@ -520,7 +534,84 @@ export default function Theme28SettingsPage() {
                 </div>
             </div>
 
-            {/* 3. BACKGROUND IMAGES (Light & Dark) */}
+            {/* 3. SERVICE TYPE: DINE-IN & DELIVERY VS DELIVERY ONLY */}
+            <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 shadow-sm space-y-4">
+                <div className="flex items-center gap-2.5">
+                    <Utensils className="w-5 h-5 text-emerald-500" />
+                    <div>
+                        <h2 className="text-base font-black">
+                            {isAr ? "نوع خدمة المطعم (صالة ودليفري أم دليفري فقط)" : "Restaurant Service Mode"}
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                            {isAr 
+                                ? "حدد ما إذا كان المطعم يستقبل زبائن في الصالة ويقدم دليفري، أم أنه مخصص لطلبات الدليفري والتوصيل فقط. يظهر هذا الخيار في ترويسة المنيو ويتحكم في خيارات الطلب." 
+                                : "Specify whether the restaurant offers dine-in & delivery or delivery only. Controls header badges and checkout options."}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <button
+                        type="button"
+                        onClick={() => setConfig(prev => ({ ...prev, service_type: 'dine_in_and_delivery' }))}
+                        className={`p-4 rounded-2xl border text-right transition-all flex items-start gap-3 relative ${
+                            config.service_type === 'dine_in_and_delivery'
+                                ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 font-black shadow-xs ring-2 ring-emerald-500'
+                                : 'border-black/5 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                        }`}
+                    >
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 mt-0.5">
+                            <Utensils className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs sm:text-sm font-black">{isAr ? "صالة ودليفري" : "Dine-in & Delivery"}</span>
+                                {config.service_type === 'dine_in_and_delivery' && (
+                                    <span className="text-[10px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد حالياً" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                {isAr 
+                                    ? "عرض شارة 'صالة ودليفري' في ترويسة المنيو، مع إتاحة خياري الاستلام من المطعم والتوصيل للعميل." 
+                                    : "Shows 'Dine-in & Delivery' badge and offers both pickup & delivery at checkout."}
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setConfig(prev => ({ ...prev, service_type: 'delivery_only' }))}
+                        className={`p-4 rounded-2xl border text-right transition-all flex items-start gap-3 relative ${
+                            config.service_type === 'delivery_only'
+                                ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 font-black shadow-xs ring-2 ring-emerald-500'
+                                : 'border-black/5 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                        }`}
+                    >
+                        <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 mt-0.5">
+                            <Truck className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs sm:text-sm font-black">{isAr ? "دليفري فقط" : "Delivery Only"}</span>
+                                {config.service_type === 'delivery_only' && (
+                                    <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد حالياً" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                {isAr 
+                                    ? "عرض شارة 'دليفري فقط' في ترويسة المنيو، وقفل الطلب على توصيل الدليفري حصراً بدون استلام من الفرع." 
+                                    : "Shows 'Delivery Only' badge and locks ordering strictly to delivery."}
+                            </p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            {/* 4. BACKGROUND IMAGES (Light & Dark) */}
             <div className="p-6 rounded-3xl bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/10 shadow-sm space-y-4">
                 <div className="flex items-center gap-2.5">
                     <ImagePlus className="w-5 h-5 text-emerald-500" />

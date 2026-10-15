@@ -1,11 +1,12 @@
 "use client";
 
 import { useLanguage } from "@/lib/context/LanguageContext";
-import { Palette, Check, Save, Loader2, ExternalLink, Filter, Search, X, RotateCcw, Sparkles, ChevronLeft, ChevronRight, ShoppingBag } from "lucide-react";
+import { Palette, Check, Save, Loader2, ExternalLink, Filter, Search, X, RotateCcw, Sparkles, ChevronLeft, ChevronRight, ShoppingBag, Settings, Utensils, Truck } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { posDb } from "@/lib/pos-db";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 const THEMES = [
     // ===== Theme 1: PizzaPasta Family =====
@@ -895,6 +896,57 @@ export default function ThemePage() {
                                     </motion.div>
                                 );
                             })}
+                        </div>
+                    )}
+
+                    {/* Quick Config Banner for Theme 30 or Theme 28 */}
+                    {selectedTheme.startsWith("theme30") && (
+                        <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 border border-indigo-500/30 p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white shadow-lg">
+                            <div className="space-y-1">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 text-[11px] font-black">
+                                    <Sparkles className="w-3 h-3 text-amber-400" />
+                                    <span>{isArabic ? "تخصيص ثيم 30 (أوبسيديان نيو-لوكس)" : "Theme 30 Customization"}</span>
+                                </div>
+                                <h4 className="font-extrabold text-sm flex items-center gap-2">
+                                    <Utensils className="w-4 h-4 text-amber-400" />
+                                    <span>{isArabic ? "تحديد نوع الخدمة (صالة ودليفري / دليفري فقط) والألوان والخلفيات" : "Set Service Mode (Dine-in / Delivery Only) & Colors"}</span>
+                                </h4>
+                                <p className="text-indigo-200/80 text-xs">
+                                    {isArabic ? "يمكنك ضبط هل المطعم يستقبل زبائن صالة وتوصيل أم دليفري فقط، مع رفع خلفيات وصور مخصصة." : "Choose whether this restaurant is Dine-in & Delivery or Delivery only, and customize backgrounds."}
+                                </p>
+                            </div>
+                            <Link
+                                href="/dashboard/theme30-settings"
+                                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs transition-all flex items-center justify-center gap-2 shrink-0 shadow-md shadow-indigo-600/30"
+                            >
+                                <Settings className="w-4 h-4" />
+                                <span>{isArabic ? "فتح إعدادات ثيم 30" : "Open Theme 30 Settings"}</span>
+                            </Link>
+                        </div>
+                    )}
+
+                    {selectedTheme.startsWith("theme28") && (
+                        <div className="bg-gradient-to-r from-emerald-900 via-emerald-950 to-slate-900 border border-emerald-500/30 p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white shadow-lg">
+                            <div className="space-y-1">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 text-[11px] font-black">
+                                    <Sparkles className="w-3 h-3 text-amber-400" />
+                                    <span>{isArabic ? "تخصيص ثيم 28 (العصري الشامل)" : "Theme 28 Customization"}</span>
+                                </div>
+                                <h4 className="font-extrabold text-sm flex items-center gap-2">
+                                    <Utensils className="w-4 h-4 text-amber-400" />
+                                    <span>{isArabic ? "تحديد نوع الخدمة (صالة ودليفري / دليفري فقط) والألوان والخلفيات" : "Set Service Mode (Dine-in / Delivery Only) & Colors"}</span>
+                                </h4>
+                                <p className="text-emerald-200/80 text-xs">
+                                    {isArabic ? "يمكنك ضبط هل المطعم يستقبل زبائن صالة وتوصيل أم دليفري فقط، مع رفع خلفيات وصور مخصصة." : "Choose whether this restaurant is Dine-in & Delivery or Delivery only, and customize backgrounds."}
+                                </p>
+                            </div>
+                            <Link
+                                href="/dashboard/theme28-settings"
+                                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs transition-all flex items-center justify-center gap-2 shrink-0 shadow-md shadow-emerald-600/30"
+                            >
+                                <Settings className="w-4 h-4" />
+                                <span>{isArabic ? "فتح إعدادات ثيم 28" : "Open Theme 28 Settings"}</span>
+                            </Link>
                         </div>
                     )}
 

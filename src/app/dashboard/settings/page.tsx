@@ -154,6 +154,18 @@ export default function SettingsPage() {
         setSuccessMessage("");
 
         try {
+            let tc = profile.theme_colors || {};
+            if (typeof tc === 'string') {
+                try { tc = JSON.parse(tc); } catch { tc = {}; }
+            }
+            const currentServiceType = (profile.pickup_enabled === false && profile.delivery_enabled !== false) ? 'delivery_only' : 'dine_in_and_delivery';
+            const updatedThemeColors = {
+                ...tc,
+                service_type: currentServiceType,
+                theme28_service_type: currentServiceType,
+                theme30_service_type: currentServiceType,
+            };
+
             // First attempt with all new columns
             let { error } = await supabase
                 .from('restaurants')
@@ -180,7 +192,7 @@ export default function SettingsPage() {
                     marquee_text_en: profile.marquee_text_en || '',
                     orders_enabled: profile.orders_enabled ?? true,
                     order_channel: profile.order_channel || 'whatsapp',
-                    theme_colors: profile.theme_colors || {},
+                    theme_colors: updatedThemeColors,
                     telegram_bot_token: profile.telegram_bot_token || '',
                     telegram_chat_id: profile.telegram_chat_id || '',
                     desktop_permissions: profile.desktop_permissions || {
@@ -248,7 +260,7 @@ export default function SettingsPage() {
                         whatsapp_group_url: profile.whatsapp_group_url || '',
                         default_theme_mode: profile.default_theme_mode || 'system',
                         starting_order_number: profile.starting_order_number || 1,
-                        theme_colors: profile.theme_colors || {},
+                        theme_colors: updatedThemeColors,
                         order_channel: profile.order_channel || 'whatsapp',
                     })
                     .eq('id', profile.id);
@@ -503,29 +515,64 @@ export default function SettingsPage() {
                         </div>
 
 
-                        {/* Order Type Visibility */}
-                        <div className="flex items-center gap-3 flex-wrap bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
-                            <span className="text-sm font-bold text-slate-500 dark:text-zinc-400 mr-1 ml-1">
-                                {language === "ar" ? "🚀 نوع الطلب المتاح للعميل:" : "🚀 Available Order Types:"}
-                            </span>
-                            <div className="flex items-center gap-4">
+                        {/* Order Type & Restaurant Service Mode */}
+                        <div className="space-y-3 bg-slate-50 dark:bg-black/20 p-4 rounded-2xl border border-glass-border">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                                <span className="text-sm font-black text-slate-700 dark:text-zinc-200 flex items-center gap-2">
+                                    <span>🍽️</span>
+                                    <span>{language === "ar" ? "نوع خدمة المطعم (يظهر في ترويسة ثيم 28 وثيم 30 وكافة المنيوهات):" : "Restaurant Service Mode (Theme 28 & 30):"}</span>
+                                </span>
+                                
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setProfile({ ...profile, pickup_enabled: true, delivery_enabled: true })}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
+                                            (profile.pickup_enabled ?? true) && (profile.delivery_enabled ?? true)
+                                                ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                                                : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:border-emerald-500'
+                                        }`}
+                                    >
+                                        <span>🍽️</span>
+                                        <span>{language === "ar" ? "صالة ودليفري" : "Dine-in & Delivery"}</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setProfile({ ...profile, pickup_enabled: false, delivery_enabled: true })}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
+                                            !(profile.pickup_enabled ?? true) && (profile.delivery_enabled ?? true)
+                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                                : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:border-blue-600'
+                                        }`}
+                                    >
+                                        <span>🚚</span>
+                                        <span>{language === "ar" ? "دليفري فقط" : "Delivery Only"}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 pt-2 border-t border-black/5 dark:border-white/5 flex-wrap">
+                                <span className="text-xs font-bold text-slate-500 dark:text-zinc-400">
+                                    {language === "ar" ? "الخيارات المتاحة للزبون:" : "Customer Options:"}
+                                </span>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" className="sr-only peer" checked={profile.pickup_enabled ?? true} onChange={e => setProfile({ ...profile, pickup_enabled: e.target.checked })} />
                                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-                                    <span className={`text-sm font-bold ${(profile.pickup_enabled ?? true) ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>
-                                        {language === "ar" ? "🏪 استلام من المطعم" : "🏪 Pickup"}
+                                    <span className={`text-xs sm:text-sm font-bold ${(profile.pickup_enabled ?? true) ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-400'}`}>
+                                        {language === "ar" ? "🏪 استلام من المطعم / صالة" : "🏪 Pickup / Dine-in"}
                                     </span>
                                 </label>
                                 <label className="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" className="sr-only peer" checked={profile.delivery_enabled ?? true} onChange={e => setProfile({ ...profile, delivery_enabled: e.target.checked })} />
                                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue"></div>
-                                    <span className={`text-sm font-bold ${(profile.delivery_enabled ?? true) ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400'}`}>
-                                        {language === "ar" ? "🚚 دليفري" : "🚚 Delivery"}
+                                    <span className={`text-xs sm:text-sm font-bold ${(profile.delivery_enabled ?? true) ? 'text-blue-600 dark:text-blue-400' : 'text-zinc-400'}`}>
+                                        {language === "ar" ? "🚚 دليفري وتوصيل" : "🚚 Delivery"}
                                     </span>
                                 </label>
                             </div>
                             {!(profile.pickup_enabled ?? true) && !(profile.delivery_enabled ?? true) && (
-                                <span className="text-xs font-bold text-red-500 block w-full mt-1">
+                                <span className="text-xs font-bold text-red-500 block w-full">
                                     {language === "ar" ? "⚠️ تحذير: لا يوجد نوع طلب متاح للعميل!" : "⚠️ Warning: No order type available for customers!"}
                                 </span>
                             )}

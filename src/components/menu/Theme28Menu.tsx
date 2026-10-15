@@ -8,7 +8,7 @@ import {
     Sparkles, Flame, Clock, MapPin, Phone, MessageCircle,
     Sun, Moon, Globe, ChevronRight, ChevronLeft, Check,
     LayoutGrid, LayoutList, AlignJustify, Maximize2, Tag,
-    Utensils, Coffee, Bell, Heart, Info, ArrowUpRight, CreditCard
+    Utensils, Coffee, Bell, Heart, Info, ArrowUpRight, CreditCard, Truck
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaInstagram, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
@@ -99,6 +99,9 @@ export interface RestaurantType {
     show_asn_branding?: boolean;
     high_quality_images?: boolean;
     waiter_call_enabled?: boolean;
+    pickup_enabled?: boolean;
+    delivery_enabled?: boolean;
+    service_type?: 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
 }
@@ -181,6 +184,29 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
     const defaultView = (tc.theme28_default_view_mode || config?.theme28_default_view_mode || 'grid') as ViewMode;
     const [viewMode, setViewMode] = useState<ViewMode>(['grid', 'list', 'compact', 'showcase'].includes(defaultView) ? defaultView : 'grid');
     const showStoriesBar = tc.theme28_show_stories !== false && config?.theme28_show_stories !== false;
+
+    // Service type resolution (dine-in & delivery vs delivery only)
+    const serviceType = useMemo<'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only'>(() => {
+        if (tc.service_type === 'delivery_only' || tc.theme28_service_type === 'delivery_only') {
+            return 'delivery_only';
+        }
+        if (tc.service_type === 'dine_in_only' || tc.theme28_service_type === 'dine_in_only') {
+            return 'dine_in_only';
+        }
+        if (tc.service_type === 'dine_in_and_delivery' || tc.theme28_service_type === 'dine_in_and_delivery') {
+            return 'dine_in_and_delivery';
+        }
+        if (config.service_type) {
+            return config.service_type;
+        }
+        if (config.pickup_enabled === false && config.delivery_enabled !== false) {
+            return 'delivery_only';
+        }
+        if (config.pickup_enabled !== false && config.delivery_enabled === false) {
+            return 'dine_in_only';
+        }
+        return 'dine_in_and_delivery';
+    }, [tc, config.service_type, config.pickup_enabled, config.delivery_enabled]);
 
     // View state
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -702,8 +728,22 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                 {/* Meta details bar: Dining & Delivery / Fast Service */}
                                 <div className="flex items-center gap-2.5 mt-2 text-[11px] text-slate-800 dark:text-zinc-200 font-extrabold flex-wrap">
                                     <span className="flex items-center gap-1">
-                                        <Utensils className="w-3.5 h-3.5 text-amber-500" />
-                                        <span>{isAr ? 'صالة ودليفري' : 'Dine-in & Delivery'}</span>
+                                        {serviceType === 'delivery_only' ? (
+                                            <>
+                                                <Truck className="w-3.5 h-3.5 text-blue-500" />
+                                                <span>{isAr ? 'دليفري فقط' : 'Delivery Only'}</span>
+                                            </>
+                                        ) : serviceType === 'dine_in_only' ? (
+                                            <>
+                                                <Utensils className="w-3.5 h-3.5 text-amber-500" />
+                                                <span>{isAr ? 'صالة فقط' : 'Dine-in Only'}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Utensils className="w-3.5 h-3.5 text-amber-500" />
+                                                <span>{isAr ? 'صالة ودليفري' : 'Dine-in & Delivery'}</span>
+                                            </>
+                                        )}
                                     </span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">
@@ -2351,7 +2391,12 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                     </span>
                                                 </div>
                                                 <p className="text-[11px] text-slate-600 dark:text-zinc-300 font-medium">
-                                                    {isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو مع مندوب الدليفري.' : 'Pay cash upon delivery or dine-in.'}
+                                                    {serviceType === 'delivery_only'
+                                                        ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر مع مندوب الدليفري.' : 'Pay cash upon delivery.')
+                                                        : serviceType === 'dine_in_only'
+                                                        ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة.' : 'Pay cash upon dine-in.')
+                                                        : (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو مع مندوب الدليفري.' : 'Pay cash upon delivery or dine-in.')
+                                                    }
                                                 </p>
                                             </div>
 

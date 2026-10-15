@@ -686,6 +686,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 { href: "/dashboard/theme-lamet-zaman", icon: Palette, labelAr: "إعدادات ثيم لمة زمان (خلفية صورة)", labelEn: "Lamet Zaman BG Theme Settings", key: "theme_lamet_zaman" },
                 { href: "/dashboard/theme27-settings", icon: Palette, labelAr: "إعدادات ثيم 27 (المنيوهات الكبيرة)", labelEn: "Theme 27 (Large Menus) Settings", key: "theme27_settings" },
                 { href: "/dashboard/theme28-settings", icon: Sparkles, labelAr: "إعدادات ثيم 28 (العصري الشامل)", labelEn: "Theme 28 (Universal) Settings", key: "theme28_settings" },
+                { href: "/dashboard/theme30-settings", icon: Sparkles, labelAr: "إعدادات ثيم 30 (أوبسيديان نيو-لوكس)", labelEn: "Theme 30 (Neo-Luxe) Settings", key: "theme30_settings" },
                 { href: "/dashboard/theme-usa", icon: Palette, labelAr: "إعدادات ثيم USA (الأمريكي)", labelEn: "USA Theme Settings", key: "theme_usa" },
                 { href: "/dashboard/theme-uae", icon: Palette, labelAr: "إعدادات ثيم الإمارات (UAE)", labelEn: "UAE Theme Settings", key: "theme_uae" },
                 { href: "/dashboard/theme-usa-dual", icon: Palette, labelAr: "إعدادات ثيم USA الثنائي (Bilingual)", labelEn: "USA Dual Theme Settings", key: "theme_usa_dual" },
@@ -700,7 +701,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const BROAD_TO_SPECIFIC: Record<string, string[]> = {
         orders: ['orders', 'pos', 'kitchen'], // pos2 and cashier_shifts have their own granular permissions
         products: ['products', 'tables', 'delivery', 'promotions'],
-        settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme27_settings', 'theme28_settings', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'popup_settings', 'qr'],
+        settings: ['settings', 'printer', 'branches', 'theme', 'theme_vicino', 'theme_aswan', 'theme_lamet_zaman', 'theme27_settings', 'theme28_settings', 'theme30_settings', 'theme_usa', 'theme_uae', 'theme_usa_dual', 'popup_settings', 'qr'],
         team: ['team'],
         customers: ['customers', 'notifications', 'whatsapp'],
         reports: ['reports'],

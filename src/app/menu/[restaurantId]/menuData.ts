@@ -67,6 +67,8 @@ export type RestaurantConfig = {
   currency?: string;
   branches_enabled?: boolean;
   branches?: string[];
+  pickup_enabled?: boolean;
+  delivery_enabled?: boolean;
   snapchat_url?: string;
   youtube_url?: string;
   whatsapp_group_url?: string;
@@ -88,7 +90,7 @@ export type RestaurantConfig = {
 };
 
 const RESTAURANT_COLUMNS =
-  "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, menu_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, default_theme_mode, show_asn_branding, high_quality_images, views_tracking_enabled, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images";
+  "id, name, slogan_ar, slogan_en, theme, phone, whatsapp_number, facebook_url, instagram_url, tiktok_url, snapchat_url, youtube_url, whatsapp_group_url, map_link, logo_url, cover_url, cover_images, working_hours, phone_numbers, payment_methods, marquee_enabled, marquee_text_ar, marquee_text_en, orders_enabled, menu_enabled, order_channel, theme_colors, address, currency, branches_enabled, branches, pickup_enabled, delivery_enabled, default_theme_mode, show_asn_branding, high_quality_images, views_tracking_enabled, vicino_landing_enabled, vicino_video_url, vicino_logo_url, vicino_about_ar, vicino_about_en, vicino_history_ar, vicino_history_en, vicino_images";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
