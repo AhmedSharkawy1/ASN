@@ -38,24 +38,11 @@ export function getProxiedImageUrl(url: string | undefined | null): string {
     if (storagePath) return `/api/img/${storagePath}`;
   }
 
-  // 2. Rewrite Cloudflare R2 public URLs (.r2.dev or any R2 custom domain)
-  const r2Match = url.match(/^https:\/\/[^/]+\.r2\.dev\/(.+)$/);
-  if (r2Match && r2Match[1]) {
-    return `/api/img/${r2Match[1]}`;
-  }
-
-  // 3. Rewrite any R2 custom domain URL by checking for /original/ or /thumbs/ prefix
-  //    This catches R2 URLs served from custom domains that don't end in .r2.dev
-  if (url.startsWith('https://') && (url.includes('/original/') || url.includes('/thumbs/'))) {
-    const origIdx = url.indexOf('/original/');
-    const thumbIdx = url.indexOf('/thumbs/');
-    const pathStart = origIdx !== -1 ? origIdx : thumbIdx;
-    if (pathStart !== -1) {
-      const storagePath = url.substring(pathStart + 1); // remove leading /
-      if (storagePath && !url.includes('supabase')) {
-        return `/api/img/${storagePath}`;
-      }
-    }
+  // 2. Cloudflare R2 public URLs (.r2.dev or custom R2 domains)
+  // R2 has zero egress fees and is served directly by Cloudflare edge CDN.
+  // Direct delivery prevents serverless hops, domain redirects, and relative URL issues on subdomains.
+  if (url.includes('.r2.dev/') || url.includes('r2.cloudflarestorage.com')) {
+    return url;
   }
 
   return url;

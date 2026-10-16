@@ -175,8 +175,8 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
     const primaryColor = getPrimaryColor(config?.theme, tc.primary || config?.theme_colors?.primary);
 
     // Background images
-    const bgImageLight = tc.theme28_bg_light || tc.theme27_bg_light || tc.bg_image_light || tc.bg_light || '';
-    const bgImageDark = tc.theme28_bg_dark || tc.theme27_bg_dark || tc.bg_image_dark || tc.bg_dark || '';
+    const bgImageLight = tc.theme28_bg_light || tc.theme30_bg_light || tc.theme27_bg_light || tc.bg_image_light || tc.bg_light || config?.theme28_bg_light || config?.bg_image_light || '';
+    const bgImageDark = tc.theme28_bg_dark || tc.theme30_bg_dark || tc.theme27_bg_dark || tc.bg_image_dark || tc.bg_dark || config?.theme28_bg_dark || config?.bg_image_dark || '';
     const activeBgImage = (isDark ? (bgImageDark || bgImageLight) : (bgImageLight || bgImageDark))?.trim() || '';
     const hasBgImage = Boolean(activeBgImage.length > 0);
 
@@ -578,12 +578,12 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                 <>
                     <div 
                         className="fixed inset-0 pointer-events-none z-0 bg-cover bg-center bg-no-repeat transition-all duration-700"
-                        style={{ backgroundImage: `url("${getProxiedImageUrl(activeBgImage)}")` }}
+                        style={{ backgroundImage: `url("${activeBgImage}")` }}
                     />
                     <div 
-                        className="fixed inset-0 pointer-events-none z-0 backdrop-blur-[2px]"
+                        className="fixed inset-0 pointer-events-none z-0 backdrop-blur-[1px]"
                         style={{ 
-                            backgroundColor: isDark ? 'rgba(9, 10, 15, 0.75)' : 'rgba(248, 250, 252, 0.82)' 
+                            backgroundColor: isDark ? 'rgba(9, 10, 15, 0.45)' : 'rgba(248, 250, 252, 0.45)' 
                         }}
                     />
                 </>

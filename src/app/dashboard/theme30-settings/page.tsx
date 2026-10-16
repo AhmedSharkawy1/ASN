@@ -170,8 +170,8 @@ export default function Theme30SettingsPage() {
                             : 'dine_in_and_delivery';
 
                     setConfig({
-                        theme30_bg_light: tc.theme30_bg_light || tc.theme28_bg_light || tc.bg_image_light || "",
-                        theme30_bg_dark: tc.theme30_bg_dark || tc.theme28_bg_dark || tc.bg_image_dark || "",
+                        theme30_bg_light: tc.theme30_bg_light || tc.theme28_bg_light || tc.bg_image_light || tc.bg_light || "",
+                        theme30_bg_dark: tc.theme30_bg_dark || tc.theme28_bg_dark || tc.bg_image_dark || tc.bg_dark || "",
                         primary_color: tc.primary || "#4f46e5",
                         theme30_default_view_mode: defaultViewMode,
                         theme30_show_stories: tc.theme30_show_stories !== false && tc.theme28_show_stories !== false,
@@ -208,6 +208,10 @@ export default function Theme30SettingsPage() {
                 primary: config.primary_color,
                 theme30_bg_light: config.theme30_bg_light,
                 theme30_bg_dark: config.theme30_bg_dark,
+                theme28_bg_light: config.theme30_bg_light || tc.theme28_bg_light || "",
+                theme28_bg_dark: config.theme30_bg_dark || tc.theme28_bg_dark || "",
+                bg_image_light: config.theme30_bg_light || tc.bg_image_light || "",
+                bg_image_dark: config.theme30_bg_dark || tc.bg_image_dark || "",
                 theme30_default_view_mode: config.theme30_default_view_mode,
                 theme30_show_stories: config.theme30_show_stories,
                 theme30_service_type: config.service_type,
@@ -258,7 +262,7 @@ export default function Theme30SettingsPage() {
         }
     };
 
-    // Upload Background Image
+    // Upload Background Image with auto-save
     const handleUploadBg = async (e: React.ChangeEvent<HTMLInputElement>, mode: 'light' | 'dark') => {
         const file = e.target.files?.[0];
         if (!file || !restaurantId) return;
@@ -269,12 +273,34 @@ export default function Theme30SettingsPage() {
         try {
             const result = await uploadImageWithThumb(file, `theme30/bg_${mode}_${Date.now()}`);
             if (result?.originalUrl) {
+                const newUrl = result.originalUrl;
                 if (mode === 'light') {
-                    setConfig(prev => ({ ...prev, theme30_bg_light: result.originalUrl }));
+                    setConfig(prev => ({ ...prev, theme30_bg_light: newUrl }));
                 } else {
-                    setConfig(prev => ({ ...prev, theme30_bg_dark: result.originalUrl }));
+                    setConfig(prev => ({ ...prev, theme30_bg_dark: newUrl }));
                 }
-                toast.success(isAr ? "تم رفع صورة الخلفية بنجاح" : "Background uploaded successfully");
+
+                // Immediately persist to DB so user does not lose it if they exit without clicking save
+                let tc = config.theme_colors || {};
+                if (typeof tc === 'string') {
+                    try { tc = JSON.parse(tc); } catch { tc = {}; }
+                }
+                const updatedThemeColors = {
+                    ...tc,
+                    ...(mode === 'light' ? {
+                        theme30_bg_light: newUrl,
+                        theme28_bg_light: newUrl,
+                        bg_image_light: newUrl
+                    } : {
+                        theme30_bg_dark: newUrl,
+                        theme28_bg_dark: newUrl,
+                        bg_image_dark: newUrl
+                    })
+                };
+                await supabase.from("restaurants").update({ theme_colors: updatedThemeColors }).eq("id", restaurantId);
+                setConfig(prev => ({ ...prev, theme_colors: updatedThemeColors }));
+
+                toast.success(isAr ? "تم رفع وحفظ صورة الخلفية بنجاح" : "Background uploaded & saved successfully");
             }
         } catch (err) {
             console.error(err);
@@ -282,6 +308,40 @@ export default function Theme30SettingsPage() {
         } finally {
             if (mode === 'light') setUploadingBgLight(false);
             else setUploadingBgDark(false);
+        }
+    };
+
+    // Remove Background Image with auto-save
+    const handleRemoveBg = async (mode: 'light' | 'dark') => {
+        if (!restaurantId) return;
+        if (mode === 'light') {
+            setConfig(prev => ({ ...prev, theme30_bg_light: '' }));
+        } else {
+            setConfig(prev => ({ ...prev, theme30_bg_dark: '' }));
+        }
+
+        try {
+            let tc = config.theme_colors || {};
+            if (typeof tc === 'string') {
+                try { tc = JSON.parse(tc); } catch { tc = {}; }
+            }
+            const updatedThemeColors = {
+                ...tc,
+                ...(mode === 'light' ? {
+                    theme30_bg_light: '',
+                    theme28_bg_light: '',
+                    bg_image_light: ''
+                } : {
+                    theme30_bg_dark: '',
+                    theme28_bg_dark: '',
+                    bg_image_dark: ''
+                })
+            };
+            await supabase.from("restaurants").update({ theme_colors: updatedThemeColors }).eq("id", restaurantId);
+            setConfig(prev => ({ ...prev, theme_colors: updatedThemeColors }));
+            toast.success(isAr ? "تم حذف صورة الخلفية بنجاح" : "Background removed successfully");
+        } catch (err) {
+            console.error("Remove bg error:", err);
         }
     };
 
@@ -660,7 +720,7 @@ export default function Theme30SettingsPage() {
                             </span>
                             {config.theme30_bg_light && (
                                 <button
-                                    onClick={() => setConfig(prev => ({ ...prev, theme30_bg_light: '' }))}
+                                    onClick={() => handleRemoveBg('light')}
                                     className="text-[11px] text-rose-500 hover:underline flex items-center gap-1"
                                 >
                                     <Trash2 className="w-3 h-3" />
@@ -703,7 +763,7 @@ export default function Theme30SettingsPage() {
                             </span>
                             {config.theme30_bg_dark && (
                                 <button
-                                    onClick={() => setConfig(prev => ({ ...prev, theme30_bg_dark: '' }))}
+                                    onClick={() => handleRemoveBg('dark')}
                                     className="text-[11px] text-rose-500 hover:underline flex items-center gap-1"
                                 >
                                     <Trash2 className="w-3 h-3" />
