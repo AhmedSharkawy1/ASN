@@ -101,7 +101,7 @@ export interface RestaurantType {
     waiter_call_enabled?: boolean;
     pickup_enabled?: boolean;
     delivery_enabled?: boolean;
-    service_type?: 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
+    service_type?: 'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
     time_open?: string;
     time_close?: string;
     working_hours?: string;
@@ -194,19 +194,20 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
     const [viewMode, setViewMode] = useState<ViewMode>(['grid', 'list', 'compact', 'showcase'].includes(defaultView) ? defaultView : 'grid');
     const showStoriesBar = tc.theme30_show_stories !== false && config?.theme30_show_stories !== false;
 
-    // Service type resolution (dine-in & delivery vs delivery only)
-    const serviceType = useMemo<'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only'>(() => {
-        if (tc.service_type === 'delivery_only' || tc.theme30_service_type === 'delivery_only' || tc.theme28_service_type === 'delivery_only') {
+    // Service type resolution (dine-in & delivery vs delivery only vs delivery & takeaway)
+    const serviceType = useMemo<'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only'>(() => {
+        const explicit = tc.service_type || tc.theme30_service_type || tc.theme28_service_type || config.service_type;
+        if (explicit === 'delivery_and_takeaway') {
+            return 'delivery_and_takeaway';
+        }
+        if (explicit === 'delivery_only') {
             return 'delivery_only';
         }
-        if (tc.service_type === 'dine_in_only' || tc.theme30_service_type === 'dine_in_only' || tc.theme28_service_type === 'dine_in_only') {
+        if (explicit === 'dine_in_only') {
             return 'dine_in_only';
         }
-        if (tc.service_type === 'dine_in_and_delivery' || tc.theme30_service_type === 'dine_in_and_delivery' || tc.theme28_service_type === 'dine_in_and_delivery') {
+        if (explicit === 'dine_in_and_delivery') {
             return 'dine_in_and_delivery';
-        }
-        if (config.service_type) {
-            return config.service_type;
         }
         if (config.pickup_enabled === false && config.delivery_enabled !== false) {
             return 'delivery_only';
@@ -214,7 +215,10 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
         if (config.pickup_enabled !== false && config.delivery_enabled === false) {
             return 'dine_in_only';
         }
-        return 'dine_in_and_delivery';
+        if (tc.dine_in_enabled === true && !explicit) {
+            return 'dine_in_and_delivery';
+        }
+        return 'delivery_and_takeaway';
     }, [tc, config.service_type, config.pickup_enabled, config.delivery_enabled]);
 
     // View state
@@ -754,6 +758,11 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                             <>
                                                 <Utensils className="w-3.5 h-3.5 text-amber-500" />
                                                 <span>{isAr ? 'صالة وتيك أواي فقط' : 'Dine-in & Takeaway Only'}</span>
+                                            </>
+                                        ) : serviceType === 'delivery_and_takeaway' ? (
+                                            <>
+                                                <Truck className="w-3.5 h-3.5 text-emerald-500" />
+                                                <span>{isAr ? 'دليفري وتيك أواي' : 'Delivery & Takeaway'}</span>
                                             </>
                                         ) : (
                                             <>
@@ -2446,6 +2455,8 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                                                         ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر مع مندوب الدليفري.' : 'Pay cash upon delivery.')
                                                         : serviceType === 'dine_in_only'
                                                         ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو استلام تيك أواي.' : 'Pay cash upon dine-in or takeaway.')
+                                                        : serviceType === 'delivery_and_takeaway'
+                                                        ? (isAr ? 'الدفع المباشر كاش عند استلام تيك أواي أو مع مندوب الدليفري.' : 'Pay cash upon takeaway or delivery.')
                                                         : (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو التيك أواي أو مع مندوب الدليفري.' : 'Pay cash upon dine-in, takeaway or delivery.')
                                                     }
                                                 </p>
@@ -2518,6 +2529,7 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
                     currency={cur} 
                     language={currentLang} 
                     orderChannel={config.order_channel}
+                    serviceType={serviceType}
                     onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
                 />
 

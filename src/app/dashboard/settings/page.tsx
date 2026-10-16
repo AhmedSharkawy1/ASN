@@ -140,14 +140,24 @@ export default function SettingsPage() {
                 if (typeof tc === 'string') {
                     try { tc = JSON.parse(tc); } catch { tc = {}; }
                 }
-                const isDeliveryOnly = tc.service_type === 'delivery_only' || tc.theme30_service_type === 'delivery_only' || tc.theme28_service_type === 'delivery_only';
-                const dineIn = tc.dine_in_enabled !== undefined ? Boolean(tc.dine_in_enabled) : !isDeliveryOnly;
+                const explicitSt = tc.service_type || tc.theme30_service_type || tc.theme28_service_type;
+                let dineIn = false;
+                if (explicitSt === 'dine_in_and_delivery' || explicitSt === 'dine_in_only') {
+                    dineIn = true;
+                } else if (explicitSt === 'delivery_only' || explicitSt === 'delivery_and_takeaway') {
+                    dineIn = false;
+                } else if (tc.dine_in_enabled !== undefined) {
+                    dineIn = Boolean(tc.dine_in_enabled);
+                } else {
+                    // Default fallback is delivery_and_takeaway (dine_in disabled)
+                    dineIn = false;
+                }
 
                 setProfile({
                     ...finalData,
                     dine_in_enabled: dineIn,
-                    pickup_enabled: finalData.pickup_enabled ?? true,
-                    delivery_enabled: finalData.delivery_enabled ?? true,
+                    pickup_enabled: explicitSt === 'delivery_only' ? false : (finalData.pickup_enabled ?? true),
+                    delivery_enabled: explicitSt === 'dine_in_only' ? false : (finalData.delivery_enabled ?? true),
                 });
                 setPhoneNumbers(finalData.phone_numbers || []);
                 setPaymentMethods(finalData.payment_methods || []);
@@ -171,12 +181,14 @@ export default function SettingsPage() {
             if (typeof tc === 'string') {
                 try { tc = JSON.parse(tc); } catch { tc = {}; }
             }
-            const dineIn = profile.dine_in_enabled ?? true;
+            const dineIn = profile.dine_in_enabled ?? false;
             const pickup = profile.pickup_enabled ?? true;
             const delivery = profile.delivery_enabled ?? true;
 
-            const currentServiceType = (dineIn || pickup) && delivery
+            const currentServiceType = (dineIn && delivery)
                 ? 'dine_in_and_delivery'
+                : (!dineIn && pickup && delivery)
+                ? 'delivery_and_takeaway'
                 : (!delivery ? 'dine_in_only' : 'delivery_only');
 
             const updatedThemeColors: Record<string, any> = {
@@ -547,9 +559,22 @@ export default function SettingsPage() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <button
                                         type="button"
+                                        onClick={() => setProfile({ ...profile, dine_in_enabled: false, pickup_enabled: true, delivery_enabled: true })}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
+                                            !(profile.dine_in_enabled ?? false) && (profile.pickup_enabled ?? true) && (profile.delivery_enabled ?? true)
+                                                ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
+                                                : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:border-emerald-600'
+                                        }`}
+                                    >
+                                        <span>🛵</span>
+                                        <span>{language === "ar" ? "دليفري وتيك أواي (الافتراضي)" : "Delivery & Takeaway (Default)"}</span>
+                                    </button>
+
+                                    <button
+                                        type="button"
                                         onClick={() => setProfile({ ...profile, dine_in_enabled: true, pickup_enabled: true, delivery_enabled: true })}
                                         className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
-                                            (profile.dine_in_enabled ?? true) && (profile.pickup_enabled ?? true) && (profile.delivery_enabled ?? true)
+                                            (profile.dine_in_enabled ?? false) && (profile.pickup_enabled ?? true) && (profile.delivery_enabled ?? true)
                                                 ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                                                 : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:border-emerald-500'
                                         }`}
@@ -562,7 +587,7 @@ export default function SettingsPage() {
                                         type="button"
                                         onClick={() => setProfile({ ...profile, dine_in_enabled: false, pickup_enabled: false, delivery_enabled: true })}
                                         className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
-                                            !(profile.dine_in_enabled ?? true) && !(profile.pickup_enabled ?? true) && (profile.delivery_enabled ?? true)
+                                            !(profile.dine_in_enabled ?? false) && !(profile.pickup_enabled ?? true) && (profile.delivery_enabled ?? true)
                                                 ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                                                 : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:border-blue-600'
                                         }`}
@@ -575,7 +600,7 @@ export default function SettingsPage() {
                                         type="button"
                                         onClick={() => setProfile({ ...profile, dine_in_enabled: true, pickup_enabled: true, delivery_enabled: false })}
                                         className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 border ${
-                                            ((profile.dine_in_enabled ?? true) || (profile.pickup_enabled ?? true)) && !(profile.delivery_enabled ?? true)
+                                            ((profile.dine_in_enabled ?? false) || (profile.pickup_enabled ?? true)) && !(profile.delivery_enabled ?? true)
                                                 ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
                                                 : 'bg-white dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-black/10 dark:border-white/10 hover:border-amber-600'
                                         }`}
@@ -589,7 +614,7 @@ export default function SettingsPage() {
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-black/5 dark:border-white/5">
                                 {/* 1. Dine-In */}
                                 <div className={`p-3.5 rounded-xl border transition-all ${
-                                    (profile.dine_in_enabled ?? true)
+                                    (profile.dine_in_enabled ?? false)
                                         ? 'border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20'
                                         : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 opacity-70'
                                 }`}>
@@ -606,7 +631,7 @@ export default function SettingsPage() {
                                             <input
                                                 type="checkbox"
                                                 className="sr-only peer"
-                                                checked={profile.dine_in_enabled ?? true}
+                                                checked={profile.dine_in_enabled ?? false}
                                                 onChange={e => setProfile({ ...profile, dine_in_enabled: e.target.checked })}
                                             />
                                             <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
@@ -678,7 +703,7 @@ export default function SettingsPage() {
                                 </div>
                             </div>
 
-                            {!(profile.dine_in_enabled ?? true) && !(profile.pickup_enabled ?? true) && !(profile.delivery_enabled ?? true) && (
+                            {!(profile.dine_in_enabled ?? false) && !(profile.pickup_enabled ?? true) && !(profile.delivery_enabled ?? true) && (
                                 <span className="text-xs font-bold text-red-500 block w-full bg-red-50 dark:bg-red-950/20 p-2.5 rounded-xl border border-red-200 dark:border-red-800 text-center">
                                     {language === "ar" ? "⚠️ تحذير: يجب تفعيل نوع طلب واحد على الأقل ليتمكن الزبائن من إتمام الطلب!" : "⚠️ Warning: At least one order type must be enabled for customers to order!"}
                                 </span>

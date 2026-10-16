@@ -36,7 +36,7 @@ interface Theme30Config {
     primary_color: string;
     theme30_default_view_mode: 'grid' | 'list' | 'compact' | 'showcase';
     theme30_show_stories: boolean;
-    service_type: 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
+    service_type: 'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
     theme30_popup: Theme30PopupConfig;
     theme_colors: any;
     current_theme: string;
@@ -71,7 +71,7 @@ export default function Theme30SettingsPage() {
         primary_color: "#4f46e5",
         theme30_default_view_mode: "grid",
         theme30_show_stories: true,
-        service_type: "dine_in_and_delivery",
+        service_type: "delivery_and_takeaway",
         theme30_popup: {
             enabled: false,
             title: "",
@@ -162,12 +162,21 @@ export default function Theme30SettingsPage() {
                         ? tc.theme30_default_view_mode
                         : (tc.theme28_default_view_mode || 'grid');
 
-                    const resolvedServiceType: 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only' = 
-                        (tc.theme30_service_type === 'delivery_only' || tc.service_type === 'delivery_only' || tc.theme28_service_type === 'delivery_only' || (restData.pickup_enabled === false && restData.delivery_enabled !== false))
-                            ? 'delivery_only'
-                            : (tc.theme30_service_type === 'dine_in_only' || tc.service_type === 'dine_in_only' || tc.theme28_service_type === 'dine_in_only' || (restData.pickup_enabled !== false && restData.delivery_enabled === false))
-                            ? 'dine_in_only'
-                            : 'dine_in_and_delivery';
+                    const explicitSt = tc.theme30_service_type || tc.service_type || tc.theme28_service_type;
+
+                    let resolvedServiceType: 'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only' = 'delivery_and_takeaway';
+
+                    if (explicitSt === 'delivery_only' || (restData.pickup_enabled === false && restData.delivery_enabled !== false)) {
+                        resolvedServiceType = 'delivery_only';
+                    } else if (explicitSt === 'dine_in_only' || (restData.pickup_enabled !== false && restData.delivery_enabled === false)) {
+                        resolvedServiceType = 'dine_in_only';
+                    } else if (explicitSt === 'dine_in_and_delivery' || (tc.dine_in_enabled === true && !explicitSt)) {
+                        resolvedServiceType = 'dine_in_and_delivery';
+                    } else if (explicitSt === 'delivery_and_takeaway') {
+                        resolvedServiceType = 'delivery_and_takeaway';
+                    } else {
+                        resolvedServiceType = 'delivery_and_takeaway';
+                    }
 
                     let resolvedPrimary = tc.primary;
                     if (restData.theme) {
@@ -214,6 +223,9 @@ export default function Theme30SettingsPage() {
 
             const isDeliveryOnly = config.service_type === 'delivery_only';
             const isDineInOnly = config.service_type === 'dine_in_only';
+            const dineInEnabled = config.service_type === 'dine_in_and_delivery' || config.service_type === 'dine_in_only';
+            const pickupEnabled = config.service_type !== 'delivery_only';
+            const deliveryEnabled = config.service_type !== 'dine_in_only';
 
             const updatedThemeColors = {
                 ...tc,
@@ -228,7 +240,7 @@ export default function Theme30SettingsPage() {
                 theme30_show_stories: config.theme30_show_stories,
                 theme30_service_type: config.service_type,
                 service_type: config.service_type,
-                dine_in_enabled: !isDeliveryOnly,
+                dine_in_enabled: dineInEnabled,
                 theme30_popup: config.theme30_popup,
             };
 
@@ -243,8 +255,8 @@ export default function Theme30SettingsPage() {
                 .update({
                     theme: targetTheme,
                     theme_colors: updatedThemeColors,
-                    pickup_enabled: !isDeliveryOnly,
-                    delivery_enabled: !isDineInOnly
+                    pickup_enabled: pickupEnabled,
+                    delivery_enabled: deliveryEnabled
                 })
                 .eq("id", restaurantId)
                 .select();
@@ -483,7 +495,36 @@ export default function Theme30SettingsPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                    <button
+                        type="button"
+                        onClick={() => setConfig(prev => ({ ...prev, service_type: 'delivery_and_takeaway' }))}
+                        className={`p-4 rounded-2xl border text-right transition-all flex items-start gap-3 relative ${
+                            config.service_type === 'delivery_and_takeaway'
+                                ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/20 font-black shadow-xs ring-2 ring-indigo-500'
+                                : 'border-black/5 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                        }`}
+                    >
+                        <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <Truck className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs sm:text-sm font-black">{isAr ? "دليفري وتيك أواي (الافتراضي)" : "Delivery & Takeaway"}</span>
+                                {config.service_type === 'delivery_and_takeaway' && (
+                                    <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                {isAr 
+                                    ? "إتاحة استلام الطلبات تيك أواي وتوصيل دليفري (بدون صالة داخلية)." 
+                                    : "Takeaway & delivery orders enabled without dine-in."}
+                            </p>
+                        </div>
+                    </button>
+
                     <button
                         type="button"
                         onClick={() => setConfig(prev => ({ ...prev, service_type: 'dine_in_and_delivery' }))}

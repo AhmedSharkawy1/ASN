@@ -50,6 +50,7 @@ type CheckoutModalProps = {
     orderChannel?: "whatsapp" | "website" | "both";
     onOrderSuccess?: () => void;
     branches?: string[];
+    serviceType?: 'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
 };
 
 export default function CheckoutModal({
@@ -59,7 +60,8 @@ export default function CheckoutModal({
     // but this modal always saves the order and then offers the WhatsApp link
     // when a number exists, so it never reads the value.
     currency: propCurrency = "ج.م", language, onOrderSuccess,
-    branches: propBranches = []
+    branches: propBranches = [],
+    serviceType: propServiceType
 }: CheckoutModalProps) {
     const isAr = language === "ar";
     const printRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,24 @@ export default function CheckoutModal({
             setCurrency(parseCurrency(propCurrency, isAr));
         }
     }, [propCurrency, isAr]);
+
+    // Sync propServiceType with local order type flags immediately
+    useEffect(() => {
+        if (propServiceType) {
+            const dIn = propServiceType === 'dine_in_and_delivery' || propServiceType === 'dine_in_only';
+            const p = propServiceType !== 'delivery_only';
+            const d = propServiceType !== 'dine_in_only';
+            setDineInEnabled(dIn);
+            setPickupEnabled(p);
+            setDeliveryEnabled(d);
+            setOrderType(current => {
+                if (current === 'dine_in' && dIn) return current;
+                if (current === 'pickup' && p) return current;
+                if (current === 'delivery' && d) return current;
+                return d ? 'delivery' : (p ? 'pickup' : (dIn ? 'dine_in' : 'pickup'));
+            });
+        }
+    }, [propServiceType]);
 
     // Steps: 1=extras, 2=customer info, 3=order type, 4=summary, 5=success
     const [step, setStep] = useState(1);
@@ -98,15 +118,15 @@ export default function CheckoutModal({
     const [phone, setPhone] = useState("");
     const [notes, setNotes] = useState("");
 
-    // Order type
-    const [orderType, setOrderType] = useState<'delivery' | 'pickup' | 'dine_in'>('pickup');
+    // Order type - default is delivery with takeaway also enabled
+    const [orderType, setOrderType] = useState<'delivery' | 'pickup' | 'dine_in'>('delivery');
     const [tableNumber, setTableNumber] = useState("");
     const [address, setAddress] = useState("");
     const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
     const [zones, setZones] = useState<DeliveryZone[]>([]);
 
-    // Order type visibility (from restaurant settings)
-    const [dineInEnabled, setDineInEnabled] = useState(true);
+    // Order type visibility (from restaurant settings) - default is delivery_and_takeaway
+    const [dineInEnabled, setDineInEnabled] = useState(false);
     const [pickupEnabled, setPickupEnabled] = useState(true);
     const [deliveryEnabled, setDeliveryEnabled] = useState(true);
 
@@ -162,12 +182,25 @@ export default function CheckoutModal({
                         tc = {};
                     }
 
-                    const isDeliveryOnly = tc.service_type === 'delivery_only' || tc.theme30_service_type === 'delivery_only' || tc.theme28_service_type === 'delivery_only';
-                    const isDineInOnly = tc.service_type === 'dine_in_only' || tc.theme30_service_type === 'dine_in_only' || tc.theme28_service_type === 'dine_in_only';
+                    const explicitServiceType = propServiceType || tc.service_type || tc.theme30_service_type || tc.theme28_service_type;
 
-                    const dInEnabled = isDeliveryOnly ? false : (tc.dine_in_enabled !== undefined ? Boolean(tc.dine_in_enabled) : true);
-                    const pEnabled = isDeliveryOnly ? false : (data.pickup_enabled ?? true);
-                    const dEnabled = isDineInOnly ? false : (data.delivery_enabled ?? true);
+                    let resolvedServiceType: 'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only' = 'delivery_and_takeaway';
+
+                    if (explicitServiceType === 'delivery_only' || (data.pickup_enabled === false && data.delivery_enabled !== false)) {
+                        resolvedServiceType = 'delivery_only';
+                    } else if (explicitServiceType === 'dine_in_only' || (data.pickup_enabled !== false && data.delivery_enabled === false)) {
+                        resolvedServiceType = 'dine_in_only';
+                    } else if (explicitServiceType === 'dine_in_and_delivery' || (tc.dine_in_enabled === true && !explicitServiceType)) {
+                        resolvedServiceType = 'dine_in_and_delivery';
+                    } else if (explicitServiceType === 'delivery_and_takeaway') {
+                        resolvedServiceType = 'delivery_and_takeaway';
+                    } else {
+                        resolvedServiceType = 'delivery_and_takeaway';
+                    }
+
+                    const dInEnabled = resolvedServiceType === 'dine_in_and_delivery' || resolvedServiceType === 'dine_in_only';
+                    const pEnabled = resolvedServiceType !== 'delivery_only';
+                    const dEnabled = resolvedServiceType !== 'dine_in_only';
 
                     setDineInEnabled(dInEnabled);
                     setPickupEnabled(pEnabled);
@@ -178,7 +211,7 @@ export default function CheckoutModal({
                         if (current === 'dine_in' && dInEnabled) return current;
                         if (current === 'pickup' && pEnabled) return current;
                         if (current === 'delivery' && dEnabled) return current;
-                        return dInEnabled ? 'dine_in' : (pEnabled ? 'pickup' : (dEnabled ? 'delivery' : 'pickup'));
+                        return dEnabled ? 'delivery' : (pEnabled ? 'pickup' : (dInEnabled ? 'dine_in' : 'pickup'));
                     });
                 }
             } catch (err) {
