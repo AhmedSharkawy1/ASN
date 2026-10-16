@@ -295,7 +295,7 @@ export default function ThemePage() {
     const [selectedFamily, setSelectedFamily] = useState("all");
     const [searchQuery, setSearchQuery] = useState("");
     const [previewKey, setPreviewKey] = useState(0);
-    const [_themeColors, setThemeColors] = useState({ ...DEFAULT_COLORS });
+    const [themeColors, setThemeColors] = useState({ ...DEFAULT_COLORS });
     const [restaurantId, setRestaurantId] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [themeOverrides, setThemeOverrides] = useState<Record<string, { custom_name_ar?: string; custom_name_en?: string; is_hidden?: boolean }>>({});
@@ -459,9 +459,18 @@ export default function ThemePage() {
         setMessage(null);
 
         try {
+            // Also sync theme_colors.primary to match activeThemeObj preview_color
+            let updatedThemeColors = { ...themeColors };
+            if (activeThemeObj?.preview_color) {
+                updatedThemeColors.primary = activeThemeObj.preview_color;
+            }
+
             const { error } = await supabase
                 .from('restaurants')
-                .update({ theme: selectedTheme })
+                .update({ 
+                    theme: selectedTheme,
+                    theme_colors: updatedThemeColors
+                })
                 .eq('id', restaurantId);
 
             if (error) throw error;
@@ -471,11 +480,23 @@ export default function ThemePage() {
                 if (currentConfig) {
                     await posDb.settings.put({
                         ...currentConfig,
-                        theme: selectedTheme
-                    });
+                        theme: selectedTheme,
+                        theme_colors: updatedThemeColors
+                    } as any);
                 }
             } catch (cacheErr) {
                 console.warn("Could not update offline cache:", cacheErr);
+            }
+
+            // Immediately purge Next.js menu cache so changes appear on public menu instantly
+            try {
+                await fetch('/api/revalidate-menu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ restaurantId })
+                });
+            } catch (revErr) {
+                console.warn("Could not revalidate menu cache:", revErr);
             }
 
             setMessage({

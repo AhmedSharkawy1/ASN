@@ -168,10 +168,22 @@ export default function Theme28SettingsPage() {
                             ? 'dine_in_only'
                             : 'dine_in_and_delivery';
 
+                    let resolvedPrimary = tc.primary;
+                    if (restData.theme) {
+                        if (restData.theme.endsWith('-amber') || restData.theme.endsWith('-gold')) resolvedPrimary = '#d97706';
+                        else if (restData.theme.endsWith('-red')) resolvedPrimary = '#dc2626';
+                        else if (restData.theme.endsWith('-cyan')) resolvedPrimary = '#0891b2';
+                        else if (restData.theme.endsWith('-purple')) resolvedPrimary = '#7c3aed';
+                        else if (restData.theme.endsWith('-dark')) resolvedPrimary = '#0f172a';
+                        else if (restData.theme.endsWith('-pink')) resolvedPrimary = '#ec4899';
+                        else if (restData.theme.endsWith('-emerald')) resolvedPrimary = '#059669';
+                    }
+                    if (!resolvedPrimary) resolvedPrimary = '#059669';
+
                     setConfig({
                         theme28_bg_light: tc.theme28_bg_light || tc.theme30_bg_light || tc.bg_image_light || tc.bg_light || "",
                         theme28_bg_dark: tc.theme28_bg_dark || tc.theme30_bg_dark || tc.bg_image_dark || tc.bg_dark || "",
-                        primary_color: tc.primary || "#059669",
+                        primary_color: resolvedPrimary,
                         theme28_default_view_mode: defaultViewMode,
                         theme28_show_stories: tc.theme28_show_stories !== false,
                         service_type: resolvedServiceType,
@@ -219,9 +231,10 @@ export default function Theme28SettingsPage() {
                 theme28_popup: config.theme28_popup,
             };
 
-            let targetTheme = config.current_theme;
-            if (activateTheme || !targetTheme.startsWith("theme28")) {
-                targetTheme = "theme28";
+            const matchedPreset = COLOR_PRESETS.find(p => p.hex.toLowerCase() === config.primary_color.toLowerCase());
+            let targetTheme = matchedPreset ? `theme28${matchedPreset.theme_suffix}` : 'theme28';
+            if (!activateTheme && config.current_theme?.startsWith("theme28")) {
+                targetTheme = matchedPreset ? `theme28${matchedPreset.theme_suffix}` : config.current_theme;
             }
 
             const { data, error } = await supabase
@@ -249,6 +262,17 @@ export default function Theme28SettingsPage() {
                 }
             } catch (cErr) {
                 console.warn("Could not update offline cache:", cErr);
+            }
+
+            // Immediately purge Next.js menu cache
+            try {
+                await fetch('/api/revalidate-menu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ restaurantId })
+                });
+            } catch (revErr) {
+                console.warn("Could not revalidate menu cache:", revErr);
             }
 
             setConfig(prev => ({ ...prev, current_theme: targetTheme, theme_colors: updatedThemeColors }));
@@ -462,7 +486,11 @@ export default function Theme28SettingsPage() {
                                 <button
                                     key={preset.hex}
                                     type="button"
-                                    onClick={() => setConfig(prev => ({ ...prev, primary_color: preset.hex }))}
+                                    onClick={() => setConfig(prev => ({ 
+                                        ...prev, 
+                                        primary_color: preset.hex,
+                                        current_theme: `theme28${preset.theme_suffix}`
+                                    }))}
                                     className={`p-3 rounded-2xl border text-right flex items-center gap-3 transition-all ${
                                         isSelected 
                                             ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 font-black shadow-xs ring-1 ring-emerald-500' 

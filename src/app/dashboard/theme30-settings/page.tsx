@@ -169,10 +169,22 @@ export default function Theme30SettingsPage() {
                             ? 'dine_in_only'
                             : 'dine_in_and_delivery';
 
+                    let resolvedPrimary = tc.primary;
+                    if (restData.theme) {
+                        if (restData.theme.endsWith('-amber') || restData.theme.endsWith('-gold')) resolvedPrimary = '#d97706';
+                        else if (restData.theme.endsWith('-rose') || restData.theme.endsWith('-red')) resolvedPrimary = '#e11d48';
+                        else if (restData.theme.endsWith('-cyan')) resolvedPrimary = '#0284c7';
+                        else if (restData.theme.endsWith('-violet') || restData.theme.endsWith('-purple')) resolvedPrimary = '#7c3aed';
+                        else if (restData.theme.endsWith('-dark')) resolvedPrimary = '#0f172a';
+                        else if (restData.theme.endsWith('-pink')) resolvedPrimary = '#ec4899';
+                        else if (restData.theme.endsWith('-emerald') || restData.theme.endsWith('-green')) resolvedPrimary = '#059669';
+                    }
+                    if (!resolvedPrimary) resolvedPrimary = '#4f46e5';
+
                     setConfig({
                         theme30_bg_light: tc.theme30_bg_light || tc.theme28_bg_light || tc.bg_image_light || tc.bg_light || "",
                         theme30_bg_dark: tc.theme30_bg_dark || tc.theme28_bg_dark || tc.bg_image_dark || tc.bg_dark || "",
-                        primary_color: tc.primary || "#4f46e5",
+                        primary_color: resolvedPrimary,
                         theme30_default_view_mode: defaultViewMode,
                         theme30_show_stories: tc.theme30_show_stories !== false && tc.theme28_show_stories !== false,
                         service_type: resolvedServiceType,
@@ -220,9 +232,10 @@ export default function Theme30SettingsPage() {
                 theme30_popup: config.theme30_popup,
             };
 
-            let targetTheme = config.current_theme;
-            if (activateTheme || !targetTheme.startsWith("theme30")) {
-                targetTheme = "theme30";
+            const matchedPreset = COLOR_PRESETS.find(p => p.hex.toLowerCase() === config.primary_color.toLowerCase());
+            let targetTheme = matchedPreset ? `theme30${matchedPreset.theme_suffix}` : 'theme30';
+            if (!activateTheme && config.current_theme?.startsWith("theme30")) {
+                targetTheme = matchedPreset ? `theme30${matchedPreset.theme_suffix}` : config.current_theme;
             }
 
             const { data, error } = await supabase
@@ -250,6 +263,17 @@ export default function Theme30SettingsPage() {
                 }
             } catch (cErr) {
                 console.warn("Could not update offline cache:", cErr);
+            }
+
+            // Immediately purge Next.js menu cache
+            try {
+                await fetch('/api/revalidate-menu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ restaurantId })
+                });
+            } catch (revErr) {
+                console.warn("Could not revalidate menu cache:", revErr);
             }
 
             setConfig(prev => ({ ...prev, current_theme: targetTheme, theme_colors: updatedThemeColors }));

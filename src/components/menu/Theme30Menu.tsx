@@ -153,16 +153,23 @@ export default function Theme30Menu({ config, categories, restaurantId, suppress
 
     // Color resolution for Theme 30 (Default: Royal Sapphire Indigo #4f46e5)
     const getPrimaryColor = (themeName?: string, customPrimary?: string) => {
-        if (customPrimary) return customPrimary;
-        if (!themeName) return '#4f46e5'; // Royal Sapphire Indigo
-        if (themeName.endsWith('-amber') || themeName.endsWith('-gold')) return '#d97706';
-        if (themeName.endsWith('-rose') || themeName.endsWith('-red')) return '#e11d48';
-        if (themeName.endsWith('-cyan')) return '#0284c7';
-        if (themeName.endsWith('-violet') || themeName.endsWith('-purple')) return '#7c3aed';
-        if (themeName.endsWith('-dark')) return '#0f172a';
-        if (themeName.endsWith('-pink')) return '#ec4899';
-        if (themeName.endsWith('-emerald') || themeName.endsWith('-green')) return '#059669';
-        return '#4f46e5';
+        const theme = themeName || '';
+        // 1. Explicit theme suffix variants take first priority
+        if (theme.endsWith('-amber') || theme.endsWith('-gold')) return '#d97706';
+        if (theme.endsWith('-rose') || theme.endsWith('-red')) return '#e11d48';
+        if (theme.endsWith('-cyan')) return '#0284c7';
+        if (theme.endsWith('-violet') || theme.endsWith('-purple')) return '#7c3aed';
+        if (theme.endsWith('-dark')) return '#0f172a';
+        if (theme.endsWith('-pink')) return '#ec4899';
+        if (theme.endsWith('-emerald') || theme.endsWith('-green')) return '#059669';
+
+        // 2. Custom Primary from theme_colors if explicitly set
+        if (customPrimary && customPrimary.trim() && customPrimary !== '#4f46e5') {
+            return customPrimary.trim();
+        }
+
+        // 3. Fallback to customPrimary or Indigo
+        return customPrimary?.trim() || '#4f46e5';
     };
 
     let tc = config?.theme_colors || {};

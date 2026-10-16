@@ -151,16 +151,23 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
 
     // Color resolution
     const getPrimaryColor = (themeName?: string, customPrimary?: string) => {
-        if (customPrimary) return customPrimary;
-        if (!themeName) return '#059669'; // Emerald luxury
-        if (themeName.endsWith('-amber') || themeName.endsWith('-gold')) return '#d97706';
-        if (themeName.endsWith('-red')) return '#dc2626';
-        if (themeName.endsWith('-cyan')) return '#0891b2';
-        if (themeName.endsWith('-purple')) return '#7c3aed';
-        if (themeName.endsWith('-dark')) return '#0f172a';
-        if (themeName.endsWith('-pink')) return '#ec4899';
-        if (themeName.endsWith('-emerald')) return '#059669';
-        return '#059669';
+        const theme = themeName || '';
+        // 1. Explicit theme suffix variants take first priority
+        if (theme.endsWith('-amber') || theme.endsWith('-gold')) return '#d97706';
+        if (theme.endsWith('-red')) return '#dc2626';
+        if (theme.endsWith('-cyan')) return '#0891b2';
+        if (theme.endsWith('-purple')) return '#7c3aed';
+        if (theme.endsWith('-dark')) return '#0f172a';
+        if (theme.endsWith('-pink')) return '#ec4899';
+        if (theme.endsWith('-emerald')) return '#059669';
+
+        // 2. Custom Primary from theme_colors if explicitly set
+        if (customPrimary && customPrimary.trim() && customPrimary !== '#059669') {
+            return customPrimary.trim();
+        }
+
+        // 3. Fallback to customPrimary or Emerald
+        return customPrimary?.trim() || '#059669';
     };
 
     let tc = config?.theme_colors || {};
