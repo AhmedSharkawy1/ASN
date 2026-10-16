@@ -163,22 +163,23 @@ export default function CheckoutModal({
                     }
 
                     const isDeliveryOnly = tc.service_type === 'delivery_only' || tc.theme30_service_type === 'delivery_only' || tc.theme28_service_type === 'delivery_only';
-                    const dInEnabled = tc.dine_in_enabled !== undefined ? Boolean(tc.dine_in_enabled) : !isDeliveryOnly;
-                    const pEnabled = data.pickup_enabled ?? true;
-                    const dEnabled = data.delivery_enabled ?? true;
+                    const isDineInOnly = tc.service_type === 'dine_in_only' || tc.theme30_service_type === 'dine_in_only' || tc.theme28_service_type === 'dine_in_only';
+
+                    const dInEnabled = isDeliveryOnly ? false : (tc.dine_in_enabled !== undefined ? Boolean(tc.dine_in_enabled) : true);
+                    const pEnabled = isDeliveryOnly ? false : (data.pickup_enabled ?? true);
+                    const dEnabled = isDineInOnly ? false : (data.delivery_enabled ?? true);
 
                     setDineInEnabled(dInEnabled);
                     setPickupEnabled(pEnabled);
                     setDeliveryEnabled(dEnabled);
 
-                    // Auto-select the first available order type
-                    if (dInEnabled) {
-                        setOrderType('dine_in');
-                    } else if (pEnabled) {
-                        setOrderType('pickup');
-                    } else if (dEnabled) {
-                        setOrderType('delivery');
-                    }
+                    // Preserve user choice if already valid, otherwise auto-select first available
+                    setOrderType(current => {
+                        if (current === 'dine_in' && dInEnabled) return current;
+                        if (current === 'pickup' && pEnabled) return current;
+                        if (current === 'delivery' && dEnabled) return current;
+                        return dInEnabled ? 'dine_in' : (pEnabled ? 'pickup' : (dEnabled ? 'delivery' : 'pickup'));
+                    });
                 }
             } catch (err) {
                 console.error("Error fetching restaurant config in CheckoutModal:", err);
@@ -487,7 +488,7 @@ export default function CheckoutModal({
 
             {/* Modal */}
             <div
-                className="relative w-[85vw] max-w-[310px] max-h-[85vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 mx-auto"
+                className="relative w-[92vw] max-w-[420px] max-h-[88vh] overflow-y-auto bg-white dark:bg-zinc-900 rounded-[2rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 mx-auto"
                 style={{ animation: "popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards" }}
             >
                 {/* Header */}
@@ -623,92 +624,85 @@ export default function CheckoutModal({
                     {/* ════════ STEP: ORDER TYPE ════════ */}
                     {effectiveStep === 3 && (
                         <>
-                            {/* Show order type buttons if more than one is enabled */}
-                            {((dineInEnabled ? 1 : 0) + (pickupEnabled ? 1 : 0) + (deliveryEnabled ? 1 : 0)) > 1 && (
-                            <div className={`grid gap-2.5 ${((dineInEnabled ? 1 : 0) + (pickupEnabled ? 1 : 0) + (deliveryEnabled ? 1 : 0)) === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                                {dineInEnabled && (
-                                <button
-                                    type="button"
-                                    onClick={() => { setOrderType('dine_in'); setSelectedZone(null); }}
-                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all ${orderType === 'dine_in'
-                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 font-bold'
-                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
-                                >
-                                    <Utensils className={`w-6 h-6 ${orderType === 'dine_in' ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                                    <span className={`text-xs font-bold ${orderType === 'dine_in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
-                                        {isAr ? "صالة" : "Dine-in"}
-                                    </span>
-                                    <span className="text-[10px] text-zinc-400">
-                                        {isAr ? "تناول بالمطعم" : "In restaurant"}
-                                    </span>
-                                </button>
-                                )}
+                            {/* Order Type Selection */}
+                            {(() => {
+                                const hasAnyOption = dineInEnabled || pickupEnabled || deliveryEnabled;
+                                const showDineIn = hasAnyOption ? dineInEnabled : true;
+                                const showPickup = hasAnyOption ? pickupEnabled : true;
+                                const showDelivery = hasAnyOption ? deliveryEnabled : true;
+                                const enabledCount = (showDineIn ? 1 : 0) + (showPickup ? 1 : 0) + (showDelivery ? 1 : 0);
 
-                                {pickupEnabled && (
-                                <button
-                                    type="button"
-                                    onClick={() => { setOrderType('pickup'); setSelectedZone(null); }}
-                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all ${orderType === 'pickup'
-                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 font-bold'
-                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
-                                >
-                                    <Store className={`w-6 h-6 ${orderType === 'pickup' ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                                    <span className={`text-xs font-bold ${orderType === 'pickup' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
-                                        {isAr ? "تيك أواي" : "Takeaway"}
-                                    </span>
-                                    <span className="text-[10px] text-zinc-400">
-                                        {isAr ? "استلام من الفرع" : "Pickup"}
-                                    </span>
-                                </button>
-                                )}
+                                return (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 block mb-1">
+                                            🛵 {isAr ? "حدد نوع الطلب" : "Select Order Type"} <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className={`grid gap-2 ${enabledCount >= 3 ? 'grid-cols-3' : enabledCount === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                                            {showDineIn && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setOrderType('dine_in'); setSelectedZone(null); }}
+                                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border-2 transition-all cursor-pointer ${orderType === 'dine_in'
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-black shadow-xs ring-2 ring-emerald-500/20'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 text-zinc-600 dark:text-zinc-400'}`}
+                                                >
+                                                    <Utensils className={`w-5 h-5 ${orderType === 'dine_in' ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                                                    <span className="text-xs font-black">
+                                                        {isAr ? "صالة" : "Dine-in"}
+                                                    </span>
+                                                    <span className="text-[10px] text-zinc-400">
+                                                        {isAr ? "تناول بالمطعم" : "In restaurant"}
+                                                    </span>
+                                                </button>
+                                            )}
 
-                                {deliveryEnabled && (
-                                <button
-                                    type="button"
-                                    onClick={() => setOrderType('delivery')}
-                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all ${orderType === 'delivery'
-                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 font-bold'
-                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
-                                >
-                                    <Truck className={`w-6 h-6 ${orderType === 'delivery' ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                                    <span className={`text-xs font-bold ${orderType === 'delivery' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
-                                        {isAr ? "دليفري" : "Delivery"}
-                                    </span>
-                                    <span className="text-[10px] text-zinc-400">
-                                        {isAr ? "توصيل للعنوان" : "To address"}
-                                    </span>
-                                </button>
-                                )}
-                            </div>
-                            )}
+                                            {showPickup && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setOrderType('pickup'); setSelectedZone(null); }}
+                                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border-2 transition-all cursor-pointer ${orderType === 'pickup'
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-black shadow-xs ring-2 ring-emerald-500/20'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 text-zinc-600 dark:text-zinc-400'}`}
+                                                >
+                                                    <Store className={`w-5 h-5 ${orderType === 'pickup' ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                                                    <span className="text-xs font-black">
+                                                        {isAr ? "تيك أواي" : "Takeaway"}
+                                                    </span>
+                                                    <span className="text-[10px] text-zinc-400">
+                                                        {isAr ? "استلام من الفرع" : "Pickup"}
+                                                    </span>
+                                                </button>
+                                            )}
 
-                            {/* Show single-option indicator when only one type is enabled */}
-                            {((dineInEnabled ? 1 : 0) + (pickupEnabled ? 1 : 0) + (deliveryEnabled ? 1 : 0)) === 1 && (
-                                <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                                    {dineInEnabled ? (
-                                        <>
-                                            <Utensils className="w-6 h-6 text-emerald-500 shrink-0" />
-                                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                                                {isAr ? "هذا المطعم يقدم خدمة الصالة (تناول داخل المطعم) فقط" : "This restaurant offers dine-in service only"}
+                                            {showDelivery && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOrderType('delivery')}
+                                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-2xl border-2 transition-all cursor-pointer ${orderType === 'delivery'
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 font-black shadow-xs ring-2 ring-emerald-500/20'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600 text-zinc-600 dark:text-zinc-400'}`}
+                                                >
+                                                    <Truck className={`w-5 h-5 ${orderType === 'delivery' ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                                                    <span className="text-xs font-black">
+                                                        {isAr ? "دليفري" : "Delivery"}
+                                                    </span>
+                                                    <span className="text-[10px] text-zinc-400">
+                                                        {isAr ? "توصيل للعنوان" : "To address"}
+                                                    </span>
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        {enabledCount === 1 && (
+                                            <p className="text-[11px] text-zinc-500 dark:text-zinc-400 font-bold mt-1 text-center">
+                                                {showDineIn ? (isAr ? "ℹ️ هذا المطعم يقدم خدمة الصالة فقط" : "ℹ️ Dine-in only available")
+                                                : showDelivery ? (isAr ? "ℹ️ هذا المطعم يقدم خدمة الدليفري والتوصيل فقط" : "ℹ️ Delivery only available")
+                                                : (isAr ? "ℹ️ هذا المطعم يقدم خدمة الاستلام والتيك أواي فقط" : "ℹ️ Pickup only available")}
                                             </p>
-                                        </>
-                                    ) : deliveryEnabled ? (
-                                        <>
-                                            <Truck className="w-6 h-6 text-emerald-500 shrink-0" />
-                                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                                                {isAr ? "هذا المطعم يقدم خدمة الدليفري والتوصيل فقط" : "This restaurant offers delivery only"}
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Store className="w-6 h-6 text-emerald-500 shrink-0" />
-                                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                                                {isAr ? "هذا المطعم يقدم خدمة التيك أواي والاستلام فقط" : "This restaurant offers pickup only"}
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
-                            )}
+                                        )}
+                                    </div>
+                                );
+                            })()}
 
                             {/* Dine-In Details */}
                             {orderType === 'dine_in' && (
@@ -899,21 +893,34 @@ export default function CheckoutModal({
                                 </div>
                             )}
 
-                            <div className="flex gap-2 mt-2">
-                                <button onClick={() => setStep(hasAddons ? 2 : 1)} className="w-[100px] py-3 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
-                                    {isAr ? "← رجوع" : "← Back"}
-                                </button>
-                                <button
-                                    disabled={!canProceedStep3 || loading}
-                                    onClick={() => handleSubmit()}
-                                    className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-60 transition text-sm flex items-center justify-center gap-2"
-                                >
-                                    {loading ? (
-                                        <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Sending..."}</>
-                                    ) : (
-                                        <>{isAr ? "التالي" : "Next"}</>
-                                    )}
-                                </button>
+                            <div className="space-y-2 mt-3">
+                                {!canProceedStep3 && orderType === 'delivery' && address.trim().length === 0 && (
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 font-bold text-center bg-amber-50 dark:bg-amber-950/20 py-2 px-3 rounded-xl border border-amber-200 dark:border-amber-900/30">
+                                        {isAr ? "⚠️ يرجى إدخال عنوان التوصيل بالتفصيل للمتابعة" : "⚠️ Please enter delivery address to proceed"}
+                                    </p>
+                                )}
+                                {!canProceedStep3 && localBranches && localBranches.length > 0 && selectedBranch === "" && (
+                                    <p className="text-xs text-amber-600 dark:text-amber-400 font-bold text-center bg-amber-50 dark:bg-amber-950/20 py-2 px-3 rounded-xl border border-amber-200 dark:border-amber-900/30">
+                                        {isAr ? "⚠️ يرجى تحديد الفرع أولاً" : "⚠️ Please select a branch first"}
+                                    </p>
+                                )}
+
+                                <div className="flex gap-2">
+                                    <button onClick={() => setStep(hasAddons ? 2 : 1)} className="w-[100px] py-3.5 rounded-xl font-bold border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition text-sm">
+                                        {isAr ? "← رجوع" : "← Back"}
+                                    </button>
+                                    <button
+                                        disabled={!canProceedStep3 || loading}
+                                        onClick={() => handleSubmit()}
+                                        className="flex-1 py-3.5 rounded-xl font-bold text-white bg-[#25D366] hover:bg-[#20bd5a] disabled:opacity-40 disabled:cursor-not-allowed transition text-sm flex items-center justify-center gap-2 shadow-md active:scale-98"
+                                    >
+                                        {loading ? (
+                                            <><Loader2 className="w-4 h-4 animate-spin" /> {isAr ? "جاري الإرسال..." : "Sending..."}</>
+                                        ) : (
+                                            <>{isAr ? "تأكيد وإرسال الطلب ←" : "Confirm & Send Order →"}</>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </>
                     )}
