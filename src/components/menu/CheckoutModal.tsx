@@ -850,7 +850,9 @@ export default function CheckoutModal({
                                 <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                                     <Store className="w-5 h-5 text-blue-500 flex-shrink-0" />
                                     <p className="text-xs text-blue-700 dark:text-blue-300 font-bold">
-                                        {isAr ? `تيك أواي: يمكنك استلام طلبك من ${restaurantName} مباشرة فور جهوزه.` : `Takeaway: You can pick up your order directly from ${restaurantName}.`}
+                                        {isAr 
+                                            ? `يمكنك استلام طلبك من ${restaurantName || 'المطعم'} مباشرة بعد تجهيزه و سيتم التواصل معكم.` 
+                                            : `You can pick up your order directly from ${restaurantName || 'the restaurant'} once prepared, and we will contact you.`}
                                     </p>
                                 </div>
                             )}
