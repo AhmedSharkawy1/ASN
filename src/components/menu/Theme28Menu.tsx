@@ -8,7 +8,7 @@ import {
     Sparkles, Flame, Clock, MapPin, Phone, MessageCircle,
     Sun, Moon, Globe, ChevronRight, ChevronLeft, Check,
     LayoutGrid, LayoutList, AlignJustify, Maximize2, Tag,
-    Utensils, Coffee, Bell, Heart, Info, ArrowUpRight, CreditCard, Truck
+    Utensils, Coffee, Bell, Heart, Info, ArrowUpRight, CreditCard, Truck, Store
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaInstagram, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
@@ -192,32 +192,85 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
     const [viewMode, setViewMode] = useState<ViewMode>(['grid', 'list', 'compact', 'showcase'].includes(defaultView) ? defaultView : 'grid');
     const showStoriesBar = tc.theme28_show_stories !== false && config?.theme28_show_stories !== false;
 
-    // Service type resolution (dine-in & delivery vs delivery only vs delivery & takeaway)
-    const serviceType = useMemo<'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only'>(() => {
-        const explicit = tc.service_type || tc.theme28_service_type || tc.theme30_service_type || config.service_type;
-        if (explicit === 'delivery_and_takeaway') {
-            return 'delivery_and_takeaway';
+    // Service configuration & labels resolution directly matching dashboard settings
+    const serviceInfo = useMemo(() => {
+        let dIn = false;
+        if (tc.dine_in_enabled !== undefined) {
+            dIn = Boolean(tc.dine_in_enabled);
+        } else if (tc.service_type === 'dine_in_and_delivery' || tc.service_type === 'dine_in_only' || tc.theme28_service_type === 'dine_in_and_delivery' || tc.theme28_service_type === 'dine_in_only' || tc.theme30_service_type === 'dine_in_and_delivery' || tc.theme30_service_type === 'dine_in_only') {
+            dIn = true;
+        } else {
+            dIn = false;
         }
-        if (explicit === 'delivery_only') {
-            return 'delivery_only';
+
+        const p = config.pickup_enabled !== false && tc.service_type !== 'delivery_only' && tc.theme28_service_type !== 'delivery_only' && tc.theme30_service_type !== 'delivery_only';
+        const d = config.delivery_enabled !== false && tc.service_type !== 'dine_in_only' && tc.theme28_service_type !== 'dine_in_only' && tc.theme30_service_type !== 'dine_in_only';
+
+        if (dIn && p && d) {
+            return {
+                type: 'dine_in_and_delivery' as const,
+                icon: 'utensils' as const,
+                labelAr: 'صالة وتيك أواي ودليفري',
+                labelEn: 'Dine-in, Takeaway & Delivery',
+            };
         }
-        if (explicit === 'dine_in_only') {
-            return 'dine_in_only';
+        if (!dIn && p && d) {
+            return {
+                type: 'delivery_and_takeaway' as const,
+                icon: 'truck' as const,
+                labelAr: 'دليفري وتيك أواي',
+                labelEn: 'Delivery & Takeaway',
+            };
         }
-        if (explicit === 'dine_in_and_delivery') {
-            return 'dine_in_and_delivery';
+        if (dIn && p && !d) {
+            return {
+                type: 'dine_in_only' as const,
+                icon: 'utensils' as const,
+                labelAr: 'صالة وتيك أواي فقط',
+                labelEn: 'Dine-in & Takeaway Only',
+            };
         }
-        if (config.pickup_enabled === false && config.delivery_enabled !== false) {
-            return 'delivery_only';
+        if (dIn && !p && d) {
+            return {
+                type: 'dine_in_and_delivery' as const,
+                icon: 'utensils' as const,
+                labelAr: 'صالة ودليفري',
+                labelEn: 'Dine-in & Delivery',
+            };
         }
-        if (config.pickup_enabled !== false && config.delivery_enabled === false) {
-            return 'dine_in_only';
+        if (!dIn && !p && d) {
+            return {
+                type: 'delivery_only' as const,
+                icon: 'truck' as const,
+                labelAr: 'دليفري فقط',
+                labelEn: 'Delivery Only',
+            };
         }
-        if (tc.dine_in_enabled === true && !explicit) {
-            return 'dine_in_and_delivery';
+        if (!dIn && p && !d) {
+            return {
+                type: 'dine_in_only' as const,
+                icon: 'store' as const,
+                labelAr: 'تيك أواي فقط',
+                labelEn: 'Takeaway Only',
+            };
         }
-        return 'delivery_and_takeaway';
-    }, [tc, config.service_type, config.pickup_enabled, config.delivery_enabled]);
+        if (dIn && !p && !d) {
+            return {
+                type: 'dine_in_only' as const,
+                icon: 'utensils' as const,
+                labelAr: 'صالة فقط',
+                labelEn: 'Dine-in Only',
+            };
+        }
+        return {
+            type: 'delivery_and_takeaway' as const,
+            icon: 'truck' as const,
+            labelAr: 'دليفري وتيك أواي',
+            labelEn: 'Delivery & Takeaway',
+        };
+    }, [tc, config.pickup_enabled, config.delivery_enabled, config.service_type]);
+
+    const serviceType = serviceInfo.type;
 
     // View state
     const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -739,27 +792,14 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                 {/* Meta details bar: Dining & Delivery / Fast Service */}
                                 <div className="flex items-center gap-2.5 mt-2 text-[11px] text-slate-800 dark:text-zinc-200 font-extrabold flex-wrap">
                                     <span className="flex items-center gap-1">
-                                        {serviceType === 'delivery_only' ? (
-                                            <>
-                                                <Truck className="w-3.5 h-3.5 text-blue-500" />
-                                                <span>{isAr ? 'دليفري فقط' : 'Delivery Only'}</span>
-                                            </>
-                                        ) : serviceType === 'dine_in_only' ? (
-                                            <>
-                                                <Utensils className="w-3.5 h-3.5 text-amber-500" />
-                                                <span>{isAr ? 'صالة وتيك أواي فقط' : 'Dine-in & Takeaway Only'}</span>
-                                            </>
-                                        ) : serviceType === 'delivery_and_takeaway' ? (
-                                            <>
-                                                <Truck className="w-3.5 h-3.5 text-emerald-500" />
-                                                <span>{isAr ? 'دليفري وتيك أواي' : 'Delivery & Takeaway'}</span>
-                                            </>
+                                        {serviceInfo.icon === 'truck' ? (
+                                            <Truck className="w-3.5 h-3.5 text-blue-500" />
+                                        ) : serviceInfo.icon === 'store' ? (
+                                            <Store className="w-3.5 h-3.5 text-emerald-500" />
                                         ) : (
-                                            <>
-                                                <Utensils className="w-3.5 h-3.5 text-amber-500" />
-                                                <span>{isAr ? 'صالة وتيك أواي ودليفري' : 'Dine-in, Takeaway & Delivery'}</span>
-                                            </>
+                                            <Utensils className="w-3.5 h-3.5 text-amber-500" />
                                         )}
+                                        <span>{isAr ? serviceInfo.labelAr : serviceInfo.labelEn}</span>
                                     </span>
                                     <span>•</span>
                                     <span className="flex items-center gap-1">

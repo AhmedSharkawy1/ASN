@@ -301,6 +301,17 @@ export default function SettingsPage() {
             }
 
             if (error) throw error;
+
+            try {
+                await fetch('/api/revalidate-menu', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ restaurantId: profile.id, slug: profile.slug }),
+                });
+            } catch (revalErr) {
+                console.warn("Revalidate error in settings:", revalErr);
+            }
+
             setSuccessMessage(language === "ar" ? "تم حفظ الإعدادات بنجاح!" : "Settings saved successfully!");
             setTimeout(() => setSuccessMessage(""), 3000);
         } catch (err: any) {
