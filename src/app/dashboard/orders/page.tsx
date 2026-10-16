@@ -252,6 +252,7 @@ export default function OrdersPage() {
                             delivery_driver_name: o.delivery_driver_name,
                             delivery_fee: o.delivery_fee,
                             order_type: o.order_type,
+                            table_id: o.table_id,
                             notes: o.notes,
                             source: o.source || 'pos',
                             cashier_id: o.cashier_id,
@@ -300,6 +301,7 @@ export default function OrdersPage() {
                     delivery_driver_name: o.delivery_driver_name,
                     delivery_fee: o.delivery_fee,
                     order_type: o.order_type,
+                    table_id: o.table_id,
                     notes: o.notes,
                     source: o.source || 'pos',
                     cashier_name: o.cashier_name,
@@ -844,6 +846,21 @@ export default function OrdersPage() {
                                         {statusLabel(order.status, isAr)}
                                     </span>
 
+                                    {/* Order Type Badge */}
+                                    {order.order_type === 'dine_in' ? (
+                                        <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg border bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20 flex items-center gap-1 shrink-0">
+                                            🍽️ {isAr ? `صالة ${order.table_id ? `(طاولة ${order.table_id})` : ''}` : `Dine-in ${order.table_id ? `(T${order.table_id})` : ''}`}
+                                        </span>
+                                    ) : order.order_type === 'pickup' || order.order_type === 'takeaway' ? (
+                                        <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg border bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 flex items-center gap-1 shrink-0">
+                                            🛍️ {isAr ? "تيك أواي" : "Takeaway"}
+                                        </span>
+                                    ) : (order.order_type === 'delivery' || (order.delivery_fee && order.delivery_fee > 0)) ? (
+                                        <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg border bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20 flex items-center gap-1 shrink-0">
+                                            🚚 {isAr ? "دليفري" : "Delivery"}
+                                        </span>
+                                    ) : null}
+
                                     {order._offline && (
                                         <span className="text-xs font-bold px-2 py-0.5 rounded-lg border bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-500/20 flex items-center gap-0.5 shrink-0">
                                             <WifiOff className="w-3 h-3" /> {isAr ? "لم يُزامن" : "Offline"}
@@ -976,6 +993,20 @@ export default function OrdersPage() {
 
                                                 {/* Info Grid */}
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                                    <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg">
+                                                        <span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "نوع الطلب" : "Order Type"}</span>
+                                                        <span className="text-slate-700 dark:text-zinc-300 font-bold">
+                                                            {order.order_type === 'dine_in' ? (
+                                                                <>🍽️ {isAr ? `صالة ${order.table_id ? `(طاولة ${order.table_id})` : ''}` : `Dine-in ${order.table_id ? `(Table ${order.table_id})` : ''}`}</>
+                                                            ) : order.order_type === 'pickup' || order.order_type === 'takeaway' ? (
+                                                                <>🛍️ {isAr ? "تيك أواي (استلام من المطعم)" : "Takeaway (Pickup)"}</>
+                                                            ) : order.order_type === 'delivery' ? (
+                                                                <>🚚 {isAr ? "دليفري (توصيل للعنوان)" : "Delivery"}</>
+                                                            ) : (
+                                                                <>{isAr ? "غير محدد" : "Not specified"}</>
+                                                            )}
+                                                        </span>
+                                                    </div>
                                                     {order.customer_phone && <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "الهاتف" : "Phone"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold" dir="ltr">{order.customer_phone}</span></div>}
                                                     <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg">
                                                         <span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "الدفع" : "Payment"}</span>
@@ -987,6 +1018,12 @@ export default function OrdersPage() {
                                                         </span>
                                                     </div>
                                                     <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg"><span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "التاريخ" : "Date"}</span><span className="text-slate-700 dark:text-zinc-300 font-bold">{formatDate(order.created_at)}</span></div>
+                                                    {order.customer_address && (
+                                                        <div className="bg-slate-50 dark:bg-black/20 p-2.5 rounded-lg col-span-2">
+                                                            <span className="text-slate-500 dark:text-zinc-500 block mb-0.5">{isAr ? "عنوان التوصيل" : "Delivery Address"}</span>
+                                                            <span className="text-slate-700 dark:text-zinc-300 font-bold">{order.customer_address}</span>
+                                                        </div>
+                                                    )}
                                                     {order.cashier_name ? (
                                                         <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-200/60 dark:border-violet-500/20 p-2.5 rounded-lg">
                                                             <span className="text-violet-600 dark:text-violet-400 block mb-0.5 text-xs font-bold">

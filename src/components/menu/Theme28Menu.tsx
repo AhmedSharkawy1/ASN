@@ -736,12 +736,12 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                         ) : serviceType === 'dine_in_only' ? (
                                             <>
                                                 <Utensils className="w-3.5 h-3.5 text-amber-500" />
-                                                <span>{isAr ? 'صالة فقط' : 'Dine-in Only'}</span>
+                                                <span>{isAr ? 'صالة وتيك أواي فقط' : 'Dine-in & Takeaway Only'}</span>
                                             </>
                                         ) : (
                                             <>
                                                 <Utensils className="w-3.5 h-3.5 text-amber-500" />
-                                                <span>{isAr ? 'صالة ودليفري' : 'Dine-in & Delivery'}</span>
+                                                <span>{isAr ? 'صالة وتيك أواي ودليفري' : 'Dine-in, Takeaway & Delivery'}</span>
                                             </>
                                         )}
                                     </span>
@@ -2394,8 +2394,8 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                                                     {serviceType === 'delivery_only'
                                                         ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر مع مندوب الدليفري.' : 'Pay cash upon delivery.')
                                                         : serviceType === 'dine_in_only'
-                                                        ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة.' : 'Pay cash upon dine-in.')
-                                                        : (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو مع مندوب الدليفري.' : 'Pay cash upon delivery or dine-in.')
+                                                        ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو استلام تيك أواي.' : 'Pay cash upon dine-in or takeaway.')
+                                                        : (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو التيك أواي أو مع مندوب الدليفري.' : 'Pay cash upon dine-in, takeaway or delivery.')
                                                     }
                                                 </p>
                                             </div>

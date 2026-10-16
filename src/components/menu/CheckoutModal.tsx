@@ -6,7 +6,7 @@ import { submitOrder, buildWhatsAppMessage, OrderItem, OrderItemExtra } from "@/
 import { fetchActivePromotions, evaluatePromotions, hasPromoCodeOffers, requiresPromoCode, getBogoSuggestion, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
 import { parseCurrency } from "@/lib/currency";
 import { FaWhatsapp } from "react-icons/fa";
-import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag, Gift, Sparkles } from "lucide-react";
+import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag, Gift, Sparkles, Utensils } from "lucide-react";
 
 type DeliveryZone = {
     id: string;
@@ -99,12 +99,14 @@ export default function CheckoutModal({
     const [notes, setNotes] = useState("");
 
     // Order type
-    const [orderType, setOrderType] = useState<'delivery' | 'pickup'>('pickup');
+    const [orderType, setOrderType] = useState<'delivery' | 'pickup' | 'dine_in'>('pickup');
+    const [tableNumber, setTableNumber] = useState("");
     const [address, setAddress] = useState("");
     const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
     const [zones, setZones] = useState<DeliveryZone[]>([]);
 
     // Order type visibility (from restaurant settings)
+    const [dineInEnabled, setDineInEnabled] = useState(true);
     const [pickupEnabled, setPickupEnabled] = useState(true);
     const [deliveryEnabled, setDeliveryEnabled] = useState(true);
 
@@ -136,7 +138,7 @@ export default function CheckoutModal({
             try {
                 const { data } = await supabase
                     .from('restaurants')
-                    .select('branches_enabled, branches, currency, pickup_enabled, delivery_enabled')
+                    .select('branches_enabled, branches, currency, pickup_enabled, delivery_enabled, theme_colors')
                     .eq('id', restaurantId)
                     .single();
                 if (data) {
@@ -152,17 +154,30 @@ export default function CheckoutModal({
                         setCurrency(parseCurrency(data.currency, isAr));
                     }
 
-                    // Set order type visibility
+                    // Parse theme_colors to check dine_in_enabled & service_type
+                    let tc: any = {};
+                    try {
+                        tc = typeof data.theme_colors === 'string' ? JSON.parse(data.theme_colors) : (data.theme_colors || {});
+                    } catch {
+                        tc = {};
+                    }
+
+                    const isDeliveryOnly = tc.service_type === 'delivery_only' || tc.theme30_service_type === 'delivery_only' || tc.theme28_service_type === 'delivery_only';
+                    const dInEnabled = tc.dine_in_enabled !== undefined ? Boolean(tc.dine_in_enabled) : !isDeliveryOnly;
                     const pEnabled = data.pickup_enabled ?? true;
                     const dEnabled = data.delivery_enabled ?? true;
+
+                    setDineInEnabled(dInEnabled);
                     setPickupEnabled(pEnabled);
                     setDeliveryEnabled(dEnabled);
 
-                    // Auto-select the only available order type
-                    if (dEnabled && !pEnabled) {
-                        setOrderType('delivery');
-                    } else if (pEnabled && !dEnabled) {
+                    // Auto-select the first available order type
+                    if (dInEnabled) {
+                        setOrderType('dine_in');
+                    } else if (pEnabled) {
                         setOrderType('pickup');
+                    } else if (dEnabled) {
+                        setOrderType('delivery');
                     }
                 }
             } catch (err) {
@@ -217,6 +232,7 @@ export default function CheckoutModal({
             setItemExtras({});
             setFinalizedOrderDetails(null);
             setSelectedBranch("");
+            setTableNumber("");
             setCodeInput("");
             setAppliedCode(null);
             setCodeError("");
@@ -359,7 +375,11 @@ export default function CheckoutModal({
     const total = subtotal + extrasTotal + deliveryFee - promoDiscount;
 
     const canProceedStep2 = name.trim().length > 0 && phone.trim().length >= 8;
-    const canProceedStep3 = (orderType === 'pickup' || (orderType === 'delivery' && address.trim().length > 0)) && (localBranches && localBranches.length > 0 ? selectedBranch !== "" : true);
+    const canProceedStep3 = (
+        orderType === 'dine_in' ||
+        orderType === 'pickup' ||
+        (orderType === 'delivery' && address.trim().length > 0)
+    ) && (localBranches && localBranches.length > 0 ? selectedBranch !== "" : true);
 
     // The WhatsApp hand-off is a separate link built by getWhatsAppLink, so
     // submitting is the same either way.
@@ -378,6 +398,7 @@ export default function CheckoutModal({
             customerAddress: orderType === 'delivery' ? address.trim() : undefined,
             notes: notes.trim() || undefined,
             orderType,
+            tableNumber: orderType === 'dine_in' && tableNumber.trim() ? tableNumber.trim() : undefined,
             deliveryZoneId: selectedZone?.id,
             deliveryZoneName: selectedZone ? (isAr ? selectedZone.name_ar : (selectedZone.name_en || selectedZone.name_ar)) : undefined,
             deliveryFee,
@@ -428,6 +449,7 @@ export default function CheckoutModal({
             customerPhone: phone,
             customerAddress: orderType === 'delivery' ? address : undefined,
             orderType,
+            tableNumber: orderType === 'dine_in' && tableNumber.trim() ? tableNumber.trim() : undefined,
             deliveryZoneName: selectedZone ? (isAr ? selectedZone.name_ar : (selectedZone.name_en || selectedZone.name_ar)) : undefined,
             deliveryFee,
             items: finalItems,
@@ -601,49 +623,114 @@ export default function CheckoutModal({
                     {/* ════════ STEP: ORDER TYPE ════════ */}
                     {effectiveStep === 3 && (
                         <>
-                            {/* Show order type buttons only if both are enabled */}
-                            {pickupEnabled && deliveryEnabled && (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
+                            {/* Show order type buttons if more than one is enabled */}
+                            {((dineInEnabled ? 1 : 0) + (pickupEnabled ? 1 : 0) + (deliveryEnabled ? 1 : 0)) > 1 && (
+                            <div className={`grid gap-2.5 ${((dineInEnabled ? 1 : 0) + (pickupEnabled ? 1 : 0) + (deliveryEnabled ? 1 : 0)) === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                                {dineInEnabled && (
                                 <button
-                                    onClick={() => setOrderType('delivery')}
-                                    className={`flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all ${orderType === 'delivery'
-                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                    type="button"
+                                    onClick={() => { setOrderType('dine_in'); setSelectedZone(null); }}
+                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all ${orderType === 'dine_in'
+                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 font-bold'
                                         : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
                                 >
-                                    <Truck className={`w-8 h-8 ${orderType === 'delivery' ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                                    <span className={`font-bold text-sm ${orderType === 'delivery' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                                    <Utensils className={`w-6 h-6 ${orderType === 'dine_in' ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                                    <span className={`text-xs font-bold ${orderType === 'dine_in' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                                        {isAr ? "صالة" : "Dine-in"}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-400">
+                                        {isAr ? "تناول بالمطعم" : "In restaurant"}
+                                    </span>
+                                </button>
+                                )}
+
+                                {pickupEnabled && (
+                                <button
+                                    type="button"
+                                    onClick={() => { setOrderType('pickup'); setSelectedZone(null); }}
+                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all ${orderType === 'pickup'
+                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 font-bold'
+                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
+                                >
+                                    <Store className={`w-6 h-6 ${orderType === 'pickup' ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                                    <span className={`text-xs font-bold ${orderType === 'pickup' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
+                                        {isAr ? "تيك أواي" : "Takeaway"}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-400">
+                                        {isAr ? "استلام من الفرع" : "Pickup"}
+                                    </span>
+                                </button>
+                                )}
+
+                                {deliveryEnabled && (
+                                <button
+                                    type="button"
+                                    onClick={() => setOrderType('delivery')}
+                                    className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 transition-all ${orderType === 'delivery'
+                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 font-bold'
+                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
+                                >
+                                    <Truck className={`w-6 h-6 ${orderType === 'delivery' ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                                    <span className={`text-xs font-bold ${orderType === 'delivery' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
                                         {isAr ? "دليفري" : "Delivery"}
                                     </span>
-                                </button>
-                                <button
-                                    onClick={() => { setOrderType('pickup'); setSelectedZone(null); }}
-                                    className={`flex flex-col items-center gap-2 p-5 rounded-xl border-2 transition-all ${orderType === 'pickup'
-                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300'}`}
-                                >
-                                    <Store className={`w-8 h-8 ${orderType === 'pickup' ? 'text-emerald-500' : 'text-zinc-400'}`} />
-                                    <span className={`font-bold text-sm ${orderType === 'pickup' ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-600 dark:text-zinc-400'}`}>
-                                        {isAr ? "استلام من المطعم" : "Pickup"}
+                                    <span className="text-[10px] text-zinc-400">
+                                        {isAr ? "توصيل للعنوان" : "To address"}
                                     </span>
                                 </button>
+                                )}
                             </div>
                             )}
 
                             {/* Show single-option indicator when only one type is enabled */}
-                            {!pickupEnabled && deliveryEnabled && (
+                            {((dineInEnabled ? 1 : 0) + (pickupEnabled ? 1 : 0) + (deliveryEnabled ? 1 : 0)) === 1 && (
                                 <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                                    <Truck className="w-6 h-6 text-emerald-500 flex-shrink-0" />
-                                    <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
-                                        {isAr ? "هذا المطعم يقدم خدمة الدليفري فقط" : "This restaurant offers delivery only"}
-                                    </p>
+                                    {dineInEnabled ? (
+                                        <>
+                                            <Utensils className="w-6 h-6 text-emerald-500 shrink-0" />
+                                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                                                {isAr ? "هذا المطعم يقدم خدمة الصالة (تناول داخل المطعم) فقط" : "This restaurant offers dine-in service only"}
+                                            </p>
+                                        </>
+                                    ) : deliveryEnabled ? (
+                                        <>
+                                            <Truck className="w-6 h-6 text-emerald-500 shrink-0" />
+                                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                                                {isAr ? "هذا المطعم يقدم خدمة الدليفري والتوصيل فقط" : "This restaurant offers delivery only"}
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Store className="w-6 h-6 text-emerald-500 shrink-0" />
+                                            <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">
+                                                {isAr ? "هذا المطعم يقدم خدمة التيك أواي والاستلام فقط" : "This restaurant offers pickup only"}
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             )}
-                            {pickupEnabled && !deliveryEnabled && (
-                                <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                                    <Store className="w-6 h-6 text-blue-500 flex-shrink-0" />
-                                    <p className="text-sm font-bold text-blue-700 dark:text-blue-300">
-                                        {isAr ? "هذا المطعم يقدم خدمة الاستلام من المطعم فقط" : "This restaurant offers pickup only"}
-                                    </p>
+
+                            {/* Dine-In Details */}
+                            {orderType === 'dine_in' && (
+                                <div className="space-y-3 mt-2">
+                                    <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                        <Utensils className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        <p className="text-xs text-amber-800 dark:text-amber-200 font-bold">
+                                            {isAr ? "تناول الطعام داخل صالة المطعم" : "Dine-in inside the restaurant"}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 block mb-1.5">
+                                            🪑 {isAr ? "رقم الطاولة (اختياري)" : "Table Number (Optional)"}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={tableNumber}
+                                            onChange={e => setTableNumber(e.target.value)}
+                                            placeholder={isAr ? "مثال: طاولة 5" : "e.g. Table 5"}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:border-emerald-500 transition text-sm"
+                                        />
+                                    </div>
                                 </div>
                             )}
 
@@ -735,8 +822,8 @@ export default function CheckoutModal({
                             {orderType === 'pickup' && (
                                 <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                                     <Store className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                                        {isAr ? `يمكنك استلام طلبك من ${restaurantName} مباشرة.` : `You can pick up your order from ${restaurantName} directly.`}
+                                    <p className="text-xs text-blue-700 dark:text-blue-300 font-bold">
+                                        {isAr ? `تيك أواي: يمكنك استلام طلبك من ${restaurantName} مباشرة فور جهوزه.` : `Takeaway: You can pick up your order directly from ${restaurantName}.`}
                                     </p>
                                 </div>
                             )}
@@ -849,6 +936,16 @@ export default function CheckoutModal({
 
                             {/* Order Summary with Discount */}
                             <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-sm space-y-2 text-start">
+                                <div className="flex justify-between text-zinc-500">
+                                    <span>{isAr ? "نوع الطلب" : "Order Type"}</span>
+                                    <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                                        {orderType === 'dine_in'
+                                            ? (isAr ? `🍽️ صالة${tableNumber ? ` (طاولة ${tableNumber})` : ''}` : `🍽️ Dine-in${tableNumber ? ` (T-${tableNumber})` : ''}`)
+                                            : orderType === 'delivery'
+                                            ? (isAr ? "🚚 دليفري" : "🚚 Delivery")
+                                            : (isAr ? "🛍️ تيك أواي" : "🛍️ Takeaway")}
+                                    </span>
+                                </div>
                                 <div className="flex justify-between text-zinc-500">
                                     <span>{isAr ? "المجموع الفرعي" : "Subtotal"}</span>
                                     <span>{finalizedOrderDetails ? finalizedOrderDetails.subtotal + finalizedOrderDetails.extrasTotal : subtotal + extrasTotal} {currency}</span>

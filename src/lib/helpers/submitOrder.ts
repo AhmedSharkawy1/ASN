@@ -44,7 +44,8 @@ export type SubmitOrderParams = {
     customerPhone: string;
     customerAddress?: string;
     notes?: string;
-    orderType: 'delivery' | 'pickup';
+    orderType: 'delivery' | 'pickup' | 'dine_in' | 'takeaway';
+    tableNumber?: string;
     deliveryZoneId?: string;
     deliveryZoneName?: string;
     deliveryFee?: number;
@@ -87,7 +88,8 @@ export function buildWhatsAppMessage(params: {
     customerName: string;
     customerPhone: string;
     customerAddress?: string;
-    orderType: 'delivery' | 'pickup';
+    orderType: 'delivery' | 'pickup' | 'dine_in' | 'takeaway';
+    tableNumber?: string;
     deliveryZoneName?: string;
     deliveryFee?: number;
     items: OrderItem[];
@@ -104,7 +106,7 @@ export function buildWhatsAppMessage(params: {
     const {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         orderNumber, restaurantName, customerName, customerPhone,
-        customerAddress, orderType, deliveryZoneName, deliveryFee,
+        customerAddress, orderType, tableNumber, deliveryZoneName, deliveryFee,
         items, subtotal, total, notes, currency = 'ج', language = 'ar',
         promotionName, discountAmount, discountType, branchName
     } = params;
@@ -115,14 +117,21 @@ export function buildWhatsAppMessage(params: {
     msg += `------------------------------\n`;
     msg += `👤 *${isAr ? 'الاسم:' : 'Name:'}* ${customerName}\n`;
     msg += `📞 *${isAr ? 'الموبايل:' : 'Phone:'}* ${customerPhone}\n`;
-    if (orderType === 'delivery' && customerAddress) {
-        msg += `📍 *${isAr ? 'العنوان:' : 'Address:'}* ${customerAddress}\n`;
-    }
-    if (orderType === 'pickup') {
-        msg += `🏪 *${isAr ? 'استلام من المطعم' : 'Pickup from restaurant'}*\n`;
-    }
-    if (orderType === 'delivery' && deliveryZoneName) {
-        msg += `📍 *${isAr ? 'منطقة التوصيل:' : 'Delivery Zone:'}* ${deliveryZoneName}\n`;
+    if (orderType === 'dine_in') {
+        msg += `🍽️ *${isAr ? 'نوع الطلب: صالة (تناول داخل المطعم)' : 'Order Type: Dine-in'}*\n`;
+        if (tableNumber) {
+            msg += `🪑 *${isAr ? 'رقم الطاولة:' : 'Table No.:'}* ${tableNumber}\n`;
+        }
+    } else if (orderType === 'pickup' || orderType === 'takeaway') {
+        msg += `🛍️ *${isAr ? 'نوع الطلب: تيك أواي (استلام من المطعم)' : 'Order Type: Takeaway (Pickup)'}*\n`;
+    } else if (orderType === 'delivery') {
+        msg += `🚚 *${isAr ? 'نوع الطلب: دليفري (توصيل)' : 'Order Type: Delivery'}*\n`;
+        if (customerAddress) {
+            msg += `📍 *${isAr ? 'العنوان:' : 'Address:'}* ${customerAddress}\n`;
+        }
+        if (deliveryZoneName) {
+            msg += `📍 *${isAr ? 'منطقة التوصيل:' : 'Delivery Zone:'}* ${deliveryZoneName}\n`;
+        }
     }
     if (branchName) {
         msg += `🏢 *${isAr ? 'الفرع:' : 'Branch:'}* ${branchName}\n`;
@@ -190,7 +199,8 @@ function buildTelegramMessage(params: {
     customerName: string;
     customerPhone: string;
     customerAddress?: string;
-    orderType: 'delivery' | 'pickup';
+    orderType: 'delivery' | 'pickup' | 'dine_in' | 'takeaway';
+    tableNumber?: string;
     deliveryZoneName?: string;
     deliveryFee?: number;
     items: OrderItem[];
@@ -205,7 +215,7 @@ function buildTelegramMessage(params: {
 }): string {
     const {
         orderNumber, restaurantName, customerName, customerPhone,
-        customerAddress, orderType, deliveryZoneName, deliveryFee,
+        customerAddress, orderType, tableNumber, deliveryZoneName, deliveryFee,
         items, subtotal, total, notes, currency = 'ج',
         promotionName, discountAmount, discountType, branchName
     } = params;
@@ -215,14 +225,21 @@ function buildTelegramMessage(params: {
     msg += `━━━━━━━━━━━━━━━━━━━━\n`;
     msg += `👤 *الاسم:* ${customerName}\n`;
     msg += `📞 *الموبايل:* ${customerPhone}\n`;
-    if (orderType === 'delivery' && customerAddress) {
-        msg += `📍 *العنوان:* ${customerAddress}\n`;
-    }
-    if (orderType === 'pickup') {
-        msg += `🏪 *استلام من المطعم*\n`;
-    }
-    if (orderType === 'delivery' && deliveryZoneName) {
-        msg += `📍 *منطقة التوصيل:* ${deliveryZoneName}\n`;
+    if (orderType === 'dine_in') {
+        msg += `🍽️ *نوع الطلب:* صالة (داخل المطعم)\n`;
+        if (tableNumber) {
+            msg += `🪑 *رقم الطاولة:* ${tableNumber}\n`;
+        }
+    } else if (orderType === 'pickup' || orderType === 'takeaway') {
+        msg += `🛍️ *نوع الطلب:* تيك أواي (استلام من المطعم)\n`;
+    } else if (orderType === 'delivery') {
+        msg += `🚚 *نوع الطلب:* دليفري (توصيل)\n`;
+        if (customerAddress) {
+            msg += `📍 *العنوان:* ${customerAddress}\n`;
+        }
+        if (deliveryZoneName) {
+            msg += `📍 *منطقة التوصيل:* ${deliveryZoneName}\n`;
+        }
     }
     if (branchName) {
         msg += `🏢 *الفرع:* ${branchName}\n`;
@@ -291,7 +308,8 @@ async function sendTelegramNotification(params: {
     customerName: string;
     customerPhone: string;
     customerAddress?: string;
-    orderType: 'delivery' | 'pickup';
+    orderType: 'delivery' | 'pickup' | 'dine_in' | 'takeaway';
+    tableNumber?: string;
     deliveryZoneName?: string;
     deliveryFee?: number;
     items: OrderItem[];
@@ -332,7 +350,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     try {
         const {
             restaurantId, customerName, customerPhone, customerAddress,
-            notes, orderType, deliveryZoneId, deliveryZoneName, deliveryFee,
+            notes, orderType, tableNumber, deliveryZoneId, deliveryZoneName, deliveryFee,
             items, subtotal, total, paymentMethod, restaurantName,
             promotionId, promotionName, discountAmount, discountType, branchName,
             currency
@@ -465,6 +483,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                 customer_address: customerAddress || null,
                 notes: notes || null,
                 order_type: orderType,
+                table_id: (orderType === 'dine_in' && tableNumber) ? tableNumber : null,
                 delivery_zone_id: deliveryZoneId || null,
                 delivery_zone_name: deliveryZoneName || null,
                 delivery_fee: deliveryFee || 0,
@@ -506,11 +525,15 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         // Stands in for the row that used to be read back.
         const order = { id: newOrderId as string, order_number: nextOrderNumber };
 
+        const orderTypeNotificationLabel = orderType === 'dine_in'
+            ? (tableNumber ? `صالة (طاولة ${tableNumber})` : 'صالة')
+            : (orderType === 'delivery' ? 'دليفري' : 'تيك أواي');
+
         // 3. Create notification for restaurant owner
         await supabase.from('notifications').insert({
             restaurant_id: restaurantId,
             title: `طلب جديد #${order.order_number}`,
-            body: `${customerName} — ${items.length} أصناف — ${total} ${parseCurrency(currency, true)} — ${orderType === 'delivery' ? 'دليفري' : 'استلام'}`,
+            body: `${customerName} — ${items.length} أصناف — ${total} ${parseCurrency(currency, true)} — ${orderTypeNotificationLabel}`,
             type: 'order',
             target: 'admin',
             is_read: false,
@@ -525,6 +548,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             customerPhone,
             customerAddress,
             orderType,
+            tableNumber,
             deliveryZoneName,
             deliveryFee,
             items,

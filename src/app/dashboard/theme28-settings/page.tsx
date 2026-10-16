@@ -36,7 +36,7 @@ interface Theme28Config {
     primary_color: string;
     theme28_default_view_mode: 'grid' | 'list' | 'compact' | 'showcase';
     theme28_show_stories: boolean;
-    service_type: 'dine_in_and_delivery' | 'delivery_only';
+    service_type: 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
     theme28_popup: Theme28PopupConfig;
     theme_colors: any;
     current_theme: string;
@@ -161,9 +161,11 @@ export default function Theme28SettingsPage() {
                         ? tc.theme28_default_view_mode
                         : 'grid';
 
-                    const resolvedServiceType: 'dine_in_and_delivery' | 'delivery_only' = 
+                    const resolvedServiceType: 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only' = 
                         (tc.theme28_service_type === 'delivery_only' || tc.service_type === 'delivery_only' || (restData.pickup_enabled === false && restData.delivery_enabled !== false))
                             ? 'delivery_only'
+                            : (tc.theme28_service_type === 'dine_in_only' || tc.service_type === 'dine_in_only' || (restData.pickup_enabled !== false && restData.delivery_enabled === false))
+                            ? 'dine_in_only'
                             : 'dine_in_and_delivery';
 
                     setConfig({
@@ -197,6 +199,9 @@ export default function Theme28SettingsPage() {
                 try { tc = JSON.parse(tc); } catch { tc = {}; }
             }
 
+            const isDeliveryOnly = config.service_type === 'delivery_only';
+            const isDineInOnly = config.service_type === 'dine_in_only';
+
             const updatedThemeColors = {
                 ...tc,
                 primary: config.primary_color,
@@ -206,6 +211,7 @@ export default function Theme28SettingsPage() {
                 theme28_show_stories: config.theme28_show_stories,
                 theme28_service_type: config.service_type,
                 service_type: config.service_type,
+                dine_in_enabled: !isDeliveryOnly,
                 theme28_popup: config.theme28_popup,
             };
 
@@ -214,15 +220,13 @@ export default function Theme28SettingsPage() {
                 targetTheme = "theme28";
             }
 
-            const isDeliveryOnly = config.service_type === 'delivery_only';
-
             const { data, error } = await supabase
                 .from("restaurants")
                 .update({
                     theme: targetTheme,
                     theme_colors: updatedThemeColors,
                     pickup_enabled: !isDeliveryOnly,
-                    delivery_enabled: true
+                    delivery_enabled: !isDineInOnly
                 })
                 .eq("id", restaurantId)
                 .select();
@@ -550,7 +554,7 @@ export default function Theme28SettingsPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                     <button
                         type="button"
                         onClick={() => setConfig(prev => ({ ...prev, service_type: 'dine_in_and_delivery' }))}
@@ -565,17 +569,17 @@ export default function Theme28SettingsPage() {
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center justify-between">
-                                <span className="text-xs sm:text-sm font-black">{isAr ? "صالة ودليفري" : "Dine-in & Delivery"}</span>
+                                <span className="text-xs sm:text-sm font-black">{isAr ? "صالة وتيك أواي ودليفري" : "All Modes"}</span>
                                 {config.service_type === 'dine_in_and_delivery' && (
                                     <span className="text-[10px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded-full">
-                                        {isAr ? "محدد حالياً" : "Active"}
+                                        {isAr ? "محدد" : "Active"}
                                     </span>
                                 )}
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
                                 {isAr 
-                                    ? "عرض شارة 'صالة ودليفري' في ترويسة المنيو، مع إتاحة خياري الاستلام من المطعم والتوصيل للعميل." 
-                                    : "Shows 'Dine-in & Delivery' badge and offers both pickup & delivery at checkout."}
+                                    ? "إتاحة كافة الخيارات: تناول في الصالة، واستلام تيك أواي، وتوصيل دليفري." 
+                                    : "All order options available: dine-in, takeaway, and delivery."}
                             </p>
                         </div>
                     </button>
@@ -597,14 +601,43 @@ export default function Theme28SettingsPage() {
                                 <span className="text-xs sm:text-sm font-black">{isAr ? "دليفري فقط" : "Delivery Only"}</span>
                                 {config.service_type === 'delivery_only' && (
                                     <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded-full">
-                                        {isAr ? "محدد حالياً" : "Active"}
+                                        {isAr ? "محدد" : "Active"}
                                     </span>
                                 )}
                             </div>
                             <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
                                 {isAr 
-                                    ? "عرض شارة 'دليفري فقط' في ترويسة المنيو، وقفل الطلب على توصيل الدليفري حصراً بدون استلام من الفرع." 
-                                    : "Shows 'Delivery Only' badge and locks ordering strictly to delivery."}
+                                    ? "عرض شارة 'دليفري فقط' وقفل الطلبات على التوصيل حصراً." 
+                                    : "Locks ordering strictly to delivery without takeaway or dine-in."}
+                            </p>
+                        </div>
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setConfig(prev => ({ ...prev, service_type: 'dine_in_only' }))}
+                        className={`p-4 rounded-2xl border text-right transition-all flex items-start gap-3 relative ${
+                            config.service_type === 'dine_in_only'
+                                ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 font-black shadow-xs ring-2 ring-emerald-500'
+                                : 'border-black/5 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-zinc-800'
+                        }`}
+                    >
+                        <div className="w-9 h-9 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center shrink-0 mt-0.5">
+                            <Utensils className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs sm:text-sm font-black">{isAr ? "صالة وتيك أواي فقط" : "Dine-in & Pickup"}</span>
+                                {config.service_type === 'dine_in_only' && (
+                                    <span className="text-[10px] font-black bg-orange-500 text-white px-2 py-0.5 rounded-full">
+                                        {isAr ? "محدد" : "Active"}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-1 leading-relaxed">
+                                {isAr 
+                                    ? "إتاحة الصالة والتيك أواي فقط بدون خدمة توصيل دليفري." 
+                                    : "Dine-in and takeaway only without home delivery."}
                             </p>
                         </div>
                     </button>

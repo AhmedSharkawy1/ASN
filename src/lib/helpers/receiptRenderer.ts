@@ -2,7 +2,11 @@ import { formatCurrency, formatQuantity } from "./formatters";
 import { getReceiptStyles } from "./printerSettings";
 
 export function renderReceiptHtml(order: any, restaurant: any, isAr: boolean = true) {
-    const orderTypeLabel = order.order_type === 'dine_in' ? 'صالة' : order.order_type === 'delivery' ? 'دليفري' : 'تيك أواي';
+    const orderTypeLabel = order.order_type === 'dine_in'
+        ? (order.table_id ? (isAr ? `صالة (طاولة ${order.table_id})` : `Dine-in (T-${order.table_id})`) : (isAr ? 'صالة' : 'Dine-in'))
+        : order.order_type === 'delivery'
+        ? (isAr ? 'دليفري' : 'Delivery')
+        : (isAr ? 'تيك أواي' : 'Takeaway');
     const fmtPrice = (num: number) => new Intl.NumberFormat('ar-EG', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(num);
 
     const groupedItems: Record<string, any[]> = {};
@@ -51,7 +55,8 @@ export function renderReceiptHtml(order: any, restaurant: any, isAr: boolean = t
                 <p style="font-weight:900;font-size:18px;margin:0 0 5px 0;color:#000">${order.source === 'branch_supply' ? (isAr ? 'إذن توريد رقم #' : 'Supply ID #') : order.source === 'supplier_supply' ? (isAr ? 'فاتورة مشتريات رقم #' : 'Purchase ID #') : (isAr ? 'فاتورة رقم #' : 'Order ID #')}${order.order_number || order.id?.split('-')[0].toUpperCase()}</p>
                 <p style="font-size:16px;font-weight:900;margin:0;display:inline-block;border:2px solid #000;padding:2px 6px;border-radius:4px;color:#000">${order.source === 'branch_supply' ? (isAr ? 'توريد فرع' : 'Branch Supply') : order.source === 'supplier_supply' ? (isAr ? 'مشتريات مورد' : 'Supplier Purchase') : orderTypeLabel}</p>
             </div>
-            ${(order.customer_name || order.customer_phone) ? `<div style="border-top:2px dashed #000;margin:12px 0"></div><div style="font-size:14px;font-weight:900;color:#000">
+            ${(order.customer_name || order.customer_phone || order.table_id) ? `<div style="border-top:2px dashed #000;margin:12px 0"></div><div style="font-size:14px;font-weight:900;color:#000">
+                ${order.table_id ? `<p style="margin:2px 0;font-weight:900">🪑 ${isAr ? 'رقم الطاولة: ' : 'Table: '}${order.table_id}</p>` : ''}
                 ${order.customer_name ? `<p style="margin:2px 0;font-weight:900">${order.source === 'branch_supply' ? (isAr ? 'المستلم: ' : 'Receiver: ') : order.source === 'supplier_supply' ? (isAr ? 'المورد: ' : 'Supplier: ') : (isAr ? 'العميل: ' : 'Customer: ')}${order.customer_name}</p>` : ''}
                 ${order.customer_phone ? `<p style="margin:2px 0;font-weight:900" dir="ltr">${order.customer_phone}</p>` : ''}
                 ${order.customer_address ? `<p style="margin:2px 0;font-weight:900">${isAr ? 'العنوان: ' : 'Address: '}${order.customer_address}</p>` : ''}
