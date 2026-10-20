@@ -68,6 +68,36 @@ export default function BranchesModal({
         )}`
       : config?.map_link?.trim() || "");
 
+  // Extract all phone numbers for this branch
+  const branchPhoneList: { label: string; number: string }[] = (() => {
+    const list: { label: string; number: string }[] = [];
+    if (Array.isArray(activeBranch.phone_numbers) && activeBranch.phone_numbers.length > 0) {
+      activeBranch.phone_numbers.forEach((p, idx) => {
+        if (p?.number && String(p.number).trim()) {
+          list.push({
+            label: p.label?.trim() || (isAr ? (activeBranch.phone_numbers!.length > 1 ? `رقم ${idx + 1}` : 'اتصال هاتفي') : (activeBranch.phone_numbers!.length > 1 ? `Line ${idx + 1}` : 'Phone Call')),
+            number: String(p.number).trim(),
+          });
+        }
+      });
+    }
+    if (list.length === 0) {
+      if (activeBranch.phone && activeBranch.phone.trim()) {
+        list.push({
+          label: isAr ? 'اتصال هاتفي' : 'Phone Call',
+          number: activeBranch.phone.trim(),
+        });
+      }
+      if (activeBranch.phone_secondary && activeBranch.phone_secondary.trim()) {
+        list.push({
+          label: isAr ? 'رقم إضافي' : 'Secondary Phone',
+          number: activeBranch.phone_secondary.trim(),
+        });
+      }
+    }
+    return list;
+  })();
+
   // Resolve Social Links: branch-specific or fallback to config general links
   const facebookUrl = activeBranch.facebook_url?.trim() || config?.facebook_url?.trim();
   const instagramUrl = activeBranch.instagram_url?.trim() || config?.instagram_url?.trim();
@@ -217,45 +247,26 @@ export default function BranchesModal({
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {/* Primary Phone */}
-                {activeBranch.phone ? (
+                {/* Branch Phone Numbers */}
+                {branchPhoneList.map((pn, pIdx) => (
                   <a
-                    href={`tel:${activeBranch.phone.replace(/[^\d+]/g, "")}`}
+                    key={pIdx}
+                    href={`tel:${pn.number.replace(/[^\d+]/g, "")}`}
                     className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 hover:border-blue-400 transition-all active:scale-[0.98]"
                   >
                     <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                       <Phone className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 block">
-                        {isAr ? "اتصال هاتفي" : "Call Phone"}
+                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 block truncate">
+                        {pn.label}
                       </span>
                       <span className="text-xs font-black text-zinc-900 dark:text-white truncate block tabular-nums" dir="ltr">
-                        {activeBranch.phone}
+                        {pn.number}
                       </span>
                     </div>
                   </a>
-                ) : null}
-
-                {/* Secondary Phone */}
-                {activeBranch.phone_secondary ? (
-                  <a
-                    href={`tel:${activeBranch.phone_secondary.replace(/[^\d+]/g, "")}`}
-                    className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 hover:border-blue-400 transition-all active:scale-[0.98]"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 block">
-                        {isAr ? "رقم إضافي" : "Secondary Phone"}
-                      </span>
-                      <span className="text-xs font-black text-zinc-900 dark:text-white truncate block tabular-nums" dir="ltr">
-                        {activeBranch.phone_secondary}
-                      </span>
-                    </div>
-                  </a>
-                ) : null}
+                ))}
 
                 {/* WhatsApp */}
                 {waNumber ? (
@@ -280,7 +291,7 @@ export default function BranchesModal({
                 ) : null}
               </div>
 
-              {!activeBranch.phone && !activeBranch.phone_secondary && !waNumber && (
+              {branchPhoneList.length === 0 && !waNumber && (
                 <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-dashed border-zinc-200 dark:border-zinc-700/60 text-xs text-zinc-400">
                   {isAr ? "لا توجد أرقام تواصل مسجلة لهذا الفرع" : "No contact numbers available for this branch"}
                 </div>

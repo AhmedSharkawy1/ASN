@@ -203,19 +203,33 @@ export default function SettingsPage() {
 
             const formattedBranches = branches
                 .filter(b => b.name && b.name.trim())
-                .map(b => ({
-                    id: b.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)),
-                    name: b.name.trim(),
-                    address: b.address?.trim() || '',
-                    map_link: b.map_link?.trim() || '',
-                    phone: b.phone?.trim() || '',
-                    phone_secondary: b.phone_secondary?.trim() || '',
-                    whatsapp_number: b.whatsapp_number?.trim() || '',
-                    facebook_url: b.facebook_url?.trim() || '',
-                    instagram_url: b.instagram_url?.trim() || '',
-                    tiktok_url: b.tiktok_url?.trim() || '',
-                    snapchat_url: b.snapchat_url?.trim() || '',
-                }));
+                .map(b => {
+                    const cleanPhoneNumbers = (Array.isArray(b.phone_numbers) ? b.phone_numbers : [])
+                        .map(p => ({ label: p.label?.trim() || '', number: String(p.number || '').trim() }))
+                        .filter(p => p.number.length > 0);
+
+                    if (cleanPhoneNumbers.length === 0 && b.phone?.trim()) {
+                        cleanPhoneNumbers.push({ label: '', number: b.phone.trim() });
+                        if (b.phone_secondary?.trim()) {
+                            cleanPhoneNumbers.push({ label: '', number: b.phone_secondary.trim() });
+                        }
+                    }
+
+                    return {
+                        id: b.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)),
+                        name: b.name.trim(),
+                        address: b.address?.trim() || '',
+                        map_link: b.map_link?.trim() || '',
+                        phone: cleanPhoneNumbers[0]?.number || b.phone?.trim() || '',
+                        phone_secondary: cleanPhoneNumbers[1]?.number || b.phone_secondary?.trim() || '',
+                        phone_numbers: cleanPhoneNumbers,
+                        whatsapp_number: b.whatsapp_number?.trim() || '',
+                        facebook_url: b.facebook_url?.trim() || '',
+                        instagram_url: b.instagram_url?.trim() || '',
+                        tiktok_url: b.tiktok_url?.trim() || '',
+                        snapchat_url: b.snapchat_url?.trim() || '',
+                    };
+                });
 
             // First attempt with all new columns
             let { error } = await supabase
@@ -426,6 +440,7 @@ export default function SettingsPage() {
             map_link: '',
             phone: '',
             phone_secondary: '',
+            phone_numbers: [{ label: '', number: '' }],
             whatsapp_number: '',
             facebook_url: '',
             instagram_url: '',
@@ -445,6 +460,48 @@ export default function SettingsPage() {
     };
     const updateBranch = (idx: number, field: keyof BranchItem, val: string) => {
         setBranches(branches.map((b, i) => i === idx ? { ...b, [field]: val } : b));
+    };
+    const addBranchPhone = (branchIdx: number) => {
+        setBranches(branches.map((b, i) => {
+            if (i !== branchIdx) return b;
+            const currentList = Array.isArray(b.phone_numbers) ? [...b.phone_numbers] : [];
+            const updated = [...currentList, { label: '', number: '' }];
+            return {
+                ...b,
+                phone_numbers: updated,
+                phone: updated[0]?.number || '',
+                phone_secondary: updated[1]?.number || '',
+            };
+        }));
+    };
+    const removeBranchPhone = (branchIdx: number, phoneIdx: number) => {
+        setBranches(branches.map((b, i) => {
+            if (i !== branchIdx) return b;
+            const currentList = Array.isArray(b.phone_numbers) ? [...b.phone_numbers] : [];
+            const updated = currentList.filter((_, pi) => pi !== phoneIdx);
+            return {
+                ...b,
+                phone_numbers: updated,
+                phone: updated[0]?.number || '',
+                phone_secondary: updated[1]?.number || '',
+            };
+        }));
+    };
+    const updateBranchPhone = (branchIdx: number, phoneIdx: number, field: 'label' | 'number', val: string) => {
+        setBranches(branches.map((b, i) => {
+            if (i !== branchIdx) return b;
+            const currentList = Array.isArray(b.phone_numbers) ? [...b.phone_numbers] : [];
+            if (!currentList[phoneIdx]) {
+                currentList[phoneIdx] = { label: '', number: '' };
+            }
+            currentList[phoneIdx] = { ...currentList[phoneIdx], [field]: val };
+            return {
+                ...b,
+                phone_numbers: currentList,
+                phone: currentList[0]?.number || '',
+                phone_secondary: currentList[1]?.number || '',
+            };
+        }));
     };
     const toggleExpandBranch = (idx: number) => {
         setExpandedBranchIdx(expandedBranchIdx === idx ? null : idx);
@@ -1074,51 +1131,82 @@ export default function SettingsPage() {
                                                         </div>
 
                                                         {/* Phone & WhatsApp Contact */}
-                                                        <div>
-                                                            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-2">
-                                                                <Phone className="w-4 h-4" />
-                                                                {language === "ar" ? "أرقام التواصل والطلب للفرع" : "Branch Contact Numbers"}
-                                                            </h4>
-                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                                <div>
-                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
-                                                                        {language === "ar" ? "رقم هاتف الفرع (اتصال)" : "Primary Phone"}
-                                                                    </label>
-                                                                    <input
-                                                                        type="tel"
-                                                                        value={b.phone || ''}
-                                                                        onChange={e => updateBranch(idx, 'phone', e.target.value)}
-                                                                        placeholder="01012345678"
-                                                                        dir="ltr"
-                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
-                                                                        {language === "ar" ? "رقم إضافي (اختياري)" : "Secondary Phone"}
-                                                                    </label>
-                                                                    <input
-                                                                        type="tel"
-                                                                        value={b.phone_secondary || ''}
-                                                                        onChange={e => updateBranch(idx, 'phone_secondary', e.target.value)}
-                                                                        placeholder="01112345678"
-                                                                        dir="ltr"
-                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums"
-                                                                    />
-                                                                </div>
-                                                                <div>
-                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
-                                                                        {language === "ar" ? "رقم واتساب الفرع" : "Branch WhatsApp"}
-                                                                    </label>
-                                                                    <input
-                                                                        type="tel"
-                                                                        value={b.whatsapp_number || ''}
-                                                                        onChange={e => updateBranch(idx, 'whatsapp_number', e.target.value)}
-                                                                        placeholder="201012345678"
-                                                                        dir="ltr"
-                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums"
-                                                                    />
-                                                                </div>
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center justify-between">
+                                                                <h4 className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+                                                                    <Phone className="w-4 h-4" />
+                                                                    {language === "ar" ? "أرقام هواتف الفرع (اتصال)" : "Branch Phone Numbers"}
+                                                                </h4>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => addBranchPhone(idx)}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                                                                >
+                                                                    <Plus className="w-3.5 h-3.5" />
+                                                                    <span>{language === "ar" ? "إضافة رقم آخر للفرع" : "Add Another Phone"}</span>
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Phone Numbers List */}
+                                                            <div className="space-y-2">
+                                                                {(!b.phone_numbers || b.phone_numbers.length === 0) ? (
+                                                                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-dashed border-glass-border flex items-center justify-between">
+                                                                        <span className="text-xs text-silver">
+                                                                            {language === "ar" ? "لم تتم إضافة أي أرقام هواتف لهذا الفرع بعد." : "No phone numbers added for this branch yet."}
+                                                                        </span>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => addBranchPhone(idx)}
+                                                                            className="text-xs text-blue hover:underline font-bold"
+                                                                        >
+                                                                            + {language === "ar" ? "أضف رقماً الآن" : "Add number now"}
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    b.phone_numbers.map((phoneEntry, pIdx) => (
+                                                                        <div key={pIdx} className="flex items-center gap-2 bg-slate-50 dark:bg-black/20 p-2.5 rounded-xl border border-glass-border">
+                                                                            <input
+                                                                                type="text"
+                                                                                value={phoneEntry.label || ''}
+                                                                                onChange={e => updateBranchPhone(idx, pIdx, 'label', e.target.value)}
+                                                                                placeholder={language === "ar" ? `التسمية (مثال: خط ${pIdx + 1} أو مبيعات)` : `Label (e.g. Line ${pIdx + 1})`}
+                                                                                className="w-1/3 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-xs font-bold"
+                                                                            />
+                                                                            <input
+                                                                                type="tel"
+                                                                                value={phoneEntry.number}
+                                                                                onChange={e => updateBranchPhone(idx, pIdx, 'number', e.target.value)}
+                                                                                placeholder="01012345678"
+                                                                                dir="ltr"
+                                                                                className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-xs font-bold tabular-nums"
+                                                                            />
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => removeBranchPhone(idx, pIdx)}
+                                                                                className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
+                                                                                title={language === "ar" ? "حذف الرقم" : "Delete"}
+                                                                            >
+                                                                                <Trash2 className="w-4 h-4" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))
+                                                                )}
+                                                            </div>
+
+                                                            {/* WhatsApp input */}
+                                                            <div className="pt-2 border-t border-glass-border/60">
+                                                                <label className="text-xs font-bold text-silver block mb-1.5 flex items-center gap-1.5">
+                                                                    <FaWhatsapp className="w-3.5 h-3.5 text-emerald-500" />
+                                                                    {language === "ar" ? "رقم واتساب الفرع" : "Branch WhatsApp"}
+                                                                </label>
+                                                                <input
+                                                                    type="tel"
+                                                                    value={b.whatsapp_number || ''}
+                                                                    onChange={e => updateBranch(idx, 'whatsapp_number', e.target.value)}
+                                                                    placeholder="201012345678"
+                                                                    dir="ltr"
+                                                                    className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums"
+                                                                />
                                                             </div>
                                                         </div>
 
