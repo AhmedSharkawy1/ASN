@@ -180,8 +180,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
             primary = '#7c3aed';
             secondary = '#ec4899';
         } else if (t.includes('dark')) {
-            primary = '#6366f1';
-            secondary = '#8b5cf6';
+            primary = '#0f172a';
+            secondary = '#38bdf8';
         } else {
             // Suffix-less 'theme31' or custom primary
             if (customPrimary && customPrimary !== '#af0a13' && customPrimary !== '#9b0000') {
@@ -1543,19 +1543,18 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                                 quickAddSizeToCart(item, catName(category), pIdx, e);
                                                                             }
                                                                         }}
-                                                                        className={`relative group/size flex flex-col items-center justify-between py-1.5 px-1 sm:px-1.5 rounded-xl border transition-all text-center min-h-[48px] sm:min-h-[50px] active:scale-95 ${
+                                                                        className={`relative group/size flex flex-col justify-between p-2 rounded-xl border transition-all text-start min-h-[52px] sm:min-h-[56px] active:scale-[0.98] ${
                                                                             isOddLast ? 'col-span-2' : ''
                                                                         } ${
                                                                             sizeCartQty > 0
-                                                                                ? 'shadow-2xs ring-1'
+                                                                                ? 'shadow-xs ring-1'
                                                                                 : hasDisc
                                                                                     ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 hover:border-rose-500 shadow-2xs'
-                                                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 text-slate-800 dark:text-zinc-100 hover:border-slate-300 dark:hover:border-zinc-700'
+                                                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-zinc-800/80 text-slate-800 dark:text-zinc-100 hover:border-slate-300 dark:hover:border-zinc-700'
                                                                         }`}
                                                                         style={sizeCartQty > 0 ? {
                                                                             borderColor: primaryColor,
-                                                                            backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
-                                                                            color: primaryColor,
+                                                                            backgroundColor: isDark ? `${primaryColor}22` : `${primaryColor}12`,
                                                                             boxShadow: `0 0 0 1px ${primaryColor}40`
                                                                         } : undefined}
                                                                         title={label}
@@ -1568,66 +1567,87 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                             </span>
                                                                         )}
 
-                                                                        {/* Cart Qty Badge */}
-                                                                        {sizeCartQty > 0 && (
+                                                                        {/* Size Label Header */}
+                                                                        <div className="w-full flex items-center justify-between gap-1 leading-tight mb-1">
                                                                             <span 
-                                                                                className="absolute -top-1.5 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs z-10"
-                                                                                style={{ backgroundColor: primaryColor }}
+                                                                                dir="auto"
+                                                                                className={`break-words line-clamp-1 ${sizeTextClass} ${sizeFontWeight} ${
+                                                                                    hasDisc ? 'text-rose-700 dark:text-rose-300' : 'text-slate-800 dark:text-zinc-100'
+                                                                                }`}
                                                                             >
-                                                                                {sizeCartQty}
+                                                                                {label}
                                                                             </span>
-                                                                        )}
+                                                                            {sizeCartQty > 0 && (
+                                                                                <span 
+                                                                                    className="px-1.5 py-0.2 rounded-full text-[9px] font-black text-white shrink-0 shadow-2xs"
+                                                                                    style={{ backgroundColor: primaryColor }}
+                                                                                >
+                                                                                    {sizeCartQty}
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
 
-                                                                        {/* Decrement Button when in Cart */}
-                                                                        {sizeCartQty > 0 && (
-                                                                            <span
-                                                                                role="button"
-                                                                                tabIndex={0}
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    quickDecrementSizeFromCart(item.id, pIdx, e);
-                                                                                }}
-                                                                                className="absolute -top-1.5 -left-1 w-4 h-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-xs z-20 active:scale-90 transition-transform cursor-pointer"
-                                                                                title={isAr ? "إنقاص" : "Minus"}
-                                                                            >
-                                                                                <Minus className="w-2.5 h-2.5" />
-                                                                            </span>
-                                                                        )}
-
-                                                                        {/* Size Label */}
-                                                                        <span 
-                                                                            dir="auto"
-                                                                            className={`w-full max-w-full text-center break-words line-clamp-1 leading-tight px-0.5 ${sizeTextClass} ${sizeFontWeight} ${
-                                                                                hasDisc ? 'text-rose-700 dark:text-rose-300' : 'text-slate-800 dark:text-zinc-100'
-                                                                            }`}
-                                                                        >
-                                                                            {label}
-                                                                        </span>
-
-                                                                        {/* Price & Offer Display */}
-                                                                        <div className="w-full flex flex-col items-center justify-center leading-none mt-0.5">
-                                                                            {hasDisc ? (
-                                                                                <>
-                                                                                    <span className="text-[9px] line-through text-rose-500/80 font-bold decoration-rose-500/80 leading-none mb-0.5">
+                                                                        {/* Price & Action Row */}
+                                                                        <div className="w-full flex items-center justify-between gap-1 pt-1 border-t border-slate-200/60 dark:border-white/5 leading-none">
+                                                                            {/* Price display */}
+                                                                            <div className="flex flex-col items-start leading-none">
+                                                                                {hasDisc && (
+                                                                                    <span className="text-[8.5px] line-through text-rose-500/80 font-bold decoration-rose-500/80 mb-0.5">
                                                                                         {oldPrice}
                                                                                     </span>
-                                                                                    <div className="flex items-baseline justify-center gap-0.5 leading-none">
-                                                                                        <span className="text-xs font-black text-rose-600 dark:text-rose-400">
-                                                                                            {price}
-                                                                                        </span>
-                                                                                        <span className="text-[9px] font-bold text-slate-600 dark:text-zinc-300">
-                                                                                            {cur}
-                                                                                        </span>
-                                                                                    </div>
-                                                                                </>
-                                                                            ) : (
-                                                                                <div className="flex items-baseline justify-center gap-0.5 leading-none">
-                                                                                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                                                                                )}
+                                                                                <div className="flex items-baseline gap-0.5">
+                                                                                    <span className={`text-xs font-black ${hasDisc ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
                                                                                         {price}
                                                                                     </span>
-                                                                                    <span className="text-[9px] font-bold text-slate-500 dark:text-zinc-400">
+                                                                                    <span className="text-[8.5px] sm:text-[9px] font-bold text-slate-500 dark:text-zinc-400">
                                                                                         {cur}
                                                                                     </span>
+                                                                                </div>
+                                                                            </div>
+
+                                                                            {/* Action Button: Stepper or Plus Button */}
+                                                                            {sizeCartQty > 0 ? (
+                                                                                <div 
+                                                                                    className="flex items-center gap-1 bg-white dark:bg-zinc-900 rounded-lg p-0.5 shadow-2xs border border-slate-200 dark:border-zinc-700"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                >
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            quickDecrementSizeFromCart(item.id, pIdx, e);
+                                                                                        }}
+                                                                                        className="w-5 h-5 rounded-md bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                                                                                        title={isAr ? "إنقاص" : "Minus"}
+                                                                                    >
+                                                                                        <Minus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                                                                    </button>
+                                                                                    <span className="text-[10px] font-black px-1 min-w-[12px] text-center" style={{ color: primaryColor }}>
+                                                                                        {sizeCartQty}
+                                                                                    </span>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            quickAddSizeToCart(item, catName(category), pIdx, e);
+                                                                                        }}
+                                                                                        className="w-5 h-5 rounded-md text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-90 hover:opacity-90"
+                                                                                        style={{ backgroundColor: primaryColor }}
+                                                                                        title={isAr ? "زيادة" : "Plus"}
+                                                                                    >
+                                                                                        <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div
+                                                                                    className="w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0 shadow-2xs transition-transform group-hover/size:scale-110 active:scale-95"
+                                                                                    style={{ 
+                                                                                        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryGlow})` 
+                                                                                    }}
+                                                                                    title={isAr ? "إضافة" : "Add"}
+                                                                                >
+                                                                                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
                                                                                 </div>
                                                                             )}
                                                                         </div>
@@ -1795,13 +1815,13 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                             quickAddSizeToCart(item, catName(category), pIdx, e);
                                                                         }
                                                                     }}
-                                                                    className={`relative px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 ${
+                                                                    className={`relative group/size px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 transition-all active:scale-95 ${
                                                                         sizeCartQty > 0
-                                                                            ? 'shadow-2xs ring-1'
+                                                                            ? 'shadow-xs ring-1'
                                                                             : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800/80 text-slate-700 dark:text-zinc-200 hover:border-slate-300'
                                                                     }`}
                                                                     style={sizeCartQty > 0 ? {
-                                                                        backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
+                                                                        backgroundColor: isDark ? `${primaryColor}22` : `${primaryColor}12`,
                                                                         borderColor: primaryColor,
                                                                         color: primaryColor,
                                                                         boxShadow: `0 0 0 1px ${primaryColor}40`
@@ -1809,13 +1829,46 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                 >
                                                                     <span>{label}:</span>
                                                                     <span className="font-black">{price} {cur}</span>
-                                                                    {sizeCartQty > 0 && (
-                                                                        <span 
-                                                                            className="w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center shrink-0"
-                                                                            style={{ backgroundColor: primaryColor }}
+                                                                    {sizeCartQty > 0 ? (
+                                                                        <div 
+                                                                            className="flex items-center gap-1 bg-white dark:bg-zinc-900 rounded-lg p-0.5 shadow-2xs border border-slate-200 dark:border-zinc-700"
+                                                                            onClick={(e) => e.stopPropagation()}
                                                                         >
-                                                                            {sizeCartQty}
-                                                                        </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    quickDecrementSizeFromCart(item.id, pIdx, e);
+                                                                                }}
+                                                                                className="w-4 h-4 rounded-md bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                                                                                title={isAr ? "إنقاص" : "Minus"}
+                                                                            >
+                                                                                <Minus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                                                            </button>
+                                                                            <span className="text-[10px] font-black px-1 min-w-[12px] text-center" style={{ color: primaryColor }}>
+                                                                                {sizeCartQty}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    quickAddSizeToCart(item, catName(category), pIdx, e);
+                                                                                }}
+                                                                                className="w-4 h-4 rounded-md text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-90 hover:opacity-90"
+                                                                                style={{ backgroundColor: primaryColor }}
+                                                                                title={isAr ? "زيادة" : "Plus"}
+                                                                            >
+                                                                                <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div 
+                                                                            className="w-5 h-5 rounded-md flex items-center justify-center text-white shrink-0 shadow-2xs group-hover/size:scale-110 transition-transform"
+                                                                            style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryGlow})` }}
+                                                                            title={isAr ? "إضافة" : "Add"}
+                                                                        >
+                                                                            <Plus className="w-3 h-3 stroke-[3]" />
+                                                                        </div>
                                                                     )}
                                                                 </button>
                                                             );
@@ -2082,13 +2135,13 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                                     quickAddSizeToCart(item, catName(category), pIdx, e);
                                                                                 }
                                                                             }}
-                                                                            className={`relative px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all active:scale-95 ${
+                                                                            className={`relative group/size px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2.5 transition-all active:scale-95 ${
                                                                                 sizeCartQty > 0
                                                                                     ? 'shadow-xs ring-1'
                                                                                     : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800/80 text-slate-800 dark:text-zinc-100 hover:border-slate-300'
                                                                             }`}
                                                                             style={sizeCartQty > 0 ? {
-                                                                                backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
+                                                                                backgroundColor: isDark ? `${primaryColor}22` : `${primaryColor}12`,
                                                                                 borderColor: primaryColor,
                                                                                 color: primaryColor,
                                                                                 boxShadow: `0 0 0 1px ${primaryColor}40`
@@ -2096,13 +2149,46 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                         >
                                                                             <span>{label}</span>
                                                                             <span className="font-black text-sm">{price} {cur}</span>
-                                                                            {sizeCartQty > 0 && (
-                                                                                <span 
-                                                                                    className="w-5 h-5 rounded-full text-[10px] font-black text-white flex items-center justify-center shrink-0"
-                                                                                    style={{ backgroundColor: primaryColor }}
+                                                                            {sizeCartQty > 0 ? (
+                                                                                <div 
+                                                                                    className="flex items-center gap-1 bg-white dark:bg-zinc-900 rounded-lg p-0.5 shadow-2xs border border-slate-200 dark:border-zinc-700"
+                                                                                    onClick={(e) => e.stopPropagation()}
                                                                                 >
-                                                                                    {sizeCartQty}
-                                                                                </span>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            quickDecrementSizeFromCart(item.id, pIdx, e);
+                                                                                        }}
+                                                                                        className="w-4 h-4 rounded-md bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-90"
+                                                                                        title={isAr ? "إنقاص" : "Minus"}
+                                                                                    >
+                                                                                        <Minus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                                                                    </button>
+                                                                                    <span className="text-[10px] font-black px-1 min-w-[12px] text-center" style={{ color: primaryColor }}>
+                                                                                        {sizeCartQty}
+                                                                                    </span>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            quickAddSizeToCart(item, catName(category), pIdx, e);
+                                                                                        }}
+                                                                                        className="w-4 h-4 rounded-md text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-90 hover:opacity-90"
+                                                                                        style={{ backgroundColor: primaryColor }}
+                                                                                        title={isAr ? "زيادة" : "Plus"}
+                                                                                    >
+                                                                                        <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <div 
+                                                                                    className="w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0 shadow-2xs group-hover/size:scale-110 transition-transform"
+                                                                                    style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryGlow})` }}
+                                                                                    title={isAr ? "إضافة" : "Add"}
+                                                                                >
+                                                                                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
+                                                                                </div>
                                                                             )}
                                                                         </button>
                                                                     );

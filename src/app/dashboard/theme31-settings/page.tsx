@@ -94,6 +94,11 @@ export default function Theme31SettingsPage() {
                 if (ctxRestaurantId) rId = ctxRestaurantId;
 
                 if (!rId) {
+                    const impId = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
+                    if (impId) rId = impId;
+                }
+
+                if (!rId) {
                     try {
                         const cached = await posDb.settings.get('current_config');
                         if (cached?.restaurant_id) rId = cached.restaurant_id;
@@ -104,14 +109,25 @@ export default function Theme31SettingsPage() {
                     if (!rId) {
                         const { data: { user } } = await supabase.auth.getUser();
                         if (user) {
+                            const impId = typeof window !== "undefined" ? sessionStorage.getItem('impersonating_tenant') : null;
                             const { data: rest } = await supabase
                                 .from("restaurants")
                                 .select("id, slug, theme, theme_colors")
-                                .eq("user_id", user.id)
+                                .eq(impId ? 'id' : 'email', impId || user.email)
                                 .maybeSingle();
                             if (rest) {
                                 rId = rest.id;
                                 setRestaurantSlug(rest.slug || rest.id);
+                            } else {
+                                const { data: restById } = await supabase
+                                    .from("restaurants")
+                                    .select("id, slug, theme, theme_colors")
+                                    .eq("user_id", user.id)
+                                    .maybeSingle();
+                                if (restById) {
+                                    rId = restById.id;
+                                    setRestaurantSlug(restById.slug || restById.id);
+                                }
                             }
                         }
                     }
@@ -153,16 +169,35 @@ export default function Theme31SettingsPage() {
 
                     const resolvedTheme = rest.theme || "theme31";
 
-                    // Determine primary color
-                    let pColor = tc.theme31_primary || tc.primary || "#6366f1";
-                    const t = resolvedTheme.toLowerCase();
-                    if (t.includes('emerald') || t.includes('green')) pColor = "#10b981";
-                    else if (t.includes('amber') || t.includes('gold')) pColor = "#f59e0b";
-                    else if (t.includes('rose') || t.includes('red')) pColor = "#f43f5e";
-                    else if (t.includes('cyan') || t.includes('sky')) pColor = "#06b6d4";
-                    else if (t.includes('sunset') || t.includes('orange')) pColor = "#f97316";
-                    else if (t.includes('violet') || t.includes('purple')) pColor = "#7c3aed";
-                    else if (t.includes('dark')) pColor = "#0f172a";
+                    // Determine primary color accurately
+                    let pColor: string | null = null;
+                    const matchingPreset = COLOR_PRESETS.find(p => p.theme_suffix && resolvedTheme.toLowerCase().endsWith(p.theme_suffix.toLowerCase()));
+                    if (matchingPreset) {
+                        pColor = matchingPreset.hex;
+                    }
+
+                    if (!pColor) {
+                        if (tc.theme31_primary) {
+                            pColor = tc.theme31_primary;
+                        } else if (tc.primary && tc.primary !== '#af0a13' && tc.primary !== '#9b0000') {
+                            pColor = tc.primary;
+                        }
+                    }
+
+                    if (!pColor) {
+                        const t = resolvedTheme.toLowerCase();
+                        if (t.includes('emerald') || t.includes('green')) pColor = "#10b981";
+                        else if (t.includes('amber') || t.includes('gold')) pColor = "#f59e0b";
+                        else if (t.includes('rose') || t.includes('red')) pColor = "#f43f5e";
+                        else if (t.includes('cyan') || t.includes('sky')) pColor = "#06b6d4";
+                        else if (t.includes('sunset') || t.includes('orange')) pColor = "#f97316";
+                        else if (t.includes('violet') || t.includes('purple')) pColor = "#7c3aed";
+                        else if (t.includes('dark')) pColor = "#0f172a";
+                    }
+
+                    if (!pColor) {
+                        pColor = "#6366f1";
+                    }
 
                     const defaultViewMode = (tc.theme31_default_view_mode || tc.theme30_default_view_mode || "grid") as any;
                     const showStories = tc.theme31_show_stories !== false;
@@ -436,17 +471,32 @@ export default function Theme31SettingsPage() {
                         {/* Presets Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                             {COLOR_PRESETS.map((p) => {
-                                const isSelected = config.primary_color.toLowerCase() === p.hex.toLowerCase();
+                                const isSelected = 
+                                    config.primary_color.toLowerCase() === p.hex.toLowerCase() ||
+                                    (p.theme_suffix && config.current_theme?.toLowerCase().endsWith(p.theme_suffix.toLowerCase()));
+
                                 return (
                                     <button
                                         key={p.hex}
                                         type="button"
-                                        onClick={() => setConfig(prev => ({ ...prev, primary_color: p.hex }))}
+                                        onClick={() => {
+                                            const targetTh = p.theme_suffix ? `theme31${p.theme_suffix}` : 'theme31';
+                                            setConfig(prev => ({ 
+                                                ...prev, 
+                                                primary_color: p.hex,
+                                                current_theme: targetTh
+                                            }));
+                                        }}
                                         className={`p-3 rounded-2xl border text-start transition-all relative overflow-hidden group ${
                                             isSelected 
-                                                ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-2 ring-indigo-400 shadow-sm" 
-                                                : "border-border hover:border-indigo-500/50 hover:bg-background/80"
+                                                ? "shadow-md ring-2" 
+                                                : "border-border hover:border-slate-400/50 hover:bg-background/80"
                                         }`}
+                                        style={isSelected ? {
+                                            borderColor: p.hex,
+                                            backgroundColor: `${p.hex}14`,
+                                            boxShadow: `0 0 0 2px ${p.hex}50`
+                                        } : undefined}
                                     >
                                         <div className="flex items-center justify-between gap-1 mb-2">
                                             <div 
@@ -455,9 +505,18 @@ export default function Theme31SettingsPage() {
                                             >
                                                 {isSelected && <Check className="w-3 h-3 text-white" />}
                                             </div>
-                                            <span className="text-[10px] font-mono text-silver">{p.hex}</span>
+                                            {isSelected ? (
+                                                <span 
+                                                    className="text-[9px] font-black px-1.5 py-0.5 rounded-full text-white shadow-2xs"
+                                                    style={{ backgroundColor: p.hex }}
+                                                >
+                                                    {isAr ? "محدد" : "Active"}
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-mono text-silver">{p.hex}</span>
+                                            )}
                                         </div>
-                                        <p className="font-extrabold text-xs text-foreground line-clamp-1">
+                                        <p className="font-extrabold text-xs text-foreground line-clamp-1" style={isSelected ? { color: p.hex } : undefined}>
                                             {isAr ? p.name_ar : p.name_en}
                                         </p>
                                     </button>

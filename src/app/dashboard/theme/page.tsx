@@ -240,6 +240,7 @@ const THEMES = [
     { id: "theme31-rose", family: "theme31", name_ar: "ثيم 31 (ياقوت قرمزي مخملي متوهج)", name_en: "Theme 31 (Hyper Ruby Rose Velvet)", description_ar: "تصميم ثيم 31 باللون القرمزي المخملي الجريء للبرجر والمشويات والمأكولات السريعة.", description_en: "Theme 31 design with hyper ruby rose accent.", preview_color: "#f43f5e" },
     { id: "theme31-cyan", family: "theme31", name_ar: "ثيم 31 (أزرق جليدي كهربائي منعش)", name_en: "Theme 31 (Electric Ice Glaze Cyan)", description_ar: "تصميم ثيم 31 باللون الأزرق الجليدي للمأكولات البحرية والعصائر والمشروبات.", description_en: "Theme 31 design with electric ice cyan accent.", preview_color: "#06b6d4" },
     { id: "theme31-sunset", family: "theme31", name_ar: "ثيم 31 (غروب ناري متوهج)", name_en: "Theme 31 (Sunset Flame & Radiant Orange)", description_ar: "تصميم ثيم 31 ببرتقالي غروب ناري جذاب للمطاعم الشرقية والوجبات الشهية.", description_en: "Theme 31 design with radiant sunset orange flame accent.", preview_color: "#f97316" },
+    { id: "theme31-violet", family: "theme31", name_ar: "ثيم 31 (بنفسجي ملكي أرجواني فاخر)", name_en: "Theme 31 (Royal Violet Luxury)", description_ar: "تصميم ثيم 31 باللون البنفسجي الملكي الفاخر للاونجات والحلويات.", description_en: "Theme 31 design with royal violet luxury accent.", preview_color: "#7c3aed" },
     { id: "theme31-dark", family: "theme31", name_ar: "ثيم 31 (ماتريكس أوبسيديان كوني فاخر)", name_en: "Theme 31 (Cosmic Obsidian Matrix Dark)", description_ar: "تصميم ثيم 31 بوضع ليلي كوني مظلم فائق الفخامة للستيك هاوس والأجواء الراقية.", description_en: "Theme 31 design with cosmic obsidian midnight dark mode.", preview_color: "#0f172a" },
 ];
 
@@ -396,18 +397,34 @@ export default function ThemePage() {
                 if (error) {
                     const { data: restaurant2 } = await supabase
                         .from('restaurants')
-                        .select('id, theme, slug')
+                        .select('id, theme, theme_colors, slug')
                         .eq(typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? 'id' : 'email', typeof window !== "undefined" && sessionStorage.getItem('impersonating_tenant') ? sessionStorage.getItem('impersonating_tenant') : user.email)
                         .single();
                     if (restaurant2) {
                         setRestaurantId(restaurant2.id);
                         (window as any).rSlug = restaurant2.slug;
-                        setSelectedTheme(restaurant2.theme || "pizzapasta");
+                        let initialTheme = restaurant2.theme || "pizzapasta";
+                        if (initialTheme === 'theme31' && restaurant2.theme_colors?.primary) {
+                            const prim = String(restaurant2.theme_colors.primary).toLowerCase();
+                            const matching = THEMES.find(t => t.family === 'theme31' && t.preview_color?.toLowerCase() === prim);
+                            if (matching) initialTheme = matching.id;
+                        }
+                        setSelectedTheme(initialTheme);
+                        const f = THEMES.find(t => t.id === initialTheme);
+                        if (f?.family) setSelectedFamily(f.family);
                     }
                 } else if (restaurant) {
                     setRestaurantId(restaurant.id);
                     (window as any).rSlug = restaurant.slug;
-                    setSelectedTheme(restaurant.theme || "pizzapasta");
+                    let initialTheme = restaurant.theme || "pizzapasta";
+                    if (initialTheme === 'theme31' && restaurant.theme_colors?.primary) {
+                        const prim = String(restaurant.theme_colors.primary).toLowerCase();
+                        const matching = THEMES.find(t => t.family === 'theme31' && t.preview_color?.toLowerCase() === prim);
+                        if (matching) initialTheme = matching.id;
+                    }
+                    setSelectedTheme(initialTheme);
+                    const f = THEMES.find(t => t.id === initialTheme);
+                    if (f?.family) setSelectedFamily(f.family);
                     if (restaurant.theme_colors) {
                         setThemeColors(prev => ({ ...prev, ...restaurant.theme_colors }));
                     }
@@ -463,6 +480,9 @@ export default function ThemePage() {
             let updatedThemeColors = { ...themeColors };
             if (activeThemeObj?.preview_color) {
                 updatedThemeColors.primary = activeThemeObj.preview_color;
+                if (selectedTheme.startsWith('theme31')) {
+                    (updatedThemeColors as any).theme31_primary = activeThemeObj.preview_color;
+                }
             }
 
             const { error } = await supabase
@@ -626,8 +646,10 @@ export default function ThemePage() {
                             type="button"
                             onClick={() => {
                                 setSelectedFamily('theme31');
-                                const t31 = THEMES.find(t => t.family === 'theme31');
-                                if (t31) setSelectedTheme(t31.id);
+                                if (!selectedTheme.startsWith('theme31')) {
+                                    const t31 = THEMES.find(t => t.family === 'theme31');
+                                    if (t31) setSelectedTheme(t31.id);
+                                }
                             }}
                             className={`flex-1 sm:flex-none px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 border shadow-sm active:scale-95 ${
                                 selectedFamily === 'theme31'
