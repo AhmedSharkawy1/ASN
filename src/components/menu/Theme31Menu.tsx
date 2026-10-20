@@ -480,6 +480,64 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
             .reduce((sum, c) => sum + c.quantity, 0);
     };
 
+    // Get item quantity for a specific size in cart
+    const getItemSizeCartQty = (itemId: string | number, sizeIdx: number) => {
+        return cart
+            .filter(c => String(c.id) === String(itemId) && (c.sizeIdx ?? 0) === sizeIdx)
+            .reduce((sum, c) => sum + c.quantity, 0);
+    };
+
+    // Quick add specific size to cart
+    const quickAddSizeToCart = (item: MenuItem, catNameStr: string, sizeIdx: number, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        if (item.extras && item.extras.length > 0) {
+            openItemDetails(item, catNameStr, '', sizeIdx);
+            return;
+        }
+        const p = item.prices?.[sizeIdx] || item.prices?.[0] || 0;
+        const lbl = item.size_labels?.[sizeIdx] || (isAr ? `حجم ${sizeIdx + 1}` : `Size ${sizeIdx + 1}`);
+        const uniqueKey = `${item.id}_${sizeIdx}_none_`;
+
+        setCart(prev => {
+            const existIdx = prev.findIndex(c => c.cKey === uniqueKey);
+            if (existIdx > -1) {
+                const updated = [...prev];
+                updated[existIdx].quantity += 1;
+                return updated;
+            }
+            return [...prev, {
+                cKey: uniqueKey,
+                id: item.id,
+                item,
+                sizeIdx: sizeIdx,
+                sizeLabel: lbl,
+                price: p,
+                quantity: 1,
+                notes: '',
+                catName: catNameStr,
+                extras: []
+            }];
+        });
+        setCardSelectedSizes(prev => ({ ...prev, [String(item.id)]: sizeIdx }));
+        showToast(isAr ? `تمت إضافة "${itemName(item)} (${lbl})" إلى السلة` : `Added "${itemName(item)} (${lbl})" to cart`);
+    };
+
+    // Quick direct decrement of specific size from card
+    const quickDecrementSizeFromCart = (itemId: string | number, sizeIdx: number, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setCart(prev => {
+            const matchIndex = prev.findIndex(c => String(c.id) === String(itemId) && (c.sizeIdx ?? 0) === sizeIdx);
+            if (matchIndex === -1) return prev;
+            if (prev[matchIndex].quantity > 1) {
+                const updated = [...prev];
+                updated[matchIndex].quantity -= 1;
+                return updated;
+            } else {
+                return prev.filter((_, idx) => idx !== matchIndex);
+            }
+        });
+    };
+
     // Quick direct add from card
     const quickAddToCart = (item: MenuItem, catNameStr: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -587,8 +645,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
     };
 
     // Open detail modal
-    const openItemDetails = (item: MenuItem, catNameStr: string, catId: string | number) => {
-        const defaultSize = cardSelectedSizes[String(item.id)] ?? 0;
+    const openItemDetails = (item: MenuItem, catNameStr: string, catId: string | number, initialSizeIdx?: number) => {
+        const defaultSize = initialSizeIdx !== undefined ? initialSizeIdx : (cardSelectedSizes[String(item.id)] ?? 0);
         setSelectedItem({ item, catName: catNameStr, categoryId: catId });
         setModalSizeIdx(defaultSize);
         setModalQty(1);
@@ -1050,11 +1108,9 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                     </div>
                 )}
 
-                {/* 4. SMART SEARCH & FILTER CONTROLS BAR */}
-                <div className="sticky top-2 z-40 mb-6 space-y-2.5">
-                    {/* Glass Container */}
-                    <div className="p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl bg-white/85 dark:bg-zinc-900/85 theme31-glass border border-white/50 dark:border-white/10 shadow-xl space-y-2.5">
-                        {/* Search Input Row */}
+                {/* 4. SEARCH & VIEW MODE ROW (Normal Flow, Non-Sticky) */}
+                <div className="mb-2.5">
+                    <div className="p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl bg-white/85 dark:bg-zinc-900/85 theme31-glass border border-slate-200/80 dark:border-white/10 shadow-sm">
                         <div className="flex items-center gap-2">
                             <div className="relative flex-1">
                                 <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 rtl:right-3.5 ltr:left-3.5 ltr:right-auto" />
@@ -1116,7 +1172,12 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
 
+                {/* 5. STICKY CATEGORIES & FILTER PILLS BAR (Only Categories & Quick Filters) */}
+                <div className="sticky top-2 z-40 mb-6">
+                    <div className="p-2 sm:p-2.5 rounded-2xl sm:rounded-3xl bg-white/90 dark:bg-zinc-900/90 theme31-glass border border-white/60 dark:border-white/10 shadow-xl space-y-2">
                         {/* Category Navigation Pills */}
                         <div 
                             ref={categoryNavRef}
@@ -1163,8 +1224,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                             })}
                         </div>
 
-                        {/* Filter Chips & Sort Row */}
-                        <div className="flex items-center justify-between gap-2 overflow-x-auto pt-1 no-scrollbar">
+                        {/* Filter Chips & Sort Row (الكل / الأكثر طلباً / جديدنا / عروض خاصة / المفضلة) */}
+                        <div className="flex items-center justify-between gap-2 overflow-x-auto pt-0.5 no-scrollbar">
                             <div className="flex items-center gap-1.5 shrink-0">
                                 <button
                                     type="button"
@@ -1401,97 +1462,196 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                     )}
                                                 </div>
 
-                                                {/* Multiple Size Chooser Pills (If multiple prices exist) */}
-                                                {hasMultipleSizes && (
-                                                    <div 
-                                                        className="flex items-center gap-1 overflow-x-auto py-1.5 my-1 no-scrollbar"
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        {item.prices.map((pVal, pIdx) => {
-                                                            const isSizeActive = currentSizeIdx === pIdx;
-                                                            const sizeName = item.size_labels?.[pIdx] || (pIdx === 0 ? (isAr ? 'صغير' : 'S') : pIdx === 1 ? (isAr ? 'وسط' : 'M') : (isAr ? 'كبير' : 'L'));
-                                                            return (
-                                                                <button
-                                                                    key={pIdx}
-                                                                    type="button"
-                                                                    onClick={() => setCardSelectedSizes(prev => ({ ...prev, [String(item.id)]: pIdx }))}
-                                                                    className={`px-2 py-0.5 rounded-md text-[9px] font-bold transition-all border ${
-                                                                        isSizeActive 
-                                                                            ? 'text-white shadow-2xs' 
-                                                                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-transparent hover:border-slate-300'
-                                                                    }`}
-                                                                    style={isSizeActive ? { backgroundColor: primaryColor, borderColor: primaryColor } : undefined}
-                                                                >
-                                                                    {sizeName}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                )}
+                                                {/* Sizes Grid (If multiple sizes exist) OR Single Price & Add Button */}
+                                                {hasMultipleSizes ? (
+                                                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                                                        <div className={`grid grid-cols-2 gap-1 sm:gap-1.5 w-full ${item.prices.length > 4 ? 'max-h-[160px] overflow-y-auto no-scrollbar' : ''}`}>
+                                                            {item.prices.map((price, pIdx) => {
+                                                                const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                const oldPrice = item.old_prices?.[pIdx];
+                                                                const hasDisc = Boolean(oldPrice && oldPrice > price);
+                                                                const sizeDiscountPercent = hasDisc && oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
+                                                                const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
 
-                                                {/* Price & Add To Cart Button */}
-                                                <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
-                                                    <div>
-                                                        <div className="flex items-baseline gap-1">
-                                                            <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                                                                {currentPrice}
-                                                            </span>
-                                                            <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
-                                                                {cur}
-                                                            </span>
+                                                                const labelLen = label.trim().length;
+                                                                const sizeTextClass = 
+                                                                    labelLen > 11 ? 'text-[9px] sm:text-[9.5px]' :
+                                                                    labelLen > 7 ? 'text-[10px] sm:text-[10.5px]' :
+                                                                    labelLen > 4 ? 'text-[10.5px] sm:text-xs' :
+                                                                    'text-xs';
+                                                                const sizeFontWeight = labelLen > 4 ? 'font-bold' : 'font-extrabold';
+
+                                                                return (
+                                                                    <button
+                                                                        key={pIdx}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (item.extras && item.extras.length > 0) {
+                                                                                openItemDetails(item, catName(category), category.id, pIdx);
+                                                                            } else {
+                                                                                quickAddSizeToCart(item, catName(category), pIdx, e);
+                                                                            }
+                                                                        }}
+                                                                        className={`relative group/size flex flex-col items-center justify-between py-1.5 px-1 sm:px-1.5 rounded-xl border transition-all text-center min-h-[48px] sm:min-h-[50px] active:scale-95 ${
+                                                                            isOddLast ? 'col-span-2' : ''
+                                                                        } ${
+                                                                            sizeCartQty > 0
+                                                                                ? 'shadow-2xs ring-1'
+                                                                                : hasDisc
+                                                                                    ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 hover:border-rose-500 shadow-2xs'
+                                                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-zinc-800/80 text-slate-800 dark:text-zinc-100 hover:border-slate-300 dark:hover:border-zinc-700'
+                                                                        }`}
+                                                                        style={sizeCartQty > 0 ? {
+                                                                            borderColor: primaryColor,
+                                                                            backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
+                                                                            color: primaryColor,
+                                                                            boxShadow: `0 0 0 1px ${primaryColor}40`
+                                                                        } : undefined}
+                                                                        title={label}
+                                                                    >
+                                                                        {/* Offer Badge on Top of Pill */}
+                                                                        {hasDisc && sizeDiscountPercent && (
+                                                                            <span className="absolute -top-2 inset-x-0 mx-auto w-fit px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[8px] font-black shadow-2xs whitespace-nowrap leading-none flex items-center gap-0.5 z-10">
+                                                                                <span>%{sizeDiscountPercent}</span>
+                                                                                <span>{isAr ? 'خصم' : 'OFF'}</span>
+                                                                            </span>
+                                                                        )}
+
+                                                                        {/* Cart Qty Badge */}
+                                                                        {sizeCartQty > 0 && (
+                                                                            <span 
+                                                                                className="absolute -top-1.5 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs z-10"
+                                                                                style={{ backgroundColor: primaryColor }}
+                                                                            >
+                                                                                {sizeCartQty}
+                                                                            </span>
+                                                                        )}
+
+                                                                        {/* Decrement Button when in Cart */}
+                                                                        {sizeCartQty > 0 && (
+                                                                            <span
+                                                                                role="button"
+                                                                                tabIndex={0}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    quickDecrementSizeFromCart(item.id, pIdx, e);
+                                                                                }}
+                                                                                className="absolute -top-1.5 -left-1 w-4 h-4 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-xs z-20 active:scale-90 transition-transform cursor-pointer"
+                                                                                title={isAr ? "إنقاص" : "Minus"}
+                                                                            >
+                                                                                <Minus className="w-2.5 h-2.5" />
+                                                                            </span>
+                                                                        )}
+
+                                                                        {/* Size Label */}
+                                                                        <span 
+                                                                            dir="auto"
+                                                                            className={`w-full max-w-full text-center break-words line-clamp-1 leading-tight px-0.5 ${sizeTextClass} ${sizeFontWeight} ${
+                                                                                hasDisc ? 'text-rose-700 dark:text-rose-300' : 'text-slate-800 dark:text-zinc-100'
+                                                                            }`}
+                                                                        >
+                                                                            {label}
+                                                                        </span>
+
+                                                                        {/* Price & Offer Display */}
+                                                                        <div className="w-full flex flex-col items-center justify-center leading-none mt-0.5">
+                                                                            {hasDisc ? (
+                                                                                <>
+                                                                                    <span className="text-[9px] line-through text-rose-500/80 font-bold decoration-rose-500/80 leading-none mb-0.5">
+                                                                                        {oldPrice}
+                                                                                    </span>
+                                                                                    <div className="flex items-baseline justify-center gap-0.5 leading-none">
+                                                                                        <span className="text-xs font-black text-rose-600 dark:text-rose-400">
+                                                                                            {price}
+                                                                                        </span>
+                                                                                        <span className="text-[9px] font-bold text-slate-600 dark:text-zinc-300">
+                                                                                            {cur}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </>
+                                                                            ) : (
+                                                                                <div className="flex items-baseline justify-center gap-0.5 leading-none">
+                                                                                    <span className="text-xs font-black text-slate-900 dark:text-white">
+                                                                                        {price}
+                                                                                    </span>
+                                                                                    <span className="text-[9px] font-bold text-slate-500 dark:text-zinc-400">
+                                                                                        {cur}
+                                                                                    </span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
                                                         </div>
-                                                        {hasDiscount && (
-                                                            <span className="text-[10px] text-slate-400 line-through">
-                                                                {currentOldPrice} {cur}
-                                                            </span>
-                                                        )}
                                                     </div>
+                                                ) : (
+                                                    /* Price & Add To Cart Button */
+                                                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
+                                                        <div>
+                                                            <div className="flex items-baseline gap-1">
+                                                                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                                                                    {currentPrice}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
+                                                                    {cur}
+                                                                </span>
+                                                            </div>
+                                                            {hasDiscount && (
+                                                                <span className="text-[10px] text-slate-400 line-through">
+                                                                    {currentOldPrice} {cur}
+                                                                </span>
+                                                            )}
+                                                        </div>
 
-                                                    {/* In-Card Stepper OR Add Button */}
-                                                    {inCartQty > 0 ? (
-                                                        <div 
-                                                            className="flex items-center gap-1.5 rounded-xl p-0.5 border"
-                                                            style={{ 
-                                                                backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
-                                                                borderColor: `${primaryColor}40`
-                                                            }}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
-                                                                style={{ color: primaryColor }}
+                                                        {/* In-Card Stepper OR Add Button */}
+                                                        {inCartQty > 0 ? (
+                                                            <div 
+                                                                className="flex items-center gap-1.5 rounded-xl p-0.5 border"
+                                                                style={{ 
+                                                                    backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
+                                                                    borderColor: `${primaryColor}40`
+                                                                }}
+                                                                onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                <Minus className="w-3 h-3" />
-                                                            </button>
-                                                            <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
-                                                                {inCartQty}
-                                                            </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => quickDecrementFromCart(item.id, e)}
+                                                                    className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
+                                                                    style={{ color: primaryColor }}
+                                                                >
+                                                                    <Minus className="w-3 h-3" />
+                                                                </button>
+                                                                <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
+                                                                    {inCartQty}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => quickAddToCart(item, catName(category), e)}
+                                                                    className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs shadow-2xs active:scale-90 hover:opacity-90"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                >
+                                                                    <Plus className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs shadow-2xs active:scale-90 hover:opacity-90"
-                                                                style={{ backgroundColor: primaryColor }}
+                                                                className="w-8 h-8 rounded-xl active:scale-90 text-white flex items-center justify-center transition-all shadow-md hover:opacity-90"
+                                                                style={{ 
+                                                                    backgroundColor: primaryColor,
+                                                                    boxShadow: `0 4px 14px 0 ${primaryColor}4d`
+                                                                }}
+                                                                title={isAr ? "إضافة سريعة للسلة" : "Quick Add to Cart"}
                                                             >
-                                                                <Plus className="w-3 h-3" />
+                                                                <Plus className="w-4 h-4" />
                                                             </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                            className="w-8 h-8 rounded-xl active:scale-90 text-white flex items-center justify-center transition-all shadow-md hover:opacity-90"
-                                                            style={{ 
-                                                                backgroundColor: primaryColor,
-                                                                boxShadow: `0 4px 14px 0 ${primaryColor}4d`
-                                                            }}
-                                                            title={isAr ? "إضافة سريعة للسلة" : "Quick Add to Cart"}
-                                                        >
-                                                            <Plus className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -1503,6 +1663,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                 <div className="space-y-3">
                                     {(category.items || []).map((item) => {
                                         const inCartQty = getItemCartQty(item.id);
+                                        const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
                                         const currentPrice = item.prices?.[0] || 0;
                                         const currentOldPrice = item.old_prices?.[0];
                                         const hasDiscount = currentOldPrice && currentOldPrice > currentPrice;
@@ -1511,102 +1672,151 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                             <div
                                                 key={item.id}
                                                 onClick={() => openItemDetails(item, catName(category), category.id)}
-                                                className="group cursor-pointer rounded-2xl bg-white/80 dark:bg-zinc-900/80 theme31-glass border border-slate-200/80 dark:border-white/10 p-3 sm:p-4 flex items-center gap-3 sm:gap-4 theme31-card-hover transition-all"
+                                                className="group cursor-pointer rounded-2xl bg-white/80 dark:bg-zinc-900/80 theme31-glass border border-slate-200/80 dark:border-white/10 p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 theme31-card-hover transition-all"
                                             >
-                                                {/* Left/Right Thumbnail */}
-                                                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0">
-                                                    {(item.image_url || item.image) ? (
-                                                        <OptimizedMenuImage
-                                                            src={item.image_url || item.image}
-                                                            alt={itemName(item)}
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                            sizes="100px"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-zinc-600">
-                                                            <Utensils className="w-6 h-6" />
+                                                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                                    {/* Left/Right Thumbnail */}
+                                                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0">
+                                                        {(item.image_url || item.image) ? (
+                                                            <OptimizedMenuImage
+                                                                src={item.image_url || item.image}
+                                                                alt={itemName(item)}
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                                                sizes="100px"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-zinc-600">
+                                                                <Utensils className="w-6 h-6" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Middle Details */}
+                                                    <div className="flex-1 min-w-0 space-y-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 truncate theme31-title-hover transition-colors">
+                                                                {itemName(item)}
+                                                            </h3>
+                                                            {item.is_popular && (
+                                                                <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-black shrink-0">
+                                                                    🔥 {isAr ? "مميز" : "Hot"}
+                                                                </span>
+                                                            )}
+                                                            {item.is_new && (
+                                                                <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black shrink-0">
+                                                                    ✨ {isAr ? "جديد" : "NEW"}
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Middle Details */}
-                                                <div className="flex-1 min-w-0 space-y-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 truncate theme31-title-hover transition-colors">
-                                                            {itemName(item)}
-                                                        </h3>
-                                                        {item.is_popular && (
-                                                            <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-black shrink-0">
-                                                                🔥 {isAr ? "مميز" : "Hot"}
-                                                            </span>
+                                                        {itemDesc(item) && (
+                                                            <p className="text-[11px] text-slate-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
+                                                                {itemDesc(item)}
+                                                            </p>
                                                         )}
-                                                        {item.is_new && (
-                                                            <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black shrink-0">
-                                                                ✨ {isAr ? "جديد" : "NEW"}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {itemDesc(item) && (
-                                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-                                                            {itemDesc(item)}
-                                                        </p>
-                                                    )}
-                                                    <div className="flex items-baseline gap-1.5 pt-0.5">
-                                                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                                                            {currentPrice} {cur}
-                                                        </span>
-                                                        {hasDiscount && (
-                                                            <span className="text-[10px] text-slate-400 line-through">
-                                                                {currentOldPrice} {cur}
-                                                            </span>
+                                                        {!hasMultipleSizes && (
+                                                            <div className="flex items-baseline gap-1.5 pt-0.5">
+                                                                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
+                                                                    {currentPrice} {cur}
+                                                                </span>
+                                                                {hasDiscount && (
+                                                                    <span className="text-[10px] text-slate-400 line-through">
+                                                                        {currentOldPrice} {cur}
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>
 
-                                                {/* Right Stepper or Add Button */}
-                                                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                    {inCartQty > 0 ? (
-                                                        <div 
-                                                            className="flex items-center gap-1.5 rounded-xl p-1 border"
-                                                            style={{ 
-                                                                backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
-                                                                borderColor: `${primaryColor}40`
-                                                            }}
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
-                                                                style={{ color: primaryColor }}
+                                                {/* Right side: Multiple sizes buttons OR single stepper */}
+                                                {hasMultipleSizes ? (
+                                                    <div className="flex flex-wrap items-center gap-1.5 sm:justify-end shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-white/5" onClick={(e) => e.stopPropagation()}>
+                                                        {item.prices.map((price, pIdx) => {
+                                                            const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                            const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                            return (
+                                                                <button
+                                                                    key={pIdx}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (item.extras && item.extras.length > 0) {
+                                                                            openItemDetails(item, catName(category), category.id, pIdx);
+                                                                        } else {
+                                                                            quickAddSizeToCart(item, catName(category), pIdx, e);
+                                                                        }
+                                                                    }}
+                                                                    className={`relative px-2.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 ${
+                                                                        sizeCartQty > 0
+                                                                            ? 'shadow-2xs ring-1'
+                                                                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800/80 text-slate-700 dark:text-zinc-200 hover:border-slate-300'
+                                                                    }`}
+                                                                    style={sizeCartQty > 0 ? {
+                                                                        backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
+                                                                        borderColor: primaryColor,
+                                                                        color: primaryColor,
+                                                                        boxShadow: `0 0 0 1px ${primaryColor}40`
+                                                                    } : undefined}
+                                                                >
+                                                                    <span>{label}:</span>
+                                                                    <span className="font-black">{price} {cur}</span>
+                                                                    {sizeCartQty > 0 && (
+                                                                        <span 
+                                                                            className="w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center shrink-0"
+                                                                            style={{ backgroundColor: primaryColor }}
+                                                                        >
+                                                                            {sizeCartQty}
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                        {inCartQty > 0 ? (
+                                                            <div 
+                                                                className="flex items-center gap-1.5 rounded-xl p-1 border"
+                                                                style={{ 
+                                                                    backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
+                                                                    borderColor: `${primaryColor}40`
+                                                                }}
                                                             >
-                                                                <Minus className="w-3 h-3" />
-                                                            </button>
-                                                            <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
-                                                                {inCartQty}
-                                                            </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => quickDecrementFromCart(item.id, e)}
+                                                                    className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
+                                                                    style={{ color: primaryColor }}
+                                                                >
+                                                                    <Minus className="w-3 h-3" />
+                                                                </button>
+                                                                <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
+                                                                    {inCartQty}
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => quickAddToCart(item, catName(category), e)}
+                                                                    className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs shadow-2xs active:scale-90 hover:opacity-90"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                >
+                                                                    <Plus className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
                                                             <button
                                                                 type="button"
                                                                 onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs shadow-2xs active:scale-90 hover:opacity-90"
-                                                                style={{ backgroundColor: primaryColor }}
+                                                                className="w-9 h-9 rounded-2xl active:scale-90 text-white flex items-center justify-center transition-all shadow-md hover:opacity-90"
+                                                                style={{ 
+                                                                    backgroundColor: primaryColor,
+                                                                    boxShadow: `0 4px 14px 0 ${primaryColor}4d`
+                                                                }}
                                                             >
-                                                                <Plus className="w-3 h-3" />
+                                                                <Plus className="w-4 h-4" />
                                                             </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                            className="w-9 h-9 rounded-2xl active:scale-90 text-white flex items-center justify-center transition-all shadow-md hover:opacity-90"
-                                                            style={{ 
-                                                                backgroundColor: primaryColor,
-                                                                boxShadow: `0 4px 14px 0 ${primaryColor}4d`
-                                                            }}
-                                                        >
-                                                            <Plus className="w-4 h-4" />
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -1742,6 +1952,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                 <div className="space-y-6">
                                     {(category.items || []).map((item) => {
                                         const inCartQty = getItemCartQty(item.id);
+                                        const hasMultipleSizes = Boolean(item.prices && item.prices.length > 1);
                                         const currentPrice = item.prices?.[0] || 0;
                                         const currentOldPrice = item.old_prices?.[0];
                                         const hasDiscount = currentOldPrice && currentOldPrice > currentPrice;
@@ -1805,62 +2016,109 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                                 {itemDesc(item)}
                                                             </p>
                                                         )}
-                                                        <div className="flex items-baseline gap-2 pt-1">
-                                                            <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                                                                {currentPrice} {cur}
-                                                            </span>
-                                                            {hasDiscount && (
-                                                                <span className="text-xs text-slate-400 line-through">
-                                                                    {currentOldPrice} {cur}
+                                                        {hasMultipleSizes ? (
+                                                            <div className="flex flex-wrap items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                                                                {item.prices.map((price, pIdx) => {
+                                                                    const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                    const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                    return (
+                                                                        <button
+                                                                            key={pIdx}
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (item.extras && item.extras.length > 0) {
+                                                                                    openItemDetails(item, catName(category), category.id, pIdx);
+                                                                                } else {
+                                                                                    quickAddSizeToCart(item, catName(category), pIdx, e);
+                                                                                }
+                                                                            }}
+                                                                            className={`relative px-3.5 py-2 rounded-2xl border text-xs font-bold flex items-center gap-2 transition-all active:scale-95 ${
+                                                                                sizeCartQty > 0
+                                                                                    ? 'shadow-xs ring-1'
+                                                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-zinc-800/80 text-slate-800 dark:text-zinc-100 hover:border-slate-300'
+                                                                            }`}
+                                                                            style={sizeCartQty > 0 ? {
+                                                                                backgroundColor: isDark ? `${primaryColor}25` : `${primaryColor}14`,
+                                                                                borderColor: primaryColor,
+                                                                                color: primaryColor,
+                                                                                boxShadow: `0 0 0 1px ${primaryColor}40`
+                                                                            } : undefined}
+                                                                        >
+                                                                            <span>{label}</span>
+                                                                            <span className="font-black text-sm">{price} {cur}</span>
+                                                                            {sizeCartQty > 0 && (
+                                                                                <span 
+                                                                                    className="w-5 h-5 rounded-full text-[10px] font-black text-white flex items-center justify-center shrink-0"
+                                                                                    style={{ backgroundColor: primaryColor }}
+                                                                                >
+                                                                                    {sizeCartQty}
+                                                                                </span>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-baseline gap-2 pt-1">
+                                                                <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                                                                    {currentPrice} {cur}
                                                                 </span>
-                                                            )}
-                                                        </div>
+                                                                {hasDiscount && (
+                                                                    <span className="text-xs text-slate-400 line-through">
+                                                                        {currentOldPrice} {cur}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
 
-                                                    <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                        {inCartQty > 0 ? (
-                                                            <div 
-                                                                className="flex items-center gap-2 rounded-2xl p-1.5 border"
-                                                                style={{ 
-                                                                    backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
-                                                                    borderColor: `${primaryColor}40`
-                                                                }}
-                                                            >
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                    className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-sm shadow-xs active:scale-90"
-                                                                    style={{ color: primaryColor }}
+                                                    {!hasMultipleSizes && (
+                                                        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                            {inCartQty > 0 ? (
+                                                                <div 
+                                                                    className="flex items-center gap-2 rounded-2xl p-1.5 border"
+                                                                    style={{ 
+                                                                        backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
+                                                                        borderColor: `${primaryColor}40`
+                                                                    }}
                                                                 >
-                                                                    <Minus className="w-4 h-4" />
-                                                                </button>
-                                                                <span className="text-sm font-black px-2" style={{ color: primaryColor }}>
-                                                                    {inCartQty}
-                                                                </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => quickDecrementFromCart(item.id, e)}
+                                                                        className="w-8 h-8 rounded-xl bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-sm shadow-xs active:scale-90"
+                                                                        style={{ color: primaryColor }}
+                                                                    >
+                                                                        <Minus className="w-4 h-4" />
+                                                                    </button>
+                                                                    <span className="text-sm font-black px-2" style={{ color: primaryColor }}>
+                                                                        {inCartQty}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => quickAddToCart(item, catName(category), e)}
+                                                                        className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-bold text-sm shadow-xs active:scale-90 hover:opacity-90"
+                                                                        style={{ backgroundColor: primaryColor }}
+                                                                    >
+                                                                        <Plus className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
                                                                 <button
                                                                     type="button"
                                                                     onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                    className="w-8 h-8 rounded-xl text-white flex items-center justify-center font-bold text-sm shadow-xs active:scale-90 hover:opacity-90"
-                                                                    style={{ backgroundColor: primaryColor }}
+                                                                    className="px-5 py-2.5 rounded-2xl active:scale-95 text-white text-xs font-black flex items-center gap-2 shadow-lg transition-all hover:opacity-90"
+                                                                    style={{ 
+                                                                        backgroundColor: primaryColor,
+                                                                        boxShadow: `0 4px 14px 0 ${primaryColor}4d`
+                                                                    }}
                                                                 >
                                                                     <Plus className="w-4 h-4" />
+                                                                    <span>{isAr ? "أضف إلى السلة" : "Add to Cart"}</span>
                                                                 </button>
-                                                            </div>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="px-5 py-2.5 rounded-2xl active:scale-95 text-white text-xs font-black flex items-center gap-2 shadow-lg transition-all hover:opacity-90"
-                                                                style={{ 
-                                                                    backgroundColor: primaryColor,
-                                                                    boxShadow: `0 4px 14px 0 ${primaryColor}4d`
-                                                                }}
-                                                            >
-                                                                <Plus className="w-4 h-4" />
-                                                                <span>{isAr ? "أضف إلى السلة" : "Add to Cart"}</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
