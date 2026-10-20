@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaInstagram, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
+import RestaurantBranchesCard from '@/components/menu/RestaurantBranchesCard';
 import { getProxiedImageUrl } from '@/lib/imageProxy';
 import { parseCurrency } from '@/lib/currency';
 import ASNFooter from '@/components/menu/ASNFooter';
@@ -904,6 +905,16 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                             )}
                         </div>
                     </div>
+
+                    {config?.branches_enabled && Array.isArray(config?.branches) && config.branches.length > 0 && (
+                        <div className="w-full mt-4">
+                            <RestaurantBranchesCard
+                                config={config}
+                                isAr={isAr}
+                                primaryColor={primaryColor}
+                            />
+                        </div>
+                    )}
 
                     {/* Quick Interactive Contact & Social Media Strip */}
                     <div className="mt-5 pt-4 border-t border-slate-200/60 dark:border-white/10 flex items-center justify-center sm:justify-start gap-2 flex-wrap">

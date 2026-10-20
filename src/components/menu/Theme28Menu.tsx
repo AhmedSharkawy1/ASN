@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FaWhatsapp, FaFacebookF, FaInstagram, FaTiktok, FaSnapchatGhost, FaYoutube } from 'react-icons/fa';
 import OptimizedMenuImage from '@/components/menu/OptimizedMenuImage';
+import RestaurantBranchesCard from '@/components/menu/RestaurantBranchesCard';
 import { getProxiedImageUrl } from '@/lib/imageProxy';
 import { parseCurrency } from '@/lib/currency';
 import ASNFooter from '@/components/menu/ASNFooter';
@@ -810,58 +811,12 @@ export default function Theme28Menu({ config, categories, restaurantId, suppress
                             </div>
                         </div>
 
-                        {/* Location / Address Row (Clickable to open registered location or address in Google Maps) */}
-                        {(config.address || locationUrl) && (
-                            <div className="mt-3.5 pt-3 border-t border-black/5 dark:border-white/5">
-                                <a 
-                                    href={locationUrl || (config.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(config.address)}` : '#')}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-2xl bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-all group/loc cursor-pointer border border-slate-200 dark:border-zinc-700/80"
-                                    title={isAr ? 'اضغط لفتح الموقع على خرائط جوجل' : 'Click to open location in Google Maps'}
-                                >
-                                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                                        <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 mt-0.5 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-colors">
-                                            <MapPin className="w-3.5 h-3.5" />
-                                        </div>
-                                        <span className="font-bold text-xs text-slate-800 dark:text-zinc-100 group-hover/loc:text-rose-500 transition-colors leading-relaxed break-words">
-                                            {config.address || (isAr ? 'الموقع الجغرافي للمطعم' : 'Restaurant Location')}
-                                        </span>
-                                    </div>
-                                    <span className="inline-flex items-center self-start sm:self-auto gap-1 text-[11px] font-black text-rose-500 bg-rose-500/10 px-2.5 py-1 rounded-xl shrink-0 group-hover/loc:bg-rose-500 group-hover/loc:text-white transition-all">
-                                        <span>{isAr ? 'عرض اللوكيشن' : 'Open Map'}</span>
-                                        <ArrowUpRight className="w-3 h-3" />
-                                    </span>
-                                </a>
-                            </div>
-                        )}
-
-                        {/* Contact Numbers (Phone & WhatsApp) */}
-                        {(phoneList.length > 0 || whatsappClean) && (
-                            <div className="mt-2.5 flex items-center gap-2 flex-wrap">
-                                {phoneList.map((ph, idx) => (
-                                    <a
-                                        key={idx}
-                                        href={`tel:${ph}`}
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-[11px] font-black text-slate-800 dark:text-zinc-100 transition-all border border-slate-200 dark:border-zinc-700/80 shadow-2xs active:scale-95"
-                                    >
-                                        <Phone className="w-3 h-3" style={{ color: primaryColor }} />
-                                        <span dir="ltr">{ph}</span>
-                                    </a>
-                                ))}
-                                {whatsappClean && (
-                                    <a
-                                        href={`https://wa.me/${whatsappClean}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] font-black text-emerald-600 dark:text-emerald-400 transition-all border border-emerald-500/20 shadow-2xs active:scale-95"
-                                    >
-                                        <FaWhatsapp className="w-3.5 h-3.5 text-emerald-500" />
-                                        <span dir="ltr">{config.whatsapp_number}</span>
-                                    </a>
-                                )}
-                            </div>
-                        )}
+                        {/* Location, Branches & Contact Section */}
+                        <RestaurantBranchesCard
+                            config={config}
+                            isAr={isAr}
+                            primaryColor={primaryColor}
+                        />
 
                         {/* Payment Methods Banner */}
                         <div className="mt-3 pt-2.5 border-t border-black/5 dark:border-white/5 flex items-center justify-between gap-2 flex-wrap">

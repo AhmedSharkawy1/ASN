@@ -1509,6 +1509,32 @@ export default function LametZamanCompactMenu({ config, categories, restaurantId
                                         </a>
                                     )}
 
+                                    {config.branches_enabled && Array.isArray(config.branches) && config.branches.map((b: any, bIdx: number) => {
+                                        const bName = b?.name || (isAr ? `الفرع ${bIdx + 2}` : `Branch ${bIdx + 2}`);
+                                        const bAddr = b?.address || '';
+                                        const bMap = b?.map_link || (bAddr ? `https://maps.google.com/?q=${encodeURIComponent(bAddr)}` : '#');
+                                        return (
+                                            <a 
+                                                key={bIdx} 
+                                                href={bMap} 
+                                                target="_blank" 
+                                                rel="noreferrer" 
+                                                className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 transition-all border border-black/5 dark:border-white/10 group"
+                                            >
+                                                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md transition-transform group-hover:scale-110" style={{ backgroundColor: primaryColor }}>
+                                                    <FaMapMarkerAlt className="text-base" />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-xs font-bold opacity-75 mb-0.5">{bName}</p>
+                                                    <p className="font-extrabold text-xs sm:text-sm line-clamp-2" style={{ color: textMain }}>
+                                                        {bAddr || (isAr ? 'انقر لفتح الموقع على الخريطة 🗺️' : 'Click to open map 🗺️')}
+                                                    </p>
+                                                </div>
+                                                <ExternalLink className="w-4 h-4 opacity-60 shrink-0 group-hover:opacity-100 transition-opacity" />
+                                            </a>
+                                        );
+                                    })}
+
                                     {((config.social_links && Object.keys(config.social_links).length > 0) || config.facebook_url || config.instagram_url || config.tiktok_url || config.whatsapp_number || config.youtube_url || config.whatsapp_group_url) && (
                                         <div className="pt-3 border-t border-black/10 dark:border-white/10 shrink-0">
                                             <p className="text-center font-bold text-xs mb-3">{isAr ? 'تابعنا على' : 'Follow Us'}</p>

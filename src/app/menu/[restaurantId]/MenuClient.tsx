@@ -53,7 +53,7 @@ const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingP
 const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
 const ThemePromotionalPopup = dynamic(() => import("@/components/menu/ThemePromotionalPopup"));
 const BranchesModal = dynamic(() => import("@/components/menu/BranchesModal"), { ssr: false });
-const BranchesFloatingButton = dynamic(() => import("@/components/menu/BranchesFloatingButton"), { ssr: false });
+const RestaurantBranchesCard = dynamic(() => import("@/components/menu/RestaurantBranchesCard"), { ssr: false });
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
 const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
@@ -238,8 +238,13 @@ export default function MenuClient({
       setGlobalDeliveryNumbers(e.detail || []);
       setShowGlobalDeliveryModal(true);
     };
+    const handleOpenBranches = () => setShowBranchesModal(true);
     document.addEventListener('openDeliveryModal', handleOpenModal);
-    return () => document.removeEventListener('openDeliveryModal', handleOpenModal);
+    window.addEventListener('openBranchesModal', handleOpenBranches);
+    return () => {
+      document.removeEventListener('openDeliveryModal', handleOpenModal);
+      window.removeEventListener('openBranchesModal', handleOpenBranches);
+    };
   }, []);
 
   // Cart & Modal State
@@ -746,19 +751,12 @@ export default function MenuClient({
           isAr={language === 'ar'}
         />
         {config?.branches_enabled && (
-          <>
-            <BranchesFloatingButton
-              config={config}
-              language={language}
-              onOpen={() => setShowBranchesModal(true)}
-            />
-            <BranchesModal
+          <BranchesModal
               isOpen={showBranchesModal}
               onClose={() => setShowBranchesModal(false)}
               config={config}
               language={language}
             />
-          </>
         )}
       </>
     );
@@ -1078,6 +1076,16 @@ export default function MenuClient({
               </a>
             )}
           </div>
+
+          {config?.branches_enabled && Array.isArray(config?.branches) && config.branches.length > 0 && (
+            <div className="w-full mb-6 max-w-xl text-start" dir={language === "ar" ? "rtl" : "ltr"}>
+              <RestaurantBranchesCard
+                config={config}
+                isAr={language === "ar"}
+                primaryColor="#3b82f6"
+              />
+            </div>
+          )}
 
           {/* Search Bar */}
           <div className="relative w-full">
@@ -1583,19 +1591,12 @@ export default function MenuClient({
         isAr={language === 'ar'}
       />
       {config?.branches_enabled && (
-        <>
-          <BranchesFloatingButton
-            config={config}
-            language={language}
-            onOpen={() => setShowBranchesModal(true)}
-          />
-          <BranchesModal
+        <BranchesModal
             isOpen={showBranchesModal}
             onClose={() => setShowBranchesModal(false)}
             config={config}
             language={language}
           />
-        </>
       )}
     </main>
   );
