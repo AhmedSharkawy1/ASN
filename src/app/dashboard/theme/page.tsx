@@ -920,6 +920,32 @@ export default function ThemePage() {
                         </div>
                     )}
 
+                    {/* Quick Config Banner for Theme 31 */}
+                    {selectedTheme.startsWith("theme31") && (
+                        <div className="bg-gradient-to-r from-indigo-900 via-purple-950 to-slate-900 border border-indigo-500/30 p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white shadow-lg">
+                            <div className="space-y-1">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/30 to-purple-500/30 text-indigo-300 text-[11px] font-black border border-indigo-500/30">
+                                    <Sparkles className="w-3 h-3 text-amber-400" />
+                                    <span>{isArabic ? "تخصيص ثيم 31 (أورا فيوتشر الزجاجي)" : "Theme 31 Customization"}</span>
+                                </div>
+                                <h4 className="font-extrabold text-sm flex items-center gap-2">
+                                    <Palette className="w-4 h-4 text-amber-400" />
+                                    <span>{isArabic ? "تخصيص ألوان ثيم 31، طريقة العرض الافتراضية، والخلفيات المخصصة" : "Set Theme 31 Accent Colors, Default View Mode & Custom Backgrounds"}</span>
+                                </h4>
+                                <p className="text-indigo-200/80 text-xs">
+                                    {isArabic ? "يمكنك اختيار اللون المفضل أو كود سداسي مخصص، وضبط نمط العرض الافتراضي للأصناف." : "Choose your favorite accent color preset, custom hex color, and default view mode."}
+                                </p>
+                            </div>
+                            <Link
+                                href="/dashboard/theme31-settings"
+                                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs transition-all flex items-center justify-center gap-2 shrink-0 shadow-md shadow-indigo-600/30"
+                            >
+                                <Settings className="w-4 h-4" />
+                                <span>{isArabic ? "فتح إعدادات ثيم 31" : "Open Theme 31 Settings"}</span>
+                            </Link>
+                        </div>
+                    )}
+
                     {/* Quick Config Banner for Theme 30 or Theme 28 */}
                     {selectedTheme.startsWith("theme30") && (
                         <div className="bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 border border-indigo-500/30 p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white shadow-lg">

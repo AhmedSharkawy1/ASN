@@ -153,39 +153,56 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
     const cur = parseCurrency(config?.currency, isAr);
     const storeStatus = useStoreHours(config);
 
-    // Color resolution for Theme 31 (Default: Aura Cyber Indigo #6366f1)
-    const getPrimaryColor = (themeName?: string, customPrimary?: string) => {
-        if (customPrimary) return customPrimary;
-        if (!themeName) return '#6366f1';
-        const t = themeName.toLowerCase();
-        if (t.includes('emerald') || t.includes('green')) return '#10b981';
-        if (t.includes('amber') || t.includes('gold')) return '#f59e0b';
-        if (t.includes('rose') || t.includes('red')) return '#f43f5e';
-        if (t.includes('cyan') || t.includes('sky')) return '#06b6d4';
-        if (t.includes('sunset') || t.includes('orange')) return '#f97316';
-        if (t.includes('dark')) return '#0f172a';
-        return '#6366f1';
-    };
+    // Color resolution for Theme 31
+    const getTheme31Colors = (themeName?: string, customPrimary?: string, customSecondary?: string) => {
+        const t = (themeName || '').toLowerCase();
 
-    const getSecondaryGlow = (themeName?: string, customSecondary?: string, resolvedPrimary?: string) => {
-        if (customSecondary) return customSecondary;
-        if (resolvedPrimary) {
-            if (resolvedPrimary === '#10b981') return '#06b6d4';
-            if (resolvedPrimary === '#f59e0b') return '#ef4444';
-            if (resolvedPrimary === '#f43f5e') return '#ec4899';
-            if (resolvedPrimary === '#06b6d4') return '#3b82f6';
-            if (resolvedPrimary === '#f97316') return '#fbbf24';
-            if (resolvedPrimary === '#0f172a' || resolvedPrimary === '#1e1b4b') return '#6366f1';
+        let primary = '#6366f1';
+        let secondary = '#a855f7';
+
+        // 1. Theme variant suffix takes precedence
+        if (t.includes('emerald') || t.includes('green')) {
+            primary = '#10b981';
+            secondary = '#06b6d4';
+        } else if (t.includes('amber') || t.includes('gold')) {
+            primary = '#f59e0b';
+            secondary = '#f97316';
+        } else if (t.includes('rose') || t.includes('red')) {
+            primary = '#f43f5e';
+            secondary = '#ec4899';
+        } else if (t.includes('cyan') || t.includes('sky')) {
+            primary = '#06b6d4';
+            secondary = '#3b82f6';
+        } else if (t.includes('sunset') || t.includes('orange')) {
+            primary = '#f97316';
+            secondary = '#f59e0b';
+        } else if (t.includes('violet') || t.includes('purple')) {
+            primary = '#7c3aed';
+            secondary = '#ec4899';
+        } else if (t.includes('dark')) {
+            primary = '#6366f1';
+            secondary = '#8b5cf6';
+        } else {
+            // Suffix-less 'theme31' or custom primary
+            if (customPrimary && customPrimary !== '#af0a13' && customPrimary !== '#9b0000') {
+                primary = customPrimary;
+            }
+            if (customSecondary && customSecondary !== '#9b0000' && customSecondary !== '#af0a13') {
+                secondary = customSecondary;
+            } else {
+                // Harmonic pairing for custom primary
+                if (primary === '#10b981') secondary = '#06b6d4';
+                else if (primary === '#f59e0b') secondary = '#f97316';
+                else if (primary === '#f43f5e') secondary = '#ec4899';
+                else if (primary === '#06b6d4') secondary = '#3b82f6';
+                else if (primary === '#f97316') secondary = '#f59e0b';
+                else if (primary === '#7c3aed') secondary = '#ec4899';
+                else if (primary === '#0f172a' || primary === '#1e1b4b') secondary = '#6366f1';
+                else secondary = '#a855f7';
+            }
         }
-        if (!themeName) return '#a855f7';
-        const t = themeName.toLowerCase();
-        if (t.includes('emerald') || t.includes('green')) return '#06b6d4';
-        if (t.includes('amber') || t.includes('gold')) return '#ef4444';
-        if (t.includes('rose') || t.includes('red')) return '#ec4899';
-        if (t.includes('cyan') || t.includes('sky')) return '#3b82f6';
-        if (t.includes('sunset') || t.includes('orange')) return '#fbbf24';
-        if (t.includes('dark')) return '#6366f1';
-        return '#a855f7';
+
+        return { primary, secondary };
     };
 
     let tc = config?.theme_colors || {};
@@ -197,8 +214,9 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
         }
     }
 
-    const primaryColor = getPrimaryColor(config?.theme, tc.primary || config?.theme_colors?.primary || config?.primary_color);
-    const secondaryGlow = getSecondaryGlow(config?.theme, tc.secondary || config?.theme_colors?.secondary || config?.secondary_color, primaryColor);
+    const explicitPrimary = tc.theme31_primary || tc.primary_color || tc.primary || config?.primary_color;
+    const explicitSecondary = tc.theme31_secondary || tc.secondary_color || tc.secondary;
+    const { primary: primaryColor, secondary: secondaryGlow } = getTheme31Colors(config?.theme, explicitPrimary, explicitSecondary);
 
     // Custom background images
     const bgImageLight = tc.theme31_bg_light || tc.theme30_bg_light || tc.theme28_bg_light || tc.bg_image_light || tc.bg_light || '';
@@ -711,9 +729,9 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
 
     return (
         <div 
-            className="theme31-root min-h-screen relative font-sans transition-colors duration-300"
+            className="theme31-root min-h-screen relative font-sans transition-colors duration-500"
             style={{ 
-                backgroundColor: hasBgImage ? 'transparent' : (isDark ? '#05070e' : '#f8fafc'),
+                backgroundColor: hasBgImage ? 'transparent' : (isDark ? '#05070e' : '#ffffff'),
                 color: isDark ? '#f8fafc' : '#0f172a'
             }}
             dir={isAr ? 'rtl' : 'ltr'}
@@ -757,15 +775,46 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                 }
             `}} />
 
+            {/* Light Mode: Pure White Canvas imbued with Theme Color Spirit */}
+            {!isDark && !hasBgImage && (
+                <div 
+                    className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-700"
+                    style={{
+                        background: `
+                            radial-gradient(110% 70% at 50% 0%, ${primaryColor}0d 0%, #ffffff 65%),
+                            radial-gradient(80% 50% at 95% 25%, ${secondaryGlow}08 0%, transparent 60%),
+                            radial-gradient(80% 50% at 5% 65%, ${primaryColor}08 0%, transparent 60%),
+                            radial-gradient(90% 60% at 50% 100%, ${secondaryGlow}06 0%, transparent 70%)
+                        `
+                    }}
+                />
+            )}
+
             {/* Ambient Aurora Glow Backdrop Layer */}
             <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
                 <div 
-                    className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[600px] sm:w-[800px] h-[500px] rounded-full blur-[140px] opacity-35 dark:opacity-25 transition-all duration-1000"
-                    style={{ background: `radial-gradient(circle, ${primaryColor} 0%, ${secondaryGlow} 50%, transparent 80%)` }}
+                    className="absolute -top-[18%] left-1/2 -translate-x-1/2 w-[650px] sm:w-[900px] h-[550px] rounded-full blur-[140px] pointer-events-none transition-all duration-1000"
+                    style={{ 
+                        background: isDark 
+                            ? `radial-gradient(circle, ${primaryColor}40 0%, ${secondaryGlow}25 50%, transparent 80%)`
+                            : `radial-gradient(circle, ${primaryColor}22 0%, ${secondaryGlow}14 45%, transparent 75%)` 
+                    }}
                 />
                 <div 
-                    className="absolute top-[40%] -right-[10%] w-[400px] h-[400px] rounded-full blur-[160px] opacity-20 dark:opacity-15 transition-all duration-1000"
-                    style={{ background: secondaryGlow }}
+                    className="absolute top-[35%] -right-[10%] w-[450px] h-[450px] rounded-full blur-[150px] pointer-events-none transition-all duration-1000"
+                    style={{ 
+                        background: isDark 
+                            ? `${secondaryGlow}22` 
+                            : `${primaryColor}14` 
+                    }}
+                />
+                <div 
+                    className="absolute top-[70%] -left-[10%] w-[500px] h-[500px] rounded-full blur-[160px] pointer-events-none transition-all duration-1000"
+                    style={{ 
+                        background: isDark 
+                            ? `${primaryColor}1c` 
+                            : `${secondaryGlow}10` 
+                    }}
                 />
             </div>
 
@@ -779,7 +828,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                     <div 
                         className="fixed inset-0 pointer-events-none z-0 backdrop-blur-[3px]"
                         style={{ 
-                            backgroundColor: isDark ? 'rgba(5, 7, 14, 0.85)' : 'rgba(248, 250, 252, 0.88)' 
+                            backgroundColor: isDark ? 'rgba(5, 7, 14, 0.85)' : 'rgba(255, 255, 255, 0.90)' 
                         }}
                     />
                 </>
