@@ -33,7 +33,7 @@ type UsaCheckoutModalProps = {
     currency?: string;
     orderChannel?: "whatsapp" | "website" | "both";
     onOrderSuccess?: () => void;
-    branches?: string[];
+    branches?: any[];
 };
 
 export default function UsaCheckoutModal({
@@ -67,7 +67,10 @@ export default function UsaCheckoutModal({
     const [address, setAddress] = useState("");
     const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
     const [zones, setZones] = useState<DeliveryZone[]>([]);
-    const [selectedBranch, setSelectedBranch] = useState<string>(propBranches[0] || "");
+    const [selectedBranch, setSelectedBranch] = useState<string>(() => {
+        const first = propBranches[0];
+        return typeof first === 'string' ? first : (first?.name || first?.name_ar || "");
+    });
 
     // Order type visibility
     const [pickupEnabled, setPickupEnabled] = useState(true);
@@ -438,9 +441,10 @@ export default function UsaCheckoutModal({
                                             onChange={(e) => setSelectedBranch(e.target.value)}
                                             className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-100 focus:outline-none focus:border-rose-500 text-sm"
                                         >
-                                            {propBranches.map((b, i) => (
-                                                <option key={i} value={b}>{b}</option>
-                                            ))}
+                                            {propBranches.map((b, i) => {
+                                                const bName = typeof b === 'string' ? b : (b?.name || b?.name_ar || '');
+                                                return <option key={i} value={bName}>{bName}</option>;
+                                            })}
                                         </select>
                                     </div>
                                 )}

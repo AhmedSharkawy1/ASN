@@ -66,7 +66,7 @@ export type RestaurantConfig = {
   };
   currency?: string;
   branches_enabled?: boolean;
-  branches?: string[];
+  branches?: any[];
   pickup_enabled?: boolean;
   delivery_enabled?: boolean;
   snapchat_url?: string;

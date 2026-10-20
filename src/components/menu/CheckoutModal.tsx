@@ -49,7 +49,7 @@ type CheckoutModalProps = {
     language: string;
     orderChannel?: "whatsapp" | "website" | "both";
     onOrderSuccess?: () => void;
-    branches?: string[];
+    branches?: any[];
     serviceType?: 'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
 };
 
@@ -140,7 +140,7 @@ export default function CheckoutModal({
     const [codeError, setCodeError] = useState("");
 
     // Branch state
-    const [localBranches, setLocalBranches] = useState<string[]>(propBranches);
+    const [localBranches, setLocalBranches] = useState<any[]>(propBranches);
     const [selectedBranch, setSelectedBranch] = useState("");
 
     // Sync propBranches with local state

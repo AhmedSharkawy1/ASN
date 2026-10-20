@@ -279,7 +279,10 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
     const [orderType, setOrderType] = useState<'delivery' | 'takeaway' | 'dinein'>('delivery');
     const [tableNumber, setTableNumber] = useState('');
     const [cartNotes, setCartNotes] = useState('');
-    const [selectedBranch, setSelectedBranch] = useState(config?.branches?.[0] || '');
+    const [selectedBranch, setSelectedBranch] = useState(() => {
+        const first = config?.branches?.[0];
+        return typeof first === 'string' ? first : (first?.name || first?.name_ar || '');
+    });
 
     // State: Customer Checkout Details (بيانات إتمام الطلب المباشر من السلة)
     const [customerName, setCustomerName] = useState('');
@@ -2423,18 +2426,21 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                                             color: textMain
                                                         }}
                                                     >
-                                                        {config.branches.map((b: string, i: number) => (
-                                                            <option 
-                                                                key={i} 
-                                                                value={b}
-                                                                style={{ 
-                                                                    backgroundColor: isDark ? '#18181b' : '#ffffff', 
-                                                                    color: isDark ? '#ffffff' : '#0f172a' 
-                                                                }}
-                                                            >
-                                                                {isAr ? `فرع: ${b}` : `Branch: ${b}`}
-                                                            </option>
-                                                        ))}
+                                                        {config.branches.map((b: any, i: number) => {
+                                                            const bName = typeof b === 'string' ? b : (b?.name || b?.name_ar || '');
+                                                            return (
+                                                                <option 
+                                                                    key={i} 
+                                                                    value={bName}
+                                                                    style={{ 
+                                                                        backgroundColor: isDark ? '#18181b' : '#ffffff', 
+                                                                        color: isDark ? '#ffffff' : '#0f172a' 
+                                                                    }}
+                                                                >
+                                                                    {isAr ? `فرع: ${bName}` : `Branch: ${bName}`}
+                                                                </option>
+                                                            );
+                                                        })}
                                                     </select>
                                                 )}
 
@@ -3044,11 +3050,20 @@ export default function Theme29Menu({ config, categories = [], restaurantId, lan
                                 <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border text-xs" style={{ borderColor: borderColor }}>
                                     <span className="font-bold block">{isAr ? 'فروعنا:' : 'Our Branches:'}</span>
                                     <div className="flex flex-wrap gap-1.5 mt-1">
-                                        {config.branches.map((b: string, i: number) => (
-                                            <span key={i} className="px-2 py-1 rounded-lg bg-white dark:bg-black border font-medium text-[11px]" style={{ borderColor: borderColor }}>
-                                                🏢 {b}
-                                            </span>
-                                        ))}
+                                        {config.branches.map((b: any, i: number) => {
+                                            const bName = typeof b === 'string' ? b : (b?.name || b?.name_ar || '');
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    type="button"
+                                                    onClick={() => window.dispatchEvent(new CustomEvent('openBranchesModal'))}
+                                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white dark:bg-black border font-bold text-[11px] hover:border-blue-500 transition-colors cursor-pointer"
+                                                    style={{ borderColor: borderColor }}
+                                                >
+                                                    🏢 <span>{bName}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}

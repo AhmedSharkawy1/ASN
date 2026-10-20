@@ -106,7 +106,7 @@ export default function UaeCheckoutModal({
 
     useEffect(() => {
         if (branches.length > 0 && !selectedBranch) {
-            setSelectedBranch(branches[0].name_ar || branches[0].name || '');
+            setSelectedBranch(typeof branches[0] === 'string' ? branches[0] : (branches[0].name_ar || branches[0].name || ''));
         }
     }, [branches, selectedBranch]);
 
@@ -387,11 +387,14 @@ export default function UaeCheckoutModal({
                                             onChange={e => setSelectedBranch(e.target.value)}
                                             className="w-full px-4 py-3 rounded-2xl bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:border-amber-500 text-sm"
                                         >
-                                            {branches.map((b, i) => (
-                                                <option key={i} value={b.name_ar || b.name}>
-                                                    {b.name_ar || b.name}
-                                                </option>
-                                            ))}
+                                            {branches.map((b, i) => {
+                                                const bName = typeof b === 'string' ? b : (b.name_ar || b.name || '');
+                                                return (
+                                                    <option key={i} value={bName}>
+                                                        {bName}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
                                 )

@@ -111,7 +111,8 @@ export default function UsaDualCheckoutModal({
 
     useEffect(() => {
         if (branches.length > 0 && !selectedBranch) {
-            setSelectedBranch(branches[0].name_en || branches[0].name_ar || branches[0].name || '');
+            const first = branches[0];
+            setSelectedBranch(typeof first === 'string' ? first : (first.name_en || first.name_ar || first.name || ''));
         }
     }, [branches, selectedBranch]);
 
@@ -408,11 +409,14 @@ export default function UsaDualCheckoutModal({
                                             onChange={e => setSelectedBranch(e.target.value)}
                                             className="w-full px-4 py-3 rounded-2xl bg-slate-800/60 border border-slate-700 text-slate-100 focus:outline-none focus:border-rose-500 text-sm"
                                         >
-                                            {branches.map((b, i) => (
-                                                <option key={i} value={isAr ? (b.name_ar || b.name_en || b.name) : (b.name_en || b.name_ar || b.name)}>
-                                                    {isAr ? (b.name_ar || b.name_en || b.name) : (b.name_en || b.name_ar || b.name)}
-                                                </option>
-                                            ))}
+                                            {branches.map((b, i) => {
+                                                const bName = typeof b === 'string' ? b : (isAr ? (b.name_ar || b.name_en || b.name) : (b.name_en || b.name_ar || b.name));
+                                                return (
+                                                    <option key={i} value={bName}>
+                                                        {bName}
+                                                    </option>
+                                                );
+                                            })}
                                         </select>
                                     </div>
                                 )

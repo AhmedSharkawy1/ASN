@@ -52,6 +52,8 @@ const ThemeUsaDualMenu = dynamic(() => import("@/components/menu/ThemeUsaDualMen
 const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
 const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
 const ThemePromotionalPopup = dynamic(() => import("@/components/menu/ThemePromotionalPopup"));
+const BranchesModal = dynamic(() => import("@/components/menu/BranchesModal"));
+const BranchesFloatingButton = dynamic(() => import("@/components/menu/BranchesFloatingButton"));
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
 const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
@@ -229,6 +231,7 @@ export default function MenuClient({
   // Global Delivery Modal (for themes without built-in call menu)
   const [globalDeliveryNumbers, setGlobalDeliveryNumbers] = useState<{label?: string, number: string}[]>([]);
   const [showGlobalDeliveryModal, setShowGlobalDeliveryModal] = useState(false);
+  const [showBranchesModal, setShowBranchesModal] = useState(false);
 
   useEffect(() => {
     const handleOpenModal = (e: any) => {

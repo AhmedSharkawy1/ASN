@@ -6,10 +6,11 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { uploadImage } from "@/lib/uploadImage";
 import { posDb } from "@/lib/pos-db";
-import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle, Send, Moon, Sun, Monitor } from "lucide-react";
+import { Settings, Save, MapPin, Phone, MessageCircle, Instagram, Facebook, Plus, Trash2, Upload, Image as ImageIcon, Download, RefreshCw, AlertTriangle, Send, Moon, Sun, Monitor, ChevronDown, ChevronUp, ExternalLink, Globe, Building2 } from "lucide-react";
 import { FaTiktok, FaTelegramPlane, FaSnapchatGhost, FaYoutube, FaWhatsapp } from "react-icons/fa";
 import { toast } from "sonner";
 import WorkingHoursSettings from "@/components/dashboard/WorkingHoursSettings";
+import { normalizeBranches, BranchItem } from "@/lib/branchUtils";
 
 export type PhoneEntry = { label: string; number: string };
 
@@ -72,7 +73,7 @@ type RestaurantProfile = {
     waiter_call_enabled?: boolean;
     currency?: string;
     branches_enabled?: boolean;
-    branches?: string[];
+    branches?: BranchItem[];
     pickup_enabled?: boolean;
     delivery_enabled?: boolean;
     dine_in_enabled?: boolean;
@@ -91,7 +92,8 @@ export default function SettingsPage() {
     const [successMessage, setSuccessMessage] = useState("");
     const [phoneNumbers, setPhoneNumbers] = useState<PhoneEntry[]>([]);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethodEntry[]>([]);
-    const [branches, setBranches] = useState<string[]>([]);
+    const [branches, setBranches] = useState<BranchItem[]>([]);
+    const [expandedBranchIdx, setExpandedBranchIdx] = useState<number | null>(0);
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [uploadingReceiptLogo, setUploadingReceiptLogo] = useState(false);
     const [uploadingCover, setUploadingCover] = useState(false);
@@ -162,7 +164,7 @@ export default function SettingsPage() {
                 setPhoneNumbers(finalData.phone_numbers || []);
                 setPaymentMethods(finalData.payment_methods || []);
                 setCoverImages(finalData.cover_images || []);
-                setBranches(finalData.branches || []);
+                setBranches(normalizeBranches(finalData.branches));
             }
             setLoading(false);
         };
@@ -198,6 +200,22 @@ export default function SettingsPage() {
                 theme28_service_type: currentServiceType,
                 theme30_service_type: currentServiceType,
             };
+
+            const formattedBranches = branches
+                .filter(b => b.name && b.name.trim())
+                .map(b => ({
+                    id: b.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)),
+                    name: b.name.trim(),
+                    address: b.address?.trim() || '',
+                    map_link: b.map_link?.trim() || '',
+                    phone: b.phone?.trim() || '',
+                    phone_secondary: b.phone_secondary?.trim() || '',
+                    whatsapp_number: b.whatsapp_number?.trim() || '',
+                    facebook_url: b.facebook_url?.trim() || '',
+                    instagram_url: b.instagram_url?.trim() || '',
+                    tiktok_url: b.tiktok_url?.trim() || '',
+                    snapchat_url: b.snapchat_url?.trim() || '',
+                }));
 
             // First attempt with all new columns
             let { error } = await supabase
@@ -241,7 +259,7 @@ export default function SettingsPage() {
                     waiter_call_enabled: profile.waiter_call_enabled || false,
                     currency: profile.currency || '',
                     branches_enabled: profile.branches_enabled || false,
-                    branches: branches.filter(b => b.trim()),
+                    branches: formattedBranches,
                     pickup_enabled: profile.pickup_enabled ?? true,
                     delivery_enabled: profile.delivery_enabled ?? true,
                     snapchat_url: profile.snapchat_url || '',
@@ -285,7 +303,7 @@ export default function SettingsPage() {
                         waiter_call_enabled: profile.waiter_call_enabled || false,
                         currency: profile.currency || '',
                         branches_enabled: profile.branches_enabled || false,
-                        branches: branches.filter(b => b.trim()),
+                        branches: formattedBranches,
                         pickup_enabled: profile.pickup_enabled ?? true,
                         delivery_enabled: profile.delivery_enabled ?? true,
                         snapchat_url: profile.snapchat_url || '',
@@ -400,10 +418,36 @@ export default function SettingsPage() {
         setPaymentMethods(paymentMethods.map((p, i) => i === idx ? { ...p, [field]: val } : p));
     };
 
-    const addBranch = () => setBranches([...branches, ""]);
-    const removeBranch = (idx: number) => setBranches(branches.filter((_, i) => i !== idx));
-    const updateBranch = (idx: number, val: string) => {
-        setBranches(branches.map((b, i) => i === idx ? val : b));
+    const addBranch = () => {
+        const newBranch: BranchItem = {
+            id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+            name: '',
+            address: '',
+            map_link: '',
+            phone: '',
+            phone_secondary: '',
+            whatsapp_number: '',
+            facebook_url: '',
+            instagram_url: '',
+            tiktok_url: '',
+            snapchat_url: '',
+        };
+        setBranches([...branches, newBranch]);
+        setExpandedBranchIdx(branches.length);
+    };
+    const removeBranch = (idx: number) => {
+        setBranches(branches.filter((_, i) => i !== idx));
+        if (expandedBranchIdx === idx) {
+            setExpandedBranchIdx(null);
+        } else if (expandedBranchIdx !== null && expandedBranchIdx > idx) {
+            setExpandedBranchIdx(expandedBranchIdx - 1);
+        }
+    };
+    const updateBranch = (idx: number, field: keyof BranchItem, val: string) => {
+        setBranches(branches.map((b, i) => i === idx ? { ...b, [field]: val } : b));
+    };
+    const toggleExpandBranch = (idx: number) => {
+        setExpandedBranchIdx(expandedBranchIdx === idx ? null : idx);
     };
 
     if (loading) return <div className="p-8 text-center text-silver animate-pulse">{language === "ar" ? "جاري التحميل..." : "Loading..."}</div>;
@@ -855,7 +899,7 @@ export default function SettingsPage() {
                     <h2 className="text-xl font-bold mb-6 flex items-center justify-between">
                         <span className="flex items-center gap-2">
                             <span className="text-2xl">🏢</span>
-                            {language === "ar" ? "الفروع" : "Branches"}
+                            {language === "ar" ? "الفروع والمواقع ووسائل التواصل" : "Branches, Locations & Contact Methods"}
                         </span>
                         <label className="relative inline-flex items-center cursor-pointer">
                             <input type="checkbox" className="sr-only peer" checked={profile.branches_enabled || false} onChange={e => setProfile({ ...profile, branches_enabled: e.target.checked })} />
@@ -864,38 +908,300 @@ export default function SettingsPage() {
                     </h2>
                     {profile.branches_enabled && (
                         <>
-                            <p className="text-sm text-silver mb-4">
-                                {language === "ar"
-                                    ? "أضف أسماء الفروع ليختار العميل الفرع المطلوب أثناء الطلب. اسم الفرع سيظهر في رسائل الواتساب والتليجرام."
-                                    : "Add branch names so customers can select their preferred branch during checkout. The branch name will appear in WhatsApp and Telegram messages."}
-                            </p>
-                            <div className="flex items-center justify-end mb-4">
+                            <div className="bg-blue-50/70 dark:bg-blue-900/10 border border-blue-200/60 dark:border-blue-800/40 rounded-xl p-4 mb-5">
+                                <p className="text-sm font-semibold text-blue-900 dark:text-blue-300 leading-relaxed">
+                                    {language === "ar"
+                                        ? "📍 يمكنك إضافة فروع متعددة للمطعم بنفس بيانات المنيو والرابط. لكل فرع يمكنك تخصيص: الموقع وخرائط جوجل، العنوان، أرقام الهاتف والواتساب، وصفحات السوشيال ميديا الخاصة به."
+                                        : "📍 Add multiple branches for your restaurant under the same menu link. For each branch, configure its custom: Google Maps location, address, phone & WhatsApp numbers, and dedicated social media pages."}
+                                </p>
+                            </div>
+                            <div className="flex items-center justify-between mb-4">
+                                <span className="text-xs font-bold text-silver">
+                                    {language === "ar" ? `عدد الفروع: ${branches.length}` : `Total branches: ${branches.length}`}
+                                </span>
                                 <button type="button" onClick={addBranch}
-                                    className="flex items-center gap-1 px-3 py-2 bg-blue/10 text-blue font-bold text-sm rounded-xl hover:bg-blue/20 transition-colors">
+                                    className="flex items-center gap-1.5 px-4 py-2.5 bg-blue text-white font-bold text-sm rounded-xl hover:bg-blue/90 shadow-md shadow-blue/20 transition-all active:scale-95">
                                     <Plus className="w-4 h-4" />
-                                    {language === "ar" ? "إضافة فرع" : "Add Branch"}
+                                    {language === "ar" ? "إضافة فرع جديد" : "Add New Branch"}
                                 </button>
                             </div>
                             {branches.length === 0 ? (
-                                <p className="text-base text-silver text-center py-4">{language === "ar" ? "لم تتم إضافة فروع بعد." : "No branches added yet."}</p>
+                                <div className="text-center py-10 border border-dashed border-glass-border rounded-2xl bg-slate-50/50 dark:bg-black/10">
+                                    <Building2 className="w-10 h-10 text-silver mx-auto mb-2 opacity-50" />
+                                    <p className="text-base text-silver font-bold">{language === "ar" ? "لم تتم إضافة أي فروع بعد." : "No branches added yet."}</p>
+                                    <button type="button" onClick={addBranch} className="mt-3 text-sm font-bold text-blue hover:underline">
+                                        {language === "ar" ? "+ اضغط هنا لإضافة الفرع الأول" : "+ Click here to add your first branch"}
+                                    </button>
+                                </div>
                             ) : (
-                                <div className="space-y-3">
-                                    {branches.map((b, idx) => (
-                                        <div key={idx} className="flex items-center gap-3 bg-slate-50 dark:bg-black/20 p-3 rounded-xl border border-glass-border">
-                                            <span className="text-lg">🏢</span>
-                                            <input type="text" value={b} onChange={e => updateBranch(idx, e.target.value)} placeholder={language === "ar" ? `اسم الفرع ${idx + 1} (مثال: فرع المعادي)` : `Branch ${idx + 1} name (e.g. Maadi Branch)`}
-                                                className="flex-1 px-3 py-2 rounded-lg bg-white dark:bg-black/30 border border-glass-border focus:border-blue outline-none text-base font-bold" />
-                                            <button type="button" onClick={() => removeBranch(idx)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                <div className="space-y-4">
+                                    {branches.map((b, idx) => {
+                                        const isExpanded = expandedBranchIdx === idx;
+                                        const hasMap = Boolean(b.map_link || b.address);
+                                        const hasPhone = Boolean(b.phone || b.whatsapp_number);
+                                        const hasSocial = Boolean(b.facebook_url || b.instagram_url || b.tiktok_url || b.snapchat_url);
+
+                                        return (
+                                            <div key={b.id || idx} className="rounded-2xl border border-glass-border bg-slate-50 dark:bg-black/20 overflow-hidden transition-all shadow-xs">
+                                                {/* Branch Accordion Header */}
+                                                <div
+                                                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-100/60 dark:hover:bg-white/5 transition-colors gap-3"
+                                                    onClick={() => toggleExpandBranch(idx)}
+                                                >
+                                                    <div className="flex items-center gap-3 min-w-0">
+                                                        <span className="w-7 h-7 rounded-lg bg-blue/10 text-blue font-black text-xs flex items-center justify-center shrink-0">
+                                                            {idx + 1}
+                                                        </span>
+                                                        <div className="min-w-0">
+                                                            <h3 className="text-base font-extrabold text-foreground truncate">
+                                                                {b.name || (language === "ar" ? `فرع جديد #${idx + 1}` : `New Branch #${idx + 1}`)}
+                                                            </h3>
+                                                            {b.address && (
+                                                                <p className="text-xs text-silver truncate max-w-xs">{b.address}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-2 shrink-0">
+                                                        {/* Feature badges */}
+                                                        <div className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold">
+                                                            {hasMap && (
+                                                                <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                                                                    📍 {language === "ar" ? "الموقع" : "Location"}
+                                                                </span>
+                                                            )}
+                                                            {hasPhone && (
+                                                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                                                    📞 {language === "ar" ? "اتصال" : "Contact"}
+                                                                </span>
+                                                            )}
+                                                            {hasSocial && (
+                                                                <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                                                    🌐 {language === "ar" ? "سوشيال" : "Social"}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.stopPropagation(); removeBranch(idx); }}
+                                                            className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                                                            title={language === "ar" ? "حذف الفرع" : "Delete branch"}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+
+                                                        <div className="p-1.5 text-silver">
+                                                            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Branch Form Details (Expanded) */}
+                                                {isExpanded && (
+                                                    <div className="p-5 pt-3 border-t border-glass-border space-y-6 bg-white/50 dark:bg-black/30">
+                                                        {/* Basic Info */}
+                                                        <div>
+                                                            <h4 className="text-xs font-black uppercase tracking-wider text-blue mb-3 flex items-center gap-2">
+                                                                <Building2 className="w-4 h-4" />
+                                                                {language === "ar" ? "البيانات الأساسية للفرع" : "Branch Basic Info"}
+                                                            </h4>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
+                                                                        {language === "ar" ? "اسم الفرع *" : "Branch Name *"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={b.name}
+                                                                        onChange={e => updateBranch(idx, 'name', e.target.value)}
+                                                                        placeholder={language === "ar" ? "مثال: فرع المعادي" : "e.g. Maadi Branch"}
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
+                                                                        {language === "ar" ? "العنوان النصي بالتفصيل" : "Detailed Address"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="text"
+                                                                        value={b.address || ''}
+                                                                        onChange={e => updateBranch(idx, 'address', e.target.value)}
+                                                                        placeholder={language === "ar" ? "مثال: شارع النصر، المعادي، بجوار كذا" : "e.g. 15 El-Nasr St, Maadi"}
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-semibold"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Location & Google Maps */}
+                                                        <div>
+                                                            <h4 className="text-xs font-black uppercase tracking-wider text-rose-500 mb-3 flex items-center gap-2">
+                                                                <MapPin className="w-4 h-4" />
+                                                                {language === "ar" ? "الموقع على خرائط جوجل (Google Maps)" : "Google Maps Location"}
+                                                            </h4>
+                                                            <div>
+                                                                <label className="text-xs font-bold text-silver block mb-1.5">
+                                                                    {language === "ar" ? "رابط اللوكيشن من خرائط جوجل" : "Google Maps Share URL"}
+                                                                </label>
+                                                                <div className="flex gap-2">
+                                                                    <input
+                                                                        type="url"
+                                                                        value={b.map_link || ''}
+                                                                        onChange={e => updateBranch(idx, 'map_link', e.target.value)}
+                                                                        placeholder="https://maps.app.goo.gl/... أو https://goo.gl/maps/..."
+                                                                        dir="ltr"
+                                                                        className="flex-1 px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-semibold"
+                                                                    />
+                                                                    {b.map_link && (
+                                                                        <a
+                                                                            href={b.map_link}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="px-3 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center gap-1.5 transition-colors shrink-0"
+                                                                        >
+                                                                            <ExternalLink className="w-3.5 h-3.5" />
+                                                                            <span>{language === "ar" ? "تجربة الرابط" : "Test Link"}</span>
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[11px] text-silver mt-1 px-1">
+                                                                    {language === "ar"
+                                                                        ? "افتح تطبيق Google Maps على هاتفك أو الكمبيوتر، اختر موقع الفرع ثم اضغط 'مشاركة' وانسخ الرابط هنا."
+                                                                        : "Open Google Maps, select your branch location, click 'Share' and paste the link here."}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Phone & WhatsApp Contact */}
+                                                        <div>
+                                                            <h4 className="text-xs font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-3 flex items-center gap-2">
+                                                                <Phone className="w-4 h-4" />
+                                                                {language === "ar" ? "أرقام التواصل والطلب للفرع" : "Branch Contact Numbers"}
+                                                            </h4>
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
+                                                                        {language === "ar" ? "رقم هاتف الفرع (اتصال)" : "Primary Phone"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="tel"
+                                                                        value={b.phone || ''}
+                                                                        onChange={e => updateBranch(idx, 'phone', e.target.value)}
+                                                                        placeholder="01012345678"
+                                                                        dir="ltr"
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
+                                                                        {language === "ar" ? "رقم إضافي (اختياري)" : "Secondary Phone"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="tel"
+                                                                        value={b.phone_secondary || ''}
+                                                                        onChange={e => updateBranch(idx, 'phone_secondary', e.target.value)}
+                                                                        placeholder="01112345678"
+                                                                        dir="ltr"
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5">
+                                                                        {language === "ar" ? "رقم واتساب الفرع" : "Branch WhatsApp"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="tel"
+                                                                        value={b.whatsapp_number || ''}
+                                                                        onChange={e => updateBranch(idx, 'whatsapp_number', e.target.value)}
+                                                                        placeholder="201012345678"
+                                                                        dir="ltr"
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-bold tabular-nums"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Social Media Links for this branch */}
+                                                        <div>
+                                                            <h4 className="text-xs font-black uppercase tracking-wider text-purple-600 dark:text-purple-400 mb-2 flex items-center gap-2">
+                                                                <Globe className="w-4 h-4" />
+                                                                {language === "ar" ? "وسائل التواصل الاجتماعي للفرع (اختياري)" : "Branch Social Media (Optional)"}
+                                                            </h4>
+                                                            <p className="text-[11px] text-silver mb-3">
+                                                                {language === "ar"
+                                                                    ? "إذا كان للفرع صفحات تواصل مستقلة، أضف روابطها هنا. الحقول الفارغة ستعتمد تلقائياً على روابط المطعم العامة."
+                                                                    : "If this branch has its own social accounts, enter them here. Empty fields will fall back to the restaurant's general links."}
+                                                            </p>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5 flex items-center gap-1.5">
+                                                                        <Facebook className="w-3.5 h-3.5 text-blue-600" />
+                                                                        {language === "ar" ? "صفحة الفيسبوك" : "Facebook URL"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="url"
+                                                                        value={b.facebook_url || ''}
+                                                                        onChange={e => updateBranch(idx, 'facebook_url', e.target.value)}
+                                                                        placeholder="https://facebook.com/..."
+                                                                        dir="ltr"
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-medium"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5 flex items-center gap-1.5">
+                                                                        <Instagram className="w-3.5 h-3.5 text-pink-500" />
+                                                                        {language === "ar" ? "حساب انستجرام" : "Instagram URL"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="url"
+                                                                        value={b.instagram_url || ''}
+                                                                        onChange={e => updateBranch(idx, 'instagram_url', e.target.value)}
+                                                                        placeholder="https://instagram.com/..."
+                                                                        dir="ltr"
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-medium"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5 flex items-center gap-1.5">
+                                                                        <FaTiktok className="w-3.5 h-3.5" />
+                                                                        {language === "ar" ? "حساب تيك توك" : "TikTok URL"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="url"
+                                                                        value={b.tiktok_url || ''}
+                                                                        onChange={e => updateBranch(idx, 'tiktok_url', e.target.value)}
+                                                                        placeholder="https://tiktok.com/@..."
+                                                                        dir="ltr"
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-medium"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="text-xs font-bold text-silver block mb-1.5 flex items-center gap-1.5">
+                                                                        <FaSnapchatGhost className="w-3.5 h-3.5 text-amber-500" />
+                                                                        {language === "ar" ? "حساب سناب شات" : "Snapchat URL"}
+                                                                    </label>
+                                                                    <input
+                                                                        type="url"
+                                                                        value={b.snapchat_url || ''}
+                                                                        onChange={e => updateBranch(idx, 'snapchat_url', e.target.value)}
+                                                                        placeholder="https://snapchat.com/add/..."
+                                                                        dir="ltr"
+                                                                        className="w-full px-4 py-2.5 rounded-xl bg-white dark:bg-black/40 border border-glass-border focus:border-blue outline-none text-sm font-medium"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </>
                     )}
                 </div>
-
 
                 {/* Multi-Phone Numbers */}
                 <div className="bg-white dark:bg-glass-dark border border-glass-border rounded-2xl p-6 sm:p-8">
