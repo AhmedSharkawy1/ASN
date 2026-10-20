@@ -147,6 +147,11 @@ export default function CheckoutModal({
     useEffect(() => {
         if (propBranches && propBranches.length > 0) {
             setLocalBranches(propBranches);
+            setSelectedBranch(prev => {
+                if (prev) return prev;
+                const first = propBranches[0];
+                return typeof first === 'string' ? first : (first?.name || first?.name_ar || first?.name_en || '');
+            });
         }
     }, [propBranches]);
 
@@ -166,6 +171,11 @@ export default function CheckoutModal({
                         // Keep prop branches
                     } else if (data.branches_enabled && Array.isArray(data.branches)) {
                         setLocalBranches(data.branches);
+                        setSelectedBranch(prev => {
+                            if (prev) return prev;
+                            const first = data.branches[0];
+                            return typeof first === 'string' ? first : (first?.name || first?.name_ar || first?.name_en || '');
+                        });
                     } else {
                         setLocalBranches([]);
                     }
@@ -768,7 +778,9 @@ export default function CheckoutModal({
                                         🏢 {isAr ? "اختر الفرع" : "Select Branch"} <span className="text-red-500">*</span>
                                     </label>
                                     <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto pr-1">
-                                        {localBranches.map((branchName, bIdx) => {
+                                        {localBranches.map((branch, bIdx) => {
+                                            const branchName = typeof branch === 'string' ? branch : (branch?.name || branch?.name_ar || branch?.name_en || '');
+                                            const branchAddress = typeof branch === 'object' ? branch?.address : '';
                                             const isSelected = selectedBranch === branchName;
                                             return (
                                                 <button
@@ -779,8 +791,13 @@ export default function CheckoutModal({
                                                         ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold'
                                                         : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 text-zinc-700 dark:text-zinc-300'}`}
                                                 >
-                                                    <span className="text-sm">{branchName}</span>
-                                                    {isSelected && <span className="text-emerald-500">✓</span>}
+                                                    <div className="flex flex-col text-start">
+                                                        <span className="text-sm">{branchName}</span>
+                                                        {branchAddress && (
+                                                            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">{branchAddress}</span>
+                                                        )}
+                                                    </div>
+                                                    {isSelected && <span className="text-emerald-500 font-bold">✓</span>}
                                                 </button>
                                             );
                                         })}

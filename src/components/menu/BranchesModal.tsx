@@ -52,7 +52,9 @@ export default function BranchesModal({
 
   const handleCopyAddress = (text: string) => {
     if (!text) return;
-    navigator.clipboard.writeText(text);
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    }
     setCopiedAddress(true);
     setTimeout(() => setCopiedAddress(false), 2000);
   };

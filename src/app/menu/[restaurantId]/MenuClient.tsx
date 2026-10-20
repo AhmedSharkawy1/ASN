@@ -52,8 +52,8 @@ const ThemeUsaDualMenu = dynamic(() => import("@/components/menu/ThemeUsaDualMen
 const VicinoLandingPage = dynamic(() => import("@/components/menu/VicinoLandingPage"));
 const CustomerLeadPopup = dynamic(() => import("@/components/menu/CustomerLeadPopup"));
 const ThemePromotionalPopup = dynamic(() => import("@/components/menu/ThemePromotionalPopup"));
-const BranchesModal = dynamic(() => import("@/components/menu/BranchesModal"));
-const BranchesFloatingButton = dynamic(() => import("@/components/menu/BranchesFloatingButton"));
+const BranchesModal = dynamic(() => import("@/components/menu/BranchesModal"), { ssr: false });
+const BranchesFloatingButton = dynamic(() => import("@/components/menu/BranchesFloatingButton"), { ssr: false });
 const Theme18RedMenu = dynamic(() => import("@/components/menu/Theme18RedMenu"));
 const Theme19RedMenu = dynamic(() => import("@/components/menu/Theme19RedMenu"));
 const Theme18CyanMenu = dynamic(() => import("@/components/menu/Theme18CyanMenu"));
@@ -745,6 +745,21 @@ export default function MenuClient({
           restaurantId={config?.id}
           isAr={language === 'ar'}
         />
+        {config?.branches_enabled && (
+          <>
+            <BranchesFloatingButton
+              config={config}
+              language={language}
+              onOpen={() => setShowBranchesModal(true)}
+            />
+            <BranchesModal
+              isOpen={showBranchesModal}
+              onClose={() => setShowBranchesModal(false)}
+              config={config}
+              language={language}
+            />
+          </>
+        )}
       </>
     );
   }
@@ -1567,6 +1582,21 @@ export default function MenuClient({
         restaurantId={config?.id}
         isAr={language === 'ar'}
       />
+      {config?.branches_enabled && (
+        <>
+          <BranchesFloatingButton
+            config={config}
+            language={language}
+            onOpen={() => setShowBranchesModal(true)}
+          />
+          <BranchesModal
+            isOpen={showBranchesModal}
+            onClose={() => setShowBranchesModal(false)}
+            config={config}
+            language={language}
+          />
+        </>
+      )}
     </main>
   );
 }
