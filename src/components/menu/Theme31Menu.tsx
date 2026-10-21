@@ -1443,15 +1443,15 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                             <div
                                                 key={item.id}
                                                 onClick={() => openItemDetails(item, catName(category), category.id)}
-                                                className="group relative cursor-pointer rounded-2xl sm:rounded-3xl bg-white/80 dark:bg-zinc-900/80 theme31-glass border border-slate-200/80 dark:border-white/10 p-2.5 sm:p-3.5 flex flex-col justify-between theme31-card-hover transition-all"
+                                                className="group relative cursor-pointer rounded-3xl overflow-hidden bg-white/90 dark:bg-zinc-900/90 theme31-glass border border-slate-200/80 dark:border-white/10 flex flex-col justify-between theme31-card-hover transition-all active:scale-[0.99] shadow-sm hover:shadow-md"
                                             >
-                                                {/* Top Image + Badges Container */}
-                                                <div className="relative w-full aspect-square sm:aspect-4/3 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 dark:bg-zinc-800 mb-2.5">
+                                                {/* Top Image + Badges Container (Flush edge-to-edge on top like Theme 26) */}
+                                                <div className="relative w-full aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-zinc-800 shrink-0">
                                                     {(item.image_url || item.image) ? (
                                                         <OptimizedMenuImage
                                                             src={item.image_url || item.image}
                                                             alt={itemName(item)}
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-3xl"
                                                             sizes="(max-width: 640px) 50vw, 300px"
                                                         />
                                                     ) : (
@@ -1473,18 +1473,18 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                     {/* Floating Badge (Discount / Popular / New) */}
                                                     <div className="absolute top-2 end-2 flex flex-col gap-1 z-10">
                                                         {hasDiscount && (
-                                                            <span className="px-2 py-0.5 rounded-full bg-rose-600/90 text-white text-[9px] font-black shadow-md backdrop-blur-xs">
+                                                            <span className="px-2.5 py-0.5 rounded-full bg-rose-600/95 text-white text-[9.5px] font-black shadow-md backdrop-blur-xs">
                                                                 %{discountPct} {isAr ? "خصم" : "OFF"}
                                                             </span>
                                                         )}
                                                         {item.is_popular && (
-                                                            <span className="px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-[9px] font-black shadow-md backdrop-blur-xs flex items-center gap-0.5">
+                                                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/95 text-white text-[9.5px] font-black shadow-md backdrop-blur-xs flex items-center gap-0.5">
                                                                 <Flame className="w-2.5 h-2.5" />
                                                                 <span>{isAr ? "مميز" : "Hot"}</span>
                                                             </span>
                                                         )}
                                                         {item.is_new && (
-                                                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[9px] font-black shadow-md backdrop-blur-xs">
+                                                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/95 text-white text-[9.5px] font-black shadow-md backdrop-blur-xs">
                                                                 {isAr ? "جديد" : "NEW"}
                                                             </span>
                                                         )}
@@ -1499,228 +1499,148 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                                     )}
                                                 </div>
 
-                                                {/* Item Details */}
-                                                <div className="space-y-1 flex-1">
-                                                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-zinc-100 line-clamp-1 theme31-title-hover transition-colors">
-                                                        {itemName(item)}
-                                                    </h3>
-                                                    {itemDesc(item) && (
-                                                        <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-zinc-400 line-clamp-2 leading-relaxed">
-                                                            {itemDesc(item)}
-                                                        </p>
-                                                    )}
-                                                </div>
+                                                {/* Content Area (Like Theme 26) */}
+                                                <div className="p-3 sm:p-3.5 flex flex-col flex-1 justify-between">
+                                                    <div>
+                                                        <h3 className="font-bold text-sm sm:text-base leading-tight mb-1 text-slate-900 dark:text-zinc-100 line-clamp-2 theme31-title-hover transition-colors">
+                                                            {itemName(item)}
+                                                        </h3>
+                                                        {itemDesc(item) && (
+                                                            <p className="text-[10.5px] sm:text-[11px] text-slate-500 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-2 opacity-75">
+                                                                {itemDesc(item)}
+                                                            </p>
+                                                        )}
+                                                    </div>
 
-                                                {/* Sizes Grid (If multiple sizes exist) OR Single Price & Add Button */}
-                                                {hasMultipleSizes ? (
-                                                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 space-y-1.5" onClick={(e) => e.stopPropagation()}>
-                                                        <div className={`grid grid-cols-2 gap-1 sm:gap-1.5 w-full ${item.prices.length > 4 ? 'max-h-[160px] overflow-y-auto no-scrollbar' : ''}`}>
-                                                            {item.prices.map((price, pIdx) => {
-                                                                const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
-                                                                const oldPrice = item.old_prices?.[pIdx];
-                                                                const hasDisc = Boolean(oldPrice && oldPrice > price);
-                                                                const sizeDiscountPercent = hasDisc && oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
-                                                                const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
-                                                                const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
+                                                    {/* Sizes Grid (All sizes completely visible and clear - Theme 26 style) */}
+                                                    {hasMultipleSizes ? (
+                                                        <div className="mt-auto w-full pt-1.5" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="grid grid-cols-2 gap-1.5 w-full" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                {item.prices.map((price, pIdx) => {
+                                                                    const label = item.size_labels?.[pIdx] || (isAr ? `حجم ${pIdx + 1}` : `Size ${pIdx + 1}`);
+                                                                    const oldPrice = item.old_prices?.[pIdx];
+                                                                    const hasDisc = Boolean(oldPrice && oldPrice > price);
+                                                                    const sizeCartQty = getItemSizeCartQty(item.id, pIdx);
+                                                                    const isOddLast = (item.prices.length % 2 !== 0) && (pIdx === item.prices.length - 1);
 
-                                                                const labelLen = label.trim().length;
-                                                                const sizeTextClass = 
-                                                                    labelLen > 11 ? 'text-[9px] sm:text-[9.5px]' :
-                                                                    labelLen > 7 ? 'text-[10px] sm:text-[10.5px]' :
-                                                                    labelLen > 4 ? 'text-[10.5px] sm:text-xs' :
-                                                                    'text-xs';
-                                                                const sizeFontWeight = labelLen > 4 ? 'font-bold' : 'font-extrabold';
-
-                                                                return (
-                                                                    <button
-                                                                        key={pIdx}
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            if (item.extras && item.extras.length > 0) {
-                                                                                openItemDetails(item, catName(category), category.id, pIdx);
-                                                                            } else {
-                                                                                quickAddSizeToCart(item, catName(category), pIdx, e);
-                                                                            }
-                                                                        }}
-                                                                        className={`relative group/size flex flex-col justify-between p-2 rounded-xl border transition-all text-start min-h-[52px] sm:min-h-[56px] active:scale-[0.98] ${
-                                                                            isOddLast ? 'col-span-2' : ''
-                                                                        } ${
-                                                                            sizeCartQty > 0
-                                                                                ? 'shadow-xs ring-1'
-                                                                                : hasDisc
-                                                                                    ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30 text-rose-950 dark:text-rose-200 hover:border-rose-500 shadow-2xs'
-                                                                                    : 'border-slate-200 dark:border-white/10 bg-slate-50/90 dark:bg-zinc-800/80 text-slate-800 dark:text-zinc-100 hover:border-slate-300 dark:hover:border-zinc-700'
-                                                                        }`}
-                                                                        style={sizeCartQty > 0 ? {
-                                                                            borderColor: primaryColor,
-                                                                            backgroundColor: isDark ? `${primaryColor}22` : `${primaryColor}12`,
-                                                                            boxShadow: `0 0 0 1px ${primaryColor}40`
-                                                                        } : undefined}
-                                                                        title={label}
-                                                                    >
-                                                                        {/* Offer Badge on Top of Pill */}
-                                                                        {hasDisc && sizeDiscountPercent && (
-                                                                            <span className="absolute -top-2 inset-x-0 mx-auto w-fit px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[8px] font-black shadow-2xs whitespace-nowrap leading-none flex items-center gap-0.5 z-10">
-                                                                                <span>%{sizeDiscountPercent}</span>
-                                                                                <span>{isAr ? 'خصم' : 'OFF'}</span>
-                                                                            </span>
-                                                                        )}
-
-                                                                        {/* Size Label Header */}
-                                                                        <div className="w-full flex items-center justify-between gap-1 leading-tight mb-1">
-                                                                            <span 
-                                                                                dir="auto"
-                                                                                className={`break-words line-clamp-1 ${sizeTextClass} ${sizeFontWeight} ${
-                                                                                    hasDisc ? 'text-rose-700 dark:text-rose-300' : 'text-slate-800 dark:text-zinc-100'
-                                                                                }`}
-                                                                            >
-                                                                                {label}
-                                                                            </span>
+                                                                    return (
+                                                                        <div
+                                                                            key={pIdx}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (item.extras && item.extras.length > 0) {
+                                                                                    openItemDetails(item, catName(category), category.id, pIdx);
+                                                                                } else {
+                                                                                    quickAddSizeToCart(item, catName(category), pIdx, e);
+                                                                                }
+                                                                            }}
+                                                                            className={`relative flex flex-col items-center justify-between rounded-xl border min-w-0 text-center transition-all hover:scale-[1.02] cursor-pointer ${
+                                                                                isOddLast ? 'col-span-2' : ''
+                                                                            } p-2 min-h-[48px] ${
+                                                                                sizeCartQty > 0
+                                                                                    ? 'shadow-xs ring-1'
+                                                                                    : hasDisc
+                                                                                        ? 'border-rose-400/80 bg-rose-50/70 dark:bg-rose-950/30'
+                                                                                        : 'border-slate-200/80 dark:border-white/10 bg-black/3 dark:bg-white/5 hover:border-slate-300 dark:hover:border-zinc-700'
+                                                                            }`}
+                                                                            style={sizeCartQty > 0 ? {
+                                                                                borderColor: primaryColor,
+                                                                                backgroundColor: isDark ? `${primaryColor}22` : `${primaryColor}12`,
+                                                                                boxShadow: `0 0 0 1px ${primaryColor}40`
+                                                                            } : undefined}
+                                                                            title={label}
+                                                                        >
                                                                             {sizeCartQty > 0 && (
                                                                                 <span 
-                                                                                    className="px-1.5 py-0.2 rounded-full text-[9px] font-black text-white shrink-0 shadow-2xs"
+                                                                                    className="absolute -top-1.5 -end-1 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-white flex items-center justify-center shadow-xs z-10"
                                                                                     style={{ backgroundColor: primaryColor }}
                                                                                 >
                                                                                     {sizeCartQty}
                                                                                 </span>
                                                                             )}
-                                                                        </div>
 
-                                                                        {/* Price & Action Row */}
-                                                                        <div className="w-full flex items-center justify-between gap-1 pt-1 border-t border-slate-200/60 dark:border-white/5 leading-none">
-                                                                            {/* Price display */}
-                                                                            <div className="flex flex-col items-start leading-none">
+                                                                            <span className="text-[11px] sm:text-xs font-bold text-slate-900 dark:text-zinc-100 leading-tight text-center line-clamp-2 px-0.5 break-words w-full">
+                                                                                {label}
+                                                                            </span>
+
+                                                                            <div className="flex items-center justify-center gap-1 mt-1 leading-none" dir="ltr">
                                                                                 {hasDisc && (
-                                                                                    <span className="text-[8.5px] line-through text-rose-500/80 font-bold decoration-rose-500/80 mb-0.5">
+                                                                                    <span className="line-through text-rose-500 font-bold decoration-rose-500 text-[8.5px]">
                                                                                         {oldPrice}
                                                                                     </span>
                                                                                 )}
-                                                                                <div className="flex items-baseline gap-0.5">
-                                                                                    <span className={`text-xs font-black ${hasDisc ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
-                                                                                        {price}
-                                                                                    </span>
-                                                                                    <span className="text-[8.5px] sm:text-[9px] font-bold text-slate-500 dark:text-zinc-400">
-                                                                                        {cur}
-                                                                                    </span>
-                                                                                </div>
+                                                                                <span style={{ color: primaryColor }} className="font-black text-xs sm:text-[13px] whitespace-nowrap">
+                                                                                    {price}
+                                                                                </span>
+                                                                                <span className="text-[8px] font-bold opacity-60 whitespace-nowrap">
+                                                                                    {cur}
+                                                                                </span>
                                                                             </div>
-
-                                                                            {/* Action Button: Stepper or Plus Button */}
-                                                                            {sizeCartQty > 0 ? (
-                                                                                <div 
-                                                                                    className="flex items-center gap-1 bg-white dark:bg-zinc-900 rounded-lg p-0.5 shadow-2xs border border-slate-200 dark:border-zinc-700"
-                                                                                    onClick={(e) => e.stopPropagation()}
-                                                                                >
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            quickDecrementSizeFromCart(item.id, pIdx, e);
-                                                                                        }}
-                                                                                        className="w-5 h-5 rounded-md bg-rose-500/10 hover:bg-rose-500 text-rose-600 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-90"
-                                                                                        title={isAr ? "إنقاص" : "Minus"}
-                                                                                    >
-                                                                                        <Minus className="w-2.5 h-2.5 stroke-[2.5]" />
-                                                                                    </button>
-                                                                                    <span className="text-[10px] font-black px-1 min-w-[12px] text-center" style={{ color: primaryColor }}>
-                                                                                        {sizeCartQty}
-                                                                                    </span>
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            quickAddSizeToCart(item, catName(category), pIdx, e);
-                                                                                        }}
-                                                                                        className="w-5 h-5 rounded-md text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-90 hover:opacity-90"
-                                                                                        style={{ backgroundColor: primaryColor }}
-                                                                                        title={isAr ? "زيادة" : "Plus"}
-                                                                                    >
-                                                                                        <Plus className="w-2.5 h-2.5 stroke-[2.5]" />
-                                                                                    </button>
-                                                                                </div>
-                                                                            ) : (
-                                                                                <div
-                                                                                    className="w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0 shadow-2xs transition-transform group-hover/size:scale-110 active:scale-95"
-                                                                                    style={{ 
-                                                                                        background: `linear-gradient(135deg, ${primaryColor}, ${secondaryGlow})` 
-                                                                                    }}
-                                                                                    title={isAr ? "إضافة" : "Add"}
-                                                                                >
-                                                                                    <Plus className="w-3.5 h-3.5 stroke-[3]" />
-                                                                                </div>
-                                                                            )}
                                                                         </div>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    /* Price & Add To Cart Button */
-                                                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
-                                                        <div>
-                                                            <div className="flex items-baseline gap-1">
-                                                                <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-white">
-                                                                    {currentPrice}
-                                                                </span>
-                                                                <span className="text-[10px] font-bold text-slate-500 dark:text-zinc-400">
-                                                                    {cur}
-                                                                </span>
+                                                                    );
+                                                                })}
                                                             </div>
-                                                            {hasDiscount && (
-                                                                <span className="text-[10px] text-slate-400 line-through">
-                                                                    {currentOldPrice} {cur}
-                                                                </span>
+
+                                                            {/* Add to Cart Button (Theme 26 style) */}
+                                                            {config.orders_enabled !== false && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="w-full rounded-2xl font-bold flex items-center justify-center gap-1.5 text-white transition-all active:scale-95 shadow-sm hover:opacity-90 mt-2.5 py-2 px-3 text-xs"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openItemDetails(item, catName(category), category.id);
+                                                                    }}
+                                                                >
+                                                                    <ShoppingCart className="w-3.5 h-3.5" />
+                                                                    <span>{isAr ? 'إضافة إلى السلة' : 'Add To Cart'}</span>
+                                                                </button>
                                                             )}
                                                         </div>
-
-                                                        {/* In-Card Stepper OR Add Button */}
-                                                        {inCartQty > 0 ? (
-                                                            <div 
-                                                                className="flex items-center gap-1.5 rounded-xl p-0.5 border"
-                                                                style={{ 
-                                                                    backgroundColor: isDark ? `${primaryColor}20` : `${primaryColor}12`,
-                                                                    borderColor: `${primaryColor}40`
-                                                                }}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            >
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => quickDecrementFromCart(item.id, e)}
-                                                                    className="w-6 h-6 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center font-bold text-xs shadow-2xs hover:bg-slate-100 active:scale-90"
-                                                                    style={{ color: primaryColor }}
-                                                                >
-                                                                    <Minus className="w-3 h-3" />
-                                                                </button>
-                                                                <span className="text-xs font-black px-1" style={{ color: primaryColor }}>
-                                                                    {inCartQty}
-                                                                </span>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                    className="w-6 h-6 rounded-lg text-white flex items-center justify-center font-bold text-xs shadow-2xs active:scale-90 hover:opacity-90"
-                                                                    style={{ backgroundColor: primaryColor }}
-                                                                >
-                                                                    <Plus className="w-3 h-3" />
-                                                                </button>
+                                                    ) : (
+                                                        <div className="mt-auto w-full pt-1.5" onClick={(e) => e.stopPropagation()}>
+                                                            <div className="flex items-center justify-between w-full mb-1" dir="ltr">
+                                                                <div className="flex-1 min-w-0" dir={isAr ? 'rtl' : 'ltr'}>
+                                                                    {item.size_labels?.[0] && (
+                                                                        <span className="text-xs font-bold opacity-70 truncate block text-slate-600 dark:text-zinc-400">
+                                                                            {item.size_labels[0]}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                                                    {hasDiscount && (
+                                                                        <span className="text-xs line-through text-rose-500 font-bold decoration-rose-500">
+                                                                            {currentOldPrice} {cur}
+                                                                        </span>
+                                                                    )}
+                                                                    <span className="font-black text-base sm:text-lg" style={{ color: primaryColor }}>
+                                                                        {currentPrice} {cur}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={(e) => quickAddToCart(item, catName(category), e)}
-                                                                className="w-8 h-8 rounded-xl active:scale-90 text-white flex items-center justify-center transition-all shadow-md hover:opacity-90"
-                                                                style={{ 
-                                                                    backgroundColor: primaryColor,
-                                                                    boxShadow: `0 4px 14px 0 ${primaryColor}4d`
-                                                                }}
-                                                                title={isAr ? "إضافة سريعة للسلة" : "Quick Add to Cart"}
-                                                            >
-                                                                <Plus className="w-4 h-4" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
+
+                                                            {/* Add to Cart Button */}
+                                                            {config.orders_enabled !== false && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="w-full rounded-2xl font-bold flex items-center justify-center gap-1.5 text-white transition-all active:scale-95 shadow-sm hover:opacity-90 mt-2 py-2 px-3 text-xs"
+                                                                    style={{ backgroundColor: primaryColor }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (item.extras && item.extras.length > 0) {
+                                                                            openItemDetails(item, catName(category), category.id);
+                                                                        } else {
+                                                                            quickAddToCart(item, catName(category), e);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <ShoppingCart className="w-3.5 h-3.5" />
+                                                                    <span>{isAr ? 'إضافة إلى السلة' : 'Add To Cart'}</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         );
                                     })}
