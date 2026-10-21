@@ -1074,7 +1074,7 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                             }}
                         >
                             <CreditCard className="w-3.5 h-3.5" />
-                            <span>{isAr ? "طرق الدفع" : "Payments"}</span>
+                            <span>{isAr ? "وسائل الدفع" : "Payments"}</span>
                         </button>
 
                         {/* Social Links (Instagram, Facebook, TikTok...) */}
@@ -2928,84 +2928,189 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                     )}
                 </AnimatePresence>
 
-                {/* 12. PAYMENT METHODS & TRANSFER NUMBERS MODAL */}
+                {/* 12. PAYMENT METHODS & TRANSFER NUMBERS MODAL (THEME 28 STYLE) */}
                 <AnimatePresence>
                     {isPaymentModalOpen && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                            <motion.div
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+                            <motion.div 
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 exit={{ opacity: 0 }}
                                 onClick={() => setIsPaymentModalOpen(false)}
-                                className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+                                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
                             />
-
-                            <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                className="relative w-full max-w-sm rounded-3xl bg-white dark:bg-zinc-900 p-5 shadow-2xl border border-white/20 dark:border-white/10 z-10 space-y-4"
+                            <motion.div 
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-5 shadow-2xl z-10 border border-black/5 dark:border-white/10 max-h-[85vh] overflow-y-auto no-scrollbar my-auto"
                             >
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
+                                {/* Modal Header */}
+                                <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
+                                    <div className="flex items-center gap-2.5">
                                         <div 
-                                            className="w-8 h-8 rounded-xl flex items-center justify-center"
-                                            style={{ backgroundColor: `${primaryColor}20`, color: primaryColor }}
+                                            className="w-9 h-9 rounded-2xl flex items-center justify-center text-white shadow-xs shrink-0"
+                                            style={{ backgroundColor: primaryColor }}
                                         >
                                             <CreditCard className="w-4 h-4" />
                                         </div>
-                                        <h3 className="font-black text-sm text-slate-900 dark:text-white">
-                                            {isAr ? "طرق الدفع والتحويل" : "Payment Methods"}
-                                        </h3>
+                                        <div>
+                                            <h3 className="font-black text-sm sm:text-base leading-tight text-slate-800 dark:text-zinc-100">
+                                                {isAr ? 'وسائل الدفع المتاحة' : 'Payment Methods'}
+                                            </h3>
+                                            <p className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
+                                                {isAr ? 'طرق السداد المعتمدة لدى المطعم' : 'Accepted payment options'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <button
+                                    <button 
                                         type="button"
                                         onClick={() => setIsPaymentModalOpen(false)}
-                                        className="p-1 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-500"
+                                        className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors shrink-0 text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
                                     >
                                         <X className="w-4 h-4" />
                                     </button>
                                 </div>
 
-                                <div className="space-y-2.5">
+                                {/* Payment Methods List */}
+                                <div className="py-4 space-y-3">
                                     {config.payment_methods && Array.isArray(config.payment_methods) && config.payment_methods.length > 0 ? (
-                                        config.payment_methods.map((pm: any, pIdx: number) => {
-                                            const pmName = pm.name || pm.type || (isAr ? 'طريقة دفع' : 'Payment Method');
-                                            const pmNum = pm.number || pm.phone || pm.account;
+                                        config.payment_methods.map((pm: any, idx: number) => {
+                                            const title = isAr 
+                                                ? (pm.name_ar || pm.name || pm.title_ar || pm.title || pm.type) 
+                                                : (pm.name_en || pm.name || pm.name_ar || pm.title_en || pm.type);
+                                            const desc = isAr 
+                                                ? (pm.desc_ar || pm.desc || pm.description_ar || pm.description) 
+                                                : (pm.desc_en || pm.desc_ar || pm.desc);
+                                            const num = pm.number || pm.phone || pm.account;
                                             return (
-                                                <div key={pIdx} className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-white/5 space-y-1">
+                                                <div 
+                                                    key={pm.id || idx} 
+                                                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 space-y-2"
+                                                >
                                                     <div className="flex items-center justify-between">
-                                                        <span className="font-bold text-xs text-slate-900 dark:text-white">{pmName}</span>
-                                                        {pmNum && (
+                                                        <span className="font-black text-xs sm:text-sm text-slate-800 dark:text-zinc-100">
+                                                            {title}
+                                                        </span>
+                                                        <span 
+                                                            className="text-[10px] font-black px-2 py-0.5 rounded-full border"
+                                                            style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderColor: `${primaryColor}30` }}
+                                                        >
+                                                            {isAr ? 'متاح' : 'Available'}
+                                                        </span>
+                                                    </div>
+
+                                                    {desc && (
+                                                        <p className="text-[11px] text-slate-600 dark:text-zinc-300 leading-relaxed font-medium">
+                                                            {desc}
+                                                        </p>
+                                                    )}
+
+                                                    {num && (
+                                                        <div className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-black/5 dark:border-white/5">
+                                                            <span className="font-mono font-black text-xs tracking-wider text-slate-900 dark:text-white" dir="ltr">
+                                                                {num}
+                                                            </span>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    navigator.clipboard.writeText(pmNum);
-                                                                    setCopiedNumber(pmNum);
-                                                                    setTimeout(() => setCopiedNumber(null), 2000);
+                                                                    navigator.clipboard.writeText(num);
+                                                                    setCopiedNumber(num);
+                                                                    setTimeout(() => setCopiedNumber(null), 2500);
                                                                 }}
-                                                                className="text-[10px] font-bold px-2 py-0.5 rounded-lg flex items-center gap-1 hover:opacity-80 transition-opacity"
-                                                                style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                                                                className="text-[11px] font-black px-2.5 py-1 rounded-lg text-white transition-all active:scale-95 shadow-2xs cursor-pointer"
+                                                                style={{ backgroundColor: primaryColor }}
                                                             >
-                                                                <Copy className="w-2.5 h-2.5" />
-                                                                <span>{copiedNumber === pmNum ? (isAr ? "تم النسخ ✓" : "Copied ✓") : (isAr ? "نسخ الرقم" : "Copy")}</span>
+                                                                {copiedNumber === num ? (isAr ? 'تم النسخ ✓' : 'Copied!') : (isAr ? 'نسخ الرقم' : 'Copy')}
                                                             </button>
-                                                        )}
-                                                    </div>
-                                                    {pmNum && (
-                                                        <p className="font-mono text-xs text-slate-600 dark:text-zinc-300 font-black tracking-wider">
-                                                            {pmNum}
-                                                        </p>
+                                                        </div>
+                                                    )}
+
+                                                    {pm.link && (
+                                                        <a 
+                                                            href={pm.link} 
+                                                            target="_blank" 
+                                                            rel="noreferrer"
+                                                            className="inline-flex items-center justify-center gap-1.5 w-full py-2 rounded-xl text-white text-xs font-black shadow-xs active:scale-95 transition-all mt-1"
+                                                            style={{ backgroundColor: primaryColor }}
+                                                        >
+                                                            <span>{isAr ? 'الدفع مباشرة عبر الرابط' : 'Pay via Link'}</span>
+                                                            <ArrowUpRight className="w-3.5 h-3.5" />
+                                                        </a>
                                                     )}
                                                 </div>
                                             );
                                         })
                                     ) : (
-                                        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800 text-center text-xs text-slate-500">
-                                            {isAr ? "متاح الدفع كاش عند الاستلام، أو التحويل عبر انستا باي والمحافظ الإلكترونية." : "Cash on delivery, InstaPay, and mobile wallets are accepted."}
-                                        </div>
+                                        <>
+                                            {/* Default Fallback Payment Methods */}
+                                            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/80 space-y-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-black text-xs sm:text-sm text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
+                                                        <span>💵</span>
+                                                        <span>{isAr ? 'الدفع عند الاستلام (كاش)' : 'Cash on Delivery'}</span>
+                                                    </span>
+                                                    <span 
+                                                        className="text-[10px] font-black px-2 py-0.5 rounded-full border"
+                                                        style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderColor: `${primaryColor}30` }}
+                                                    >
+                                                        {isAr ? 'متاح' : 'Active'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-600 dark:text-zinc-300 font-medium">
+                                                    {config.delivery_enabled && !config.pickup_enabled
+                                                        ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر مع مندوب الدليفري.' : 'Pay cash upon delivery.')
+                                                        : !config.delivery_enabled && config.pickup_enabled
+                                                        ? (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو استلام تيك أواي.' : 'Pay cash upon dine-in or takeaway.')
+                                                        : (isAr ? 'الدفع المباشر كاش عند استلام الأوردر في الصالة أو التيك أواي أو مع مندوب الدليفري.' : 'Pay cash upon dine-in, takeaway or delivery.')
+                                                    }
+                                                </p>
+                                            </div>
+
+                                            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/80 space-y-1">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-black text-xs sm:text-sm text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
+                                                        <span>📱</span>
+                                                        <span>{isAr ? 'انستا باي / محافظ إلكترونية' : 'InstaPay & E-Wallets'}</span>
+                                                    </span>
+                                                    <span 
+                                                        className="text-[10px] font-black px-2 py-0.5 rounded-full border"
+                                                        style={{ backgroundColor: `${primaryColor}15`, color: primaryColor, borderColor: `${primaryColor}30` }}
+                                                    >
+                                                        {isAr ? 'متاح' : 'Active'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-[11px] text-slate-600 dark:text-zinc-300 font-medium">
+                                                    {isAr ? 'متاح التحويل اللحظي عبر انستا باي أو المحافظ الإلكترونية (فودافون كاش، اتصالات، أورنج).' : 'Instant transfer via InstaPay or Mobile Wallets.'}
+                                                </p>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
+
+                                {/* Screenshot Confirmation Notice */}
+                                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 flex items-center gap-2.5 text-amber-800 dark:text-amber-300 shadow-2xs">
+                                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 text-base">
+                                        📸
+                                    </div>
+                                    <p className="text-xs font-black leading-snug">
+                                        {isAr ? 'برجاء إرسال سكرين شوت على رقم الواتساب للتأكيد' : 'Please send a screenshot to WhatsApp for confirmation'}
+                                    </p>
+                                </div>
+
+                                {/* Footer WhatsApp Button */}
+                                {whatsappClean && (
+                                    <a
+                                        href={`https://wa.me/${whatsappClean}?text=${encodeURIComponent(isAr ? 'السلام عليكم، قمت بالتحويل وأود إرسال سكرين شوت لتأكيد الطلب' : 'Hello, I have completed the transfer and would like to send a screenshot to confirm my order')}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full h-11 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-black flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all mt-1"
+                                    >
+                                        <FaWhatsapp className="w-4 h-4" />
+                                        <span>{isAr ? 'تأكيد أو تحويل الدفع عبر واتساب' : 'Confirm Payment on WhatsApp'}</span>
+                                    </a>
+                                )}
                             </motion.div>
                         </div>
                     )}
