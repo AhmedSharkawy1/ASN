@@ -305,6 +305,8 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
     const [waiterCallType, setWaiterCallType] = useState<string>('waiter');
     const [waiterCallSent, setWaiterCallSent] = useState(false);
     const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
+    const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
+    const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
     const [showHoursModal, setShowHoursModal] = useState(false);
 
     // Direct card quick size index tracker
@@ -725,7 +727,60 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
     const whatsappNum = config.whatsapp_number;
     const whatsappClean = whatsappNum ? whatsappNum.replace(/[^0-9]/g, '') : null;
     const locationUrl = config.location_url || config.location_link || config.map_link;
-    const phoneNum = config.phone || (config.phone_numbers && config.phone_numbers[0]);
+    const phoneList = useMemo(() => {
+        const list: { label?: string; number: string }[] = [];
+        const seen = new Set<string>();
+
+        const addNumber = (numRaw: any, label?: string) => {
+            if (!numRaw) return;
+            const clean = String(numRaw).trim();
+            if (clean && !seen.has(clean)) {
+                seen.add(clean);
+                list.push({ label: label?.trim() || '', number: clean });
+            }
+        };
+
+        // 1. config.phone_numbers
+        if (Array.isArray(config?.phone_numbers)) {
+            config.phone_numbers.forEach((p: any) => {
+                if (typeof p === 'object' && p?.number) {
+                    addNumber(p.number, p.label);
+                } else if (typeof p === 'string') {
+                    addNumber(p);
+                }
+            });
+        }
+
+        // 2. config.phone
+        if (config?.phone) {
+            String(config.phone).split(/[,/|\n]+/).forEach(p => {
+                addNumber(p, isAr ? 'الرقم الأساسي' : 'Main Phone');
+            });
+        }
+
+        // 3. Branches numbers if branches are enabled
+        if (config?.branches_enabled && Array.isArray(config?.branches)) {
+            config.branches.forEach((b: any) => {
+                const bName = b.name || b.name_ar || b.name_en || '';
+                if (Array.isArray(b.phone_numbers)) {
+                    b.phone_numbers.forEach((p: any) => {
+                        const num = typeof p === 'object' ? p?.number : p;
+                        const label = typeof p === 'object' && p?.label ? `${bName} (${p.label})` : bName;
+                        addNumber(num, label);
+                    });
+                }
+                if (b.phone) {
+                    String(b.phone).split(/[,/|\n]+/).forEach(p => {
+                        addNumber(p, bName);
+                    });
+                }
+            });
+        }
+
+        return list;
+    }, [config?.phone, config?.phone_numbers, config?.branches, config?.branches_enabled, isAr]);
+
+    const phoneNum = phoneList[0]?.number || config.phone;
 
     return (
         <div 
@@ -1038,15 +1093,17 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                             </a>
                         )}
 
-                        {/* Direct Call */}
-                        {phoneNum && (
-                            <a
-                                href={`tel:${phoneNum}`}
-                                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-700 dark:text-zinc-300 border border-black/5 dark:border-white/5 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+                        {/* Direct Call / Numbers Modal */}
+                        {phoneList.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setIsPhoneModalOpen(true)}
+                                className="px-3 py-1.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/25 text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+                                title={isAr ? "أرقام الاتصال" : "Call"}
                             >
                                 <Phone className="w-3.5 h-3.5 text-blue-500" />
                                 <span>{isAr ? "اتصال" : "Call"}</span>
-                            </a>
+                            </button>
                         )}
 
                         {/* Location Map */}
@@ -3111,6 +3168,103 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                                         <span>{isAr ? 'تأكيد أو تحويل الدفع عبر واتساب' : 'Confirm Payment on WhatsApp'}</span>
                                     </a>
                                 )}
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+
+                {/* 12.5 CALL & PHONE NUMBERS MODAL */}
+                <AnimatePresence>
+                    {isPhoneModalOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+                            <motion.div 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsPhoneModalOpen(false)}
+                                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                            />
+                            <motion.div 
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-3xl p-5 shadow-2xl z-10 border border-black/5 dark:border-white/10 max-h-[85vh] overflow-y-auto no-scrollbar my-auto"
+                            >
+                                {/* Modal Header */}
+                                <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/10">
+                                    <div className="flex items-center gap-2.5">
+                                        <div 
+                                            className="w-9 h-9 rounded-2xl flex items-center justify-center text-white shadow-xs shrink-0 bg-blue-500"
+                                        >
+                                            <Phone className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-black text-sm sm:text-base leading-tight text-slate-800 dark:text-zinc-100">
+                                                {isAr ? 'أرقام الاتصال بالمطعم' : 'Contact Numbers'}
+                                            </h3>
+                                            <p className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
+                                                {isAr ? 'اختر الرقم للاتصال المباشر' : 'Choose a number to call'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsPhoneModalOpen(false)}
+                                        className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-zinc-700 transition-colors shrink-0 text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Phone Numbers List */}
+                                <div className="py-4 space-y-3">
+                                    {phoneList.map((item, idx) => {
+                                        return (
+                                            <div 
+                                                key={idx}
+                                                className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800/60 border border-black/5 dark:border-white/5 space-y-2.5"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-black text-xs sm:text-sm text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
+                                                        <Phone className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                                        <span>{item.label || (isAr ? `رقم هاتف ${idx + 1}` : `Phone ${idx + 1}`)}</span>
+                                                    </span>
+                                                    <span 
+                                                        className="text-[10px] font-black px-2 py-0.5 rounded-full border bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20"
+                                                    >
+                                                        {isAr ? 'متاح للاتصال' : 'Available'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center justify-between bg-white dark:bg-zinc-900 px-3 py-2 rounded-xl border border-black/5 dark:border-white/5">
+                                                    <span className="font-mono font-black text-sm tracking-wider text-slate-900 dark:text-white" dir="ltr">
+                                                        {item.number}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(item.number);
+                                                            setCopiedPhone(item.number);
+                                                            setTimeout(() => setCopiedPhone(null), 2500);
+                                                        }}
+                                                        className="text-[11px] font-black px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-200 transition-all active:scale-95 cursor-pointer"
+                                                    >
+                                                        {copiedPhone === item.number ? (isAr ? 'تم النسخ ✓' : 'Copied!') : (isAr ? 'نسخ' : 'Copy')}
+                                                    </button>
+                                                </div>
+
+                                                <a 
+                                                    href={`tel:${item.number}`}
+                                                    className="inline-flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all cursor-pointer"
+                                                >
+                                                    <Phone className="w-3.5 h-3.5" />
+                                                    <span>{isAr ? 'اتصال الآن بهذا الرقم' : 'Call this number now'}</span>
+                                                </a>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </motion.div>
                         </div>
                     )}
