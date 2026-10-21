@@ -8,6 +8,7 @@ import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, ArrowRight, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight, ChevronLeft, CreditCard, Globe } from 'lucide-react';
 import ASNFooter from '@/components/menu/ASNFooter';
+import { getAllBranchesWithMain } from '@/lib/branchUtils';
 import UsaDualCheckoutModal from './UsaDualCheckoutModal';
 import UsaDualLandingPage from './UsaDualLandingPage';
 import SharedMarquee from './SharedMarquee';
@@ -1084,7 +1085,7 @@ export default function ThemeUsaDualMenu({ config, categories, restaurantId }: T
                 onOrderSuccess={() => {
                     setCart([]);
                 }}
-                branches={config.branches || []}
+                branches={getAllBranchesWithMain(config, isAr)}
             />
 
             {/* Payment Options Modal */}

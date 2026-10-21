@@ -3092,6 +3092,9 @@ export default function Theme31Menu({ config, categories, restaurantId, suppress
                     language={currentLang} 
                     orderChannel={config.order_channel}
                     onOrderSuccess={() => { setCart([]); setIsCartOpen(false); }}
+                    restaurantAddress={config.address}
+                    restaurantPhone={config.phone}
+                    branches={config.branches || []}
                 />
 
                 {/* 15. ASN BRANDING FOOTER */}

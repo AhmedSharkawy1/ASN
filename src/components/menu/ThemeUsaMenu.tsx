@@ -8,6 +8,7 @@ import { useTheme } from 'next-themes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Plus, Minus, Trash2, X, Search, Share2, ArrowLeft, LayoutList, Grid2X2, Square, Sun, Moon, ChevronRight, CreditCard } from 'lucide-react';
 import ASNFooter from '@/components/menu/ASNFooter';
+import { getAllBranchesWithMain } from '@/lib/branchUtils';
 import UsaCheckoutModal from './UsaCheckoutModal';
 import UsaLandingPage from './UsaLandingPage';
 import SharedMarquee from './SharedMarquee';
@@ -1055,7 +1056,7 @@ export default function ThemeUsaMenu({ config, categories, restaurantId }: Theme
                 onOrderSuccess={() => {
                     setCart([]);
                 }}
-                branches={config.branches || []}
+                branches={getAllBranchesWithMain(config, false)}
             />
 
             {/* Payment Options Modal */}

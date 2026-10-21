@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase/client";
 import { submitOrder, buildWhatsAppMessage, OrderItem, OrderItemExtra } from "@/lib/helpers/submitOrder";
 import { fetchActivePromotions, evaluatePromotions, hasPromoCodeOffers, requiresPromoCode, getBogoSuggestion, AppliedPromotion, Promotion } from "@/lib/helpers/promotionEngine";
 import { parseCurrency } from "@/lib/currency";
+import { getAllBranchesWithMain, getBranchName, BranchItem } from "@/lib/branchUtils";
 import { FaWhatsapp } from "react-icons/fa";
 import { X, Truck, Store, MapPin, Clock, CheckCircle, Loader2, Plus, Minus, Tag, Gift, Sparkles, Utensils } from "lucide-react";
 
@@ -51,6 +52,8 @@ type CheckoutModalProps = {
     onOrderSuccess?: () => void;
     branches?: any[];
     serviceType?: 'delivery_and_takeaway' | 'dine_in_and_delivery' | 'delivery_only' | 'dine_in_only';
+    restaurantAddress?: string;
+    restaurantPhone?: string;
 };
 
 export default function CheckoutModal({
@@ -61,7 +64,9 @@ export default function CheckoutModal({
     // when a number exists, so it never reads the value.
     currency: propCurrency = "ج.م", language, onOrderSuccess,
     branches: propBranches = [],
-    serviceType: propServiceType
+    serviceType: propServiceType,
+    restaurantAddress: propRestaurantAddress = '',
+    restaurantPhone: propRestaurantPhone = ''
 }: CheckoutModalProps) {
     const isAr = language === "ar";
     const printRef = useRef<HTMLDivElement>(null);
@@ -140,20 +145,43 @@ export default function CheckoutModal({
     const [codeError, setCodeError] = useState("");
 
     // Branch state
-    const [localBranches, setLocalBranches] = useState<any[]>(propBranches);
-    const [selectedBranch, setSelectedBranch] = useState("");
+    const [localBranches, setLocalBranches] = useState<any[]>(() => {
+        return getAllBranchesWithMain({
+            branches: propBranches,
+            address: propRestaurantAddress,
+            phone: propRestaurantPhone,
+            whatsapp_number: whatsappNumber,
+            name: restaurantName,
+        }, isAr);
+    });
+    const [selectedBranch, setSelectedBranch] = useState<string>(() => {
+        const initial = getAllBranchesWithMain({
+            branches: propBranches,
+            address: propRestaurantAddress,
+            phone: propRestaurantPhone,
+            whatsapp_number: whatsappNumber,
+            name: restaurantName,
+        }, isAr);
+        return initial.length > 0 ? getBranchName(initial[0], isAr) : "";
+    });
 
     // Sync propBranches with local state
     useEffect(() => {
-        if (propBranches && propBranches.length > 0) {
-            setLocalBranches(propBranches);
+        const list = getAllBranchesWithMain({
+            branches: propBranches,
+            address: propRestaurantAddress,
+            phone: propRestaurantPhone,
+            whatsapp_number: whatsappNumber,
+            name: restaurantName,
+        }, isAr);
+        if (list.length > 0) {
+            setLocalBranches(list);
             setSelectedBranch(prev => {
-                if (prev) return prev;
-                const first = propBranches[0];
-                return typeof first === 'string' ? first : (first?.name || first?.name_ar || first?.name_en || '');
+                if (prev && list.some(b => getBranchName(b, isAr) === prev)) return prev;
+                return getBranchName(list[0], isAr);
             });
         }
-    }, [propBranches]);
+    }, [propBranches, propRestaurantAddress, propRestaurantPhone, whatsappNumber, restaurantName, isAr]);
 
     // Fetch branches and currency from DB
     useEffect(() => {
@@ -163,22 +191,26 @@ export default function CheckoutModal({
             try {
                 const { data } = await supabase
                     .from('restaurants')
-                    .select('branches_enabled, branches, currency, pickup_enabled, delivery_enabled, theme_colors')
+                    .select('branches_enabled, branches, currency, pickup_enabled, delivery_enabled, theme_colors, address, phone, phone_numbers, map_link, name, whatsapp_number')
                     .eq('id', restaurantId)
                     .single();
                 if (data) {
-                    if (propBranches && propBranches.length > 0) {
-                        // Keep prop branches
-                    } else if (data.branches_enabled && Array.isArray(data.branches)) {
-                        setLocalBranches(data.branches);
-                        setSelectedBranch(prev => {
-                            if (prev) return prev;
-                            const first = data.branches[0];
-                            return typeof first === 'string' ? first : (first?.name || first?.name_ar || first?.name_en || '');
-                        });
-                    } else {
-                        setLocalBranches([]);
-                    }
+                    const combinedConfig = {
+                        branches_enabled: data.branches_enabled,
+                        branches: (propBranches && propBranches.length > 0) ? propBranches : data.branches,
+                        address: data.address || propRestaurantAddress,
+                        phone: data.phone || propRestaurantPhone,
+                        phone_numbers: data.phone_numbers,
+                        map_link: data.map_link,
+                        whatsapp_number: data.whatsapp_number || whatsappNumber,
+                        name: data.name || restaurantName,
+                    };
+                    const list = getAllBranchesWithMain(combinedConfig, isAr);
+                    setLocalBranches(list);
+                    setSelectedBranch(prev => {
+                        if (prev && list.some(b => getBranchName(b, isAr) === prev)) return prev;
+                        return list.length > 0 ? getBranchName(list[0], isAr) : '';
+                    });
 
                     if (data.currency) {
                         setCurrency(parseCurrency(data.currency, isAr));
@@ -275,7 +307,10 @@ export default function CheckoutModal({
             setOrderNumber(null);
             setItemExtras({});
             setFinalizedOrderDetails(null);
-            setSelectedBranch("");
+            setSelectedBranch(prev => {
+                if (prev && localBranches.some(b => getBranchName(b, isAr) === prev)) return prev;
+                return localBranches.length > 0 ? getBranchName(localBranches[0], isAr) : '';
+            });
             setTableNumber("");
             setCodeInput("");
             setAppliedCode(null);
@@ -481,7 +516,12 @@ export default function CheckoutModal({
     };
 
     const getWaUrl = (newOrderNum?: number) => {
-        if (!whatsappNumber) return "#";
+        const selectedBranchObj = localBranches.find(b => getBranchName(b, isAr) === selectedBranch);
+        const activeWhatsapp = (selectedBranchObj && typeof selectedBranchObj === 'object' && selectedBranchObj.whatsapp_number?.trim())
+            ? selectedBranchObj.whatsapp_number.trim()
+            : (whatsappNumber || "");
+
+        if (!activeWhatsapp) return "#";
         const finalItems = finalizedOrderDetails ? finalizedOrderDetails.items : getFinalItems();
         const finalSubtotal = finalizedOrderDetails ? finalizedOrderDetails.subtotal + finalizedOrderDetails.extrasTotal : subtotal + extrasTotal;
         const finalTotal = finalizedOrderDetails ? finalizedOrderDetails.total : total;
@@ -510,7 +550,7 @@ export default function CheckoutModal({
         
         // Use the official api.whatsapp.com universal link instead of whatsapp://
         // because Facebook blocks custom URI schemes entirely.
-        return `https://api.whatsapp.com/send?phone=${whatsappNumber.replace(/[^\d+]/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
+        return `https://api.whatsapp.com/send?phone=${activeWhatsapp.replace(/[^\d+]/g, "")}&text=${encodeURIComponent(msg.replace(/\uFE0F/g, ''))}`;
     };
 
     // Removed handlePrint here
@@ -777,9 +817,9 @@ export default function CheckoutModal({
                                     <label className="text-xs font-bold text-zinc-500 dark:text-zinc-400 block mb-1">
                                         🏢 {isAr ? "اختر الفرع" : "Select Branch"} <span className="text-red-500">*</span>
                                     </label>
-                                    <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto pr-1">
+                                    <div className="grid grid-cols-1 gap-2 max-h-36 overflow-y-auto pr-1">
                                         {localBranches.map((branch, bIdx) => {
-                                            const branchName = typeof branch === 'string' ? branch : (branch?.name || branch?.name_ar || branch?.name_en || '');
+                                            const branchName = getBranchName(branch, isAr);
                                             const branchAddress = typeof branch === 'object' ? branch?.address : '';
                                             const isSelected = selectedBranch === branchName;
                                             return (
@@ -787,14 +827,21 @@ export default function CheckoutModal({
                                                     key={bIdx}
                                                     type="button"
                                                     onClick={() => setSelectedBranch(branchName)}
-                                                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-start transition-all ${isSelected
-                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold'
+                                                    className={`w-full flex items-center justify-between p-3 rounded-xl border text-start transition-all cursor-pointer ${isSelected
+                                                        ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold shadow-xs'
                                                         : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 text-zinc-700 dark:text-zinc-300'}`}
                                                 >
                                                     <div className="flex flex-col text-start">
-                                                        <span className="text-sm">{branchName}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm">{branchName}</span>
+                                                            {branch?.is_main && (
+                                                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold">
+                                                                    {isAr ? "الأساسي" : "Main"}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {branchAddress && (
-                                                            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal">{branchAddress}</span>
+                                                            <span className="text-[11px] text-zinc-400 dark:text-zinc-500 font-normal mt-0.5">{branchAddress}</span>
                                                         )}
                                                     </div>
                                                     {isSelected && <span className="text-emerald-500 font-bold">✓</span>}
